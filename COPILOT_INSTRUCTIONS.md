@@ -3,6 +3,9 @@
 ## Project Context
 ASCII Motion is a React + TypeScript web application for creating and animating ASCII art. We use Vite for building, Shadcn/ui for components, Zustand for state management, and Tailwind CSS for styling.
 
+## 🚨 **CRITICAL: Adding New Tools**
+**When adding ANY new drawing tool, ALWAYS follow the 8-step componentized pattern in Section 3 below.** This maintains architectural consistency and ensures all tools work seamlessly together. Do NOT add tool logic directly to CanvasGrid or mouse handlers.
+
 ## Code Organization Principles
 
 ### 1. Component Architecture
@@ -26,14 +29,20 @@ src/
 │   ├── useCanvasMouseHandlers.ts  # Mouse interaction routing
 │   ├── useCanvasSelection.ts      # Selection-specific logic
 │   ├── useCanvasDragAndDrop.ts    # Drawing/rectangle tools
-│   └── useCanvasRenderer.ts       # Grid & overlay rendering
+│   ├── useCanvasRenderer.ts       # Grid & overlay rendering
+│   └── useToolBehavior.ts         # Tool coordination & metadata
 ├── components/
 │   ├── organisms/
-│   │   └── CanvasGrid.tsx         # Main composition component (109 lines)
-│   └── tools/                     # Future: tool-specific components
-│       ├── SelectionTool.tsx      # (Step 4 - pending)
-│       ├── DrawingTool.tsx
-│       └── [Other tools...]
+│   │   ├── CanvasGrid.tsx         # Main composition component (111 lines)
+│   │   ├── ToolManager.tsx        # Active tool component renderer (34 lines)
+│   │   └── ToolStatusManager.tsx  # Tool status UI renderer (34 lines)
+│   └── tools/                     # Tool-specific components
+│       ├── SelectionTool.tsx      # Selection behavior & status (53 lines)
+│       ├── DrawingTool.tsx        # Pencil/eraser logic & status (42 lines)
+│       ├── PaintBucketTool.tsx    # Fill tool & status (30 lines)
+│       ├── RectangleTool.tsx      # Rectangle drawing & status (30 lines)
+│       ├── EyedropperTool.tsx     # Color picking & status (26 lines)
+│       └── index.ts               # Tool exports
 ```
 
 **Canvas Component Pattern:**
@@ -233,6 +242,208 @@ const Canvas = () => {
   // Lots of drawing logic mixed with rendering
 };
 ```
+
+### 🔧 **Adding New Tools - Step-by-Step Guide**
+
+**CRITICAL**: When adding ANY new tool, follow this exact pattern to maintain architectural consistency.
+
+#### **Step 1: Update Tool Type Definition**
+```typescript
+// In src/types/index.ts, add your tool to the Tool union type:
+type Tool = 
+  | 'pencil' 
+  | 'eraser' 
+  | 'paintbucket' 
+  | 'select' 
+  | 'rectangle' 
+  | 'eyedropper'
+  | 'your-new-tool'; // Add this line
+```
+
+#### **Step 2: Create Tool Component**
+Create `src/components/tools/YourNewTool.tsx`:
+
+```typescript
+import React from 'react';
+import { useToolStore } from '../../stores/toolStore';
+// Import any needed hooks for your tool's logic
+
+/**
+ * Your New Tool Component
+ * Handles [describe what your tool does]
+ */
+export const YourNewTool: React.FC = () => {
+  // Use existing hooks for tool logic, or create new ones
+  // Example: useDrawingTool(), useCanvasDragAndDrop(), etc.
+  
+  return null; // No direct UI - handles behavior through hooks
+};
+
+/**
+ * Your New Tool Status Component
+ * Provides visual feedback about the tool's current state
+ */
+export const YourNewToolStatus: React.FC = () => {
+  const { /* relevant tool store values */ } = useToolStore();
+
+  return (
+    <span className="text-[color]-600">
+      [Tool Name]: [Current state/instruction for user]
+    </span>
+  );
+};
+```
+
+#### **Step 3: Add Tool to Index**
+Update `src/components/tools/index.ts`:
+
+```typescript
+// Add exports
+export { YourNewTool, YourNewToolStatus } from './YourNewTool';
+
+// Update type
+export type ToolComponent = 
+  | 'SelectionTool'
+  | 'DrawingTool' 
+  | 'PaintBucketTool'
+  | 'RectangleTool'
+  | 'EyedropperTool'
+  | 'YourNewTool'; // Add this
+```
+
+#### **Step 4: Update Tool Behavior Hook**
+Update `src/hooks/useToolBehavior.ts`:
+
+```typescript
+// Add to getActiveToolComponent:
+case 'your-new-tool':
+  return 'YourNewTool';
+
+// Add to getActiveToolStatusComponent:
+case 'your-new-tool':
+  return 'YourNewToolStatus';
+
+// Add to getToolDisplayName:
+case 'your-new-tool':
+  return 'Your New Tool';
+
+// Update other methods as needed (cursor, isDrawingTool, etc.)
+```
+
+#### **Step 5: Update Tool Manager**
+Update `src/components/organisms/ToolManager.tsx`:
+
+```typescript
+import {
+  // ... existing imports
+  YourNewTool,
+} from '../tools';
+
+// Add case to switch statement:
+case 'your-new-tool':
+  return <YourNewTool />;
+```
+
+#### **Step 6: Update Tool Status Manager**
+Update `src/components/organisms/ToolStatusManager.tsx`:
+
+```typescript
+import {
+  // ... existing imports
+  YourNewToolStatus,
+} from '../tools';
+
+// Add case to switch statement:
+case 'your-new-tool':
+  return <YourNewToolStatus />;
+```
+
+#### **Step 7: Tool Logic Implementation**
+- **If simple drawing tool**: Use existing `useDrawingTool` hook
+- **If interactive tool**: Use existing `useCanvasDragAndDrop` hook
+- **If complex tool**: Create new hook in `src/hooks/useYourNewTool.ts`
+
+#### **Step 8: Update Tool Store (if needed)**
+If your tool needs new settings, add to `src/stores/toolStore.ts`:
+
+```typescript
+interface ToolState {
+  // ... existing state
+  yourNewToolSetting?: boolean; // Example
+}
+
+const useToolStore = create<ToolState>((set) => ({
+  // ... existing state
+  yourNewToolSetting: false,
+  
+  // ... existing actions
+  setYourNewToolSetting: (value: boolean) => set({ yourNewToolSetting: value }),
+}));
+```
+
+#### **✅ Validation Checklist**
+Before considering your tool complete:
+
+- [ ] Tool type added to `Tool` union type
+- [ ] Tool component created with behavior + status components
+- [ ] Tool component exported in tools/index.ts
+- [ ] useToolBehavior updated with all tool metadata
+- [ ] ToolManager renders your tool component
+- [ ] ToolStatusManager renders your tool status
+- [ ] Tool logic implemented (existing hooks or new hook)
+- [ ] Tool store updated if new settings needed
+- [ ] Tool works in development server
+- [ ] Tool provides helpful status messages
+- [ ] Tool follows existing interaction patterns
+
+#### **🚨 DO NOT**
+- ❌ Add tool logic directly to CanvasGrid
+- ❌ Modify mouse handlers for tool-specific logic
+- ❌ Create tool logic outside the component + hook pattern
+- ❌ Skip the status component (users need feedback)
+- ❌ Forget to update TypeScript types
+
+### **❌ WRONG APPROACH - DON'T DO THIS**
+```typescript
+// DON'T add tool-specific logic to CanvasGrid
+const handleMouseDown = (event: MouseEvent) => {
+  if (currentTool === 'paintBucket') {
+    // ❌ Tool-specific logic in CanvasGrid
+    const floodFillLogic = ...
+  } else if (currentTool === 'eyedropper') {
+    // ❌ More tool logic cluttering the main component
+    const colorPickLogic = ...
+  }
+}
+```
+
+### **✅ CORRECT APPROACH - DO THIS**
+```typescript
+// ✅ Tool components handle their own behavior
+export const PaintBucketTool = () => {
+  // Tool logic isolated in its own component
+  const floodFillLogic = usePaintBucketTool()
+  return null // Behavior component
+}
+
+// ✅ CanvasGrid stays clean and focused
+const CanvasGrid = () => {
+  return (
+    <div>
+      <canvas ref={canvasRef} />
+      <ToolManager /> {/* All tools managed here */}
+    </div>
+  )
+}
+```
+
+#### **✅ Pattern Benefits**
+Following this pattern ensures:
+- **Consistency**: All tools work the same way
+- **Maintainability**: Tool bugs are isolated
+- **Extensibility**: Easy to add more tools later
+- **Testability**: Each tool can be tested independently
+- **User Experience**: Consistent feedback and behavior
 
 ### 4. TypeScript Guidelines
 
@@ -455,26 +666,29 @@ const useCanvasStore = create<CanvasState>((set) => ({
 - ✅ Canvas Context & State extracted (Step 1 complete)  
 - ✅ Mouse Interaction Logic extracted to Hooks (Step 2 complete)
 - ✅ Rendering split into focused hook (Step 3 complete)
-- ⏳ Tool-specific components (Step 4 pending)
+- ✅ Tool-specific components (Step 4 complete)
 
-**Step 3 Completion**:
-- CanvasGrid.tsx reduced from 246 → 109 lines (~56% reduction)
-- Created specialized rendering hook: `useCanvasRenderer` (159 lines)
-- Extracted `drawCell` function and main rendering logic
-- Combined grid and overlay rendering in correct order
-- All functionality preserved: selection marquee, move preview, grid rendering
+**Step 4 Completion**:
+- CanvasGrid.tsx maintained at ~111 lines (pure composition)
+- Created 5 tool-specific components with status UI (181 lines total)
+- Created ToolManager and ToolStatusManager for composition (68 lines total)
+- Created useToolBehavior hook for tool coordination (109 lines)
+- Enhanced user experience with rich, tool-specific status messages
 
-**Architecture Achievements**:
-- Total CanvasGrid reduction: 501 → 109 lines (~78% reduction)
-- 6 specialized hooks created for canvas functionality
-- Clean separation of concerns: state, interaction, rendering
-- Pattern established for future complex components
+**Final Architecture Achievements**:
+- Total CanvasGrid reduction: 501 → 111 lines (~78% reduction)
+- 7 specialized hooks created for canvas functionality
+- 5 tool components created for extensible tool system
+- Complete separation of concerns: state, interaction, rendering, tools
+- Pattern established for easy addition of new tools
+- Ready for Phase 2: Animation System
 1. **Use CanvasProvider** - Wrap canvas components in context
 2. **Use established hooks** - `useCanvasContext()`, `useCanvasState()`, etc.
 3. **Don't add useState to CanvasGrid** - Extract to context or hooks instead
 4. **Include Zustand dependencies** - Add reactive store data (like `cells`) to useCallback/useMemo deps
-5. **Follow the pattern** - Reference existing refactored code for consistency
-6. **Check DEVELOPMENT.md** - Always review current step status before changes
+5. **Follow tool component pattern** - Use the 8-step guide above for ALL new tools
+6. **Follow the pattern** - Reference existing refactored code for consistency
+7. **Check DEVELOPMENT.md** - Always review current step status before changes
 
 ## 📝 Documentation Maintenance Protocol:
 

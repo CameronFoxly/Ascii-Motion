@@ -5,6 +5,9 @@ import { useCanvasContext } from '../../contexts/CanvasContext';
 import { useCanvasState } from '../../hooks/useCanvasState';
 import { useCanvasMouseHandlers } from '../../hooks/useCanvasMouseHandlers';
 import { useCanvasRenderer } from '../../hooks/useCanvasRenderer';
+import { useToolBehavior } from '../../hooks/useToolBehavior';
+import { ToolManager } from './ToolManager';
+import { ToolStatusManager } from './ToolStatusManager';
 
 interface CanvasGridProps {
   className?: string;
@@ -14,13 +17,13 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   // Use our new context and state management
   const { canvasRef, setMouseButtonDown } = useCanvasContext();
   
-  // Get active tool
+  // Get active tool and tool behavior
   const { activeTool } = useToolStore();
+  const { getToolCursor } = useToolBehavior();
   
   // Canvas dimensions hooks already provide computed values
   const {
     moveState,
-    statusMessage,
     commitMove,
     setSelectionMode,
     setMoveState,
@@ -79,14 +82,13 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
 
   return (
     <div className={`canvas-grid-container ${className}`}>
+      {/* Tool Manager - handles tool-specific behavior */}
+      <ToolManager />
+      
       <div className="canvas-wrapper border-2 border-gray-300 rounded-lg overflow-auto max-h-96">
         <canvas
           ref={canvasRef}
-          className={`canvas-grid ${
-            activeTool === 'select' 
-              ? 'cursor-crosshair'
-              : 'cursor-crosshair'
-          }`}
+          className={`canvas-grid ${getToolCursor(activeTool)}`}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -102,7 +104,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       {/* Canvas info */}
       <div className="mt-2 text-sm text-gray-600 flex justify-between">
         <span>Grid: {width} × {height}</span>
-        <span>{statusMessage}</span>
+        <ToolStatusManager />
       </div>
     </div>
   );
