@@ -19,6 +19,9 @@ interface ToolStoreState extends ToolState {
   setBrushSize: (size: number) => void;
   setRectangleFilled: (filled: boolean) => void;
   
+  // Eyedropper functionality
+  pickFromCell: (char: string, color: string, bgColor: string) => void;
+  
   // Selection actions
   startSelection: (x: number, y: number) => void;
   updateSelection: (x: number, y: number) => void;
@@ -68,6 +71,15 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   setSelectedBgColor: (color: string) => set({ selectedBgColor: color }),
   setBrushSize: (size: number) => set({ brushSize: Math.max(1, size) }),
   setRectangleFilled: (filled: boolean) => set({ rectangleFilled: filled }),
+
+  // Eyedropper functionality
+  pickFromCell: (char: string, color: string, bgColor: string) => {
+    set({ 
+      selectedChar: char,
+      selectedColor: color,
+      selectedBgColor: bgColor
+    });
+  },
 
   // Selection actions
   startSelection: (x: number, y: number) => {

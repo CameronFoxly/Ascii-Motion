@@ -57,9 +57,16 @@ src/
 - [x] Project scaffolding
 - [x] Basic stores (canvas, animation, tools)
 - [x] Type definitions and constants
-- [ ] Canvas grid component
-- [ ] Basic drawing tools
-- [ ] Character palette
+- [x] Canvas grid component
+- [x] Basic drawing tools (pencil, eraser, paint bucket, select, eyedropper, rectangle)
+- [x] Character palette
+- [x] Color picker
+- [x] Tool palette
+- [x] Undo/redo functionality
+- [x] Basic UI layout with sidebars
+- [ ] Rectangle drawing tool implementation
+- [ ] Fill tool optimization
+- [ ] Selection tool copy/paste functionality
 
 ### Phase 2: Animation System
 - [ ] Timeline component
