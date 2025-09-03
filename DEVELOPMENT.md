@@ -192,11 +192,17 @@ This ensures consistent architecture across all development sessions.
 4. **Before modifying CanvasGrid**: Check if logic belongs in hooks or separate components
 5. **When adding new tools**: Create separate tool components in `src/components/tools/`
 
-**Current Architecture Status**:
-- ✅ Canvas state management extracted to Context
-- ✅ Mouse interaction logic (Step 2) - COMPLETE
-- ⏳ Rendering split (Step 3) - NEXT  
+**Current Architecture Status** (Updated Sept 3, 2025):
+- ✅ Canvas state management extracted to Context (Step 1)
+- ✅ Mouse interaction logic extracted to Hooks (Step 2) - COMPLETE 
+- 🚧 Rendering split (Step 3) - READY TO START
 - ⏳ Tool-specific components (Step 4) - PENDING
+
+**Step 2 Completion Summary**:
+- CanvasGrid reduced from 501 lines → 245 lines (~51% reduction)
+- Created 5 specialized mouse handling hooks
+- All functionality preserved: selection, drawing, rectangles, move operations
+- Mouse drag events working correctly for all tools
 
 **Pattern Example for New Features**:
 ```tsx
@@ -327,19 +333,36 @@ The `CanvasGrid` component has become a "god component" that handles:
 - ✅ Preserved all existing functionality including selection, drawing, and tool switching
 - ✅ No breaking changes - development server runs successfully
 
-#### **Step 3: Split Rendering Responsibilities**
+#### **Step 3: Split Rendering Responsibilities** 
+**Current State**: CanvasGrid.tsx still contains ~150 lines of rendering logic mixed with interaction code
+
+**Goal**: Extract rendering into focused components for better maintainability and performance
+
+**Key Files to Extract From** (`src/components/organisms/CanvasGrid.tsx`):
+- Lines 57-85: `drawCell` function (character/background rendering)
+- Lines 87-175: `renderGrid` function (main canvas drawing loop + selection overlay)
+- Consider: Canvas resize logic, useEffect for re-rendering
+
+**Proposed Structure**:
 - [ ] `src/components/organisms/CanvasRenderer.tsx` - Pure rendering component
   - Canvas drawing logic (cells, characters, backgrounds)
-  - Grid line rendering
+  - Grid line rendering  
+  - Cell drawing utilities (`drawCell` function)
   - Performance optimizations (memoization, partial updates)
 - [ ] `src/components/organisms/CanvasOverlay.tsx` - UI overlay component
-  - Selection rectangles and animation
-  - Tool cursors and indicators
-  - Drag preview ghost images
-- [ ] `src/components/organisms/CanvasInteraction.tsx` - Interaction handling
-  - Mouse event bindings
-  - Keyboard event handling
-  - Tool behavior coordination
+  - Selection rectangles and marquee animation
+  - Move state preview rendering (ghost cells)
+  - Tool cursors and visual indicators
+- [ ] `src/hooks/useCanvasRenderer.ts` - Rendering logic hook
+  - Main `renderGrid` function
+  - Canvas resize handling
+  - Re-render coordination
+
+**Current Dependencies to Preserve**:
+- Canvas context integration
+- Selection state rendering 
+- Move state preview functionality
+- All existing visual features
 
 #### **Step 4: Create Tool-Specific Components**
 - [ ] `src/components/tools/` directory structure:
@@ -402,13 +425,62 @@ The `CanvasGrid` component has become a "god component" that handles:
 
 ### 📅 Timeline Estimate
 
-- **Step 1-2**: 1-2 sessions (context + mouse handlers)
-- **Step 3**: 1-2 sessions (rendering split)
+- **Step 1-2**: ✅ COMPLETE (2 sessions - context + mouse handlers)
+- **Step 3**: 1-2 sessions (rendering split) - **NEXT**
 - **Step 4**: 2-3 sessions (tool components)
 - **Step 5**: 1-2 sessions (performance)
 - **Step 6**: 1 session (final composition)
 
 **Total**: ~6-10 development sessions
+
+---
+
+## 🎯 **STEP 3 PREPARATION - Session Handover Notes**
+
+### **Current Files Ready for Extraction**
+**File**: `src/components/organisms/CanvasGrid.tsx` (245 lines)
+
+**Key Functions to Extract**:
+1. **`drawCell`** (lines 57-85): Character rendering logic
+2. **`renderGrid`** (lines 87-175): Main canvas drawing + selection overlay
+3. **Canvas resize useEffect** (lines ~180-190): Canvas dimension handling
+
+### **Step 3 Success Criteria**
+- [ ] CanvasGrid.tsx reduced to ~100-120 lines (pure composition)
+- [ ] Rendering logic in separate focused components
+- [ ] All visual features preserved (selection marquee, move preview, etc.)
+- [ ] Performance maintained or improved
+
+### **Dependencies to Preserve**
+- Canvas context integration (`useCanvasContext`)
+- Selection state rendering (`selection.active`, move state preview)  
+- Tool-specific rendering (selection marquee, move ghosts)
+- Grid line rendering and cell backgrounds
+
+### **Testing Requirements**
+- Selection tool: Create, move, and clear selections
+- Rectangle tool: Draw rectangles with preview
+- Drawing tools: Pencil/eraser functionality
+- Visual feedback: All animations and previews working
+
+### **Current Canvas Architecture Files**
+```
+src/components/organisms/
+  CanvasGrid.tsx              (245 lines - MAIN TARGET for Step 3)
+
+src/contexts/
+  CanvasContext.tsx           (98 lines - Canvas-specific state)
+
+src/hooks/
+  useCanvasState.ts           (138 lines - State management & helpers)
+  useCanvasMouseHandlers.ts   (123 lines - Mouse event routing)
+  useCanvasSelection.ts       (185 lines - Selection tool logic)
+  useCanvasDragAndDrop.ts     (108 lines - Drawing/rectangle tools)
+  useDrawingTool.ts           (existing - tool implementations)
+  useKeyboardShortcuts.ts     (existing - keyboard handling)
+```
+
+**Step 3 Focus**: Extract rendering logic from CanvasGrid.tsx while preserving all integration with the hook ecosystem.
 
 ### 🔄 After Refactoring: Ready for Phase 2
 

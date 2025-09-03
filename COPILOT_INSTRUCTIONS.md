@@ -136,6 +136,23 @@ export const useCanvasState = () => {
   
   return { statusMessage, /* other helpers */ };
 };
+
+// ✅ Tool-specific mouse handlers (Step 2 pattern)
+export const useCanvasMouseHandlers = () => {
+  const { activeTool } = useToolStore();
+  const selectionHandlers = useCanvasSelection();
+  const drawingHandlers = useCanvasDragAndDrop();
+  
+  const handleMouseDown = useCallback((event) => {
+    switch (activeTool) {
+      case 'select': return selectionHandlers.handleSelectionMouseDown(event);
+      case 'rectangle': return drawingHandlers.handleRectangleMouseDown(event);
+      // ... other tools
+    }
+  }, [activeTool, selectionHandlers, drawingHandlers]);
+  
+  return { handleMouseDown, handleMouseMove, handleMouseUp };
+};
 ```
 
 **Component Splitting Rules:**
@@ -409,8 +426,19 @@ const useCanvasStore = create<CanvasState>((set) => ({
 
 **Always check DEVELOPMENT.md for current refactoring status before modifying canvas-related code.**
 
-**Current State**:
-- ✅ Canvas Context & State extracted (Step 1 complete)
+**Current State** (Updated Sept 3, 2025):
+- ✅ Canvas Context & State extracted (Step 1 complete)  
+- ✅ Mouse Interaction Logic extracted to Hooks (Step 2 complete)
+- 🚧 Rendering split into focused components (Step 3 - READY TO START)
+- ⏳ Tool-specific components (Step 4 pending)
+
+**Step 2 Completion**:
+- CanvasGrid.tsx reduced from 501 → 245 lines
+- Created specialized mouse handling hooks: 
+  - `useCanvasMouseHandlers` (routing)
+  - `useCanvasSelection` (selection tool)
+  - `useCanvasDragAndDrop` (drawing/rectangle tools)
+- All functionality preserved and tested working
 - 🚧 Mouse interaction logic extraction (Step 2 in progress)
 - ⏳ Rendering split pending (Step 3)
 - ⏳ Tool components pending (Step 4)
