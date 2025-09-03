@@ -1,10 +1,72 @@
 # ASCII Motion - Copilot Development Instructions
 
+## 🚨 **MANDATORY: DOCUMENTATION UPDATE PROTOCOL** 🚨
+
+### **⚠️ STOP: Read This Before Making ANY Changes ⚠️**
+
+**EVERY architectural change MUST include documentation updates. No exceptions.**
+
+#### **🔥 IMMEDIATE ACTION REQUIRED After ANY Code Change:**
+
+**Before considering your work "complete", you MUST complete this checklist:**
+
+✅ **1. UPDATE COPILOT_INSTRUCTIONS.md (THIS FILE):**
+   - [ ] Update "Current Architecture Status" section (lines 150-200)
+   - [ ] Update relevant code patterns and examples  
+   - [ ] Update file structure if files were added/moved
+   - [ ] Update component patterns if new patterns introduced
+   - [ ] Add new development guidelines if applicable
+
+✅ **2. UPDATE DEVELOPMENT.md:**
+   - [ ] Mark completed steps with ✅ **COMPLETE** status
+   - [ ] Update current phase/step status
+   - [ ] Add new architectural decisions to the log
+   - [ ] Update timeline estimates and next steps
+   - [ ] Document any breaking changes or migration steps
+
+✅ **3. VALIDATE DOCUMENTATION CONSISTENCY:**
+   - [ ] Search for outdated patterns that conflict with changes
+   - [ ] Remove or update deprecated examples
+   - [ ] Verify all code examples reflect current architecture
+   - [ ] Update import statements and API references
+
+✅ **4. TEST DOCUMENTATION ACCURACY:**
+   - [ ] Ensure new contributors could follow the updated docs
+   - [ ] Verify code examples compile and work
+   - [ ] Check that docs reflect actual codebase state
+   - [ ] Test that documented patterns match implemented code
+
+### **🎯 Documentation Update Triggers (NEVER SKIP):**
+- ✅ Creating new hooks, components, or utilities
+- ✅ Modifying existing architectural patterns  
+- ✅ Completing any refactoring step or phase
+- ✅ Adding new development tools or workflows
+- ✅ Changing file structure or organization
+- ✅ Introducing new performance optimizations
+- ✅ Adding new state management patterns
+
+### **💥 ENFORCEMENT: If Documentation Is Not Updated**
+- **Your changes are incomplete** - Documentation debt creates confusion
+- **Future developers will be misled** - Outdated docs are worse than no docs
+- **Architecture will deteriorate** - Patterns won't be followed consistently
+- **Project velocity will slow** - Time wasted on confusion and rework
+
+### **🎪 Quick Documentation Health Check:**
+Before submitting any architectural change, ask yourself:
+- ❓ Could a new team member understand the current architecture from the docs?
+- ❓ Do all code examples in COPILOT_INSTRUCTIONS.md work with current code?
+- ❓ Does DEVELOPMENT.md accurately reflect what's been completed?
+- ❓ Are there conflicting patterns or outdated instructions anywhere?
+
+---
+
 ## Project Context
 ASCII Motion is a React + TypeScript web application for creating and animating ASCII art. We use Vite for building, Shadcn/ui for components, Zustand for state management, and Tailwind CSS for styling.
 
 ## 🚨 **CRITICAL: Adding New Tools**
 **When adding ANY new drawing tool, ALWAYS follow the 8-step componentized pattern in Section 3 below.** This maintains architectural consistency and ensures all tools work seamlessly together. Do NOT add tool logic directly to CanvasGrid or mouse handlers.
+
+**📋 REMINDER: After implementing ANY new tool, update both COPILOT_INSTRUCTIONS.md and DEVELOPMENT.md per the protocol above.**
 
 ## Code Organization Principles
 
@@ -501,6 +563,8 @@ cellId: string;
 **✅ Phase 1.5 Performance Optimizations COMPLETED (Step 5.1)**
 ASCII Motion now handles large grids (200x100 = 20,000 cells) with optimized rendering performance:
 
+**📋 REMINDER: When adding performance optimizations, update the patterns below AND the documentation per the mandatory protocol.**
+
 **Canvas Rendering Optimization (IMPLEMENTED):**
 ```typescript
 // ✅ Step 5.1: Memoized canvas rendering - COMPLETED
@@ -777,13 +841,18 @@ const useCanvasStore = create<CanvasState>((set) => ({
 
 ## Development Workflow
 
+**🚨 DOCUMENTATION-FIRST WORKFLOW - Follow This Sequence:**
+
 1. **Start with types** - Define interfaces before implementation
-2. **Build atoms first** - Create basic UI components
+2. **Build atoms first** - Create basic UI components  
 3. **Create stores** - Set up state management
 4. **Build molecules** - Combine atoms into functional units
 5. **Assemble organisms** - Create complex components
 6. **Test integration** - Ensure components work together
 7. **Optimize performance** - Profile and optimize bottlenecks
+8. **📋 UPDATE DOCUMENTATION** - Complete the mandatory protocol checklist above
+
+**⚠️ Your work is NOT complete until step 8 is done!**
 
 ## Code Quality Standards
 
@@ -805,6 +874,17 @@ const useCanvasStore = create<CanvasState>((set) => ({
 6. **Test cross-browser** - Ensure compatibility with major browsers
 7. **Consider accessibility** - Use proper ARIA labels and keyboard navigation
 8. **Monitor render performance** - Use development tools to validate optimizations
+9. **📋 DOCUMENT EVERYTHING** - Complete the mandatory documentation protocol for ANY change
+
+**🚨 FINAL CHECKPOINT: Before considering ANY work "complete":**
+- [ ] Code implements the intended functionality
+- [ ] Tests pass and code works as expected  
+- [ ] Performance impact has been considered/measured
+- [ ] **COPILOT_INSTRUCTIONS.md has been updated**
+- [ ] **DEVELOPMENT.md has been updated**
+- [ ] **Documentation reflects current architecture**
+
+**If any checkbox above is unchecked, your work is not finished!**
 
 ## Current Architecture Status (Phase 1.5 Refactoring):
 🚨 **CRITICAL**: The canvas system has been refactored following a Context + Hooks pattern.
@@ -854,28 +934,91 @@ const useCanvasStore = create<CanvasState>((set) => ({
 8. **Test large grids** - Use PerformanceMonitor to validate performance on 200x100+ grids
 9. **Follow the pattern** - Reference existing refactored code for consistency
 10. **Check DEVELOPMENT.md** - Always review current step status before changes
+11. **📋 UPDATE DOCS** - Complete documentation protocol after ANY architectural change
 
-## 📝 Documentation Maintenance Protocol:
+**🚨 STOP: Before finishing ANY canvas work, have you updated the documentation?**
 
-### After ANY Architectural Change:
-**MANDATORY STEPS** - Do not skip these:
+---
 
-1. **Update COPILOT_INSTRUCTIONS.md**:
-   - [ ] Update "Current Architecture Status" section above
-   - [ ] Add/modify relevant patterns and examples
-   - [ ] Update file structure if changed
-   - [ ] Update component patterns if changed
+## 📝 **DOCUMENTATION ENFORCEMENT (Detailed Checklist)**
 
-2. **Update DEVELOPMENT.md**:
-   - [ ] Mark completed steps as ✅ **COMPLETE**
-   - [ ] Update current status section
+**This section provides the detailed checklist referenced in the mandatory protocol at the top of this file.**
+
+### **Detailed Steps for Documentation Updates:**
+
+**1. Update COPILOT_INSTRUCTIONS.md (THIS FILE):**
+   - [ ] Update "Current Architecture Status" section (around line 200)
+   - [ ] Add/modify relevant code patterns and examples
+   - [ ] Update "Directory Structure" if files were added/moved
+   - [ ] Update component patterns if new patterns introduced
+   - [ ] Add new development guidelines if applicable
+   - [ ] Update performance patterns if optimizations added
+   - [ ] Update hook patterns if new hooks created
+
+**2. Update DEVELOPMENT.md:**
+   - [ ] Mark completed steps with ✅ **COMPLETE** status  
+   - [ ] Update current phase/step status section
    - [ ] Add new architectural decisions to the log
-   - [ ] Update timeline estimates
+   - [ ] Update timeline estimates and next steps
+   - [ ] Document any breaking changes or migration steps
+   - [ ] Update file structure documentation
+   - [ ] Add new features to the feature summary
 
-3. **Check for Outdated Instructions**:
-   - [ ] Search for old patterns that no longer apply
-   - [ ] Remove or update deprecated examples
-   - [ ] Verify all code examples still work
+**3. Check for Outdated Instructions:**
+   - [ ] Search for old patterns that conflict with new changes
+   - [ ] Remove or update deprecated examples in both files
+   - [ ] Verify all code examples still compile and work
+   - [ ] Update import statements and API references
+   - [ ] Check for inconsistent architecture descriptions
+
+**4. Validation:**
+   - [ ] Ensure new contributors could follow the updated docs
+   - [ ] Test that documented examples actually work
+   - [ ] Verify docs reflect actual codebase state
+   - [ ] Check that patterns are consistently described
+
+**🎯 Remember: Documentation updates are NOT optional - they're part of the development process!**
+
+---
+
+## 🎪 **TEMPLATE: Completion Message for Any Architectural Change**
+
+**Copy this template for use when completing any work that affects architecture:**
+
+```
+## ✅ [Feature/Step Name] - IMPLEMENTATION COMPLETE
+
+### 📊 **Changes Made**
+- [List files created/modified]
+- [List architectural patterns introduced/changed]
+- [List performance impacts]
+
+### 📋 **Documentation Updates Completed**
+✅ **COPILOT_INSTRUCTIONS.md Updated:**
+- [ ] Current Architecture Status section updated
+- [ ] New patterns/examples added
+- [ ] File structure updated
+- [ ] Development guidelines enhanced
+
+✅ **DEVELOPMENT.md Updated:**  
+- [ ] Step marked as ✅ COMPLETE
+- [ ] Current status updated
+- [ ] New architectural decisions documented
+- [ ] Timeline/next steps updated
+
+✅ **Validation Completed:**
+- [ ] Code examples tested and working
+- [ ] Documentation reflects actual implementation
+- [ ] No conflicting patterns remain
+- [ ] New contributors can follow updated docs
+
+### 🎯 **Ready for Next Steps**
+[Describe what's now possible/what should be done next]
+
+**All documentation requirements satisfied - implementation truly complete!** 🚀
+```
+
+Use this template to ensure consistent, complete documentation with every change.
    - [ ] Update dependency information if needed
 
 4. **Validation**:
