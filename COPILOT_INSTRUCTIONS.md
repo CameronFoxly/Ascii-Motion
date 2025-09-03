@@ -153,6 +153,33 @@ export const useCanvasMouseHandlers = () => {
 };
 ```
 
+**🚨 CRITICAL: Zustand Hook Dependencies Pattern**
+When creating hooks that use Zustand store data in useCallback/useMemo/useEffect:
+
+```typescript
+// ✅ CORRECT: Include reactive store data in dependencies
+export const useCanvasRenderer = () => {
+  const { width, height, cells, getCell } = useCanvasStore(); // Extract all needed data
+  
+  const renderCanvas = useCallback(() => {
+    // Logic that uses getCell() and reads cells indirectly
+  }, [width, height, cells, getCell]); // Include 'cells' even if using getCell()
+  
+  return { renderCanvas };
+};
+
+// ❌ INCORRECT: Missing reactive data dependencies
+export const useCanvasRenderer = () => {
+  const { getCell } = useCanvasStore(); // Only getter, missing 'cells'
+  
+  const renderCanvas = useCallback(() => {
+    // Logic reads cells via getCell() but won't re-run when cells change
+  }, [getCell]); // Missing 'cells' - BUG!
+};
+```
+
+**Lesson Learned (Step 3)**: Always include the actual reactive data objects in dependency arrays, not just getters. This ensures hooks re-run when Zustand state changes.
+
 **Component Splitting Rules:**
 - **Single Responsibility**: Each component should have one clear purpose
 - **Size Limit**: No component should exceed ~200 lines
@@ -445,8 +472,9 @@ const useCanvasStore = create<CanvasState>((set) => ({
 1. **Use CanvasProvider** - Wrap canvas components in context
 2. **Use established hooks** - `useCanvasContext()`, `useCanvasState()`, etc.
 3. **Don't add useState to CanvasGrid** - Extract to context or hooks instead
-4. **Follow the pattern** - Reference existing refactored code for consistency
-5. **Check DEVELOPMENT.md** - Always review current step status before changes
+4. **Include Zustand dependencies** - Add reactive store data (like `cells`) to useCallback/useMemo deps
+5. **Follow the pattern** - Reference existing refactored code for consistency
+6. **Check DEVELOPMENT.md** - Always review current step status before changes
 
 ## 📝 Documentation Maintenance Protocol:
 

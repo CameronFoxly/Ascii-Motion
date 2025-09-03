@@ -180,6 +180,13 @@ When any component exceeds ~200 lines or has multiple concerns:
 3. **Split rendering** from interaction handling
 4. **Create tool-specific** components when applicable
 
+**Critical Zustand Hook Pattern**:
+When creating hooks that use Zustand store data in useCallback/useMemo/useEffect:
+- ✅ **Include all reactive store data** in dependency arrays
+- ✅ **Destructure store data** at hook level, not inside callbacks
+- ❌ **Don't rely on getters alone** - include the actual data objects
+- 📝 **Example**: If using `getCell()`, also include `cells` in dependencies
+
 This ensures consistent architecture across all development sessions.
 
 ### 🔄 **For Future Development Sessions**
@@ -344,7 +351,14 @@ The `CanvasGrid` component has become a "god component" that handles:
 - ✅ Reduced CanvasGrid from 246 lines → 109 lines (~56% reduction)
 - ✅ Preserved all visual features: selection marquee, move preview, grid rendering
 - ✅ Maintained canvas resize handling and re-render coordination
+- ✅ Fixed live rendering bug: Added `cells` dependency to ensure real-time updates
 - ✅ No breaking changes - all functionality working correctly
+
+**Critical Bug Fix During Step 3**:
+- **Issue**: Drawing tools (pencil, eraser, fill) were not updating canvas in real-time
+- **Root Cause**: `useCanvasRenderer` hook missing `cells` dependency in useCallback
+- **Solution**: Added `cells` from `useCanvasStore()` to dependency array
+- **Lesson**: When extracting Zustand store logic to hooks, ensure all reactive data is in dependencies
 
 **Architecture Decision**: 
 - **Pattern**: Used hook-based rendering instead of separate components
