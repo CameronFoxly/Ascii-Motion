@@ -490,33 +490,81 @@ cellId: string;
 
 ### 5. Performance Optimization
 
-**Memoize Grid Components:**
+**🚨 Phase 1.5 Performance Focus (Current Priority)**
+ASCII Motion now handles large grids (200x100 = 20,000 cells) and requires optimized rendering:
+
+**Canvas Rendering Optimization:**
 ```typescript
-// ✅ Good: Memoized cells only re-render when their data changes
-const Cell = memo(({ x, y, cell }: CellProps) => {
+// ✅ Step 5.1: Memoized cell rendering (IN PROGRESS)
+const CellRenderer = memo(({ x, y, cell, cellSize }: CellProps) => {
+  // Only re-renders when cell content actually changes
+  const memoizedStyle = useMemo(() => ({
+    color: cell?.color || '#000000',
+    backgroundColor: cell?.bgColor || '#FFFFFF'
+  }), [cell?.color, cell?.bgColor]);
+
   return (
     <div 
       className="cell"
-      style={{ color: cell.color, backgroundColor: cell.bgColor }}
+      style={memoizedStyle}
     >
-      {cell.char}
+      {cell?.char}
     </div>
   );
-});
-
-// Use React.memo comparison for complex objects
-const CellMemo = memo(Cell, (prev, next) => 
-  prev.cell.char === next.cell.char &&
-  prev.cell.color === next.cell.color &&
-  prev.cell.bgColor === next.cell.bgColor
+}, (prev, next) => 
+  prev.cell?.char === next.cell?.char &&
+  prev.cell?.color === next.cell?.color &&
+  prev.cell?.bgColor === next.cell?.bgColor
 );
+
+// ✅ Optimize expensive calculations
+const useCanvasRenderer = () => {
+  // Memoize font styles (instead of recalculating 1,920 times per render)
+  const fontStyle = useMemo(() => 
+    `${cellSize - 2}px 'Courier New', monospace`, [cellSize]
+  );
+  
+  // Cache drawing parameters
+  const drawingParams = useMemo(() => ({
+    font: fontStyle,
+    textAlign: 'center' as const,
+    textBaseline: 'middle' as const
+  }), [fontStyle]);
+};
 ```
 
-**Optimize Zustand Subscriptions:**
+**Dirty Region Tracking (Step 5.2):**
+```typescript
+// ✅ Future: Only re-render changed cells
+const useDirtyRegions = () => {
+  const [dirtyRegions, setDirtyRegions] = useState<Set<string>>(new Set());
+  
+  // Track which cells actually changed
+  const markCellDirty = useCallback((x: number, y: number) => {
+    setDirtyRegions(prev => new Set(prev).add(`${x},${y}`));
+  }, []);
+};
+```
+
+**Grid Virtualization (Step 5.2):**
+```typescript
+// ✅ Future: Viewport chunking for very large grids
+const useVirtualizedGrid = (width: number, height: number) => {
+  // Only render visible cells + buffer
+  // Support 500x500+ grids efficiently
+};
+```
+
+**Zustand Performance Best Practices:**
 ```typescript
 // ✅ Good: Subscribe to specific slices
 const currentFrame = useAnimationStore(state => state.currentFrame);
-const isPlaying = useAnimationStore(state => state.isPlaying);
+const cells = useCanvasStore(state => state.cells); // Include in deps!
+
+// ✅ Critical: Include reactive data in dependencies
+const renderCanvas = useCallback(() => {
+  // Canvas rendering logic
+}, [width, height, cells, getCell]); // cells is crucial for live updates
 
 // ❌ Avoid: Subscribing to entire store
 const animationState = useAnimationStore(); // Causes unnecessary re-renders

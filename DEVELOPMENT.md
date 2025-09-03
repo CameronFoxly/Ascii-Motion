@@ -398,10 +398,34 @@ The `CanvasGrid` component has become a "god component" that handles:
 **Total New Files Created**: 8 files, 358 lines of well-organized tool-specific code
 **Pattern Established**: Clear template for future tool development
 
-#### **Step 5: Performance Optimizations**
-- [ ] Canvas viewport/chunking for large grids (200x100+ support)
+#### **Step 5: Performance Optimizations** 🚀 **IN PROGRESS**
+
+**Goal**: Optimize canvas rendering for larger grids and smoother drawing performance before Phase 2.
+
+##### **Step 5.1: Memoization & Cell Rendering Optimization** ⏳ **NEXT SESSION**
+- [ ] Create memoized `CellRenderer` component with `React.memo`
+- [ ] Implement `useMemoizedGrid` hook for grid data optimization
+- [ ] Add cell-level change detection to prevent unnecessary re-renders
+- [ ] Optimize `drawCell` function with computed font styles
+- [ ] Create performance measurement utilities
+
+**Current Performance Bottlenecks Identified**:
+- `drawCell` function recalculates font/styles on every render (159 lines in useCanvasRenderer.ts)
+- Canvas re-renders entire 80x24 grid (1,920 cells) on any cell change
+- Selection overlay redraws on every move state change
+- No caching of rendered cell content
+
+**Target Improvements**:
+- 🎯 Reduce canvas render time by 60-80% for large grids
+- 🎯 Enable smooth 200x100 grid support (20,000 cells)
+- 🎯 Cache rendered cell content for unchanged cells
+- 🎯 Optimize font rendering and style calculations
+
+##### **Step 5.2: Dirty Region Tracking** (Future)
 - [ ] Implement dirty region tracking for partial re-renders
-- [ ] Memoize cell rendering with `React.memo`
+- [ ] Add viewport chunking for large grids (200x100+ support)
+
+##### **Step 5.3: Drawing Performance** (Future)
 - [ ] Debounce canvas updates during active drawing
 - [ ] Optimize selection rendering performance
 
@@ -519,13 +543,229 @@ src/hooks/
 
 **Step 4 Results**: Successfully extracted tool-specific behavior into focused components while maintaining all existing functionality. Canvas system now fully modularized and ready for Phase 2.
 
-### 🔄 After Refactoring: Ready for Phase 2
+---
+
+## 🔄 **SESSION HANDOVER PLAN - Step 5.1 Memoization**
+
+### **� Context for Next Session**
+
+**Status**: Ready to begin Step 5.1 (Performance Optimizations - Memoization)
+**Current Architecture**: Phase 1.5 refactoring COMPLETE (Steps 1-4 done)
+**Target**: Optimize canvas rendering performance before Phase 2 (Animation System)
+
+### **🎯 Step 5.1 Implementation Plan**
+
+#### **Task 1: Create Memoized Cell Renderer Component** 
+**File**: `src/components/atoms/CellRenderer.tsx` (NEW)
+```typescript
+// Target structure for memoized cell rendering
+interface CellRendererProps {
+  x: number;
+  y: number;
+  cell: Cell | undefined;
+  cellSize: number;
+  isMoving?: boolean;
+  moveOffset?: { x: number; y: number };
+}
+
+const CellRenderer = React.memo(({ x, y, cell, cellSize, isMoving, moveOffset }: CellRendererProps) => {
+  // Memoized cell rendering logic
+  // Only re-renders when cell content or position actually changes
+});
+```
+
+#### **Task 2: Optimize Font and Style Calculations**
+**File**: `src/hooks/useCanvasRenderer.ts` (MODIFY)
+**Current Issue**: `drawCell` function recalculates font styles on every render
+**Target**: Pre-compute and memoize font styles, drawing parameters
+
+#### **Task 3: Implement Grid Memoization Hook**
+**File**: `src/hooks/useMemoizedGrid.ts` (NEW)
+```typescript
+// Target structure for grid-level memoization
+const useMemoizedGrid = () => {
+  // Memoize grid data and change detection
+  // Track which cells actually changed
+  // Return optimized render data
+}
+```
+
+#### **Task 4: Create Performance Measurement Utils**
+**File**: `src/utils/performance.ts` (NEW)
+```typescript
+// Development utilities to measure rendering performance
+const measureCanvasRender = () => {
+  // Measure render times
+  // Track FPS during drawing
+  // Log performance metrics
+}
+```
+
+### **🔍 Files to Focus On**
+
+#### **Primary Files for Step 5.1**:
+1. **`src/hooks/useCanvasRenderer.ts`** (159 lines)
+   - Current rendering logic that needs optimization
+   - `drawCell` function (lines 28-57) - main optimization target
+   - `renderCanvas` function (lines 59-139) - grid iteration logic
+
+2. **`src/stores/canvasStore.ts`** (163 lines)
+   - Canvas data structure (`cells: Map<string, Cell>`)
+   - Cell getter/setter methods for change detection
+
+3. **`src/components/organisms/CanvasGrid.tsx`** (111 lines)
+   - Integration point for new memoized components
+
+#### **Key Code Sections to Understand**:
+
+**Canvas Rendering Loop** (useCanvasRenderer.ts:84-96):
+```typescript
+// Current: Re-renders ALL cells on ANY change
+for (let y = 0; y < height; y++) {
+  for (let x = 0; x < width; x++) {
+    const key = `${x},${y}`;
+    // This is what we need to optimize
+    if (movingCells.has(key)) {
+      drawCell(ctx, x, y, { char: ' ', color: '#000000', bgColor: '#FFFFFF' });
+    } else {
+      const cell = getCell(x, y);
+      drawCell(ctx, x, y, cell);
+    }
+  }
+}
+```
+
+**Cell Drawing Function** (useCanvasRenderer.ts:28-57):
+```typescript
+// Current: Recalculates font/styles every call
+const drawCell = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, cell?: Cell) => {
+  // Font calculation happens every render - OPTIMIZE THIS
+  ctx.font = `${cellSize - 2}px 'Courier New', monospace`;
+  // Style calculations - MEMOIZE THESE
+});
+```
+
+### **🎯 Success Criteria for Step 5.1**
+
+**Performance Targets**:
+- [ ] 60-80% reduction in render time for 80x24 grid
+- [ ] Enable smooth 200x100 grid support (test with large canvas)
+- [ ] Eliminate unnecessary cell re-renders (only changed cells render)
+- [ ] Font/style calculations cached and reused
+
+**Architecture Targets**:
+- [ ] Maintain all existing functionality (no breaking changes)
+- [ ] Preserve tool integration (selection, drawing, move operations)
+- [ ] Keep clean separation of concerns from Steps 1-4
+- [ ] Add performance measurement capabilities
+
+**Testing Requirements**:
+- [ ] All drawing tools work correctly (pencil, eraser, fill, rectangle)
+- [ ] Selection and move operations maintain smooth performance
+- [ ] Large grid test (create 200x100 canvas, verify smooth drawing)
+- [ ] Performance measurements show improvement
+
+### **🔧 Implementation Strategy**
+
+#### **Phase A: Component Memoization** (First Priority)
+1. Create `CellRenderer` component with `React.memo`
+2. Replace direct canvas drawing with component-based approach
+3. Add proper equality checks for memoization
+
+#### **Phase B: Style Optimization** (Second Priority) 
+1. Pre-compute font styles and drawing parameters
+2. Memoize expensive calculations in `drawCell`
+3. Cache rendering contexts and settings
+
+#### **Phase C: Change Detection** (Third Priority)
+1. Implement cell-level change tracking
+2. Only re-render cells that actually changed
+3. Optimize grid iteration logic
+
+#### **Phase D: Performance Measurement** (Final)
+1. Add performance monitoring utilities
+2. Benchmark before/after performance
+3. Validate large grid support
+
+### **🚨 Important Reminders**
+
+**Architecture Consistency**:
+- Follow established patterns from Steps 1-4
+- Use hooks for logic, components for UI
+- Maintain Context + Hooks pattern
+
+**Zustand Integration**:
+- Remember to include all reactive store data in dependency arrays
+- Don't rely on getter functions alone - include actual data objects
+- Test that live rendering still works after optimizations
+
+**Testing Protocol**:
+- Test with `npm run dev` after each change
+- Verify all tools work: selection, drawing, rectangles, fill, eyedropper
+- Test large canvas creation to validate performance gains
+
+### **🔗 Architecture Status After Step 5.1**
+
+**Target File Structure After Completion**:
+```
+src/components/atoms/
+  CellRenderer.tsx              (NEW - Memoized cell rendering)
+
+src/hooks/
+  useCanvasRenderer.ts          (OPTIMIZED - Reduced render overhead)
+  useMemoizedGrid.ts            (NEW - Grid-level optimization)
+
+src/utils/
+  performance.ts                (NEW - Performance measurement)
+```
+
+**Benefits Expected**:
+- ✅ 60-80% faster canvas rendering
+- ✅ Support for 200x100 grids (20K cells)
+- ✅ Smooth drawing performance
+- ✅ Foundation for Phase 2 animation performance
+
+---
 
 Once refactoring is complete, we'll be well-positioned for:
 - **Timeline Integration**: Canvas composition makes frame switching easier
 - **Export Features**: Clean rendering separation helps with export functionality  
 - **Advanced Tools**: Tool component pattern makes complex tools manageable
 - **Performance at Scale**: Optimizations support larger ASCII art projects
+
+### 🔄 After Step 5.1: Ready for Remaining Performance Work
+
+Once Step 5.1 memoization is complete, we'll be positioned for:
+- **Step 5.2**: Dirty region tracking for partial re-renders
+- **Step 5.3**: Drawing performance optimization and debouncing
+- **Phase 2**: Timeline and animation system with smooth performance
+
+## 📋 Quick Reference for Next Session
+
+### **Files to Read First**:
+1. `src/hooks/useCanvasRenderer.ts` - Current rendering logic (159 lines)
+2. `src/stores/canvasStore.ts` - Cell data structure 
+3. This section of DEVELOPMENT.md - Step 5.1 implementation plan
+
+### **Commands to Run**:
+```bash
+# Start development server
+npm run dev
+
+# Test large canvas (after implementing Step 5.1)
+# Create 200x100 canvas in UI to test performance
+
+# Measure current performance
+# (Add performance utils first)
+```
+
+### **Key Performance Bottleneck**:
+The `drawCell` function in `useCanvasRenderer.ts` runs 1,920 times (80x24) on every canvas render, recalculating font styles each time. This is the main optimization target for Step 5.1.
+
+### **Current Status Reminder**:
+- ✅ Phase 1.5 Steps 1-4 COMPLETE (Architecture fully refactored)
+- ⏳ Step 5.1 (Memoization) ready to begin
+- 🎯 Target: 60-80% render performance improvement
 
 ## Next Steps
 
