@@ -12,8 +12,9 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [cellSize] = useState(12); // Default cell size in pixels
-  const [selectionMode, setSelectionMode] = useState<'none' | 'click-to-finish' | 'dragging'>('none');
+  const [selectionMode, setSelectionMode] = useState<'none' | 'dragging'>('none');
   const [mouseButtonDown, setMouseButtonDown] = useState(false);
+  const [pendingSelectionStart, setPendingSelectionStart] = useState<{x: number, y: number} | null>(null);
 
   const { 
     width, 
@@ -134,15 +135,15 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     pushToHistory(new Map(cells));
 
     if (activeTool === 'select') {
-      if (selectionMode === 'click-to-finish' && selection.active) {
-        // We're in the middle of a click-to-finish selection - complete it
-        setSelectionMode('none');
-        setMouseButtonDown(false);
-        // Selection remains active with current bounds, don't start new selection
+      if (event.shiftKey && pendingSelectionStart) {
+        // Shift+Click with pending start: create selection from start to current position
+        startSelection(pendingSelectionStart.x, pendingSelectionStart.y);
+        updateSelection(x, y);
+        setPendingSelectionStart(null);
       } else {
-        // Either no selection or previous selection completed - start new selection
+        // Normal click: select single cell and set as pending start for potential Shift+Click
         startSelection(x, y);
-        setSelectionMode('click-to-finish');
+        setPendingSelectionStart({ x, y });
         setMouseButtonDown(true);
       }
     } else if (activeTool === 'rectangle') {
@@ -153,21 +154,19 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       setIsDrawing(true);
       handleDrawing(x, y);
     }
-  }, [getGridCoordinates, activeTool, cells, pushToHistory, startSelection, handleDrawing, selection, selectionMode]);
+  }, [getGridCoordinates, activeTool, cells, pushToHistory, startSelection, updateSelection, handleDrawing, pendingSelectionStart]);
 
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const { x, y } = getGridCoordinates(event);
 
     if (activeTool === 'select') {
-      if (selectionMode === 'click-to-finish' && selection.active) {
-        // In click-to-finish mode, update selection bounds for preview
-        updateSelection(x, y);
-        
-        // Only switch to drag mode if mouse button is currently being held down
-        // and we've moved from the starting position
-        if (mouseButtonDown && (x !== selection.start.x || y !== selection.start.y)) {
+      if (mouseButtonDown && selection.active && pendingSelectionStart) {
+        // Mouse button is down and we have a pending selection start - switch to drag mode
+        if (x !== pendingSelectionStart.x || y !== pendingSelectionStart.y) {
           setSelectionMode('dragging');
+          setPendingSelectionStart(null);
         }
+        updateSelection(x, y);
       } else if (selectionMode === 'dragging' && selection.active) {
         // Update selection bounds while dragging
         updateSelection(x, y);
@@ -177,7 +176,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     } else if (isDrawing && (activeTool === 'pencil' || activeTool === 'eraser')) {
       handleDrawing(x, y);
     }
-  }, [getGridCoordinates, activeTool, selection, isDrawing, updateSelection, handleDrawing, selectionMode, mouseButtonDown]);
+  }, [getGridCoordinates, activeTool, selection, isDrawing, updateSelection, handleDrawing, selectionMode, mouseButtonDown, pendingSelectionStart]);
 
   const handleMouseUp = useCallback(() => {
     if (activeTool === 'select') {
@@ -186,11 +185,10 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
         setSelectionMode('none');
         setMouseButtonDown(false);
         // Selection remains active with current bounds
-      } else if (selectionMode === 'click-to-finish') {
-        // Mouse button released in click-to-finish mode - clear button state but stay in mode
+      } else {
+        // Single click completed - clear mouse button state but keep pending selection
         setMouseButtonDown(false);
       }
-      // For click-to-finish mode, do nothing else - wait for second click
     } else if (activeTool === 'rectangle' && selection.active) {
       // Draw rectangle and clear selection
       drawRectangle(selection.start.x, selection.start.y, selection.end.x, selection.end.y);
@@ -234,6 +232,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     if (activeTool !== 'select') {
       setSelectionMode('none');
       setMouseButtonDown(false);
+      setPendingSelectionStart(null);
     }
   }, [activeTool]);
 
@@ -243,11 +242,9 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
         <canvas
           ref={canvasRef}
           className={`canvas-grid ${
-            activeTool === 'select' && selectionMode === 'click-to-finish' 
-              ? 'cursor-copy' 
-              : activeTool === 'select' 
-                ? 'cursor-crosshair'
-                : 'cursor-crosshair'
+            activeTool === 'select' 
+              ? 'cursor-crosshair'
+              : 'cursor-crosshair'
           }`}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
@@ -265,8 +262,8 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       <div className="mt-2 text-sm text-gray-600 flex justify-between">
         <span>Grid: {width} × {height}</span>
         <span>
-          {activeTool === 'select' && selectionMode === 'click-to-finish' 
-            ? 'Click again to finish selection' 
+          {activeTool === 'select' && pendingSelectionStart
+            ? 'Shift+Click on another cell to create selection' 
             : activeTool === 'select' && selection.active && selectionMode === 'none'
               ? 'Selection ready - copy/paste available'
               : `Cell size: ${cellSize}px`
