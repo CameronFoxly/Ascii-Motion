@@ -194,8 +194,8 @@ This ensures consistent architecture across all development sessions.
 
 **Current Architecture Status**:
 - ✅ Canvas state management extracted to Context
-- 🚧 Mouse interaction logic (Step 2) - NEXT
-- ⏳ Rendering split (Step 3) - PENDING  
+- ✅ Mouse interaction logic (Step 2) - COMPLETE
+- ⏳ Rendering split (Step 3) - NEXT  
 - ⏳ Tool-specific components (Step 4) - PENDING
 
 **Pattern Example for New Features**:
@@ -306,19 +306,26 @@ The `CanvasGrid` component has become a "god component" that handles:
 - ✅ All functionality preserved, ~50 lines removed from CanvasGrid component
 - ✅ No breaking changes - all existing features work correctly
 
-#### **Step 2: Extract Mouse Interaction Logic**
-- [ ] `src/hooks/useCanvasMouseHandlers.ts` - Core mouse event handling
+#### **Step 2: Extract Mouse Interaction Logic** ✅
+- ✅ `src/hooks/useCanvasMouseHandlers.ts` - Core mouse event handling
   - Mouse coordinate conversion
   - Basic click/drag detection
   - Tool-agnostic mouse state
-- [ ] `src/hooks/useCanvasSelection.ts` - Selection-specific logic
+- ✅ `src/hooks/useCanvasSelection.ts` - Selection-specific logic
   - Selection bounds calculation
   - Selection rendering helpers
   - Selection state management
-- [ ] `src/hooks/useCanvasDragAndDrop.ts` - Drag & drop behavior
+- ✅ `src/hooks/useCanvasDragAndDrop.ts` - Drag & drop behavior
   - Move state management
   - Drag preview rendering
   - Drop commit logic
+
+**Results**: 
+- ✅ Refactored `CanvasGrid` from 501 lines down to 245 lines (~256 lines removed)
+- ✅ All mouse handling logic extracted to specialized hooks
+- ✅ Eliminated duplicate mouse handler declarations
+- ✅ Preserved all existing functionality including selection, drawing, and tool switching
+- ✅ No breaking changes - development server runs successfully
 
 #### **Step 3: Split Rendering Responsibilities**
 - [ ] `src/components/organisms/CanvasRenderer.tsx` - Pure rendering component

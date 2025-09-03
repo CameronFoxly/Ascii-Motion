@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect } from 'react';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useToolStore } from '../../stores/toolStore';
-import { useDrawingTool } from '../../hooks/useDrawingTool';
-import { useCanvasContext, useCanvasDimensions } from '../../contexts/CanvasContext';
+import { useCanvasContext } from '../../contexts/CanvasContext';
 import { useCanvasState } from '../../hooks/useCanvasState';
+import { useCanvasMouseHandlers } from '../../hooks/useCanvasMouseHandlers';
 import type { Cell } from '../../types';
 
 interface CanvasGridProps {
@@ -12,57 +12,47 @@ interface CanvasGridProps {
 
 export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   // Use our new context and state management
-  const { canvasRef, isDrawing, setIsDrawing, mouseButtonDown, setMouseButtonDown } = useCanvasContext();
-  const { getGridCoordinates } = useCanvasDimensions();
+  const { canvasRef, setMouseButtonDown } = useCanvasContext();
+  
+  // Get active tool
+  const { activeTool } = useToolStore();
+  // Canvas dimensions hooks already provide computed values
   const {
     cellSize,
     selectionMode,
     moveState,
-    pendingSelectionStart,
-    justCommittedMove,
     canvasWidth,
     canvasHeight,
     statusMessage,
-    // Remove unused: effectiveSelectionBounds, resetSelectionState are available but not used in this refactor step
     getTotalOffset,
-    isPointInEffectiveSelection,
     commitMove,
     setSelectionMode,
     setMoveState,
     setPendingSelectionStart,
-    setJustCommittedMove,
   } = useCanvasState();
+
+  // Use our new mouse handlers
+  const {
+    handleMouseDown,
+    handleMouseMove, 
+    handleMouseUp,
+    handleMouseLeave,
+    handleContextMenu
+  } = useCanvasMouseHandlers();
 
   const { 
     width, 
     height, 
     cells, 
-    getCell,
-    setCell
+    getCell
   } = useCanvasStore();
 
   const { 
     selection,
-    startSelection,
-    updateSelection,
-    clearSelection,
-    pushToHistory
+    clearSelection
   } = useToolStore();
 
-  const { drawAtPosition, drawRectangle, activeTool } = useDrawingTool();
-
   // Convert mouse coordinates to grid coordinates using our context helper
-  const getGridCoordinatesFromEvent = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = event.clientX;
-    const mouseY = event.clientY;
-
-    return getGridCoordinates(mouseX, mouseY, rect, width, height);
-  }, [getGridCoordinates, width, height]);
-
   // Draw a single cell on the canvas
   const drawCell = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, cell?: Cell) => {
     const pixelX = x * cellSize;
@@ -169,175 +159,6 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       ctx.setLineDash([]);
     }
   }, [width, height, cells, selection, cellSize, getCell, drawCell, canvasWidth, canvasHeight, selectionMode, moveState]);
-
-  // Handle drawing operations
-  const handleDrawing = useCallback((x: number, y: number) => {
-    drawAtPosition(x, y);
-  }, [drawAtPosition]);
-
-  // Mouse event handlers
-  const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
-    const { x, y } = getGridCoordinatesFromEvent(event);
-    
-    // Save current state for undo
-    pushToHistory(new Map(cells));
-
-    if (activeTool === 'select') {
-      // If there's an uncommitted move and clicking outside selection, commit it first
-      if (moveState && selection.active && !isPointInEffectiveSelection(x, y)) {
-        commitMove();
-        clearSelection();
-        setJustCommittedMove(true);
-        // Don't start new selection on this click - just commit and clear
-        return;
-      } else if (justCommittedMove) {
-        // Previous click committed a move, this click starts fresh
-        setJustCommittedMove(false);
-        startSelection(x, y);
-        setPendingSelectionStart({ x, y });
-        setMouseButtonDown(true);
-      } else if (selection.active && isPointInEffectiveSelection(x, y) && !event.shiftKey) {
-        // Click inside existing selection - enter move mode
-        setJustCommittedMove(false);
-        if (moveState) {
-          // Already have a moveState (continuing from preview) - just update start position
-          setMoveState({
-            ...moveState,
-            startPos: { x, y }
-          });
-        } else {
-          // First time moving - create new moveState
-          const startX = Math.min(selection.start.x, selection.end.x);
-          const endX = Math.max(selection.start.x, selection.end.x);
-          const startY = Math.min(selection.start.y, selection.end.y);
-          const endY = Math.max(selection.start.y, selection.end.y);
-          
-          // Store only the non-empty cells from the selection
-          const originalData = new Map<string, Cell>();
-          for (let cy = startY; cy <= endY; cy++) {
-            for (let cx = startX; cx <= endX; cx++) {
-              const cell = getCell(cx, cy);
-              // Only store non-empty cells (not spaces or empty cells)
-              if (cell && cell.char && cell.char.trim() !== '') {
-                originalData.set(`${cx},${cy}`, { ...cell });
-              }
-            }
-          }
-          
-          // Preserve any existing accumulated offset or start fresh
-          const existingBaseOffset = { x: 0, y: 0 }; // Start fresh when creating new moveState
-          
-          setMoveState({
-            originalData,
-            startPos: { x, y },
-            baseOffset: existingBaseOffset,
-            currentOffset: { x: 0, y: 0 }
-          });
-        }
-        setSelectionMode('moving');
-        setMouseButtonDown(true);
-      } else if (event.shiftKey && pendingSelectionStart) {
-        // Shift+Click with pending start: create selection from start to current position
-        setJustCommittedMove(false);
-        startSelection(pendingSelectionStart.x, pendingSelectionStart.y);
-        updateSelection(x, y);
-        setPendingSelectionStart(null);
-      } else {
-        // Normal click: select single cell and set as pending start for potential Shift+Click
-        setJustCommittedMove(false);
-        startSelection(x, y);
-        setPendingSelectionStart({ x, y });
-        setMouseButtonDown(true);
-      }
-    } else if (activeTool === 'rectangle') {
-      setJustCommittedMove(false);
-      startSelection(x, y);
-      setSelectionMode('dragging');
-      setMouseButtonDown(true);
-    } else {
-      setJustCommittedMove(false);
-      setIsDrawing(true);
-      handleDrawing(x, y);
-    }
-  }, [getGridCoordinatesFromEvent, activeTool, cells, pushToHistory, startSelection, updateSelection, handleDrawing, pendingSelectionStart, selection, isPointInEffectiveSelection, getCell, moveState, commitMove, clearSelection]);
-
-  const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
-    const { x, y } = getGridCoordinatesFromEvent(event);
-
-    if (activeTool === 'select') {
-      if (selectionMode === 'moving' && moveState) {
-        // Calculate current drag offset from the start position
-        const currentDragOffset = {
-          x: x - moveState.startPos.x,
-          y: y - moveState.startPos.y
-        };
-        
-        // Update the current offset for preview
-        setMoveState({
-          ...moveState,
-          currentOffset: currentDragOffset
-        });
-        // Note: Canvas modification happens in renderGrid for preview, actual move on mouse release
-      } else if (mouseButtonDown && selection.active && pendingSelectionStart) {
-        // Mouse button is down and we have a pending selection start - switch to drag mode
-        if (x !== pendingSelectionStart.x || y !== pendingSelectionStart.y) {
-          setSelectionMode('dragging');
-          setPendingSelectionStart(null);
-        }
-        updateSelection(x, y);
-      } else if (selectionMode === 'dragging' && selection.active) {
-        // Update selection bounds while dragging
-        updateSelection(x, y);
-      }
-    } else if (activeTool === 'rectangle' && selection.active) {
-      updateSelection(x, y);
-    } else if (isDrawing && (activeTool === 'pencil' || activeTool === 'eraser')) {
-      handleDrawing(x, y);
-    }
-  }, [getGridCoordinates, activeTool, selection, isDrawing, updateSelection, handleDrawing, selectionMode, mouseButtonDown, pendingSelectionStart, moveState, setCell, width, height]);
-
-  const handleMouseUp = useCallback(() => {
-    if (activeTool === 'select') {
-      if (selectionMode === 'moving' && moveState) {
-        // Move drag completed - persist the current offset into base offset for continued editing
-        setMoveState({
-          ...moveState,
-          baseOffset: {
-            x: moveState.baseOffset.x + moveState.currentOffset.x,
-            y: moveState.baseOffset.y + moveState.currentOffset.y
-          },
-          currentOffset: { x: 0, y: 0 }
-        });
-        setSelectionMode('none');
-        setMouseButtonDown(false);
-      } else if (selectionMode === 'dragging') {
-        // Drag completed - finish the selection
-        setSelectionMode('none');
-        setMouseButtonDown(false);
-        // Selection remains active with current bounds
-      } else {
-        // Single click completed - clear mouse button state but keep pending selection
-        setMouseButtonDown(false);
-      }
-    } else if (activeTool === 'rectangle' && selection.active) {
-      // Draw rectangle and clear selection
-      drawRectangle(selection.start.x, selection.start.y, selection.end.x, selection.end.y);
-      clearSelection();
-      setSelectionMode('none');
-    }
-    
-    setIsDrawing(false);
-  }, [activeTool, selection, drawRectangle, clearSelection, selectionMode, moveState, startSelection, updateSelection, width, height, setCell]);
-
-  const handleMouseLeave = useCallback(() => {
-    setIsDrawing(false);
-    setMouseButtonDown(false);
-  }, []);
-
-  // Handle right-click context menu prevention
-  const handleContextMenu = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
-    event.preventDefault();
-  }, []);
 
   // Re-render when dependencies change
   useEffect(() => {
