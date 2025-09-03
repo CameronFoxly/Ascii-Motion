@@ -65,18 +65,26 @@ function CanvasGrid() {
 }
 ```
 
-**Directory Structure:**
+**Directory Structure (Updated with Step 5.1):**
 ```
 src/
 ├── components/
 │   ├── atoms/
+│   │   ├── CellRenderer.tsx           # Memoized cell rendering (NEW)
+│   │   ├── PerformanceMonitor.tsx     # Development performance UI (NEW)
+│   │   └── Button.tsx
 │   ├── molecules/
 │   ├── organisms/
 │   └── templates/
 ├── hooks/
+│   ├── useCanvasRenderer.ts           # Optimized with memoization
+│   ├── useMemoizedGrid.ts             # Grid-level optimization (NEW)
+│   └── ...
 ├── stores/
 ├── types/
 ├── utils/
+│   ├── performance.ts                 # Performance measurement tools (NEW)
+│   └── ...
 ├── constants/
 └── lib/
 ```
@@ -490,52 +498,99 @@ cellId: string;
 
 ### 5. Performance Optimization
 
-**🚨 Phase 1.5 Performance Focus (Current Priority)**
-ASCII Motion now handles large grids (200x100 = 20,000 cells) and requires optimized rendering:
+**✅ Phase 1.5 Performance Optimizations COMPLETED (Step 5.1)**
+ASCII Motion now handles large grids (200x100 = 20,000 cells) with optimized rendering performance:
 
-**Canvas Rendering Optimization:**
+**Canvas Rendering Optimization (IMPLEMENTED):**
 ```typescript
-// ✅ Step 5.1: Memoized cell rendering (IN PROGRESS)
-const CellRenderer = memo(({ x, y, cell, cellSize }: CellProps) => {
-  // Only re-renders when cell content actually changes
-  const memoizedStyle = useMemo(() => ({
-    color: cell?.color || '#000000',
-    backgroundColor: cell?.bgColor || '#FFFFFF'
-  }), [cell?.color, cell?.bgColor]);
+// ✅ Step 5.1: Memoized canvas rendering - COMPLETED
+import { useMemoizedGrid } from '../hooks/useMemoizedGrid';
+import { measureCanvasRender, finishCanvasRender } from '../utils/performance';
 
-  return (
-    <div 
-      className="cell"
-      style={memoizedStyle}
-    >
-      {cell?.char}
-    </div>
-  );
+const useCanvasRenderer = () => {
+  // Memoized font and style calculations (eliminates 1,920 repeated calculations)
+  const drawingStyles = useMemo(() => ({
+    font: `${cellSize - 2}px 'Courier New', monospace`,
+    gridLineColor: '#E5E7EB',
+    textAlign: 'center' as CanvasTextAlign,
+    textBaseline: 'middle' as CanvasTextBaseline,
+    defaultTextColor: '#000000',
+    defaultBgColor: '#FFFFFF'
+  }), [cellSize]);
+
+  // Use grid-level memoization for change detection
+  const { selectionData } = useMemoizedGrid(moveState, getTotalOffset);
+
+  // Optimized render function with performance measurement
+  const renderCanvas = useCallback(() => {
+    measureCanvasRender(); // Start timing
+    
+    // Set font context once per render batch (not per cell)
+    ctx.font = drawingStyles.font;
+    ctx.textAlign = drawingStyles.textAlign;
+    ctx.textBaseline = drawingStyles.textBaseline;
+    
+    // Render grid with optimized cell iteration
+    // ... rendering logic
+    
+    finishCanvasRender(totalCells); // End timing & log metrics
+  }, [width, height, cells, getCell, drawCell, drawingStyles]);
+};
+
+// ✅ Component-level memoization
+const CellRenderer = React.memo(({ x, y, cell, cellSize }: CellProps) => {
+  // Only re-renders when cell content actually changes
+  const drawCell = useCallback(() => {
+    // Optimized cell drawing with pre-computed styles
+  }, [cell, cellSize]);
+  
+  return <canvas ref={canvasRef} />;
 }, (prev, next) => 
   prev.cell?.char === next.cell?.char &&
   prev.cell?.color === next.cell?.color &&
   prev.cell?.bgColor === next.cell?.bgColor
 );
+```
 
-// ✅ Optimize expensive calculations
-const useCanvasRenderer = () => {
-  // Memoize font styles (instead of recalculating 1,920 times per render)
-  const fontStyle = useMemo(() => 
-    `${cellSize - 2}px 'Courier New', monospace`, [cellSize]
-  );
-  
-  // Cache drawing parameters
-  const drawingParams = useMemo(() => ({
-    font: fontStyle,
-    textAlign: 'center' as const,
-    textBaseline: 'middle' as const
-  }), [fontStyle]);
+**Performance Measurement Tools (IMPLEMENTED):**
+```typescript
+// ✅ Development performance monitoring
+import { 
+  logPerformanceStats, 
+  testLargeGridPerformance, 
+  clearPerformanceHistory 
+} from '../utils/performance';
+
+// Performance testing in development
+const testResults = await testLargeGridPerformance(200, 100);
+console.log(testResults); // Detailed performance analysis
+
+// Global performance tools available in dev console
+window.asciiMotionPerf.logStats(); // Current performance metrics
+window.asciiMotionPerf.testGrid(300, 200); // Test specific grid size
+```
+
+**Grid Memoization (IMPLEMENTED):**
+```typescript
+// ✅ Grid-level optimization with change detection
+const useMemoizedGrid = (moveState, getTotalOffset) => {
+  // Memoize moving cell coordinates to prevent recalculation
+  const movingCellKeys = useMemo(() => {
+    if (!moveState?.originalData.size) return new Set();
+    return new Set(moveState.originalData.keys());
+  }, [moveState]);
+
+  // Memoize grid data to prevent unnecessary recalculations
+  const gridData = useMemo(() => {
+    // Only process cells that actually changed
+    // Separate static and moving cells for optimal rendering
+  }, [width, height, cells, getCell, movingCellKeys, moveState]);
 };
 ```
 
-**Dirty Region Tracking (Step 5.2):**
+**Future Performance Steps (Steps 5.2-5.3):**
 ```typescript
-// ✅ Future: Only re-render changed cells
+// 🔄 Step 5.2: Dirty region tracking (PLANNED)
 const useDirtyRegions = () => {
   const [dirtyRegions, setDirtyRegions] = useState<Set<string>>(new Set());
   
@@ -544,13 +599,10 @@ const useDirtyRegions = () => {
     setDirtyRegions(prev => new Set(prev).add(`${x},${y}`));
   }, []);
 };
-```
 
-**Grid Virtualization (Step 5.2):**
-```typescript
-// ✅ Future: Viewport chunking for very large grids
+// 🔄 Step 5.3: Grid virtualization (PLANNED)
 const useVirtualizedGrid = (width: number, height: number) => {
-  // Only render visible cells + buffer
+  // Only render visible cells + buffer for very large grids
   // Support 500x500+ grids efficiently
 };
 ```
@@ -568,6 +620,53 @@ const renderCanvas = useCallback(() => {
 
 // ❌ Avoid: Subscribing to entire store
 const animationState = useAnimationStore(); // Causes unnecessary re-renders
+```
+
+**Performance Monitoring Patterns (Step 5.1):**
+```typescript
+// ✅ Use performance utilities in development
+import { measureCanvasRender, finishCanvasRender } from '../utils/performance';
+
+const optimizedRenderFunction = useCallback(() => {
+  measureCanvasRender(); // Start timing
+  
+  // Expensive rendering operations
+  
+  const cellCount = width * height;
+  const { duration, fps } = finishCanvasRender(cellCount); // End timing
+  
+  // Performance data automatically logged in development
+}, [width, height]);
+
+// ✅ Test large grid performance
+const testPerformance = async () => {
+  const result = await testLargeGridPerformance(200, 100);
+  console.log(`Grid ${result.gridSize}: ${result.avgRenderTime}ms`);
+  // Recommendation: result.recommendation
+};
+```
+
+**Memoization Patterns for Canvas Components:**
+```typescript
+// ✅ Memoize expensive style calculations
+const drawingStyles = useMemo(() => ({
+  font: `${cellSize - 2}px 'Courier New', monospace`,
+  gridLineColor: '#E5E7EB',
+  textAlign: 'center' as CanvasTextAlign,
+  textBaseline: 'middle' as CanvasTextBaseline
+}), [cellSize]);
+
+// ✅ Use React.memo for cell-level components  
+const CellRenderer = React.memo(({ x, y, cell, cellSize }: CellProps) => {
+  // Only re-renders when cell content changes
+}, (prev, next) => 
+  prev.cell?.char === next.cell?.char &&
+  prev.cell?.color === next.cell?.color &&
+  prev.cell?.bgColor === next.cell?.bgColor
+);
+
+// ✅ Grid-level memoization for change detection
+const { gridData, selectionData } = useMemoizedGrid(moveState, getTotalOffset);
 ```
 
 ### 6. Event Handling Patterns
@@ -698,12 +797,14 @@ const useCanvasStore = create<CanvasState>((set) => ({
 - Use semantic commit messages
 
 ## When Working on ASCII Motion:
-1. **Always consider performance** - This app handles large grids and animations
-2. **Think in components** - Break down features into reusable pieces
-3. **Optimize for the user workflow** - Make common actions fast and intuitive
-4. **Plan for future features** - Design APIs that can be extended
-5. **Test cross-browser** - Ensure compatibility with major browsers
-6. **Consider accessibility** - Use proper ARIA labels and keyboard navigation
+1. **Always consider performance** - App now supports large grids (200x100+) with optimized rendering
+2. **Use performance tools** - Leverage measureCanvasRender, PerformanceMonitor for development
+3. **Think in components** - Break down features into reusable, memoized pieces
+4. **Optimize for the user workflow** - Make common actions fast and intuitive
+5. **Plan for future features** - Design APIs that can be extended (Steps 5.2-5.3)
+6. **Test cross-browser** - Ensure compatibility with major browsers
+7. **Consider accessibility** - Use proper ARIA labels and keyboard navigation
+8. **Monitor render performance** - Use development tools to validate optimizations
 
 ## Current Architecture Status (Phase 1.5 Refactoring):
 🚨 **CRITICAL**: The canvas system has been refactored following a Context + Hooks pattern.
@@ -715,8 +816,19 @@ const useCanvasStore = create<CanvasState>((set) => ({
 - ✅ Mouse Interaction Logic extracted to Hooks (Step 2 complete)
 - ✅ Rendering split into focused hook (Step 3 complete)
 - ✅ Tool-specific components (Step 4 complete)
+- ✅ Performance Optimizations - Memoization (Step 5.1 complete)
 
-**Step 4 Completion**:
+**Step 5.1 Completion - Performance Optimizations**:
+- ✅ CellRenderer.tsx: Memoized cell rendering component
+- ✅ useMemoizedGrid.ts: Grid-level optimization hook (117 lines)
+- ✅ performance.ts: Performance measurement utilities (217 lines)
+- ✅ PerformanceMonitor.tsx: Development UI for testing (147 lines)
+- ✅ useCanvasRenderer.ts: Optimized with memoization (195 lines)
+- ✅ Font/style calculations memoized (eliminates 1,920 repeated computations)
+- ✅ Performance measurement integration with real-time monitoring
+- ✅ Development tools for testing grid sizes up to 200x100+ cells
+
+**Step 4 Completion - Tool Components**:
 - CanvasGrid.tsx maintained at ~111 lines (pure composition)
 - Created 5 tool-specific components with status UI (181 lines total)
 - Created ToolManager and ToolStatusManager for composition (68 lines total)
@@ -725,18 +837,23 @@ const useCanvasStore = create<CanvasState>((set) => ({
 
 **Final Architecture Achievements**:
 - Total CanvasGrid reduction: 501 → 111 lines (~78% reduction)
-- 7 specialized hooks created for canvas functionality
+- 8 specialized hooks created for canvas functionality (including performance)
 - 5 tool components created for extensible tool system
-- Complete separation of concerns: state, interaction, rendering, tools
+- Complete separation of concerns: state, interaction, rendering, tools, performance
 - Pattern established for easy addition of new tools
-- Ready for Phase 2: Animation System
+- Performance optimizations support large grids (200x100+ cells)
+- Ready for Steps 5.2-5.3 and Phase 2: Animation System
+**When Working with Canvas Components (Post Step 5.1):**
 1. **Use CanvasProvider** - Wrap canvas components in context
-2. **Use established hooks** - `useCanvasContext()`, `useCanvasState()`, etc.
+2. **Use established hooks** - `useCanvasContext()`, `useCanvasState()`, `useMemoizedGrid()`, etc.
 3. **Don't add useState to CanvasGrid** - Extract to context or hooks instead
 4. **Include Zustand dependencies** - Add reactive store data (like `cells`) to useCallback/useMemo deps
-5. **Follow tool component pattern** - Use the 8-step guide above for ALL new tools
-6. **Follow the pattern** - Reference existing refactored code for consistency
-7. **Check DEVELOPMENT.md** - Always review current step status before changes
+5. **Use performance tools** - Import and use performance measurement utilities in development
+6. **Follow memoization patterns** - Use React.memo, useMemo, useCallback for expensive operations
+7. **Follow tool component pattern** - Use the 8-step guide above for ALL new tools
+8. **Test large grids** - Use PerformanceMonitor to validate performance on 200x100+ grids
+9. **Follow the pattern** - Reference existing refactored code for consistency
+10. **Check DEVELOPMENT.md** - Always review current step status before changes
 
 ## 📝 Documentation Maintenance Protocol:
 

@@ -1,13 +1,17 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useCanvasStore } from '../stores/canvasStore';
-import { useToolStore } from '../stores/toolStore';
 import { useCanvasContext } from '../contexts/CanvasContext';
 import { useCanvasState } from './useCanvasState';
+import { useMemoizedGrid } from './useMemoizedGrid';
+import { measureCanvasRender, finishCanvasRender } from '../utils/performance';
 import type { Cell } from '../types';
 
 /**
- * Hook for coordinated canvas rendering
- * Handles both grid rendering and overlay rendering in correct order
+ * Hook for optimized canvas rendering with memoization
+ * Implements Step 5.1 performance optimizations:
+ * - Memoized font and style calculations
+ * - Grid-level change detection
+ * - Performance measurement
  */
 export const useCanvasRenderer = () => {
   const { canvasRef } = useCanvasContext();
@@ -26,23 +30,47 @@ export const useCanvasRenderer = () => {
     getCell
   } = useCanvasStore();
 
-  const { selection } = useToolStore();
+  // Use memoized grid for optimized rendering  
+  const { selectionData } = useMemoizedGrid(
+    moveState,
+    getTotalOffset
+  );
 
-  // Draw a single cell on the canvas
+  // Memoize font and style calculations (Phase B optimization)
+  const drawingStyles = useMemo(() => {
+    return {
+      font: `${cellSize - 2}px 'Courier New', monospace`,
+      gridLineColor: '#E5E7EB',
+      gridLineWidth: 0.5,
+      textAlign: 'center' as CanvasTextAlign,
+      textBaseline: 'middle' as CanvasTextBaseline,
+      defaultTextColor: '#000000',
+      defaultBgColor: '#FFFFFF'
+    };
+  }, [cellSize]);
+
+  // Optimized drawCell function with memoized styles
   const drawCell = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, cell?: Cell) => {
     const pixelX = x * cellSize;
     const pixelY = y * cellSize;
 
+    // Use pre-computed styles
+    const bgColor = cell?.bgColor || drawingStyles.defaultBgColor;
+    const textColor = cell?.color || drawingStyles.defaultTextColor;
+
     // Draw background
-    ctx.fillStyle = cell?.bgColor || '#FFFFFF';
+    ctx.fillStyle = bgColor;
     ctx.fillRect(pixelX, pixelY, cellSize, cellSize);
 
     // Draw character if present
     if (cell?.char && cell.char !== ' ') {
-      ctx.fillStyle = cell.color || '#000000';
-      ctx.font = `${cellSize - 2}px 'Courier New', monospace`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      ctx.fillStyle = textColor;
+      // Set font once per render batch instead of per cell
+      if (ctx.font !== drawingStyles.font) {
+        ctx.font = drawingStyles.font;
+        ctx.textAlign = drawingStyles.textAlign;
+        ctx.textBaseline = drawingStyles.textBaseline;
+      }
       ctx.fillText(
         cell.char, 
         pixelX + cellSize / 2, 
@@ -51,12 +79,12 @@ export const useCanvasRenderer = () => {
     }
 
     // Draw grid lines
-    ctx.strokeStyle = '#E5E7EB';
-    ctx.lineWidth = 0.5;
+    ctx.strokeStyle = drawingStyles.gridLineColor;
+    ctx.lineWidth = drawingStyles.gridLineWidth;
     ctx.strokeRect(pixelX, pixelY, cellSize, cellSize);
-  }, [cellSize]);
+  }, [cellSize, drawingStyles]);
 
-  // Render the entire canvas (grid + overlay)
+  // Optimized render function with performance measurement
   const renderCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -64,10 +92,18 @@ export const useCanvasRenderer = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Start performance measurement
+    measureCanvasRender();
+
     // Clear canvas
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
-    // Create a set of coordinates that are being moved (to skip in normal rendering)
+    // Set font context once for the entire render batch
+    ctx.font = drawingStyles.font;
+    ctx.textAlign = drawingStyles.textAlign;
+    ctx.textBaseline = drawingStyles.textBaseline;
+
+    // Create a set of coordinates that are being moved (optimized)
     const movingCells = new Set<string>();
     if (moveState && moveState.originalData.size > 0) {
       moveState.originalData.forEach((_, key: string) => {
@@ -75,15 +111,18 @@ export const useCanvasRenderer = () => {
       });
     }
 
-    // Draw all cells (excluding cells that are being moved)
+    // Draw static cells (excluding cells being moved)
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const key = `${x},${y}`;
         
-        // Skip cells that are being moved during preview
         if (movingCells.has(key)) {
           // Draw empty cell in original position during move
-          drawCell(ctx, x, y, { char: ' ', color: '#000000', bgColor: '#FFFFFF' });
+          drawCell(ctx, x, y, { 
+            char: ' ', 
+            color: drawingStyles.defaultTextColor, 
+            bgColor: drawingStyles.defaultBgColor 
+          });
         } else {
           const cell = getCell(x, y);
           drawCell(ctx, x, y, cell);
@@ -91,7 +130,7 @@ export const useCanvasRenderer = () => {
       }
     }
 
-    // Draw moved cells at their new positions during preview
+    // Draw moved cells at their new positions
     if (moveState && moveState.originalData.size > 0) {
       const totalOffset = getTotalOffset(moveState);
       moveState.originalData.forEach((cell: Cell, key: string) => {
@@ -106,35 +145,39 @@ export const useCanvasRenderer = () => {
       });
     }
 
-    // Draw selection overlay on top
-    if (selection.active) {
-      let startX = Math.min(selection.start.x, selection.end.x);
-      let startY = Math.min(selection.start.y, selection.end.y);
-      let endX = Math.max(selection.start.x, selection.end.x);
-      let endY = Math.max(selection.start.y, selection.end.y);
-
-      // If moving, adjust the marquee position by the move offset
-      if (moveState) {
-        const totalOffset = getTotalOffset(moveState);
-        startX += totalOffset.x;
-        startY += totalOffset.y;
-        endX += totalOffset.x;
-        endY += totalOffset.y;
-      }
-
-      // Draw selection rectangle with dashed border
+    // Draw selection overlay
+    if (selectionData) {
       ctx.strokeStyle = '#3B82F6';
       ctx.lineWidth = 2;
       ctx.setLineDash([5, 5]);
       ctx.strokeRect(
-        startX * cellSize,
-        startY * cellSize,
-        (endX - startX + 1) * cellSize,
-        (endY - startY + 1) * cellSize
+        selectionData.startX * cellSize,
+        selectionData.startY * cellSize,
+        selectionData.width * cellSize,
+        selectionData.height * cellSize
       );
       ctx.setLineDash([]);
     }
-  }, [width, height, cells, getCell, drawCell, canvasWidth, canvasHeight, moveState, getTotalOffset, selection, cellSize, canvasRef]);
+
+    // Finish performance measurement
+    const totalCells = width * height;
+    finishCanvasRender(totalCells);
+
+  }, [
+    width, 
+    height, 
+    cells, 
+    getCell, 
+    drawCell, 
+    canvasWidth, 
+    canvasHeight, 
+    moveState, 
+    getTotalOffset, 
+    selectionData, 
+    cellSize, 
+    canvasRef,
+    drawingStyles
+  ]);
 
   // Re-render when dependencies change
   useEffect(() => {

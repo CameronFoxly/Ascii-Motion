@@ -4,6 +4,7 @@ import { CanvasProvider } from './contexts/CanvasContext'
 import { ToolPalette } from './components/organisms/ToolPalette'
 import { CharacterPalette } from './components/organisms/CharacterPalette'
 import { ColorPicker } from './components/organisms/ColorPicker'
+import { PerformanceMonitor } from './components/atoms/PerformanceMonitor'
 import { useCanvasStore } from './stores/canvasStore'
 import { useAnimationStore } from './stores/animationStore'
 import { useToolStore } from './stores/toolStore'
@@ -143,6 +144,9 @@ function App() {
             </div>
           </div>
         </div>
+
+        {/* Performance Monitor - Development Only */}
+        <PerformanceMonitor />
       </div>
     </div>
   )
