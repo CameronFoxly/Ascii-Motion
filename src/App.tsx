@@ -6,12 +6,16 @@ import { ColorPicker } from './components/organisms/ColorPicker'
 import { useCanvasStore } from './stores/canvasStore'
 import { useAnimationStore } from './stores/animationStore'
 import { useToolStore } from './stores/toolStore'
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import './App.css'
 
 function App() {
   const { width, height, getCellCount, clearCanvas } = useCanvasStore()
   const { frames, currentFrameIndex } = useAnimationStore()
-  const { activeTool, selectedChar, undo, redo, canUndo, canRedo } = useToolStore()
+  const { activeTool, selectedChar, undo, redo, canUndo, canRedo, selection, hasClipboard } = useToolStore()
+  
+  // Enable keyboard shortcuts
+  const { copySelection, pasteSelection } = useKeyboardShortcuts()
 
   return (
     <div className="min-h-screen bg-gray-100 text-black">
@@ -43,8 +47,27 @@ function App() {
                     <Button 
                       variant="outline" 
                       size="sm" 
+                      onClick={() => copySelection()}
+                      disabled={!selection?.active}
+                      title="Copy selection (Cmd/Ctrl+C)"
+                    >
+                      Copy
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => pasteSelection()}
+                      disabled={!hasClipboard()}
+                      title="Paste (Cmd/Ctrl+V)"
+                    >
+                      Paste
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
                       onClick={() => undo()}
                       disabled={!canUndo()}
+                      title="Undo (Cmd/Ctrl+Z)"
                     >
                       Undo
                     </Button>
@@ -53,6 +76,7 @@ function App() {
                       size="sm" 
                       onClick={() => redo()}
                       disabled={!canRedo()}
+                      title="Redo (Cmd/Ctrl+Shift+Z)"
                     >
                       Redo
                     </Button>
@@ -60,6 +84,7 @@ function App() {
                       variant="outline" 
                       size="sm" 
                       onClick={clearCanvas}
+                      title="Clear entire canvas"
                     >
                       Clear
                     </Button>

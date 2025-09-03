@@ -6,6 +6,9 @@ interface ToolStoreState extends ToolState {
   // Selection state
   selection: Selection;
   
+  // Clipboard for copy/paste
+  clipboard: Map<string, any> | null;
+  
   // History for undo/redo
   undoStack: Map<string, any>[];
   redoStack: Map<string, any>[];
@@ -26,6 +29,11 @@ interface ToolStoreState extends ToolState {
   startSelection: (x: number, y: number) => void;
   updateSelection: (x: number, y: number) => void;
   clearSelection: () => void;
+  
+  // Clipboard actions
+  copySelection: (canvasData: Map<string, any>) => void;
+  pasteSelection: (x: number, y: number) => Map<string, any> | null;
+  hasClipboard: () => boolean;
   
   // History actions
   pushToHistory: (canvasData: Map<string, any>) => void;
@@ -51,6 +59,9 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     end: { x: 0, y: 0 },
     active: false
   },
+  
+  // Clipboard state
+  clipboard: null,
   
   // History state
   undoStack: [],
@@ -109,6 +120,50 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
         active: false
       }
     });
+  },
+
+  // Clipboard actions
+  copySelection: (canvasData: Map<string, any>) => {
+    const { selection } = get();
+    if (!selection.active) return;
+
+    const minX = Math.min(selection.start.x, selection.end.x);
+    const maxX = Math.max(selection.start.x, selection.end.x);
+    const minY = Math.min(selection.start.y, selection.end.y);
+    const maxY = Math.max(selection.start.y, selection.end.y);
+
+    const copiedData = new Map<string, any>();
+    
+    for (let y = minY; y <= maxY; y++) {
+      for (let x = minX; x <= maxX; x++) {
+        const key = `${x},${y}`;
+        const relativeKey = `${x - minX},${y - minY}`;
+        if (canvasData.has(key)) {
+          copiedData.set(relativeKey, canvasData.get(key));
+        }
+      }
+    }
+
+    set({ clipboard: copiedData });
+  },
+
+  pasteSelection: (x: number, y: number) => {
+    const { clipboard } = get();
+    if (!clipboard) return null;
+
+    const pastedData = new Map<string, any>();
+    
+    clipboard.forEach((cell, relativeKey) => {
+      const [relX, relY] = relativeKey.split(',').map(Number);
+      const absoluteKey = `${x + relX},${y + relY}`;
+      pastedData.set(absoluteKey, cell);
+    });
+
+    return pastedData;
+  },
+
+  hasClipboard: () => {
+    return get().clipboard !== null && get().clipboard!.size > 0;
   },
 
   // History actions

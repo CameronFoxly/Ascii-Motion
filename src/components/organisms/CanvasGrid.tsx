@@ -12,6 +12,8 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [cellSize] = useState(12); // Default cell size in pixels
+  const [selectionMode, setSelectionMode] = useState<'none' | 'click-to-finish' | 'dragging'>('none');
+  const [mouseButtonDown, setMouseButtonDown] = useState(false);
 
   const { 
     width, 
@@ -131,36 +133,77 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     // Save current state for undo
     pushToHistory(new Map(cells));
 
-    if (activeTool === 'select' || activeTool === 'rectangle') {
+    if (activeTool === 'select') {
+      if (selectionMode === 'click-to-finish' && selection.active) {
+        // We're in the middle of a click-to-finish selection - complete it
+        setSelectionMode('none');
+        setMouseButtonDown(false);
+        // Selection remains active with current bounds, don't start new selection
+      } else {
+        // Either no selection or previous selection completed - start new selection
+        startSelection(x, y);
+        setSelectionMode('click-to-finish');
+        setMouseButtonDown(true);
+      }
+    } else if (activeTool === 'rectangle') {
       startSelection(x, y);
+      setSelectionMode('dragging');
+      setMouseButtonDown(true);
     } else {
       setIsDrawing(true);
       handleDrawing(x, y);
     }
-  }, [getGridCoordinates, activeTool, cells, pushToHistory, startSelection, handleDrawing]);
+  }, [getGridCoordinates, activeTool, cells, pushToHistory, startSelection, handleDrawing, selection, selectionMode]);
 
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const { x, y } = getGridCoordinates(event);
 
-    if ((activeTool === 'select' || activeTool === 'rectangle') && selection.start) {
+    if (activeTool === 'select') {
+      if (selectionMode === 'click-to-finish' && selection.active) {
+        // In click-to-finish mode, update selection bounds for preview
+        updateSelection(x, y);
+        
+        // Only switch to drag mode if mouse button is currently being held down
+        // and we've moved from the starting position
+        if (mouseButtonDown && (x !== selection.start.x || y !== selection.start.y)) {
+          setSelectionMode('dragging');
+        }
+      } else if (selectionMode === 'dragging' && selection.active) {
+        // Update selection bounds while dragging
+        updateSelection(x, y);
+      }
+    } else if (activeTool === 'rectangle' && selection.active) {
       updateSelection(x, y);
     } else if (isDrawing && (activeTool === 'pencil' || activeTool === 'eraser')) {
       handleDrawing(x, y);
     }
-  }, [getGridCoordinates, activeTool, selection, isDrawing, updateSelection, handleDrawing]);
+  }, [getGridCoordinates, activeTool, selection, isDrawing, updateSelection, handleDrawing, selectionMode, mouseButtonDown]);
 
   const handleMouseUp = useCallback(() => {
-    // If we were drawing a rectangle, draw it now
-    if (activeTool === 'rectangle' && selection.active) {
+    if (activeTool === 'select') {
+      if (selectionMode === 'dragging') {
+        // Drag completed - finish the selection
+        setSelectionMode('none');
+        setMouseButtonDown(false);
+        // Selection remains active with current bounds
+      } else if (selectionMode === 'click-to-finish') {
+        // Mouse button released in click-to-finish mode - clear button state but stay in mode
+        setMouseButtonDown(false);
+      }
+      // For click-to-finish mode, do nothing else - wait for second click
+    } else if (activeTool === 'rectangle' && selection.active) {
+      // Draw rectangle and clear selection
       drawRectangle(selection.start.x, selection.start.y, selection.end.x, selection.end.y);
       clearSelection();
+      setSelectionMode('none');
     }
     
     setIsDrawing(false);
-  }, [activeTool, selection, drawRectangle, clearSelection]);
+  }, [activeTool, selection, drawRectangle, clearSelection, selectionMode]);
 
   const handleMouseLeave = useCallback(() => {
     setIsDrawing(false);
+    setMouseButtonDown(false);
   }, []);
 
   // Handle right-click context menu prevention
@@ -186,12 +229,26 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     renderGrid();
   }, [canvasWidth, canvasHeight, renderGrid]);
 
+  // Reset selection mode when tool changes
+  useEffect(() => {
+    if (activeTool !== 'select') {
+      setSelectionMode('none');
+      setMouseButtonDown(false);
+    }
+  }, [activeTool]);
+
   return (
     <div className={`canvas-grid-container ${className}`}>
       <div className="canvas-wrapper border-2 border-gray-300 rounded-lg overflow-auto max-h-96">
         <canvas
           ref={canvasRef}
-          className="canvas-grid cursor-crosshair"
+          className={`canvas-grid ${
+            activeTool === 'select' && selectionMode === 'click-to-finish' 
+              ? 'cursor-copy' 
+              : activeTool === 'select' 
+                ? 'cursor-crosshair'
+                : 'cursor-crosshair'
+          }`}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -207,7 +264,14 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       {/* Canvas info */}
       <div className="mt-2 text-sm text-gray-600 flex justify-between">
         <span>Grid: {width} × {height}</span>
-        <span>Cell size: {cellSize}px</span>
+        <span>
+          {activeTool === 'select' && selectionMode === 'click-to-finish' 
+            ? 'Click again to finish selection' 
+            : activeTool === 'select' && selection.active && selectionMode === 'none'
+              ? 'Selection ready - copy/paste available'
+              : `Cell size: ${cellSize}px`
+          }
+        </span>
       </div>
     </div>
   );

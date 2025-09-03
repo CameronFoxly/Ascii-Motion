@@ -53,7 +53,7 @@ src/
 
 ## Development Phases
 
-### Phase 1: Core Editor (Current)
+### Phase 1: Core Editor ✅ **COMPLETE**
 - [x] Project scaffolding
 - [x] Basic stores (canvas, animation, tools)
 - [x] Type definitions and constants
@@ -64,9 +64,43 @@ src/
 - [x] Tool palette
 - [x] Undo/redo functionality
 - [x] Basic UI layout with sidebars
-- [ ] Rectangle drawing tool implementation
-- [ ] Fill tool optimization
-- [ ] Selection tool copy/paste functionality
+- [x] Rectangle drawing tool implementation
+- [x] Fill tool (flood-fill algorithm with optimization)
+- [x] Selection tool copy/paste functionality
+- [x] Keyboard shortcuts (Cmd/Ctrl+C, Cmd/Ctrl+V, Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z)
+
+## Phase 1 Features Summary
+
+### 🎨 Drawing Tools
+- **Pencil** ✏️ - Draw individual characters with selected colors
+- **Eraser** 🧽 - Remove characters from cells
+- **Paint Bucket** 🪣 - Flood fill connected areas with same character/color
+- **Rectangle** ▭ - Draw filled or hollow rectangles
+- **Eyedropper** 💧 - Pick character and colors from existing artwork
+
+### 🎯 Selection & Editing
+- **Selection Tool** ⬚ - Select rectangular areas with dual interaction modes:
+  - *Click & Drag*: Start selection and drag to define area
+  - *Click to Start/Finish*: Click to start, move mouse to preview, click again to complete
+- **Copy/Paste** - Copy selected areas and paste them elsewhere
+- **Undo/Redo** - Full history management with 50-action limit
+
+### 🎭 Character & Color Management
+- **Character Palette** - Organized character sets (Basic Text, Punctuation, Math/Symbols, Lines/Borders, Blocks/Shading, Arrows, Geometric, Special)
+- **Color Picker** - Preset colors and custom color selection for text and background
+- **Real-time Preview** - See changes instantly on the canvas
+
+### ⌨️ Keyboard Shortcuts
+- `Cmd/Ctrl + C` - Copy selection
+- `Cmd/Ctrl + V` - Paste at selection or (0,0)
+- `Cmd/Ctrl + Z` - Undo
+- `Cmd/Ctrl + Shift + Z` - Redo
+
+### 📐 Canvas Features
+- **Configurable Size** - Default 80x24 (terminal size)
+- **Grid-based Drawing** - Precise character placement
+- **Visual Selection** - Animated selection overlay
+- **Real-time Rendering** - Smooth canvas updates
 
 ### Phase 2: Animation System
 - [ ] Timeline component
