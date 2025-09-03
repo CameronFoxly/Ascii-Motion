@@ -16,13 +16,15 @@ export const useKeyboardShortcuts = () => {
     redo,
     canUndo,
     canRedo,
-    pushToHistory
+    pushToHistory,
+    activeTool
   } = useToolStore();
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     // Handle Escape key (without modifier)
     if (event.key === 'Escape') {
-      if (selection.active) {
+      // Let CanvasGrid handle Escape when selection tool is active (for move commits)
+      if (selection.active && activeTool !== 'select') {
         event.preventDefault();
         clearSelection();
       }

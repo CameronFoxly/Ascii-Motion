@@ -15,6 +15,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   const [selectionMode, setSelectionMode] = useState<'none' | 'dragging' | 'moving'>('none');
   const [mouseButtonDown, setMouseButtonDown] = useState(false);
   const [pendingSelectionStart, setPendingSelectionStart] = useState<{x: number, y: number} | null>(null);
+  const [justCommittedMove, setJustCommittedMove] = useState(false); // Track when we just committed a move
   const [moveState, setMoveState] = useState<{
     originalData: Map<string, Cell>;
     startPos: {x: number, y: number};
@@ -124,6 +125,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     });
 
     setMoveState(null);
+    setJustCommittedMove(false); // Clear the flag when committing
   }, [moveState, setCell, width, height]);
 
   // Draw a single cell on the canvas
@@ -250,12 +252,18 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       if (moveState && selection.active && !isPointInEffectiveSelection(x, y)) {
         commitMove();
         clearSelection();
-        // Then proceed with new selection
+        setJustCommittedMove(true);
+        // Don't start new selection on this click - just commit and clear
+        return;
+      } else if (justCommittedMove) {
+        // Previous click committed a move, this click starts fresh
+        setJustCommittedMove(false);
         startSelection(x, y);
         setPendingSelectionStart({ x, y });
         setMouseButtonDown(true);
       } else if (selection.active && isPointInEffectiveSelection(x, y) && !event.shiftKey) {
         // Click inside existing selection - enter move mode
+        setJustCommittedMove(false);
         if (moveState) {
           // Already have a moveState (continuing from preview) - just update start position
           setMoveState({
@@ -295,20 +303,24 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
         setMouseButtonDown(true);
       } else if (event.shiftKey && pendingSelectionStart) {
         // Shift+Click with pending start: create selection from start to current position
+        setJustCommittedMove(false);
         startSelection(pendingSelectionStart.x, pendingSelectionStart.y);
         updateSelection(x, y);
         setPendingSelectionStart(null);
       } else {
         // Normal click: select single cell and set as pending start for potential Shift+Click
+        setJustCommittedMove(false);
         startSelection(x, y);
         setPendingSelectionStart({ x, y });
         setMouseButtonDown(true);
       }
     } else if (activeTool === 'rectangle') {
+      setJustCommittedMove(false);
       startSelection(x, y);
       setSelectionMode('dragging');
       setMouseButtonDown(true);
     } else {
+      setJustCommittedMove(false);
       setIsDrawing(true);
       handleDrawing(x, y);
     }
@@ -410,11 +422,17 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     renderGrid();
   }, [canvasWidth, canvasHeight, renderGrid]);
 
-  // Handle Escape key for committing moves
+  // Handle Escape key for committing moves and clearing selections
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && moveState && selection.active) {
-        commitMove();
+      if (event.key === 'Escape' && selection.active && activeTool === 'select') {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        if (moveState) {
+          // Commit move first, then clear selection
+          commitMove();
+        }
         clearSelection();
       }
     };
@@ -423,7 +441,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [moveState, selection.active, commitMove, clearSelection]);
+  }, [moveState, selection.active, activeTool, commitMove, clearSelection]);
 
   // Reset selection mode when tool changes
   useEffect(() => {
