@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "docs-check": "echo '📋 Documentation Health Check:' && echo '1. Do COPILOT_INSTRUCTIONS.md patterns match current code?' && echo '2. Are all DEVELOPMENT.md step statuses accurate?' && echo '3. Do all file paths in docs exist?' && echo '4. Run npm run dev to verify no breaking changes' && npm run dev"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",

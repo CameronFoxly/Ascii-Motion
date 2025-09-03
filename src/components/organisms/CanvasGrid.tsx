@@ -1,7 +1,9 @@
-import React, { useCallback, useRef, useEffect, useState } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useToolStore } from '../../stores/toolStore';
 import { useDrawingTool } from '../../hooks/useDrawingTool';
+import { useCanvasContext, useCanvasDimensions } from '../../contexts/CanvasContext';
+import { useCanvasState } from '../../hooks/useCanvasState';
 import type { Cell } from '../../types';
 
 interface CanvasGridProps {
@@ -9,19 +11,27 @@ interface CanvasGridProps {
 }
 
 export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [cellSize] = useState(12); // Default cell size in pixels
-  const [selectionMode, setSelectionMode] = useState<'none' | 'dragging' | 'moving'>('none');
-  const [mouseButtonDown, setMouseButtonDown] = useState(false);
-  const [pendingSelectionStart, setPendingSelectionStart] = useState<{x: number, y: number} | null>(null);
-  const [justCommittedMove, setJustCommittedMove] = useState(false); // Track when we just committed a move
-  const [moveState, setMoveState] = useState<{
-    originalData: Map<string, Cell>;
-    startPos: {x: number, y: number};
-    baseOffset: {x: number, y: number}; // Accumulated offset from previous moves
-    currentOffset: {x: number, y: number}; // Current drag offset
-  } | null>(null);
+  // Use our new context and state management
+  const { canvasRef, isDrawing, setIsDrawing, mouseButtonDown, setMouseButtonDown } = useCanvasContext();
+  const { getGridCoordinates } = useCanvasDimensions();
+  const {
+    cellSize,
+    selectionMode,
+    moveState,
+    pendingSelectionStart,
+    justCommittedMove,
+    canvasWidth,
+    canvasHeight,
+    statusMessage,
+    // Remove unused: effectiveSelectionBounds, resetSelectionState are available but not used in this refactor step
+    getTotalOffset,
+    isPointInEffectiveSelection,
+    commitMove,
+    setSelectionMode,
+    setMoveState,
+    setPendingSelectionStart,
+    setJustCommittedMove,
+  } = useCanvasState();
 
   const { 
     width, 
@@ -41,92 +51,17 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
 
   const { drawAtPosition, drawRectangle, activeTool } = useDrawingTool();
 
-  // Calculate canvas dimensions
-  const canvasWidth = width * cellSize;
-  const canvasHeight = height * cellSize;
-
-  // Convert mouse coordinates to grid coordinates
-  const getGridCoordinates = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
+  // Convert mouse coordinates to grid coordinates using our context helper
+  const getGridCoordinatesFromEvent = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
 
     const rect = canvas.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
+    const mouseX = event.clientX;
+    const mouseY = event.clientY;
 
-    const x = Math.floor(mouseX / cellSize);
-    const y = Math.floor(mouseY / cellSize);
-
-    return { 
-      x: Math.max(0, Math.min(x, width - 1)), 
-      y: Math.max(0, Math.min(y, height - 1)) 
-    };
-  }, [cellSize, width, height]);
-
-  // Get the effective selection bounds (accounting for move offset)
-  const getEffectiveSelectionBounds = useCallback(() => {
-    if (!selection.active) return null;
-    
-    let startX = Math.min(selection.start.x, selection.end.x);
-    let startY = Math.min(selection.start.y, selection.end.y);
-    let endX = Math.max(selection.start.x, selection.end.x);
-    let endY = Math.max(selection.start.y, selection.end.y);
-
-    // If there's a move state, adjust bounds by the total offset
-    if (moveState) {
-      const totalOffset = getTotalOffset(moveState);
-      startX += totalOffset.x;
-      startY += totalOffset.y;
-      endX += totalOffset.x;
-      endY += totalOffset.y;
-    }
-
-    return { startX, startY, endX, endY };
-  }, [selection, moveState]);
-
-  // Get the total offset (base + current) for a moveState
-  const getTotalOffset = useCallback((state: typeof moveState) => {
-    if (!state) return { x: 0, y: 0 };
-    return {
-      x: state.baseOffset.x + state.currentOffset.x,
-      y: state.baseOffset.y + state.currentOffset.y
-    };
-  }, []);
-
-  // Check if a point is inside the effective selection (accounting for move offset)
-  const isPointInEffectiveSelection = useCallback((x: number, y: number) => {
-    const bounds = getEffectiveSelectionBounds();
-    if (!bounds) return false;
-    
-    return x >= bounds.startX && x <= bounds.endX && y >= bounds.startY && y <= bounds.endY;
-  }, [getEffectiveSelectionBounds]);
-
-  // Commit the current move to the canvas and clear move state
-  const commitMove = useCallback(() => {
-    if (!moveState || moveState.originalData.size === 0) return;
-
-    // Clear the original positions of moved cells
-    moveState.originalData.forEach((_, key) => {
-      const [origX, origY] = key.split(',').map(Number);
-      setCell(origX, origY, { char: ' ', color: '#000000', bgColor: '#FFFFFF' });
-    });
-    
-    // Place the moved cells at their new positions
-    const totalOffset = getTotalOffset(moveState);
-    moveState.originalData.forEach((cell, key) => {
-      const [origX, origY] = key.split(',').map(Number);
-      const newX = origX + totalOffset.x;
-      const newY = origY + totalOffset.y;
-      
-      // Only place if within bounds
-      if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
-        setCell(newX, newY, cell);
-      }
-    });
-
-    setMoveState(null);
-    setJustCommittedMove(false); // Clear the flag when committing
-  }, [moveState, setCell, width, height]);
+    return getGridCoordinates(mouseX, mouseY, rect, width, height);
+  }, [getGridCoordinates, width, height]);
 
   // Draw a single cell on the canvas
   const drawCell = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, cell?: Cell) => {
@@ -242,7 +177,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
 
   // Mouse event handlers
   const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
-    const { x, y } = getGridCoordinates(event);
+    const { x, y } = getGridCoordinatesFromEvent(event);
     
     // Save current state for undo
     pushToHistory(new Map(cells));
@@ -324,10 +259,10 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       setIsDrawing(true);
       handleDrawing(x, y);
     }
-  }, [getGridCoordinates, activeTool, cells, pushToHistory, startSelection, updateSelection, handleDrawing, pendingSelectionStart, selection, isPointInEffectiveSelection, getCell, moveState, commitMove, clearSelection]);
+  }, [getGridCoordinatesFromEvent, activeTool, cells, pushToHistory, startSelection, updateSelection, handleDrawing, pendingSelectionStart, selection, isPointInEffectiveSelection, getCell, moveState, commitMove, clearSelection]);
 
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
-    const { x, y } = getGridCoordinates(event);
+    const { x, y } = getGridCoordinatesFromEvent(event);
 
     if (activeTool === 'select') {
       if (selectionMode === 'moving' && moveState) {
@@ -482,18 +417,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       {/* Canvas info */}
       <div className="mt-2 text-sm text-gray-600 flex justify-between">
         <span>Grid: {width} × {height}</span>
-        <span>
-          {activeTool === 'select' && selectionMode === 'moving'
-            ? 'Moving selection - release to place'
-            : activeTool === 'select' && moveState && selection.active
-              ? 'Content moved - press Escape or click outside to commit'
-            : activeTool === 'select' && pendingSelectionStart
-              ? 'Shift+Click on another cell to create selection' 
-              : activeTool === 'select' && selection.active && selectionMode === 'none'
-                ? 'Selection ready - copy/paste/move available'
-                : `Cell size: ${cellSize}px`
-          }
-        </span>
+        <span>{statusMessage}</span>
       </div>
     </div>
   );

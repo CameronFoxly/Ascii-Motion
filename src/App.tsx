@@ -1,5 +1,6 @@
 import { Button } from './components/atoms/Button'
 import { CanvasGrid } from './components/organisms/CanvasGrid'
+import { CanvasProvider } from './contexts/CanvasContext'
 import { ToolPalette } from './components/organisms/ToolPalette'
 import { CharacterPalette } from './components/organisms/CharacterPalette'
 import { ColorPicker } from './components/organisms/ColorPicker'
@@ -93,7 +94,9 @@ function App() {
               </div>
               
               <div className="p-4 flex-1">
-                <CanvasGrid className="w-full" />
+                <CanvasProvider>
+                  <CanvasGrid className="w-full" />
+                </CanvasProvider>
               </div>
             </div>
           </div>

@@ -13,6 +13,51 @@ ASCII Motion is a React + TypeScript web application for creating and animating 
 - **Templates**: Page layouts
 - **Pages**: Complete views
 
+**IMPORTANT: Canvas Component Refactoring Pattern (Post Phase 1.5)**
+The canvas system has been refactored to use Context + Hooks pattern for better maintainability:
+
+**Canvas Architecture:**
+```
+src/
+├── contexts/
+│   └── CanvasContext.tsx      # Canvas-specific state provider
+├── hooks/
+│   ├── useCanvasState.ts      # Canvas state management
+│   ├── useCanvasMouseHandlers.ts  # Mouse interaction logic
+│   ├── useCanvasSelection.ts      # Selection-specific logic
+│   └── useCanvasDragAndDrop.ts    # Drag & drop behavior
+├── components/
+│   ├── organisms/
+│   │   ├── CanvasGrid.tsx         # Main composition component
+│   │   ├── CanvasRenderer.tsx     # Pure rendering logic
+│   │   ├── CanvasOverlay.tsx      # UI overlays (selection, cursors)
+│   │   └── CanvasInteraction.tsx  # Interaction handling
+│   └── tools/
+│       ├── SelectionTool.tsx      # Tool-specific components
+│       ├── DrawingTool.tsx
+│       └── [Other tools...]
+```
+
+**Canvas Component Pattern:**
+```tsx
+// ✅ NEW PATTERN: Use CanvasProvider + Context
+function App() {
+  return (
+    <CanvasProvider>
+      <CanvasGrid className="w-full" />
+    </CanvasProvider>
+  );
+}
+
+// ✅ Inside canvas components, use context hooks:
+function CanvasGrid() {
+  const { canvasRef, cellSize } = useCanvasContext();
+  const { statusMessage, commitMove } = useCanvasState();
+  const { getGridCoordinates } = useCanvasDimensions();
+  // ...
+}
+```
+
 **Directory Structure:**
 ```
 src/
@@ -63,6 +108,44 @@ const useAppStore = create(() => ({
   // Don't mix canvas, animation, tools, and UI state
 }));
 ```
+
+**Context + Hooks Pattern (Canvas System):**
+```typescript
+// ✅ NEW PATTERN: Context for component-specific state
+export const CanvasProvider = ({ children }) => {
+  const [cellSize, setCellSize] = useState(12);
+  const [isDrawing, setIsDrawing] = useState(false);
+  // ... other local state
+  
+  return (
+    <CanvasContext.Provider value={{ cellSize, isDrawing, ... }}>
+      {children}
+    </CanvasContext.Provider>
+  );
+};
+
+// ✅ Custom hooks for complex logic
+export const useCanvasState = () => {
+  const context = useCanvasContext();
+  const { width, height } = useCanvasStore();
+  
+  // Computed values and helper functions
+  const statusMessage = useMemo(() => {
+    // Complex status logic
+  }, [/* deps */]);
+  
+  return { statusMessage, /* other helpers */ };
+};
+```
+
+**Component Splitting Rules:**
+- **Single Responsibility**: Each component should have one clear purpose
+- **Size Limit**: No component should exceed ~200 lines
+- **Extract When**:
+  - Multiple `useState` calls (consider Context)
+  - Complex event handlers (extract to hooks)
+  - Repeated logic (extract to utilities)
+  - Tool-specific behavior (extract to tool components)
 
 ### 3. Component Patterns
 
@@ -320,3 +403,65 @@ const useCanvasStore = create<CanvasState>((set) => ({
 4. **Plan for future features** - Design APIs that can be extended
 5. **Test cross-browser** - Ensure compatibility with major browsers
 6. **Consider accessibility** - Use proper ARIA labels and keyboard navigation
+
+## Current Architecture Status (Phase 1.5 Refactoring):
+🚨 **CRITICAL**: The canvas system is being refactored following a Context + Hooks pattern.
+
+**Always check DEVELOPMENT.md for current refactoring status before modifying canvas-related code.**
+
+**Current State**:
+- ✅ Canvas Context & State extracted (Step 1 complete)
+- 🚧 Mouse interaction logic extraction (Step 2 in progress)
+- ⏳ Rendering split pending (Step 3)
+- ⏳ Tool components pending (Step 4)
+
+**Rules for Canvas Development**:
+1. **Use CanvasProvider** - Wrap canvas components in context
+2. **Use established hooks** - `useCanvasContext()`, `useCanvasState()`, etc.
+3. **Don't add useState to CanvasGrid** - Extract to context or hooks instead
+4. **Follow the pattern** - Reference existing refactored code for consistency
+5. **Check DEVELOPMENT.md** - Always review current step status before changes
+
+## 📝 Documentation Maintenance Protocol:
+
+### After ANY Architectural Change:
+**MANDATORY STEPS** - Do not skip these:
+
+1. **Update COPILOT_INSTRUCTIONS.md**:
+   - [ ] Update "Current Architecture Status" section above
+   - [ ] Add/modify relevant patterns and examples
+   - [ ] Update file structure if changed
+   - [ ] Update component patterns if changed
+
+2. **Update DEVELOPMENT.md**:
+   - [ ] Mark completed steps as ✅ **COMPLETE**
+   - [ ] Update current status section
+   - [ ] Add new architectural decisions to the log
+   - [ ] Update timeline estimates
+
+3. **Check for Outdated Instructions**:
+   - [ ] Search for old patterns that no longer apply
+   - [ ] Remove or update deprecated examples
+   - [ ] Verify all code examples still work
+   - [ ] Update dependency information if needed
+
+4. **Validation**:
+   - [ ] Ensure new contributors can follow the docs
+   - [ ] Test that examples compile and work
+   - [ ] Verify docs reflect actual codebase state
+
+### Documentation Review Triggers:
+- ✅ **After completing any refactoring step**
+- ✅ **When changing component architecture** 
+- ✅ **When adding new patterns or conventions**
+- ✅ **When major file structure changes**
+- ✅ **Before marking any phase as complete**
+
+### Quick Documentation Health Check:
+Ask yourself:
+- Do the patterns in COPILOT_INSTRUCTIONS.md match the actual code?
+- Would a new contributor be confused by any instructions?
+- Are there conflicting patterns mentioned?
+- Do all code examples reflect current best practices?
+
+**🎯 Goal**: Documentation should always be the source of truth for current architecture.

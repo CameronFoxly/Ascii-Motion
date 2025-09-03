@@ -143,9 +143,137 @@ src/
 
 ## Phase 1.5: Architecture Refactoring Plan 🏗️
 
-**Status**: PLANNED - Major refactoring needed before Phase 2
-**Issue**: `CanvasGrid.tsx` has grown to 500+ lines and handles too many responsibilities
+**Status**: IN PROGRESS - Major refactoring to improve maintainability
+**Issue**: `CanvasGrid.tsx` had grown to 500+ lines and handled too many responsibilities
 **Goal**: Improve maintainability, performance, and testability before adding animation features
+
+### 🏗️ **Architectural Decisions Made**
+
+#### **Context + Hooks Pattern for Canvas System**
+We've established a new pattern for managing complex component state:
+
+**Before (Anti-pattern)**: 
+- Single 500+ line component with multiple `useState` calls
+- Mixed concerns (rendering, interaction, state management)
+- Hard to test and maintain
+
+**After (New Pattern)**:
+- `CanvasContext` for component-specific state
+- `useCanvasState` hook for computed values and helpers
+- Focused components with single responsibilities
+
+**Key Files Created:**
+- `src/contexts/CanvasContext.tsx` - Canvas state provider
+- `src/hooks/useCanvasState.ts` - Canvas state management hook
+- Updated `src/components/organisms/CanvasGrid.tsx` - Now uses context
+
+**Benefits**:
+- ✅ Reduced CanvasGrid from 501 to 424 lines (-15%)
+- ✅ Better separation of concerns
+- ✅ Easier to test individual pieces
+- ✅ Pattern can be reused for other complex components
+
+#### **Future Pattern Guidelines**
+When any component exceeds ~200 lines or has multiple concerns:
+1. **Extract state to Context** if state is component-specific
+2. **Create custom hooks** for complex logic
+3. **Split rendering** from interaction handling
+4. **Create tool-specific** components when applicable
+
+This ensures consistent architecture across all development sessions.
+
+### 🔄 **For Future Development Sessions**
+
+**IMPORTANT**: When continuing this refactoring or adding new features:
+
+1. **Always check COPILOT_INSTRUCTIONS.md** for current architectural patterns
+2. **Follow the Context + Hooks pattern** for complex component state
+3. **Reference completed steps** in this document to understand the current structure
+4. **Before modifying CanvasGrid**: Check if logic belongs in hooks or separate components
+5. **When adding new tools**: Create separate tool components in `src/components/tools/`
+
+**Current Architecture Status**:
+- ✅ Canvas state management extracted to Context
+- 🚧 Mouse interaction logic (Step 2) - NEXT
+- ⏳ Rendering split (Step 3) - PENDING  
+- ⏳ Tool-specific components (Step 4) - PENDING
+
+**Pattern Example for New Features**:
+```tsx
+// ✅ DO: Use established patterns
+function NewCanvasFeature() {
+  const { canvasRef } = useCanvasContext();
+  const { statusMessage } = useCanvasState();
+  // ...
+}
+
+// ❌ DON'T: Add more useState to CanvasGrid
+function CanvasGrid() {
+  const [newState, setNewState] = useState(); // NO!
+  // ...
+}
+```
+
+### 📝 **Documentation Update Checklist**
+
+**🚨 IMPORTANT**: After completing ANY refactoring step, update documentation:
+
+#### Required Updates After Each Step:
+- [ ] **Mark step as ✅ COMPLETE** in this file
+- [ ] **Update COPILOT_INSTRUCTIONS.md** with new patterns
+- [ ] **Remove outdated examples** from both files
+- [ ] **Add new architectural decisions** to the log above
+- [ ] **Update file structure** if components were moved/created
+- [ ] **Test all code examples** still work
+
+#### Documentation Validation:
+- [ ] New contributors can follow the current instructions
+- [ ] No conflicting patterns between old and new approaches
+- [ ] All references to file paths are accurate
+- [ ] Component examples match actual implementation
+
+**Next person working on this project**: Before starting, verify documentation reflects current codebase state!
+
+---
+
+## 📋 Documentation Update Template
+
+**Use this checklist after completing any architectural changes:**
+
+### Step Completion Update:
+```markdown
+#### **Step X: [Description]** ✅ **COMPLETE**
+- [x] Specific task 1
+- [x] Specific task 2
+
+**Completed**: 
+- ✅ [What was accomplished]
+- ✅ [Files created/modified]
+- ✅ [Benefits achieved]
+- ✅ [Line count improvements]
+```
+
+### Architectural Decision Log Entry:
+```markdown
+**Decision**: [Brief description]
+**Reason**: [Why this approach was chosen]
+**Impact**: [What changes for developers]
+**Files**: [Which files were affected]
+**Pattern**: [Code example of new pattern]
+```
+
+### COPILOT_INSTRUCTIONS.md Updates Needed:
+- [ ] Update "Current Architecture Status" 
+- [ ] Add new component patterns
+- [ ] Update file structure
+- [ ] Add new code examples
+- [ ] Remove deprecated patterns
+
+### Quick Validation:
+- [ ] Run `npm run dev` - ensures no breaking changes
+- [ ] Check file structure matches documentation
+- [ ] Verify new patterns work in practice
+- [ ] Remove any TODO comments from completed work
 
 ### 🎯 Refactoring Overview
 
@@ -161,13 +289,22 @@ The `CanvasGrid` component has become a "god component" that handles:
 
 ### 📋 Refactoring Tasks
 
-#### **Step 1: Extract Canvas Context & State Management**
-- [ ] `src/contexts/CanvasContext.tsx` - Canvas-specific state provider
+#### **Step 1: Extract Canvas Context & State Management** ✅ **COMPLETE**
+- [x] `src/contexts/CanvasContext.tsx` - Canvas-specific state provider
   - Canvas dimensions, cell size, zoom level
   - Local rendering state (separate from global canvas store)
   - Canvas interaction modes and flags
-- [ ] `src/hooks/useCanvasState.ts` - Canvas state management hook
-- [ ] Move local state out of `CanvasGrid` into context
+- [x] `src/hooks/useCanvasState.ts` - Canvas state management hook
+- [x] Move local state out of `CanvasGrid` into context
+- [x] Update `App.tsx` to wrap CanvasGrid with CanvasProvider
+
+**Completed**: 
+- ✅ Created `CanvasContext` with canvas-specific state (cellSize, interaction flags, selection/move state)
+- ✅ Created `useCanvasState` hook with computed values and helper functions
+- ✅ Created `useCanvasDimensions` helper for coordinate calculations
+- ✅ Refactored `CanvasGrid` to use context instead of local useState
+- ✅ All functionality preserved, ~50 lines removed from CanvasGrid component
+- ✅ No breaking changes - all existing features work correctly
 
 #### **Step 2: Extract Mouse Interaction Logic**
 - [ ] `src/hooks/useCanvasMouseHandlers.ts` - Core mouse event handling
