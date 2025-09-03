@@ -79,9 +79,11 @@ src/
 - **Eyedropper** 💧 - Pick character and colors from existing artwork
 
 ### 🎯 Selection & Editing
-- **Selection Tool** ⬚ - Select rectangular areas with dual interaction modes:
+- **Selection Tool** ⬚ - Select rectangular areas with multiple interaction modes:
   - *Click & Drag*: Start selection and drag to define area
-  - *Click to Start/Finish*: Click to start, move mouse to preview, click again to complete
+  - *Click + Shift+Click*: Click to start, move mouse, Shift+Click to complete
+  - *Click Inside Selection*: Move existing selection content with real-time preview
+- **Move Mode** - Drag content within selections with live marquee box movement
 - **Copy/Paste** - Copy selected areas and paste them elsewhere
 - **Undo/Redo** - Full history management with 50-action limit
 
@@ -95,6 +97,7 @@ src/
 - `Cmd/Ctrl + V` - Paste at selection or (0,0)
 - `Cmd/Ctrl + Z` - Undo
 - `Cmd/Ctrl + Shift + Z` - Redo
+- `Escape` - Clear/deselect current selection
 
 ### 📐 Canvas Features
 - **Configurable Size** - Default 80x24 (terminal size)

@@ -11,6 +11,7 @@ export const useKeyboardShortcuts = () => {
     selection, 
     copySelection, 
     pasteSelection,
+    clearSelection,
     undo,
     redo,
     canUndo,
@@ -19,6 +20,15 @@ export const useKeyboardShortcuts = () => {
   } = useToolStore();
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    // Handle Escape key (without modifier)
+    if (event.key === 'Escape') {
+      if (selection.active) {
+        event.preventDefault();
+        clearSelection();
+      }
+      return;
+    }
+
     // Check for modifier keys (Cmd on Mac, Ctrl on Windows/Linux)
     const isModifierPressed = event.metaKey || event.ctrlKey;
     
@@ -83,6 +93,7 @@ export const useKeyboardShortcuts = () => {
     selection, 
     copySelection, 
     pasteSelection, 
+    clearSelection,
     pushToHistory, 
     setCanvasData,
     undo,
