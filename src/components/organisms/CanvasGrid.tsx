@@ -12,15 +12,21 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [cellSize] = useState(12); // Default cell size in pixels
-  const [selectionMode, setSelectionMode] = useState<'none' | 'dragging'>('none');
+  const [selectionMode, setSelectionMode] = useState<'none' | 'dragging' | 'moving'>('none');
   const [mouseButtonDown, setMouseButtonDown] = useState(false);
   const [pendingSelectionStart, setPendingSelectionStart] = useState<{x: number, y: number} | null>(null);
+  const [moveState, setMoveState] = useState<{
+    originalData: Map<string, Cell>;
+    startPos: {x: number, y: number};
+    offset: {x: number, y: number};
+  } | null>(null);
 
   const { 
     width, 
     height, 
     cells, 
-    getCell
+    getCell,
+    setCell
   } = useCanvasStore();
 
   const { 
@@ -54,6 +60,18 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       y: Math.max(0, Math.min(y, height - 1)) 
     };
   }, [cellSize, width, height]);
+
+  // Check if a point is inside the current selection
+  const isPointInSelection = useCallback((x: number, y: number) => {
+    if (!selection.active) return false;
+    
+    const startX = Math.min(selection.start.x, selection.end.x);
+    const endX = Math.max(selection.start.x, selection.end.x);
+    const startY = Math.min(selection.start.y, selection.end.y);
+    const endY = Math.max(selection.start.y, selection.end.y);
+    
+    return x >= startX && x <= endX && y >= startY && y <= endY;
+  }, [selection]);
 
   // Draw a single cell on the canvas
   const drawCell = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, cell?: Cell) => {
@@ -94,12 +112,42 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     // Clear canvas
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
-    // Draw all cells
+    // Create a set of coordinates that are being moved (to skip in normal rendering)
+    const movingCells = new Set<string>();
+    if (selectionMode === 'moving' && moveState) {
+      moveState.originalData.forEach((_, key) => {
+        movingCells.add(key);
+      });
+    }
+
+    // Draw all cells (excluding cells that are being moved)
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        const cell = getCell(x, y);
-        drawCell(ctx, x, y, cell);
+        const key = `${x},${y}`;
+        
+        // Skip cells that are being moved during preview
+        if (movingCells.has(key)) {
+          // Draw empty cell in original position during move
+          drawCell(ctx, x, y, { char: ' ', color: '#000000', bgColor: '#FFFFFF' });
+        } else {
+          const cell = getCell(x, y);
+          drawCell(ctx, x, y, cell);
+        }
       }
+    }
+
+    // Draw moved cells at their new positions during preview
+    if (selectionMode === 'moving' && moveState && moveState.originalData.size > 0) {
+      moveState.originalData.forEach((cell, key) => {
+        const [origX, origY] = key.split(',').map(Number);
+        const newX = origX + moveState.offset.x;
+        const newY = origY + moveState.offset.y;
+        
+        // Only draw if within bounds
+        if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
+          drawCell(ctx, newX, newY, cell);
+        }
+      });
     }
 
     // Draw selection overlay
@@ -120,7 +168,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       );
       ctx.setLineDash([]);
     }
-  }, [width, height, cells, selection, cellSize, getCell, drawCell, canvasWidth, canvasHeight]);
+  }, [width, height, cells, selection, cellSize, getCell, drawCell, canvasWidth, canvasHeight, selectionMode, moveState]);
 
   // Handle drawing operations
   const handleDrawing = useCallback((x: number, y: number) => {
@@ -135,7 +183,33 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     pushToHistory(new Map(cells));
 
     if (activeTool === 'select') {
-      if (event.shiftKey && pendingSelectionStart) {
+      if (selection.active && isPointInSelection(x, y) && !event.shiftKey) {
+        // Click inside existing selection - enter move mode
+        const startX = Math.min(selection.start.x, selection.end.x);
+        const endX = Math.max(selection.start.x, selection.end.x);
+        const startY = Math.min(selection.start.y, selection.end.y);
+        const endY = Math.max(selection.start.y, selection.end.y);
+        
+        // Store only the non-empty cells from the selection
+        const originalData = new Map<string, Cell>();
+        for (let cy = startY; cy <= endY; cy++) {
+          for (let cx = startX; cx <= endX; cx++) {
+            const cell = getCell(cx, cy);
+            // Only store non-empty cells (not spaces or empty cells)
+            if (cell && cell.char && cell.char.trim() !== '') {
+              originalData.set(`${cx},${cy}`, { ...cell });
+            }
+          }
+        }
+        
+        setMoveState({
+          originalData,
+          startPos: { x, y },
+          offset: { x: 0, y: 0 }
+        });
+        setSelectionMode('moving');
+        setMouseButtonDown(true);
+      } else if (event.shiftKey && pendingSelectionStart) {
         // Shift+Click with pending start: create selection from start to current position
         startSelection(pendingSelectionStart.x, pendingSelectionStart.y);
         updateSelection(x, y);
@@ -154,13 +228,24 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       setIsDrawing(true);
       handleDrawing(x, y);
     }
-  }, [getGridCoordinates, activeTool, cells, pushToHistory, startSelection, updateSelection, handleDrawing, pendingSelectionStart]);
+  }, [getGridCoordinates, activeTool, cells, pushToHistory, startSelection, updateSelection, handleDrawing, pendingSelectionStart, selection, isPointInSelection, getCell]);
 
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const { x, y } = getGridCoordinates(event);
 
     if (activeTool === 'select') {
-      if (mouseButtonDown && selection.active && pendingSelectionStart) {
+      if (selectionMode === 'moving' && moveState) {
+        // Update the move offset for preview only - don't modify canvas yet
+        const newOffset = {
+          x: x - moveState.startPos.x,
+          y: y - moveState.startPos.y
+        };
+        setMoveState({
+          ...moveState,
+          offset: newOffset
+        });
+        // Note: Canvas modification happens in renderGrid for preview, actual move on mouse release
+      } else if (mouseButtonDown && selection.active && pendingSelectionStart) {
         // Mouse button is down and we have a pending selection start - switch to drag mode
         if (x !== pendingSelectionStart.x || y !== pendingSelectionStart.y) {
           setSelectionMode('dragging');
@@ -176,11 +261,51 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     } else if (isDrawing && (activeTool === 'pencil' || activeTool === 'eraser')) {
       handleDrawing(x, y);
     }
-  }, [getGridCoordinates, activeTool, selection, isDrawing, updateSelection, handleDrawing, selectionMode, mouseButtonDown, pendingSelectionStart]);
+  }, [getGridCoordinates, activeTool, selection, isDrawing, updateSelection, handleDrawing, selectionMode, mouseButtonDown, pendingSelectionStart, moveState, setCell, width, height]);
 
   const handleMouseUp = useCallback(() => {
     if (activeTool === 'select') {
-      if (selectionMode === 'dragging') {
+      if (selectionMode === 'moving' && moveState) {
+        // Move completed - apply the actual move to the canvas
+        const startX = Math.min(selection.start.x, selection.end.x);
+        const endX = Math.max(selection.start.x, selection.end.x);
+        const startY = Math.min(selection.start.y, selection.end.y);
+        const endY = Math.max(selection.start.y, selection.end.y);
+        
+        // First, clear the original positions of moved cells
+        moveState.originalData.forEach((_, key) => {
+          const [origX, origY] = key.split(',').map(Number);
+          setCell(origX, origY, { char: ' ', color: '#000000', bgColor: '#FFFFFF' });
+        });
+        
+        // Then, place the moved cells at their new positions
+        moveState.originalData.forEach((cell, key) => {
+          const [origX, origY] = key.split(',').map(Number);
+          const newX = origX + moveState.offset.x;
+          const newY = origY + moveState.offset.y;
+          
+          // Only place if within bounds
+          if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
+            setCell(newX, newY, cell);
+          }
+        });
+        
+        // Update selection bounds to new position
+        const newStartX = startX + moveState.offset.x;
+        const newStartY = startY + moveState.offset.y;
+        const newEndX = endX + moveState.offset.x;
+        const newEndY = endY + moveState.offset.y;
+        
+        // Only update selection if the new position is within bounds
+        if (newStartX >= 0 && newEndX < width && newStartY >= 0 && newEndY < height) {
+          startSelection(newStartX, newStartY);
+          updateSelection(newEndX, newEndY);
+        }
+        
+        setMoveState(null);
+        setSelectionMode('none');
+        setMouseButtonDown(false);
+      } else if (selectionMode === 'dragging') {
         // Drag completed - finish the selection
         setSelectionMode('none');
         setMouseButtonDown(false);
@@ -197,7 +322,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     }
     
     setIsDrawing(false);
-  }, [activeTool, selection, drawRectangle, clearSelection, selectionMode]);
+  }, [activeTool, selection, drawRectangle, clearSelection, selectionMode, moveState, startSelection, updateSelection, width, height, setCell]);
 
   const handleMouseLeave = useCallback(() => {
     setIsDrawing(false);
@@ -233,6 +358,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       setSelectionMode('none');
       setMouseButtonDown(false);
       setPendingSelectionStart(null);
+      setMoveState(null);
     }
   }, [activeTool]);
 
@@ -262,11 +388,13 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       <div className="mt-2 text-sm text-gray-600 flex justify-between">
         <span>Grid: {width} × {height}</span>
         <span>
-          {activeTool === 'select' && pendingSelectionStart
-            ? 'Shift+Click on another cell to create selection' 
-            : activeTool === 'select' && selection.active && selectionMode === 'none'
-              ? 'Selection ready - copy/paste available'
-              : `Cell size: ${cellSize}px`
+          {activeTool === 'select' && selectionMode === 'moving'
+            ? 'Moving selection - release to place'
+            : activeTool === 'select' && pendingSelectionStart
+              ? 'Shift+Click on another cell to create selection' 
+              : activeTool === 'select' && selection.active && selectionMode === 'none'
+                ? 'Selection ready - copy/paste/move available'
+                : `Cell size: ${cellSize}px`
           }
         </span>
       </div>
