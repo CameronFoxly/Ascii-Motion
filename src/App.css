@@ -14,18 +14,6 @@
   font-feature-settings: "liga" 0;
 }
 
-/* Button consistency fixes */
-button {
-  transition: all 0.2s ease-in-out;
-}
-
-/* Prevent layout shifts on button state changes */
-.tool-button {
-  min-width: 0;
-  min-height: 0;
-  box-sizing: border-box;
-}
-
 /* Custom scrollbar for dark theme */
 .dark ::-webkit-scrollbar {
   width: 8px;

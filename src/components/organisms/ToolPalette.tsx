@@ -36,7 +36,7 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
         <Badge variant="outline" className="text-xs">{TOOLS.length}</Badge>
       </div>
       
-      <Card className="bg-card/50 border-border/50">
+      <Card>
         <CardContent className="p-4">
           <div className="grid grid-cols-2 gap-3">
             {TOOLS.map((tool) => (
@@ -44,18 +44,12 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                 key={tool.id}
                 variant={activeTool === tool.id ? 'default' : 'outline'}
                 size="lg"
-                className={`h-20 w-full flex flex-col items-center gap-2 p-3 transition-all duration-200 border-2 ${
-                  activeTool === tool.id 
-                    ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90' 
-                    : 'bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground'
-                }`}
+                className="h-16 flex flex-col gap-1"
                 onClick={() => setActiveTool(tool.id)}
                 title={tool.description}
               >
-                <div className="flex-shrink-0">
-                  {tool.icon}
-                </div>
-                <span className="text-xs font-medium leading-none">{tool.name}</span>
+                {tool.icon}
+                <span className="text-xs">{tool.name}</span>
               </Button>
             ))}
           </div>

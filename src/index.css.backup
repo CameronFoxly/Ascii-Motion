@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+
+    /* ANSI Color Palette */
+    --ansi-black: #000000;
+    --ansi-red: #cd0000;
+    --ansi-green: #00cd00;
+    --ansi-yellow: #cdcd00;
+    --ansi-blue: #0000ee;
+    --ansi-magenta: #cd00cd;
+    --ansi-cyan: #00cdcd;
+    --ansi-white: #e5e5e5;
+    --ansi-bright-black: #7f7f7f;
+    --ansi-bright-red: #ff0000;
+    --ansi-bright-green: #00ff00;
+    --ansi-bright-yellow: #ffff00;
+    --ansi-bright-blue: #5c5cff;
+    --ansi-bright-magenta: #ff00ff;
+    --ansi-bright-cyan: #00ffff;
+    --ansi-bright-white: #ffffff;
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --radius: 0.5rem;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    margin: 0;
+    min-height: 100vh;
+  }
+}
+
+/* ASCII Motion specific styles - only for canvas cells */
+.ascii-cell {
+  font-family: "SF Mono", Monaco, "Inconsolata", "Roboto Mono", "Source Code Pro", monospace;
+  font-size: 12px;
+  line-height: 1;
+  width: 12px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+  cursor: crosshair;
+}
+
+.ascii-canvas {
+  font-family: "SF Mono", Monaco, "Inconsolata", "Roboto Mono", "Source Code Pro", monospace;
+}
+
+.ascii-cell:hover {
+  background-color: hsl(var(--accent));
+}
+
+.ascii-canvas {
+  display: grid;
+  gap: 0;
+  border: 2px solid hsl(var(--border));
+  background: hsl(var(--background));
+  user-select: none;
+}
+
+.timeline-frame {
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--card));
+  border-radius: 0.125rem;
+  cursor: pointer;
+  transition: colors 0.2s;
+}
+
+.timeline-frame.active {
+  border-color: hsl(var(--primary));
+  background-color: hsl(var(--primary) / 0.1);
+}
+
+.timeline-frame:hover {
+  background-color: hsl(var(--accent));
+}

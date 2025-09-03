@@ -1,3 +1,4 @@
+import './App.css'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -14,7 +15,6 @@ import { useCanvasStore } from './stores/canvasStore'
 import { useAnimationStore } from './stores/animationStore'
 import { useToolStore } from './stores/toolStore'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
-import './App.css'
 
 function App() {
   const { width, height, getCellCount, clearCanvas } = useCanvasStore()

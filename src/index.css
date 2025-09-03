@@ -25,102 +25,34 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
-
-    /* ANSI Color Palette */
-    --ansi-black: #000000;
-    --ansi-red: #cd0000;
-    --ansi-green: #00cd00;
-    --ansi-yellow: #cdcd00;
-    --ansi-blue: #0000ee;
-    --ansi-magenta: #cd00cd;
-    --ansi-cyan: #00cdcd;
-    --ansi-white: #e5e5e5;
-    --ansi-bright-black: #7f7f7f;
-    --ansi-bright-red: #ff0000;
-    --ansi-bright-green: #00ff00;
-    --ansi-bright-yellow: #ffff00;
-    --ansi-bright-blue: #5c5cff;
-    --ansi-bright-magenta: #ff00ff;
-    --ansi-bright-cyan: #00ffff;
-    --ansi-bright-white: #ffffff;
   }
 
   .dark {
-    --background: 0 0% 0%; /* True black background */
-    --foreground: 0 0% 90%;
-    --card: 0 0% 6%; /* Very dark gray for cards */
-    --card-foreground: 0 0% 90%;
-    --popover: 0 0% 6%;
-    --popover-foreground: 0 0% 90%;
-    --primary: 220 100% 70%; /* ANSI bright blue */
-    --primary-foreground: 0 0% 0%;
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 90%;
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 50%;
-    --accent: 0 0% 15%;
-    --accent-foreground: 0 0% 90%;
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 20%;
-    --input: 0 0% 15%;
-    --ring: 220 100% 70%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
     --radius: 0.5rem;
-  }
-
-  * {
-    border-color: hsl(var(--border));
   }
 
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-family: "SF Mono", Monaco, "Inconsolata", "Roboto Mono", "Source Code Pro", monospace;
-    margin: 0;
-    min-height: 100vh;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
   }
-}
-
-/* ASCII Motion specific styles */
-.ascii-cell {
-  font-family: "SF Mono", Monaco, "Inconsolata", "Roboto Mono", "Source Code Pro", monospace;
-  font-size: 12px;
-  line-height: 1;
-  width: 12px;
-  height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-sizing: border-box;
-  cursor: crosshair;
-}
-
-.ascii-cell:hover {
-  background-color: hsl(var(--accent));
-}
-
-.ascii-canvas {
-  display: grid;
-  gap: 0;
-  border: 2px solid hsl(var(--border));
-  background: hsl(var(--background));
-  user-select: none;
-}
-
-.timeline-frame {
-  border: 1px solid hsl(var(--border));
-  background-color: hsl(var(--card));
-  border-radius: 0.125rem;
-  cursor: pointer;
-  transition: colors 0.2s;
-}
-
-.timeline-frame.active {
-  border-color: hsl(var(--primary));
-  background-color: hsl(var(--primary) / 0.1);
-}
-
-.timeline-frame:hover {
-  background-color: hsl(var(--accent));
 }
