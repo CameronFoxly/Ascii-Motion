@@ -195,7 +195,7 @@ This ensures consistent architecture across all development sessions.
 **Current Architecture Status** (Updated Sept 3, 2025):
 - ✅ Canvas state management extracted to Context (Step 1)
 - ✅ Mouse interaction logic extracted to Hooks (Step 2) - COMPLETE 
-- 🚧 Rendering split (Step 3) - READY TO START
+- ✅ Rendering split (Step 3) - COMPLETE
 - ⏳ Tool-specific components (Step 4) - PENDING
 
 **Step 2 Completion Summary**:
@@ -333,36 +333,28 @@ The `CanvasGrid` component has become a "god component" that handles:
 - ✅ Preserved all existing functionality including selection, drawing, and tool switching
 - ✅ No breaking changes - development server runs successfully
 
-#### **Step 3: Split Rendering Responsibilities** 
-**Current State**: CanvasGrid.tsx still contains ~150 lines of rendering logic mixed with interaction code
+#### **Step 3: Split Rendering Responsibilities** ✅ **COMPLETE**
 
-**Goal**: Extract rendering into focused components for better maintainability and performance
+**Goal**: Extract rendering logic from CanvasGrid.tsx while preserving all integration with the hook ecosystem.
 
-**Key Files to Extract From** (`src/components/organisms/CanvasGrid.tsx`):
-- Lines 57-85: `drawCell` function (character/background rendering)
-- Lines 87-175: `renderGrid` function (main canvas drawing loop + selection overlay)
-- Consider: Canvas resize logic, useEffect for re-rendering
+**Completed**:
+- ✅ Created `src/hooks/useCanvasRenderer.ts` - Coordinated rendering hook (159 lines)
+- ✅ Extracted `drawCell` function and main rendering logic from CanvasGrid
+- ✅ Combined grid rendering and selection overlay rendering in correct order
+- ✅ Reduced CanvasGrid from 246 lines → 109 lines (~56% reduction)
+- ✅ Preserved all visual features: selection marquee, move preview, grid rendering
+- ✅ Maintained canvas resize handling and re-render coordination
+- ✅ No breaking changes - all functionality working correctly
 
-**Proposed Structure**:
-- [ ] `src/components/organisms/CanvasRenderer.tsx` - Pure rendering component
-  - Canvas drawing logic (cells, characters, backgrounds)
-  - Grid line rendering  
-  - Cell drawing utilities (`drawCell` function)
-  - Performance optimizations (memoization, partial updates)
-- [ ] `src/components/organisms/CanvasOverlay.tsx` - UI overlay component
-  - Selection rectangles and marquee animation
-  - Move state preview rendering (ghost cells)
-  - Tool cursors and visual indicators
-- [ ] `src/hooks/useCanvasRenderer.ts` - Rendering logic hook
-  - Main `renderGrid` function
-  - Canvas resize handling
-  - Re-render coordination
+**Architecture Decision**: 
+- **Pattern**: Used hook-based rendering instead of separate components
+- **Reason**: Maintains rendering order (grid first, then overlays) and avoids component lifecycle coordination issues
+- **Benefits**: Cleaner separation, easier to test, single hook manages all canvas rendering concerns
 
-**Current Dependencies to Preserve**:
-- Canvas context integration
-- Selection state rendering 
-- Move state preview functionality
-- All existing visual features
+**Before/After**:
+- CanvasGrid.tsx: 246 lines → 109 lines (137 lines removed)
+- New hook: useCanvasRenderer.ts (159 lines of extracted rendering logic)
+- Net result: ~20 lines reduction + much better separation of concerns
 
 #### **Step 4: Create Tool-Specific Components**
 - [ ] `src/components/tools/` directory structure:
@@ -466,7 +458,7 @@ The `CanvasGrid` component has become a "god component" that handles:
 ### **Current Canvas Architecture Files**
 ```
 src/components/organisms/
-  CanvasGrid.tsx              (245 lines - MAIN TARGET for Step 3)
+  CanvasGrid.tsx              (109 lines - Composition component)
 
 src/contexts/
   CanvasContext.tsx           (98 lines - Canvas-specific state)
@@ -476,11 +468,12 @@ src/hooks/
   useCanvasMouseHandlers.ts   (123 lines - Mouse event routing)
   useCanvasSelection.ts       (185 lines - Selection tool logic)
   useCanvasDragAndDrop.ts     (108 lines - Drawing/rectangle tools)
+  useCanvasRenderer.ts        (159 lines - Grid & overlay rendering)
   useDrawingTool.ts           (existing - tool implementations)
   useKeyboardShortcuts.ts     (existing - keyboard handling)
 ```
 
-**Step 3 Focus**: Extract rendering logic from CanvasGrid.tsx while preserving all integration with the hook ecosystem.
+**Step 3 Results**: Successfully extracted rendering logic from CanvasGrid.tsx into useCanvasRenderer hook while preserving all integration with the existing hook ecosystem.
 
 ### 🔄 After Refactoring: Ready for Phase 2
 

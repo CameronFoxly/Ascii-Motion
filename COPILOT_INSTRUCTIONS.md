@@ -20,20 +20,18 @@ The canvas system has been refactored to use Context + Hooks pattern for better 
 ```
 src/
 ├── contexts/
-│   └── CanvasContext.tsx      # Canvas-specific state provider
+│   └── CanvasContext.tsx          # Canvas-specific state provider
 ├── hooks/
-│   ├── useCanvasState.ts      # Canvas state management
-│   ├── useCanvasMouseHandlers.ts  # Mouse interaction logic
+│   ├── useCanvasState.ts          # Canvas state management
+│   ├── useCanvasMouseHandlers.ts  # Mouse interaction routing
 │   ├── useCanvasSelection.ts      # Selection-specific logic
-│   └── useCanvasDragAndDrop.ts    # Drag & drop behavior
+│   ├── useCanvasDragAndDrop.ts    # Drawing/rectangle tools
+│   └── useCanvasRenderer.ts       # Grid & overlay rendering
 ├── components/
 │   ├── organisms/
-│   │   ├── CanvasGrid.tsx         # Main composition component
-│   │   ├── CanvasRenderer.tsx     # Pure rendering logic
-│   │   ├── CanvasOverlay.tsx      # UI overlays (selection, cursors)
-│   │   └── CanvasInteraction.tsx  # Interaction handling
-│   └── tools/
-│       ├── SelectionTool.tsx      # Tool-specific components
+│   │   └── CanvasGrid.tsx         # Main composition component (109 lines)
+│   └── tools/                     # Future: tool-specific components
+│       ├── SelectionTool.tsx      # (Step 4 - pending)
 │       ├── DrawingTool.tsx
 │       └── [Other tools...]
 ```
@@ -422,28 +420,28 @@ const useCanvasStore = create<CanvasState>((set) => ({
 6. **Consider accessibility** - Use proper ARIA labels and keyboard navigation
 
 ## Current Architecture Status (Phase 1.5 Refactoring):
-🚨 **CRITICAL**: The canvas system is being refactored following a Context + Hooks pattern.
+🚨 **CRITICAL**: The canvas system has been refactored following a Context + Hooks pattern.
 
 **Always check DEVELOPMENT.md for current refactoring status before modifying canvas-related code.**
 
 **Current State** (Updated Sept 3, 2025):
 - ✅ Canvas Context & State extracted (Step 1 complete)  
 - ✅ Mouse Interaction Logic extracted to Hooks (Step 2 complete)
-- 🚧 Rendering split into focused components (Step 3 - READY TO START)
+- ✅ Rendering split into focused hook (Step 3 complete)
 - ⏳ Tool-specific components (Step 4 pending)
 
-**Step 2 Completion**:
-- CanvasGrid.tsx reduced from 501 → 245 lines
-- Created specialized mouse handling hooks: 
-  - `useCanvasMouseHandlers` (routing)
-  - `useCanvasSelection` (selection tool)
-  - `useCanvasDragAndDrop` (drawing/rectangle tools)
-- All functionality preserved and tested working
-- 🚧 Mouse interaction logic extraction (Step 2 in progress)
-- ⏳ Rendering split pending (Step 3)
-- ⏳ Tool components pending (Step 4)
+**Step 3 Completion**:
+- CanvasGrid.tsx reduced from 246 → 109 lines (~56% reduction)
+- Created specialized rendering hook: `useCanvasRenderer` (159 lines)
+- Extracted `drawCell` function and main rendering logic
+- Combined grid and overlay rendering in correct order
+- All functionality preserved: selection marquee, move preview, grid rendering
 
-**Rules for Canvas Development**:
+**Architecture Achievements**:
+- Total CanvasGrid reduction: 501 → 109 lines (~78% reduction)
+- 6 specialized hooks created for canvas functionality
+- Clean separation of concerns: state, interaction, rendering
+- Pattern established for future complex components
 1. **Use CanvasProvider** - Wrap canvas components in context
 2. **Use established hooks** - `useCanvasContext()`, `useCanvasState()`, etc.
 3. **Don't add useState to CanvasGrid** - Extract to context or hooks instead
