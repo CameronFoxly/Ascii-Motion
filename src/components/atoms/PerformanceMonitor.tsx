@@ -1,6 +1,6 @@
-import React, { useCallback, useState } from 'react';
-import { Button } from './Button';
-import { useCanvasStore } from '../../stores/canvasStore';
+import React, { useCallback, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { useCanvasStore } from '../../stores/canvasStore'
 import { 
   logPerformanceStats, 
   testLargeGridPerformance, 

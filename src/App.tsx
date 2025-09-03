@@ -1,6 +1,12 @@
-import { Button } from './components/atoms/Button'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
+import { Copy, Clipboard, Undo2, Redo2, Trash2 } from 'lucide-react'
 import { CanvasGrid } from './components/organisms/CanvasGrid'
 import { CanvasProvider } from './contexts/CanvasContext'
+import { ThemeProvider } from './contexts/ThemeContext'
+import { ThemeToggle } from './components/atoms/ThemeToggle'
 import { ToolPalette } from './components/organisms/ToolPalette'
 import { CharacterPalette } from './components/organisms/CharacterPalette'
 import { ColorPicker } from './components/organisms/ColorPicker'
@@ -20,31 +26,42 @@ function App() {
   const { copySelection, pasteSelection } = useKeyboardShortcuts()
 
   return (
-    <div className="min-h-screen bg-gray-100 text-black">
-      <div className="max-w-full">
-        <header className="bg-white border-b border-gray-200 p-4">
-          <div className="max-w-7xl mx-auto">
-            <h1 className="text-3xl font-bold text-blue-600 mb-2">ASCII Motion</h1>
-            <p className="text-gray-600">Create and animate ASCII art</p>
+    <ThemeProvider>
+      <div className="h-screen flex flex-col bg-background text-foreground">
+        {/* Header */}
+        <header className="flex-shrink-0 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="px-6 py-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">
+                  ASCII Motion
+                </h1>
+                <p className="text-sm text-muted-foreground">Create and animate ASCII art</p>
+              </div>
+              <ThemeToggle />
+            </div>
           </div>
         </header>
 
-        <div className="flex h-[calc(100vh-120px)]">
+        {/* Main Content */}
+        <div className="flex flex-1 overflow-hidden">
           {/* Left Sidebar - Tools and Palettes */}
-          <div className="w-80 bg-white border-r border-gray-200 overflow-y-auto">
-            <div className="p-4 space-y-6">
+          <aside className="w-80 border-r border-border bg-muted/20 overflow-y-auto">
+            <div className="p-6 space-y-6">
               <ToolPalette />
+              <Separator />
               <CharacterPalette />
+              <Separator />
               <ColorPicker />
             </div>
-          </div>
+          </aside>
 
-          {/* Main Canvas Area */}
-          <div className="flex-1 p-4">
-            <div className="bg-white border border-gray-200 rounded-lg h-full">
-              <div className="p-4 border-b border-gray-200">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-lg font-semibold">Canvas</h2>
+          {/* Center Canvas Area */}
+          <main className="flex-1 flex flex-col">
+            <div className="p-6 flex-1 flex flex-col">
+              <Card className="flex-1 flex flex-col shadow-sm">
+                <CardHeader className="flex-row justify-between items-center pb-4 border-b border-border/50">
+                  <CardTitle className="text-lg font-semibold">Canvas</CardTitle>
                   <div className="flex gap-2">
                     <Button 
                       variant="outline" 
@@ -52,7 +69,9 @@ function App() {
                       onClick={() => copySelection()}
                       disabled={!selection?.active}
                       title="Copy selection (Cmd/Ctrl+C)"
+                      className="flex items-center gap-2"
                     >
+                      <Copy className="w-4 h-4" />
                       Copy
                     </Button>
                     <Button 
@@ -61,7 +80,9 @@ function App() {
                       onClick={() => pasteSelection()}
                       disabled={!hasClipboard()}
                       title="Paste (Cmd/Ctrl+V)"
+                      className="flex items-center gap-2"
                     >
+                      <Clipboard className="w-4 h-4" />
                       Paste
                     </Button>
                     <Button 
@@ -70,7 +91,9 @@ function App() {
                       onClick={() => undo()}
                       disabled={!canUndo()}
                       title="Undo (Cmd/Ctrl+Z)"
+                      className="flex items-center gap-2"
                     >
+                      <Undo2 className="w-4 h-4" />
                       Undo
                     </Button>
                     <Button 
@@ -79,7 +102,9 @@ function App() {
                       onClick={() => redo()}
                       disabled={!canRedo()}
                       title="Redo (Cmd/Ctrl+Shift+Z)"
+                      className="flex items-center gap-2"
                     >
+                      <Redo2 className="w-4 h-4" />
                       Redo
                     </Button>
                     <Button 
@@ -87,68 +112,99 @@ function App() {
                       size="sm" 
                       onClick={clearCanvas}
                       title="Clear entire canvas"
+                      className="flex items-center gap-2"
                     >
+                      <Trash2 className="w-4 h-4" />
                       Clear
                     </Button>
                   </div>
+                </CardHeader>
+                
+                <CardContent className="flex-1 p-6 overflow-auto">
+                  <CanvasProvider>
+                    <CanvasGrid className="w-full h-full" />
+                  </CanvasProvider>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Timeline Footer */}
+            <div className="border-t border-border bg-muted/20">
+              <div className="p-4">
+                <div className="flex justify-between items-center mb-3">
+                  <h2 className="text-base font-semibold">Timeline</h2>
+                  <Badge variant="outline" className="text-xs">Coming Soon</Badge>
                 </div>
-              </div>
-              
-              <div className="p-4 flex-1">
-                <CanvasProvider>
-                  <CanvasGrid className="w-full" />
-                </CanvasProvider>
+                <Card className="bg-muted/40 border-dashed">
+                  <CardContent className="p-6 flex items-center justify-center">
+                    <p className="text-muted-foreground text-sm">Animation timeline will be implemented in Phase 2</p>
+                  </CardContent>
+                </Card>
               </div>
             </div>
-          </div>
+          </main>
 
-          {/* Right Sidebar - Status and Frame Info */}
-          <div className="w-64 bg-white border-l border-gray-200 overflow-y-auto">
-            <div className="p-4">
+          {/* Right Sidebar - Status */}
+          <aside className="w-72 border-l border-border bg-muted/20 overflow-y-auto">
+            <div className="p-6">
               <h2 className="text-lg font-semibold mb-4">Status</h2>
-              <div className="space-y-3 text-sm">
-                <div className="bg-gray-50 p-3 rounded">
-                  <div className="font-medium mb-2">Canvas</div>
-                  <div className="space-y-1 text-gray-600">
-                    <div>Size: {width} × {height}</div>
-                    <div>Cells: {getCellCount()}</div>
-                  </div>
-                </div>
+              <div className="space-y-4">
+                <Card className="bg-card/50 border-border/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">Canvas Info</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-3">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">Size:</span>
+                      <Badge variant="secondary" className="text-xs">{width} × {height}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">Total Cells:</span>
+                      <Badge variant="secondary" className="text-xs">{getCellCount().toLocaleString()}</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
                 
-                <div className="bg-gray-50 p-3 rounded">
-                  <div className="font-medium mb-2">Animation</div>
-                  <div className="space-y-1 text-gray-600">
-                    <div>Frames: {frames.length}</div>
-                    <div>Current: {currentFrameIndex + 1}</div>
-                  </div>
-                </div>
+                <Card className="bg-card/50 border-border/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">Animation</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-3">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">Frames:</span>
+                      <Badge variant="secondary" className="text-xs">{frames.length}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">Current:</span>
+                      <Badge variant="secondary" className="text-xs">{currentFrameIndex + 1}</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
                 
-                <div className="bg-gray-50 p-3 rounded">
-                  <div className="font-medium mb-2">Tool</div>
-                  <div className="space-y-1 text-gray-600">
-                    <div>Active: {activeTool}</div>
-                    <div>Character: "{selectedChar}"</div>
-                  </div>
-                </div>
+                <Card className="bg-card/50 border-border/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">Current Tool</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-3">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">Active:</span>
+                      <Badge variant="default" className="text-xs capitalize">{activeTool}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">Character:</span>
+                      <Badge variant="outline" className="font-mono text-xs">"{selectedChar}"</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Timeline Footer */}
-        <div className="bg-white border-t border-gray-200 p-4">
-          <div className="max-w-7xl mx-auto">
-            <h2 className="text-lg font-semibold mb-4">Timeline</h2>
-            <div className="bg-gray-100 p-4 rounded min-h-24 flex items-center justify-center">
-              <p className="text-gray-500">Timeline will be implemented in Phase 2</p>
-            </div>
-          </div>
+          </aside>
         </div>
 
         {/* Performance Monitor - Development Only */}
         <PerformanceMonitor />
       </div>
-    </div>
+    </ThemeProvider>
   )
 }
 

@@ -1,6 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useToolStore } from '../../stores/toolStore';
-import { DEFAULT_COLORS } from '../../constants';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ANSI_COLORS } from '../../constants/colors';
+import { Palette, Type } from 'lucide-react';
 
 interface ColorPickerProps {
   className?: string;
@@ -8,91 +13,138 @@ interface ColorPickerProps {
 
 export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
   const { selectedColor, selectedBgColor, setSelectedColor, setSelectedBgColor } = useToolStore();
+  const [activeTab, setActiveTab] = useState("text");
+
+  // Convert ANSI_COLORS object to array for easier mapping
+  const ansiColorsArray = Object.entries(ANSI_COLORS).map(([name, color]) => ({ name, color }));
 
   return (
-    <div className={`color-picker ${className}`}>
-      <h3 className="text-lg font-semibold mb-4">Colors</h3>
+    <div className={`space-y-3 ${className}`}>
+      <div className="flex justify-between items-center">
+        <h3 className="text-sm font-medium">Colors</h3>
+        <Badge variant="outline" className="text-xs">ANSI</Badge>
+      </div>
       
       {/* Current colors display */}
-      <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <div className="text-sm text-gray-600 mb-1">Text Color</div>
-            <div 
-              className="w-12 h-12 border border-gray-300 rounded cursor-pointer"
-              style={{ backgroundColor: selectedColor }}
-              title={`Text color: ${selectedColor}`}
-            />
+      <Card className="bg-card border border-border/50">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">Current Selection</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                <Type className="w-3 h-3" />
+                Text
+              </div>
+              <div 
+                className="w-full h-8 border rounded cursor-pointer transition-transform hover:scale-105"
+                style={{ backgroundColor: selectedColor }}
+                title={`Text color: ${selectedColor}`}
+                onClick={() => setActiveTab("text")}
+              />
+            </div>
+            <div className="flex-1">
+              <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                <Palette className="w-3 h-3" />
+                Background
+              </div>
+              <div 
+                className="w-full h-8 border rounded cursor-pointer transition-transform hover:scale-105"
+                style={{ backgroundColor: selectedBgColor }}
+                title={`Background color: ${selectedBgColor}`}
+                onClick={() => setActiveTab("background")}
+              />
+            </div>
           </div>
-          <div className="flex-1">
-            <div className="text-sm text-gray-600 mb-1">Background</div>
-            <div 
-              className="w-12 h-12 border border-gray-300 rounded cursor-pointer"
-              style={{ backgroundColor: selectedBgColor }}
-              title={`Background color: ${selectedBgColor}`}
-            />
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Preset colors */}
-      <div className="mb-4">
-        <h4 className="text-sm font-medium mb-2">Text Colors</h4>
-        <div className="grid grid-cols-6 gap-1">
-          {DEFAULT_COLORS.map((color) => (
-            <button
-              key={`text-${color}`}
-              className={`
-                w-8 h-8 border-2 rounded transition-all
-                ${selectedColor === color ? 'border-blue-500 scale-110' : 'border-gray-300'}
-              `}
-              style={{ backgroundColor: color }}
-              onClick={() => setSelectedColor(color)}
-              title={`Set text color to ${color}`}
-            />
-          ))}
-        </div>
-      </div>
+      {/* Color selection tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 h-auto p-1">
+          <TabsTrigger value="text" className="flex items-center gap-2 py-2">
+            <Type className="w-3 h-3" />
+            Text
+          </TabsTrigger>
+          <TabsTrigger value="background" className="flex items-center gap-2 py-2">
+            <Palette className="w-3 h-3" />
+            Background
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="mb-4">
-        <h4 className="text-sm font-medium mb-2">Background Colors</h4>
-        <div className="grid grid-cols-6 gap-1">
-          {DEFAULT_COLORS.map((color) => (
-            <button
-              key={`bg-${color}`}
-              className={`
-                w-8 h-8 border-2 rounded transition-all
-                ${selectedBgColor === color ? 'border-blue-500 scale-110' : 'border-gray-300'}
-              `}
-              style={{ backgroundColor: color }}
-              onClick={() => setSelectedBgColor(color)}
-              title={`Set background color to ${color}`}
-            />
-          ))}
-        </div>
-      </div>
+        <TabsContent value="text" className="mt-3">
+          <Card className="bg-card border border-border/50">
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-sm font-medium">Text Colors</CardTitle>
+                <Badge variant="secondary" className="text-xs">
+                  {ansiColorsArray.length}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-4 gap-2">
+                {ansiColorsArray.map(({ name, color }) => (
+                  <Button
+                    key={`ansi-text-${name}`}
+                    variant={selectedColor === color ? 'default' : 'outline'}
+                    size="sm"
+                    className={`w-14 h-14 p-1 transition-all duration-200 flex-shrink-0 ${
+                      selectedColor === color 
+                        ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary ring-offset-2' 
+                        : 'bg-background text-foreground border-border hover:bg-accent'
+                    }`}
+                    onClick={() => setSelectedColor(color)}
+                    title={`${name}: ${color}`}
+                  >
+                    <div 
+                      className="w-full h-full rounded border-2 border-background"
+                      style={{ backgroundColor: color }}
+                    />
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      {/* Custom color inputs */}
-      <div className="space-y-3">
-        <div>
-          <label className="block text-sm font-medium mb-1">Custom Text Color</label>
-          <input
-            type="color"
-            value={selectedColor}
-            onChange={(e) => setSelectedColor(e.target.value)}
-            className="w-full h-10 border border-gray-300 rounded cursor-pointer"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Custom Background Color</label>
-          <input
-            type="color"
-            value={selectedBgColor}
-            onChange={(e) => setSelectedBgColor(e.target.value)}
-            className="w-full h-10 border border-gray-300 rounded cursor-pointer"
-          />
-        </div>
-      </div>
+        <TabsContent value="background" className="mt-3">
+          <Card className="bg-card border border-border/50">
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-sm font-medium">Background Colors</CardTitle>
+                <Badge variant="secondary" className="text-xs">
+                  {ansiColorsArray.length}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-4 gap-2">
+                {ansiColorsArray.map(({ name, color }) => (
+                  <Button
+                    key={`ansi-bg-${name}`}
+                    variant={selectedBgColor === color ? 'default' : 'outline'}
+                    size="sm"
+                    className={`w-14 h-14 p-1 transition-all duration-200 flex-shrink-0 ${
+                      selectedBgColor === color 
+                        ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary ring-offset-2' 
+                        : 'bg-background text-foreground border-border hover:bg-accent'
+                    }`}
+                    onClick={() => setSelectedBgColor(color)}
+                    title={`Background ${name}: ${color}`}
+                  >
+                    <div 
+                      className="w-full h-full rounded border-2 border-background"
+                      style={{ backgroundColor: color }}
+                    />
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

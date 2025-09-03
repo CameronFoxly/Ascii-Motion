@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -24,35 +25,53 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
+
+    /* ANSI Color Palette */
+    --ansi-black: #000000;
+    --ansi-red: #cd0000;
+    --ansi-green: #00cd00;
+    --ansi-yellow: #cdcd00;
+    --ansi-blue: #0000ee;
+    --ansi-magenta: #cd00cd;
+    --ansi-cyan: #00cdcd;
+    --ansi-white: #e5e5e5;
+    --ansi-bright-black: #7f7f7f;
+    --ansi-bright-red: #ff0000;
+    --ansi-bright-green: #00ff00;
+    --ansi-bright-yellow: #ffff00;
+    --ansi-bright-blue: #5c5cff;
+    --ansi-bright-magenta: #ff00ff;
+    --ansi-bright-cyan: #00ffff;
+    --ansi-bright-white: #ffffff;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --background: 0 0% 0%; /* True black background */
+    --foreground: 0 0% 90%;
+    --card: 0 0% 6%; /* Very dark gray for cards */
+    --card-foreground: 0 0% 90%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 90%;
+    --primary: 220 100% 70%; /* ANSI bright blue */
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 90%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 50%;
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 90%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 94.1%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 20%;
+    --input: 0 0% 15%;
+    --ring: 220 100% 70%;
+    --radius: 0.5rem;
   }
-}
 
-@layer base {
   * {
     border-color: hsl(var(--border));
   }
+
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
