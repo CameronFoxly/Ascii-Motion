@@ -11,6 +11,7 @@ import { ThemeToggle } from './components/common/ThemeToggle'
 import { ToolPalette } from './components/features/ToolPalette'
 import { CharacterPalette } from './components/features/CharacterPalette'
 import { ColorPicker } from './components/features/ColorPicker'
+import { CanvasSettings } from './components/features/CanvasSettings'
 import { useCanvasStore } from './stores/canvasStore'
 import { useAnimationStore } from './stores/animationStore'
 import { useToolStore } from './stores/toolStore'
@@ -95,7 +96,7 @@ function App() {
             <div className="p-6 flex-1 flex flex-col">
               <Card className="flex-1 flex flex-col shadow-sm">
                 <CardHeader className="flex-row justify-between items-center pb-4 border-b border-border/50">
-                  <CardTitle className="text-lg font-semibold">Canvas</CardTitle>
+                  <CanvasSettings />
                   <div className="flex gap-2">
                     <Button 
                       variant="outline" 

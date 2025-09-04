@@ -110,8 +110,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
           onMouseLeave={handleMouseLeave}
           onContextMenu={handleContextMenu}
           style={{
-            imageRendering: 'pixelated',
-            background: '#FFFFFF'
+            imageRendering: 'pixelated'
           }}
         />
       </div>

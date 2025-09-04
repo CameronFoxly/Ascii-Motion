@@ -29,6 +29,8 @@ export const useCanvasRenderer = () => {
     width, 
     height, 
     cells,
+    canvasBackgroundColor,
+    showGrid,
     getCell
   } = useCanvasStore();
 
@@ -45,31 +47,29 @@ export const useCanvasRenderer = () => {
   const drawingStyles = useMemo(() => {
     return {
       font: `${cellSize - 2}px 'Courier New', monospace`,
-      gridLineColor: '#E5E7EB',
+      gridLineColor: canvasBackgroundColor === '#000000' ? '#333333' : '#E5E7EB',
       gridLineWidth: 0.5,
       textAlign: 'center' as CanvasTextAlign,
       textBaseline: 'middle' as CanvasTextBaseline,
-      defaultTextColor: '#000000',
-      defaultBgColor: '#FFFFFF'
+      defaultTextColor: '#FFFFFF',
+      defaultBgColor: '#000000'
     };
-  }, [cellSize]);
+  }, [cellSize, canvasBackgroundColor]);
 
   // Optimized drawCell function with memoized styles
   const drawCell = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, cell?: Cell) => {
     const pixelX = x * cellSize;
     const pixelY = y * cellSize;
 
-    // Use pre-computed styles
-    const bgColor = cell?.bgColor || drawingStyles.defaultBgColor;
-    const textColor = cell?.color || drawingStyles.defaultTextColor;
-
-    // Draw background
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(pixelX, pixelY, cellSize, cellSize);
+    // Only draw cell background if it's different from the canvas background
+    if (cell && cell.bgColor !== canvasBackgroundColor) {
+      ctx.fillStyle = cell.bgColor;
+      ctx.fillRect(pixelX, pixelY, cellSize, cellSize);
+    }
 
     // Draw character if present
     if (cell?.char && cell.char !== ' ') {
-      ctx.fillStyle = textColor;
+      ctx.fillStyle = cell.color || '#FFFFFF';
       // Set font once per render batch instead of per cell
       if (ctx.font !== drawingStyles.font) {
         ctx.font = drawingStyles.font;
@@ -83,11 +83,13 @@ export const useCanvasRenderer = () => {
       );
     }
 
-    // Draw grid lines
-    ctx.strokeStyle = drawingStyles.gridLineColor;
-    ctx.lineWidth = drawingStyles.gridLineWidth;
-    ctx.strokeRect(pixelX, pixelY, cellSize, cellSize);
-  }, [cellSize, drawingStyles]);
+    // Draw grid lines only if grid is visible
+    if (showGrid) {
+      ctx.strokeStyle = drawingStyles.gridLineColor;
+      ctx.lineWidth = drawingStyles.gridLineWidth;
+      ctx.strokeRect(pixelX, pixelY, cellSize, cellSize);
+    }
+  }, [cellSize, drawingStyles, showGrid]);
 
   // Optimized render function with performance measurement
   const renderCanvas = useCallback(() => {
@@ -100,8 +102,9 @@ export const useCanvasRenderer = () => {
     // Start performance measurement
     measureCanvasRender();
 
-    // Clear canvas
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    // Clear canvas and fill with background color
+    ctx.fillStyle = canvasBackgroundColor;
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     // Set font context once for the entire render batch
     ctx.font = drawingStyles.font;
@@ -291,7 +294,9 @@ export const useCanvasRenderer = () => {
     pasteMode,
     activeTool,
     getEllipsePoints,
-    rectangleFilled
+    rectangleFilled,
+    canvasBackgroundColor,
+    showGrid
   ]);
 
   // Re-render when dependencies change

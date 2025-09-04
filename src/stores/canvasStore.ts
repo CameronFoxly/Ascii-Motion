@@ -4,8 +4,14 @@ import { createCellKey } from '../types';
 import { DEFAULT_CANVAS_SIZES } from '../constants';
 
 interface CanvasState extends Canvas {
+  // Canvas display settings
+  canvasBackgroundColor: string;
+  showGrid: boolean;
+  
   // Actions
   setCanvasSize: (width: number, height: number) => void;
+  setCanvasBackgroundColor: (color: string) => void;
+  toggleGrid: () => void;
   setCell: (x: number, y: number, cell: Cell) => void;
   getCell: (x: number, y: number) => Cell | undefined;
   clearCell: (x: number, y: number) => void;
@@ -18,36 +24,44 @@ interface CanvasState extends Canvas {
   isEmpty: () => boolean;
 }
 
-const createEmptyCell = (): Cell => ({
-  char: ' ',
-  color: '#000000',
-  bgColor: '#FFFFFF'
-});
-
 export const useCanvasStore = create<CanvasState>((set, get) => ({
   // Initial state
   width: DEFAULT_CANVAS_SIZES[0].width,
   height: DEFAULT_CANVAS_SIZES[0].height,
   cells: new Map<string, Cell>(),
+  canvasBackgroundColor: '#000000',
+  showGrid: true,
 
   // Actions
   setCanvasSize: (width: number, height: number) => {
+    // Enforce hard limits: 4-200 width, 4-100 height
+    const constrainedWidth = Math.max(4, Math.min(200, width));
+    const constrainedHeight = Math.max(4, Math.min(100, height));
+    
     set((state) => {
       // Clear cells that are outside new bounds
       const newCells = new Map<string, Cell>();
       state.cells.forEach((cell, key) => {
         const [x, y] = key.split(',').map(Number);
-        if (x < width && y < height) {
+        if (x < constrainedWidth && y < constrainedHeight) {
           newCells.set(key, cell);
         }
       });
       
       return {
-        width,
-        height,
+        width: constrainedWidth,
+        height: constrainedHeight,
         cells: newCells
       };
     });
+  },
+
+  setCanvasBackgroundColor: (color: string) => {
+    set({ canvasBackgroundColor: color });
+  },
+
+  toggleGrid: () => {
+    set((state) => ({ showGrid: !state.showGrid }));
   },
 
   setCell: (x: number, y: number, cell: Cell) => {
@@ -59,7 +73,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       const key = createCellKey(x, y);
       
       // If setting an empty cell, remove it to save memory
-      if (cell.char === ' ' && cell.color === '#000000' && cell.bgColor === '#FFFFFF') {
+      if (cell.char === ' ' && cell.color === '#FFFFFF' && cell.bgColor === state.canvasBackgroundColor) {
         newCells.delete(key);
       } else {
         newCells.set(key, { ...cell });
@@ -70,8 +84,17 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   getCell: (x: number, y: number) => {
-    const { cells } = get();
-    return cells.get(createCellKey(x, y)) || createEmptyCell();
+    const { cells, canvasBackgroundColor } = get();
+    const cell = cells.get(createCellKey(x, y));
+    if (cell) {
+      return cell;
+    }
+    // Return empty cell with current canvas background color
+    return {
+      char: ' ',
+      color: '#FFFFFF',
+      bgColor: canvasBackgroundColor
+    };
   },
 
   clearCell: (x: number, y: number) => {
@@ -123,14 +146,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         continue;
       }
 
-      // Set the new cell
-      if (newCell.char === ' ' && newCell.color === '#000000' && newCell.bgColor === '#FFFFFF') {
-        newCells.delete(key);
-      } else {
-        newCells.set(key, { ...newCell });
-      }
-
-      // Add adjacent cells
+        // Set the new cell
+        if (newCell.char === ' ' && newCell.color === '#FFFFFF' && newCell.bgColor === get().canvasBackgroundColor) {
+          newCells.delete(key);
+        } else {
+          newCells.set(key, { ...newCell });
+        }      // Add adjacent cells
       const adjacent = [
         { x: x - 1, y },
         { x: x + 1, y },

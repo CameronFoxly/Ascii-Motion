@@ -19,6 +19,8 @@ export const CanvasRenderer: React.FC = () => {
   const { 
     width, 
     height, 
+    canvasBackgroundColor,
+    showGrid,
     getCell
   } = useCanvasStore();
 
@@ -27,13 +29,15 @@ export const CanvasRenderer: React.FC = () => {
     const pixelX = x * cellSize;
     const pixelY = y * cellSize;
 
-    // Draw background
-    ctx.fillStyle = cell?.bgColor || '#FFFFFF';
-    ctx.fillRect(pixelX, pixelY, cellSize, cellSize);
+    // Only draw cell background if it's not the default transparent background
+    if (cell && cell.bgColor !== 'transparent' && cell.bgColor !== '#FFFFFF') {
+      ctx.fillStyle = cell.bgColor;
+      ctx.fillRect(pixelX, pixelY, cellSize, cellSize);
+    }
 
     // Draw character if present
     if (cell?.char && cell.char !== ' ') {
-      ctx.fillStyle = cell.color || '#000000';
+      ctx.fillStyle = cell.color || '#FFFFFF';
       ctx.font = `${cellSize - 2}px 'Courier New', monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -44,11 +48,13 @@ export const CanvasRenderer: React.FC = () => {
       );
     }
 
-    // Draw grid lines
-    ctx.strokeStyle = '#E5E7EB';
-    ctx.lineWidth = 0.5;
-    ctx.strokeRect(pixelX, pixelY, cellSize, cellSize);
-  }, [cellSize]);
+    // Draw grid lines only if grid is visible
+    if (showGrid) {
+      ctx.strokeStyle = canvasBackgroundColor === '#000000' ? '#333333' : '#E5E7EB';
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(pixelX, pixelY, cellSize, cellSize);
+    }
+  }, [cellSize, canvasBackgroundColor, showGrid]);
 
   // Render the entire grid
   const renderGrid = useCallback(() => {
@@ -58,8 +64,9 @@ export const CanvasRenderer: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear canvas
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    // Clear canvas and fill with background color
+    ctx.fillStyle = canvasBackgroundColor;
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     // Create a set of coordinates that are being moved (to skip in normal rendering)
     const movingCells = new Set<string>();
@@ -76,8 +83,8 @@ export const CanvasRenderer: React.FC = () => {
         
         // Skip cells that are being moved during preview
         if (movingCells.has(key)) {
-          // Draw empty cell in original position during move
-          drawCell(ctx, x, y, { char: ' ', color: '#000000', bgColor: '#FFFFFF' });
+          // Draw empty cell in original position during move (use default black background)
+          drawCell(ctx, x, y, { char: ' ', color: '#FFFFFF', bgColor: '#000000' });
         } else {
           const cell = getCell(x, y);
           drawCell(ctx, x, y, cell);
@@ -99,7 +106,7 @@ export const CanvasRenderer: React.FC = () => {
         }
       });
     }
-  }, [width, height, getCell, drawCell, canvasWidth, canvasHeight, moveState, getTotalOffset]);
+  }, [width, height, getCell, drawCell, canvasWidth, canvasHeight, moveState, getTotalOffset, canvasBackgroundColor, showGrid]);
 
   // Re-render when dependencies change
   useEffect(() => {

@@ -56,8 +56,8 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   // Initial state
   activeTool: 'pencil',
   selectedChar: '@',
-  selectedColor: DEFAULT_COLORS[0], // Black
-  selectedBgColor: DEFAULT_COLORS[1], // White
+  selectedColor: DEFAULT_COLORS[1], // White
+  selectedBgColor: DEFAULT_COLORS[0], // Black
   brushSize: 1,
   rectangleFilled: false,
   
