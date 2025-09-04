@@ -241,6 +241,23 @@ src/
 │       └── index.ts               # Tool exports
 ```
 
+### **Tool Architecture Reference**
+
+**Current Tool-to-Hook Mapping:**
+| Tool | Hook Used | Architecture Reason |
+|------|-----------|-------------------|
+| **Selection** | `useCanvasSelection` (dedicated) | Complex: Multi-state (select→move→resize), sophisticated coordinate tracking |
+| **Pencil** | `useDrawingTool` (shared) | Simple: Single-click cell modification |
+| **Eraser** | `useDrawingTool` (shared) | Simple: Single-click cell clearing |
+| **Paint Bucket** | `useDrawingTool` (shared) | Simple: Single-click flood fill algorithm |
+| **Eyedropper** | `useDrawingTool` (shared) | Simple: Single-click color sampling |
+| **Rectangle** | `useCanvasDragAndDrop` (shared) | Interactive: Drag-based drawing with preview |
+
+**Architecture Benefits:**
+- **Dedicated hooks** for complex tools maintain clear separation of concerns
+- **Shared hooks** eliminate code duplication for similar tool behaviors  
+- **Consistent component pattern** across all tools for UI feedback and activation
+
 **Canvas Component Pattern:**
 ```tsx
 // ✅ NEW PATTERN: Use CanvasProvider + Context
@@ -581,9 +598,41 @@ case 'your-new-tool':
 ```
 
 #### **Step 7: Tool Logic Implementation**
+
+**🎯 Hook Selection Criteria:**
+
+**Use Existing `useDrawingTool` Hook If:**
+- Tool performs single-click actions (click → immediate effect)
+- No state persistence between clicks
+- Simple cell modification (set, clear, pick color)
+- Examples: Pencil, Eraser, Paint Bucket, Eyedropper
+
+**Use Existing `useCanvasDragAndDrop` Hook If:**
+- Tool requires drag operations (mousedown → drag → mouseup)
+- Creates preview during drag
+- Simple start→end coordinate logic
+- Examples: Rectangle, Line tools
+
+**Create New Dedicated Hook If Tool Has:**
+- **Multiple operational states** (selecting → moving → resizing)
+- **Complex state management** (selection bounds, move state, drag detection)
+- **Multi-step workflows** (initiate → modify → commit)
+- **Sophisticated coordinate tracking** (relative positioning, boundary calculations)
+- **Custom interaction patterns** that don't fit existing hooks
+- Examples: Selection tool (`useCanvasSelection`), Multi-select, Animation timeline
+
+**Implementation Guide:**
 - **If simple drawing tool**: Use existing `useDrawingTool` hook
-- **If interactive tool**: Use existing `useCanvasDragAndDrop` hook
-- **If complex tool**: Create new hook in `src/hooks/useYourNewTool.ts`
+- **If interactive drag tool**: Use existing `useCanvasDragAndDrop` hook  
+- **If complex multi-state tool**: Create new hook in `src/hooks/useYourNewTool.ts`
+
+**📝 Future Tool Examples:**
+- **Spray Brush** → `useDrawingTool` (simple: click to apply random pattern)
+- **Line Tool** → `useCanvasDragAndDrop` (interactive: drag from start to end)
+- **Circle Tool** → `useCanvasDragAndDrop` (interactive: drag to define radius)
+- **Multi-Select** → `useCanvasMultiSelect` (complex: multiple selections, group operations)
+- **Animation Onion Skin** → `useOnionSkin` (complex: multi-frame state, transparency layers)
+- **Text Tool** → `useTextTool` (complex: text input mode, cursor positioning, editing)
 
 #### **Step 8: Update Tool Store (if needed)**
 If your tool needs new settings, add to `src/stores/toolStore.ts`:

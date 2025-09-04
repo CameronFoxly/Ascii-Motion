@@ -547,6 +547,27 @@ The `CanvasGrid` component has become a "god component" that handles:
 - [ ] Adding new tools follows clear patterns
 - [ ] Debugging is straightforward
 
+## 🔧 Tool Architecture Guide
+
+When adding new tools, follow this classification:
+
+**Simple Tools (use `useDrawingTool`):**
+- Single-click operations (pencil, eraser, paint bucket, eyedropper)
+- No state persistence between interactions
+- Direct cell modification or sampling
+
+**Interactive Tools (use `useCanvasDragAndDrop`):**
+- Drag-based operations (rectangle, future line/circle tools)
+- Preview during interaction
+- Start→end coordinate logic
+
+**Complex Tools (create dedicated hook):**
+- Multi-state workflows (selection: select→move→resize)
+- Complex state management and coordinate tracking
+- Custom interaction patterns (animation tools, text editing)
+
+See `COPILOT_INSTRUCTIONS.md` for detailed implementation steps.
+
 ### 🚧 Implementation Strategy
 
 1. **Incremental Refactoring**: Extract one piece at a time to avoid breaking changes
