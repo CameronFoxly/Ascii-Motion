@@ -1,12 +1,3 @@
-# React + TypeScript + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
 # ASCII Motion
 
 A modern web application for creating and animating ASCII art with professional timeline controls and multiple export formats.
@@ -60,26 +51,28 @@ npm run build
 
 ## 📋 Development Status
 
-### ✅ Phase 1: Foundation (Complete)
+### ✅ Phase 1: Foundation & Core Editor (Complete)
 - [x] Project scaffolding and configuration
-- [x] State management architecture (Zustand stores)
+- [x] State management architecture (Zustand stores: canvas, animation, tools)
 - [x] Type definitions and constants
-- [x] Basic UI components and styling
-- [x] Development documentation
+- [x] UI components and styling (Tailwind CSS + shadcn/ui)
+- [x] Canvas grid component with full rendering
+- [x] Complete drawing tool suite (pencil, eraser, paint bucket, rectangle, selection, eyedropper)
+- [x] Character palette interface
+- [x] Color picker
+- [x] Selection and advanced editing (copy/paste with visual preview)
+- [x] Undo/redo functionality
+- [x] Keyboard shortcuts (Cmd/Ctrl+C, V, Z, Shift+Z)
+- [x] Performance optimizations and memoization
+- [x] Theme system (dark/light mode)
 
-### 🚧 Phase 2: Core Editor (In Progress)
-- [ ] Canvas grid component
-- [ ] Basic drawing tools (pencil, eraser)
-- [ ] Character palette interface
-- [ ] Selection and basic editing
-
-### 📅 Phase 3: Animation System (Planned)
+### 📅 Phase 2: Animation System (Planned)
 - [ ] Timeline component
 - [ ] Frame management
 - [ ] Playback controls
 - [ ] Frame thumbnails
 
-### 📅 Phase 4: Export System (Planned)
+### 📅 Phase 3: Export System (Planned)
 - [ ] Text file export
 - [ ] JSON project files
 - [ ] GIF animation generation
@@ -87,15 +80,15 @@ npm run build
 
 ## 🏛️ Architecture
 
-The application follows atomic design principles with focused state management:
+The application follows a clean component architecture with focused state management:
 
 ```
 src/
 ├── components/
-│   ├── atoms/          # Basic UI components
-│   ├── molecules/      # Simple combinations
-│   ├── organisms/      # Complex components
-│   └── templates/      # Page layouts
+│   ├── common/         # Shared/reusable components
+│   ├── features/       # Complex functional components  
+│   ├── tools/          # Tool-specific components
+│   └── ui/             # Shadcn UI components
 ├── stores/             # Zustand state management
 ├── types/              # TypeScript definitions
 ├── hooks/              # Custom React hooks
@@ -129,32 +122,3 @@ ASCII Motion aims to be the premier tool for creating sophisticated ASCII animat
 ---
 
 Made with ❤️ for the ASCII art community
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```

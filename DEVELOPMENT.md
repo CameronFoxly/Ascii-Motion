@@ -1,6 +1,20 @@
-# ASCII Motion - Development Setup
-
-## Getting Started
+# ASCII Motion - Developm```
+src/
+├── components/
+│   ├── common/         # Shared/reusable components (CellRenderer, PerformanceMonitor, ThemeToggle)
+│   ├── features/       # Complex components (CanvasGrid, CanvasRenderer, CanvasOverlay, CanvasWithShortcuts, ToolPalette, CharacterPalette, ColorPicker)
+│   ├── tools/          # Tool-specific components (SelectionTool, DrawingTool, RectangleTool, PaintBucketTool, EyedropperTool)
+│   └── ui/             # Shadcn UI components
+├── stores/             # Zustand state management
+│   ├── canvasStore.ts  # Canvas data and operations
+│   ├── animationStore.ts # Animation timeline and frames
+│   └── toolStore.ts    # Active tools and settings
+├── types/              # TypeScript type definitions
+├── hooks/              # Custom React hooks
+├── utils/              # Utility functions
+├── constants/          # App constants and configurations
+└── lib/                # Third-party library configurations
+```ting Started
 
 ### Prerequisites
 - Node.js 18+ 
@@ -26,15 +40,14 @@ npm run build
 ```
 src/
 ├── components/
-│   ├── atoms/          # Basic UI components (Button, Input, CellRenderer, PerformanceMonitor)
-│   ├── organisms/      # Complex components (CanvasGrid, CanvasRenderer, CanvasOverlay, CanvasWithShortcuts, ToolPalette)
-│   ├── tools/          # Tool-specific components (SelectionTool, DrawingTool, etc.)
+│   ├── common/         # Shared/reusable components (CellRenderer, PerformanceMonitor, ThemeToggle)
+│   ├── features/       # Complex components (CanvasGrid, CanvasRenderer, CanvasOverlay, CanvasWithShortcuts, ToolPalette, CharacterPalette, ColorPicker)
+│   ├── tools/          # Tool-specific components (SelectionTool, DrawingTool, RectangleTool, PaintBucketTool, EyedropperTool)
 │   └── ui/             # Shadcn UI components
 ├── stores/             # Zustand state management
 │   ├── canvasStore.ts  # Canvas data and operations
 │   ├── animationStore.ts # Animation timeline and frames
-│   ├── toolStore.ts    # Active tools and settings
-│   └── projectStore.ts # Project management (to be created)
+│   └── toolStore.ts    # Active tools and settings
 ├── types/              # TypeScript type definitions
 ├── hooks/              # Custom React hooks
 ├── utils/              # Utility functions
@@ -84,10 +97,10 @@ src/
 
 ### **🎯 Step 5.1 COMPLETED: Performance Optimizations**
 ✅ **Files Created/Modified:**
-- `src/components/atoms/CellRenderer.tsx` (NEW) - Memoized cell rendering
+- `src/components/common/CellRenderer.tsx` (NEW) - Memoized cell rendering
 - `src/hooks/useMemoizedGrid.ts` (NEW) - Grid-level optimization  
 - `src/utils/performance.ts` (NEW) - Performance measurement tools
-- `src/components/atoms/PerformanceMonitor.tsx` (NEW) - Dev UI for testing
+- `src/components/common/PerformanceMonitor.tsx` (NEW) - Dev UI for testing
 - `src/hooks/useCanvasRenderer.ts` (OPTIMIZED) - Reduced render overhead
 
 ✅ **Performance Improvements Achieved:**
@@ -99,8 +112,8 @@ src/
 
 ### **🎯 Step 6 COMPLETED: Final Canvas Composition**
 ✅ **Files Created:**
-- `src/components/organisms/CanvasRenderer.tsx` (NEW) - Dedicated rendering component
-- `src/components/organisms/CanvasOverlay.tsx` (NEW) - Selection/interaction overlays
+- `src/components/features/CanvasRenderer.tsx` (NEW) - Dedicated rendering component
+- `src/components/features/CanvasOverlay.tsx` (NEW) - Selection/interaction overlays
 
 ✅ **Architecture Achieved:**
 - CanvasGrid reduced to 111 lines (pure composition)
@@ -110,7 +123,7 @@ src/
 ### **🎯 ENHANCEMENT COMPLETED: Advanced Paste with Visual Preview (Sept 3, 2025)**
 ✅ **Files Created/Modified:**
 - `src/hooks/usePasteMode.ts` (NEW) - Advanced paste mode state management (188 lines)
-- `src/components/organisms/CanvasWithShortcuts.tsx` (NEW) - Context-aware shortcuts wrapper (21 lines)
+- `src/components/features/CanvasWithShortcuts.tsx` (NEW) - Context-aware shortcuts wrapper (21 lines)
 - `src/contexts/CanvasContext.tsx` (ENHANCED) - Added paste mode state and actions
 - `src/hooks/useCanvasRenderer.ts` (ENHANCED) - Integrated paste preview rendering  
 - `src/hooks/useCanvasMouseHandlers.ts` (ENHANCED) - Added paste mode mouse interactions
@@ -251,7 +264,7 @@ We've established a new pattern for managing complex component state:
 **Key Files Created:**
 - `src/contexts/CanvasContext.tsx` - Canvas state provider
 - `src/hooks/useCanvasState.ts` - Canvas state management hook
-- Updated `src/components/organisms/CanvasGrid.tsx` - Now uses context
+- Updated `src/components/features/CanvasGrid.tsx` - Now uses context
 
 **Benefits**:
 - ✅ Reduced CanvasGrid from 501 to 424 lines (-15%)
@@ -490,8 +503,8 @@ The `CanvasGrid` component has become a "god component" that handles:
   - `RectangleTool.tsx` (30 lines) - Rectangle drawing logic and status
   - `EyedropperTool.tsx` (26 lines) - Color/character picking and status
 - ✅ Created `src/hooks/useToolBehavior.ts` (109 lines) - Tool behavior coordination and metadata
-- ✅ Created `src/components/organisms/ToolManager.tsx` (34 lines) - Renders active tool component
-- ✅ Created `src/components/organisms/ToolStatusManager.tsx` (34 lines) - Renders tool status UI
+- ✅ Created `src/components/features/ToolManager.tsx` (34 lines) - Renders active tool component
+- ✅ Created `src/components/features/ToolStatusManager.tsx` (34 lines) - Renders tool status UI
 - ✅ Updated CanvasGrid to use ToolManager and ToolStatusManager
 - ✅ Improved cursor logic using tool-specific cursor styles
 - ✅ Maintained final CanvasGrid size at 111 lines (minimal growth due to new imports)
@@ -553,7 +566,7 @@ The `CanvasGrid` component has become a "god component" that handles:
 ## 🎯 **STEP 3 PREPARATION - Session Handover Notes**
 
 ### **Current Files Ready for Extraction**
-**File**: `src/components/organisms/CanvasGrid.tsx` (245 lines)
+**File**: `src/components/features/CanvasGrid.tsx` (245 lines)
 
 **Key Functions to Extract**:
 1. **`drawCell`** (lines 57-85): Character rendering logic
@@ -580,12 +593,12 @@ The `CanvasGrid` component has become a "god component" that handles:
 
 ### **Current Canvas Architecture Files**
 ```
-src/components/atoms/
+src/components/common/
   CellRenderer.tsx            (105 lines - Memoized cell rendering)
   PerformanceMonitor.tsx      (152 lines - Dev performance testing UI)
   ThemeToggle.tsx             (existing - theme switching)
 
-src/components/organisms/
+src/components/features/
   CanvasGrid.tsx              (111 lines - Pure composition component)
   CanvasRenderer.tsx          (124 lines - Dedicated rendering logic)
   CanvasOverlay.tsx           (78 lines - Selection/interaction overlays)

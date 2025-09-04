@@ -206,12 +206,11 @@ button { /* This overrides shadcn button styling */ }
 ## Code Organization Principles
 
 ### 1. Component Architecture
-**Follow the Atomic Design Pattern:**
-- **Atoms**: Basic UI elements (Button, Input, Icon)
-- **Molecules**: Simple combinations (ToolButton, FrameThumbnail, ColorPicker)
-- **Organisms**: Complex components (Timeline, Canvas, ToolPalette)
-- **Templates**: Page layouts
-- **Pages**: Complete views
+**Follow the simplified component pattern:**
+- **Common**: Shared/reusable components (CellRenderer, PerformanceMonitor, ThemeToggle)
+- **Features**: Complex functional components (Canvas, ToolPalette, CharacterPalette)
+- **Tools**: Specialized tool components (DrawingTool, SelectionTool, RectangleTool, etc.)
+- **UI**: Shared UI components from shadcn/ui
 
 **IMPORTANT: Canvas Component Refactoring Pattern (Post Phase 1.5)**
 The canvas system has been refactored to use Context + Hooks pattern for better maintainability:
@@ -229,7 +228,7 @@ src/
 │   ├── useCanvasRenderer.ts       # Grid & overlay rendering
 │   └── useToolBehavior.ts         # Tool coordination & metadata
 ├── components/
-│   ├── organisms/
+│   ├── features/
 │   │   ├── CanvasGrid.tsx         # Main composition component (111 lines)
 │   │   ├── ToolManager.tsx        # Active tool component renderer (34 lines)
 │   │   └── ToolStatusManager.tsx  # Tool status UI renderer (34 lines)
@@ -262,20 +261,36 @@ function CanvasGrid() {
 }
 ```
 
-**Directory Structure (Updated with Step 5.1):**
+**Directory Structure (Updated):**
 ```
 src/
 ├── components/
-│   ├── atoms/
-│   │   ├── CellRenderer.tsx           # Memoized cell rendering (NEW)
-│   │   ├── PerformanceMonitor.tsx     # Development performance UI (NEW)
-│   │   └── Button.tsx
-│   ├── molecules/
-│   ├── organisms/
-│   └── templates/
+│   ├── common/
+│   │   ├── CellRenderer.tsx          # Memoized cell rendering
+│   │   ├── PerformanceMonitor.tsx    # Development performance UI
+│   │   └── ThemeToggle.tsx           # Dark/light mode toggle
+│   ├── features/
+│   │   ├── CanvasGrid.tsx            # Main canvas grid component
+│   │   ├── CanvasOverlay.tsx         # Selection and paste overlays
+│   │   ├── CanvasRenderer.tsx        # Core canvas rendering logic
+│   │   ├── CanvasWithShortcuts.tsx   # Canvas with keyboard shortcuts
+│   │   ├── CharacterPalette.tsx      # Character selection palette
+│   │   ├── ColorPicker.tsx           # Color selection component
+│   │   ├── PastePreviewOverlay.tsx   # Preview for paste operations
+│   │   ├── ToolManager.tsx           # Tool management logic
+│   │   ├── ToolPalette.tsx           # Tool selection UI
+│   │   └── ToolStatusManager.tsx     # Tool status display
+│   ├── tools/
+│   │   ├── DrawingTool.tsx           # Pencil/pen drawing tool
+│   │   ├── EyedropperTool.tsx        # Color picker tool
+│   │   ├── PaintBucketTool.tsx       # Fill/flood fill tool
+│   │   ├── RectangleTool.tsx         # Rectangle drawing tool
+│   │   ├── SelectionTool.tsx         # Selection and copy/paste
+│   │   └── index.ts                  # Tool exports
+│   └── ui/                           # Shadcn/ui components
 ├── hooks/
-│   ├── useCanvasRenderer.ts           # Optimized with memoization
-│   ├── useMemoizedGrid.ts             # Grid-level optimization (NEW)
+│   ├── useCanvasRenderer.ts          # Optimized with memoization
+│   ├── useMemoizedGrid.ts            # Grid-level optimization
 │   └── ...
 ├── stores/
 ├── types/
@@ -287,12 +302,14 @@ src/
 ```
 
 ### 2. State Management with Zustand
-**Create focused, single-responsibility stores:**
-- `useCanvasStore` - Canvas data, dimensions, current frame
-- `useAnimationStore` - Timeline, frames, playback state
-- `useToolStore` - Active tool, tool settings, drawing state
-- `useProjectStore` - Project metadata, save/load operations
-- `useUIStore` - UI state, panels, dialogs
+**Current focused, single-responsibility stores:**
+- `useCanvasStore` - Canvas data, dimensions, cells, and canvas operations
+- `useAnimationStore` - Timeline, frames, playback state  
+- `useToolStore` - Active tool, tool settings, drawing state, undo/redo
+
+**Future planned stores:**
+- `useProjectStore` - Project metadata, save/load operations (planned)
+- `useUIStore` - UI state, panels, dialogs (if needed)
 
 **Store Patterns:**
 ```typescript
@@ -536,7 +553,7 @@ case 'your-new-tool':
 ```
 
 #### **Step 5: Update Tool Manager**
-Update `src/components/organisms/ToolManager.tsx`:
+Update `src/components/features/ToolManager.tsx`:
 
 ```typescript
 import {
@@ -550,7 +567,7 @@ case 'your-new-tool':
 ```
 
 #### **Step 6: Update Tool Status Manager**
-Update `src/components/organisms/ToolStatusManager.tsx`:
+Update `src/components/features/ToolStatusManager.tsx`:
 
 ```typescript
 import {
@@ -1019,10 +1036,10 @@ const useCanvasStore = create<CanvasState>((set) => ({
 **🚨 DOCUMENTATION-FIRST WORKFLOW - Follow This Sequence:**
 
 1. **Start with types** - Define interfaces before implementation
-2. **Build atoms first** - Create basic UI components  
+2. **Build common components** - Create basic UI components  
 3. **Create stores** - Set up state management
-4. **Build molecules** - Combine atoms into functional units
-5. **Assemble organisms** - Create complex components
+4. **Build tools** - Create specialized tool components
+5. **Assemble features** - Create complex functional components
 6. **Test integration** - Ensure components work together
 7. **Optimize performance** - Profile and optimize bottlenecks
 8. **📋 UPDATE DOCUMENTATION** - Complete the mandatory protocol checklist above
@@ -1146,7 +1163,7 @@ const useCanvasStore = create<CanvasState>((set) => ({
 
 **Files Affected**:
 - `src/hooks/usePasteMode.ts` (NEW) - 188 lines of paste mode logic
-- `src/components/organisms/CanvasWithShortcuts.tsx` (NEW) - Context-aware shortcuts wrapper
+- `src/components/features/CanvasWithShortcuts.tsx` (NEW) - Context-aware shortcuts wrapper
 - `src/contexts/CanvasContext.tsx` - Added paste mode state and actions
 - `src/hooks/useCanvasRenderer.ts` - Integrated paste preview rendering
 - `src/hooks/useCanvasMouseHandlers.ts` - Added paste mode mouse interactions
