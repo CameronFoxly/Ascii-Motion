@@ -16,17 +16,21 @@ export interface PasteModeState {
   isActive: boolean;
   preview: PastePreview | null;
   isDragging: boolean;
+  dragOffset?: { x: number; y: number };
+  isPlaced: boolean; // Tracks if the preview has been "placed" by user interaction
 }
 
 /**
  * Hook for managing enhanced paste mode with visual preview and positioning
  */
 export const usePasteMode = () => {
-  const { hasClipboard, clipboard } = useToolStore();
+  const { hasClipboard, clipboard, clearSelection } = useToolStore();
   const [pasteMode, setPasteMode] = useState<PasteModeState>({
     isActive: false,
     preview: null,
-    isDragging: false
+    isDragging: false,
+    dragOffset: undefined,
+    isPlaced: false
   });
 
   /**
@@ -58,6 +62,9 @@ export const usePasteMode = () => {
       return false;
     }
 
+    // Clear any existing selection when entering paste mode
+    clearSelection();
+
     const bounds = calculateClipboardBounds(clipboard);
     
     setPasteMode({
@@ -67,37 +74,61 @@ export const usePasteMode = () => {
         position: initialPosition,
         bounds
       },
-      isDragging: false
+      isDragging: false,
+      dragOffset: undefined,
+      isPlaced: false
     });
 
     return true;
-  }, [hasClipboard, clipboard, calculateClipboardBounds]);
+  }, [hasClipboard, clipboard, clearSelection, calculateClipboardBounds]);
 
   /**
    * Update paste preview position
    */
-  const updatePastePosition = useCallback((newPosition: { x: number; y: number }) => {
+  const updatePastePosition = useCallback((mousePosition: { x: number; y: number }) => {
     setPasteMode(prev => {
       if (!prev.isActive || !prev.preview) return prev;
 
-      return {
-        ...prev,
-        preview: {
-          ...prev.preview,
-          position: newPosition
-        }
-      };
+      // When dragging, apply the drag offset to maintain relative positioning
+      if (prev.isDragging && prev.dragOffset) {
+        const newPosition = {
+          x: mousePosition.x - prev.dragOffset.x,
+          y: mousePosition.y - prev.dragOffset.y
+        };
+
+        return {
+          ...prev,
+          preview: {
+            ...prev.preview,
+            position: newPosition
+          }
+        };
+      }
+
+      // When not dragging, don't update position (preview stays where it was placed)
+      return prev;
     });
   }, []);
 
   /**
    * Start dragging the paste preview
    */
-  const startPasteDrag = useCallback(() => {
-    setPasteMode(prev => ({
-      ...prev,
-      isDragging: true
-    }));
+  const startPasteDrag = useCallback((clickPosition: { x: number; y: number }) => {
+    setPasteMode(prev => {
+      if (!prev.isActive || !prev.preview) return prev;
+      
+      // Calculate offset between click position and current preview position
+      const dragOffset = {
+        x: clickPosition.x - prev.preview.position.x,
+        y: clickPosition.y - prev.preview.position.y
+      };
+      
+      return {
+        ...prev,
+        isDragging: true,
+        dragOffset
+      };
+    });
   }, []);
 
   /**
@@ -106,7 +137,8 @@ export const usePasteMode = () => {
   const stopPasteDrag = useCallback(() => {
     setPasteMode(prev => ({
       ...prev,
-      isDragging: false
+      isDragging: false,
+      dragOffset: undefined
     }));
   }, []);
 
@@ -117,7 +149,9 @@ export const usePasteMode = () => {
     setPasteMode({
       isActive: false,
       preview: null,
-      isDragging: false
+      isDragging: false,
+      dragOffset: undefined,
+      isPlaced: false
     });
   }, []);
 

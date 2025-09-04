@@ -7,6 +7,7 @@ import {
   RectangleToolStatus,
   EllipseToolStatus,
   EyedropperToolStatus,
+  HandToolStatus,
 } from '../tools';
 
 /**
@@ -31,6 +32,8 @@ export const ToolStatusManager: React.FC = () => {
       return <EllipseToolStatus />;
     case 'eyedropper':
       return <EyedropperToolStatus />;
+    case 'hand':
+      return <HandToolStatus />;
     default:
       return <span className="text-gray-500">No tool selected</span>;
   }

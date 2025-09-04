@@ -7,6 +7,7 @@ import {
   RectangleTool,
   EllipseTool,
   EyedropperTool,
+  HandTool,
 } from '../tools';
 
 /**
@@ -31,6 +32,8 @@ export const ToolManager: React.FC = () => {
       return <EllipseTool />;
     case 'eyedropper':
       return <EyedropperTool />;
+    case 'hand':
+      return <HandTool />;
     default:
       return null;
   }

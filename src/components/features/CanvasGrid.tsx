@@ -15,7 +15,7 @@ interface CanvasGridProps {
 
 export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   // Use our new context and state management
-  const { canvasRef, setMouseButtonDown, setShiftKeyDown } = useCanvasContext();
+  const { canvasRef, setMouseButtonDown, setShiftKeyDown, setSpaceKeyDown } = useCanvasContext();
   
   // Get active tool and tool behavior
   const { activeTool } = useToolStore();
@@ -53,6 +53,12 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
         setShiftKeyDown(true);
       }
       
+      // Handle Space key for temporary hand tool
+      if (event.key === ' ' || event.code === 'Space') {
+        event.preventDefault(); // Prevent page scrolling
+        setSpaceKeyDown(true);
+      }
+      
       // Handle Escape key for committing moves and clearing selections
       if (event.key === 'Escape' && selection.active && activeTool === 'select') {
         event.preventDefault();
@@ -71,6 +77,11 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       if (event.key === 'Shift') {
         setShiftKeyDown(false);
       }
+      
+      // Handle Space key release
+      if (event.key === ' ' || event.code === 'Space') {
+        setSpaceKeyDown(false);
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
@@ -79,7 +90,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
     };
-  }, [moveState, selection.active, activeTool, commitMove, clearSelection, setShiftKeyDown]);
+  }, [moveState, selection.active, activeTool, commitMove, clearSelection, setShiftKeyDown, setSpaceKeyDown]);
 
   // Reset selection mode when tool changes
   useEffect(() => {
@@ -100,7 +111,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       {/* Tool Manager - handles tool-specific behavior */}
       <ToolManager />
       
-      <div className="canvas-wrapper border-2 border-gray-300 rounded-lg overflow-auto max-h-96">
+      <div className="canvas-wrapper border-2 border-gray-300 rounded-lg overflow-auto max-w-full max-h-96 relative">
         <canvas
           ref={canvasRef}
           className={`canvas-grid ${getToolCursor(activeTool)}`}
@@ -110,7 +121,10 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
           onMouseLeave={handleMouseLeave}
           onContextMenu={handleContextMenu}
           style={{
-            imageRendering: 'pixelated'
+            imageRendering: 'pixelated',
+            display: 'block',
+            minWidth: 'fit-content',
+            minHeight: 'fit-content'
           }}
         />
       </div>

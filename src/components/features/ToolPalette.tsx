@@ -10,7 +10,8 @@ import {
   MousePointer, 
   Pipette, 
   Square,
-  Circle
+  Circle,
+  Hand
 } from 'lucide-react';
 import type { Tool } from '../../types';
 
@@ -26,6 +27,7 @@ const TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; description:
   { id: 'eyedropper', name: 'Eyedropper', icon: <Pipette className="w-4 h-4" />, description: 'Pick character/color' },
   { id: 'rectangle', name: 'Rectangle', icon: <Square className="w-4 h-4" />, description: 'Draw rectangles' },
   { id: 'ellipse', name: 'Ellipse', icon: <Circle className="w-4 h-4" />, description: 'Draw ellipses/circles' },
+  { id: 'hand', name: 'Hand', icon: <Hand className="w-4 h-4" />, description: 'Pan canvas view' },
 ];
 
 export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {

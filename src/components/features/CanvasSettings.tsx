@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Grid3X3, Palette } from 'lucide-react';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { CanvasSizePicker } from './CanvasSizePicker';
+import { ZoomControls } from './ZoomControls';
 
 export const CanvasSettings: React.FC = () => {
   const { 
@@ -57,6 +58,9 @@ export const CanvasSettings: React.FC = () => {
         height={height}
         onSizeChange={setCanvasSize}
       />
+
+      {/* Zoom Controls */}
+      <ZoomControls />
 
       {/* Grid Toggle */}
       <Button

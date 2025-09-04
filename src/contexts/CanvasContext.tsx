@@ -8,11 +8,14 @@ import type { PasteModeState } from '../hooks/usePasteMode';
 interface CanvasState {
   // Canvas display settings
   cellSize: number;
+  zoom: number; // 0.25 to 4.0 (25% to 400%)
+  panOffset: { x: number; y: number };
   
   // Interaction state
   isDrawing: boolean;
   mouseButtonDown: boolean;
   shiftKeyDown: boolean;
+  spaceKeyDown: boolean;
   
   // Selection state
   selectionMode: 'none' | 'dragging' | 'moving';
@@ -34,11 +37,14 @@ interface CanvasState {
 interface CanvasActions {
   // Canvas settings
   setCellSize: (size: number) => void;
+  setZoom: (zoom: number) => void;
+  setPanOffset: (offset: { x: number; y: number }) => void;
   
   // Interaction actions
   setIsDrawing: (drawing: boolean) => void;
   setMouseButtonDown: (down: boolean) => void;
   setShiftKeyDown: (down: boolean) => void;
+  setSpaceKeyDown: (down: boolean) => void;
   
   // Selection actions
   setSelectionMode: (mode: CanvasState['selectionMode']) => void;
@@ -51,7 +57,7 @@ interface CanvasActions {
   // Paste mode actions
   startPasteMode: (position: { x: number; y: number }) => boolean;
   updatePastePosition: (position: { x: number; y: number }) => void;
-  startPasteDrag: () => void;
+  startPasteDrag: (clickPosition: { x: number; y: number }) => void;
   stopPasteDrag: () => void;
   cancelPasteMode: () => void;
   commitPaste: () => Map<string, any> | null;
@@ -77,11 +83,14 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   
   // Canvas display settings
   const [cellSize, setCellSize] = useState(initialCellSize);
+  const [zoom, setZoom] = useState(1.0);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   
   // Interaction state
   const [isDrawing, setIsDrawing] = useState(false);
   const [mouseButtonDown, setMouseButtonDown] = useState(false);
   const [shiftKeyDown, setShiftKeyDown] = useState(false);
+  const [spaceKeyDown, setSpaceKeyDown] = useState(false);
   
   // Selection state
   const [selectionMode, setSelectionMode] = useState<CanvasState['selectionMode']>('none');
@@ -105,9 +114,12 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   const contextValue: CanvasContextValue = {
     // State
     cellSize,
+    zoom,
+    panOffset,
     isDrawing,
     mouseButtonDown,
     shiftKeyDown,
+    spaceKeyDown,
     selectionMode,
     pendingSelectionStart,
     justCommittedMove,
@@ -116,9 +128,12 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     
     // Actions
     setCellSize,
+    setZoom,
+    setPanOffset,
     setIsDrawing,
     setMouseButtonDown,
     setShiftKeyDown,
+    setSpaceKeyDown,
     setSelectionMode,
     setPendingSelectionStart,
     setJustCommittedMove,
@@ -151,7 +166,7 @@ export const useCanvasContext = (): CanvasContextValue => {
 
 // Helper hook for canvas dimensions calculations
 export const useCanvasDimensions = () => {
-  const { cellSize } = useCanvasContext();
+  const { cellSize, zoom, panOffset } = useCanvasContext();
   
   return {
     cellSize,
@@ -166,11 +181,18 @@ export const useCanvasDimensions = () => {
       gridWidth: number,
       gridHeight: number
     ) => {
+      // Get relative position within canvas
       const relativeX = mouseX - canvasRect.left;
       const relativeY = mouseY - canvasRect.top;
       
-      const x = Math.floor(relativeX / cellSize);
-      const y = Math.floor(relativeY / cellSize);
+      // Account for pan offset - subtract pan offset to get actual grid position
+      const adjustedX = relativeX - panOffset.x;
+      const adjustedY = relativeY - panOffset.y;
+      
+      // Account for zoom - divide by zoomed cell size
+      const effectiveCellSize = cellSize * zoom;
+      const x = Math.floor(adjustedX / effectiveCellSize);
+      const y = Math.floor(adjustedY / effectiveCellSize);
       
       return {
         x: Math.max(0, Math.min(x, gridWidth - 1)),

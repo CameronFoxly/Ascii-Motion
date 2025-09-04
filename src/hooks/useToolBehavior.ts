@@ -24,6 +24,8 @@ export const useToolBehavior = () => {
         return 'EllipseTool';
       case 'eyedropper':
         return 'EyedropperTool';
+      case 'hand':
+        return 'HandTool';
       default:
         return null;
     }
@@ -45,6 +47,8 @@ export const useToolBehavior = () => {
         return 'EllipseToolStatus';
       case 'eyedropper':
         return 'EyedropperToolStatus';
+      case 'hand':
+        return 'HandToolStatus';
       default:
         return null;
     }
@@ -67,6 +71,8 @@ export const useToolBehavior = () => {
         return 'cursor-crosshair';
       case 'eyedropper':
         return 'cursor-crosshair';
+      case 'hand':
+        return 'cursor-grab';
       default:
         return 'cursor-default';
     }
@@ -89,6 +95,8 @@ export const useToolBehavior = () => {
         return 'Ellipse';
       case 'eyedropper':
         return 'Eyedropper';
+      case 'hand':
+        return 'Hand';
       default:
         return 'Unknown';
     }
@@ -96,7 +104,7 @@ export const useToolBehavior = () => {
 
   // Check if tool requires continuous interaction (click and drag)
   const isInteractiveTool = useCallback((tool: Tool) => {
-    return ['select', 'rectangle', 'ellipse'].includes(tool);
+    return ['select', 'rectangle', 'ellipse', 'hand'].includes(tool);
   }, []);
 
   // Check if tool is a drawing tool (modifies canvas on click)

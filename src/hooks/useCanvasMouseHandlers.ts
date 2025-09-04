@@ -1,57 +1,36 @@
 import { useCallback } from 'react';
-import { useCanvasContext } from '../contexts/CanvasContext';
+import { useCanvasContext, useCanvasDimensions } from '../contexts/CanvasContext';
 import { useToolStore } from '../stores/toolStore';
-import { useCanvasDimensions } from '../contexts/CanvasContext';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useCanvasSelection } from './useCanvasSelection';
 import { useCanvasDragAndDrop } from './useCanvasDragAndDrop';
+import { useHandTool } from './useHandTool';
 
 export interface MouseHandlers {
   handleMouseDown: (event: React.MouseEvent<HTMLCanvasElement>) => void;
   handleMouseMove: (event: React.MouseEvent<HTMLCanvasElement>) => void;
-  handleMouseUp: () => void;
+  handleMouseUp: (event?: React.MouseEvent<HTMLCanvasElement>) => void;
   handleMouseLeave: () => void;
   handleContextMenu: (event: React.MouseEvent<HTMLCanvasElement>) => void;
 }
 
 /**
- * Core mouse interaction handling for the canvas
- * Coordinates with tool-specific hooks for behavior
+ * Hook for canvas mouse event handling
+ * Routes mouse events to appropriate tool handlers
  */
 export const useCanvasMouseHandlers = (): MouseHandlers => {
-  const { 
-    setIsDrawing, 
-    setMouseButtonDown, 
-    canvasRef,
-    pasteMode, 
-    updatePastePosition, 
-    startPasteDrag, 
-    stopPasteDrag,
-    commitPaste,
-    cancelPasteMode
-  } = useCanvasContext();
   const { activeTool } = useToolStore();
-  const { width, height, cells, setCanvasData } = useCanvasStore();
-  const { pushToHistory } = useToolStore();
+  const { canvasRef, spaceKeyDown, setIsDrawing, setMouseButtonDown, pasteMode, updatePastePosition, startPasteDrag, stopPasteDrag, cancelPasteMode, commitPaste } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
+  const { width, height, cells, setCanvasData } = useCanvasStore();
   
-  // Tool-specific mouse handlers
-  const {
-    handleSelectionMouseDown,
-    handleSelectionMouseMove,
-    handleSelectionMouseUp,
-  } = useCanvasSelection();
-  
-  const {
-    handleDrawingMouseDown,
-    handleDrawingMouseMove,
-    handleRectangleMouseDown,
-    handleRectangleMouseMove,
-    handleRectangleMouseUp,
-    handleEllipseMouseDown,
-    handleEllipseMouseMove,
-    handleEllipseMouseUp,
-  } = useCanvasDragAndDrop();
+  // Import tool hooks
+  const selectionHandlers = useCanvasSelection();
+  const dragAndDropHandlers = useCanvasDragAndDrop();
+  const handToolHandlers = useHandTool();
+
+  // Determine effective tool (space key overrides with hand tool)
+  const effectiveTool = spaceKeyDown ? 'hand' : activeTool;
 
   // Utility to get grid coordinates from mouse event
   const getGridCoordinatesFromEvent = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -76,16 +55,38 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
     setMouseButtonDown(false);
   }, [setIsDrawing, setMouseButtonDown]);
 
-  // Route mouse down to appropriate tool handler
+  // Route mouse down to appropriate tool handler based on effective tool
   const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     // Handle paste mode interactions first
-    if (pasteMode.isActive) {
+    if (pasteMode.isActive && pasteMode.preview) {
       const { x, y } = getGridCoordinatesFromEvent(event);
       
       if (event.button === 0) { // Left click
-        // Start dragging the paste preview
-        updatePastePosition({ x, y });
-        startPasteDrag();
+        // Check if click is inside the paste preview bounds
+        const { position, bounds } = pasteMode.preview;
+        const previewMinX = position.x + bounds.minX;
+        const previewMaxX = position.x + bounds.maxX;
+        const previewMinY = position.y + bounds.minY;
+        const previewMaxY = position.y + bounds.maxY;
+        
+        const isInsidePreview = x >= previewMinX && x <= previewMaxX && 
+                               y >= previewMinY && y <= previewMaxY;
+        
+        if (isInsidePreview) {
+          // Start dragging the paste preview
+          startPasteDrag({ x, y });
+        } else {
+          // Click outside preview commits the paste
+          const pastedData = commitPaste();
+          if (pastedData) {
+            // Apply the paste to canvas
+            const currentCells = new Map(cells);
+            pastedData.forEach((cell, key) => {
+              currentCells.set(key, cell);
+            });
+            setCanvasData(currentCells);
+          }
+        }
       } else if (event.button === 2) { // Right click  
         // Cancel paste mode
         event.preventDefault();
@@ -95,141 +96,91 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
     }
 
     // Normal tool handling when not in paste mode
-    switch (activeTool) {
-      case 'select':
-        handleSelectionMouseDown(event);
+    switch (effectiveTool) {
+      case 'hand':
+        handToolHandlers.handleHandMouseDown(event);
         break;
-      case 'pencil':
-      case 'eraser':
-      case 'eyedropper':
-      case 'paintbucket':
-        handleDrawingMouseDown(event);
+      case 'select':
+        selectionHandlers.handleSelectionMouseDown(event);
         break;
       case 'rectangle':
-        handleRectangleMouseDown(event);
+        dragAndDropHandlers.handleRectangleMouseDown(event);
         break;
       case 'ellipse':
-        handleEllipseMouseDown(event);
+        dragAndDropHandlers.handleEllipseMouseDown(event);
         break;
       default:
-        console.warn('Unknown tool:', activeTool);
+        // For basic drawing tools (pencil, eraser, eyedropper, paintbucket)
+        dragAndDropHandlers.handleDrawingMouseDown(event);
+        break;
     }
-  }, [
-    activeTool, 
-    pasteMode,
-    getGridCoordinatesFromEvent,
-    updatePastePosition,
-    startPasteDrag,
-    cancelPasteMode,
-    handleSelectionMouseDown, 
-    handleDrawingMouseDown, 
-    handleRectangleMouseDown,
-    handleEllipseMouseDown
-  ]);
+  }, [effectiveTool, pasteMode, getGridCoordinatesFromEvent, startPasteDrag, cancelPasteMode, commitPaste, cells, setCanvasData, handToolHandlers, selectionHandlers, dragAndDropHandlers]);
 
   // Route mouse move to appropriate tool handler
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     // Handle paste mode interactions first
     if (pasteMode.isActive) {
-      const { x, y } = getGridCoordinatesFromEvent(event);
-      updatePastePosition({ x, y });
-      return;
-    }
-
-    // Normal tool handling when not in paste mode
-    switch (activeTool) {
-      case 'select':
-        handleSelectionMouseMove(event);
-        break;
-      case 'pencil':
-      case 'eraser':
-        handleDrawingMouseMove(event);
-        break;
-      case 'rectangle':
-        handleRectangleMouseMove(event);
-        break;
-      case 'ellipse':
-        handleEllipseMouseMove(event);
-        break;
-      case 'eyedropper':
-      case 'paintbucket':
-        // These tools don't need mouse move handling
-        break;
-      default:
-        console.warn('Unknown tool:', activeTool);
-    }
-  }, [
-    activeTool, 
-    pasteMode,
-    getGridCoordinatesFromEvent,
-    updatePastePosition,
-    handleSelectionMouseMove, 
-    handleDrawingMouseMove, 
-    handleRectangleMouseMove,
-    handleEllipseMouseMove
-  ]);
-
-  // Route mouse up to appropriate tool handler
-  const handleMouseUp = useCallback(() => {
-    // Handle paste mode interactions first
-    if (pasteMode.isActive && pasteMode.isDragging) {
-      // Stop dragging and commit the paste
-      stopPasteDrag();
-      const pastedData = commitPaste();
-      
-      if (pastedData) {
-        // Save current state for undo
-        pushToHistory(new Map(cells));
-        
-        // Merge pasted data with current canvas
-        const newCells = new Map(cells);
-        pastedData.forEach((cell, key) => {
-          newCells.set(key, cell);
-        });
-        
-        setCanvasData(newCells);
+      // Only update position if we're currently dragging
+      if (pasteMode.isDragging) {
+        const { x, y } = getGridCoordinatesFromEvent(event);
+        updatePastePosition({ x, y });
       }
       return;
     }
 
     // Normal tool handling when not in paste mode
-    switch (activeTool) {
+    switch (effectiveTool) {
+      case 'hand':
+        handToolHandlers.handleHandMouseMove(event);
+        break;
       case 'select':
-        handleSelectionMouseUp();
+        selectionHandlers.handleSelectionMouseMove(event);
         break;
       case 'rectangle':
-        handleRectangleMouseUp();
+        dragAndDropHandlers.handleRectangleMouseMove(event);
         break;
       case 'ellipse':
-        handleEllipseMouseUp();
-        break;
-      case 'pencil':
-      case 'eraser':
-      case 'eyedropper':
-      case 'paintbucket':
-        // These tools just need basic cleanup
-        setIsDrawing(false);
-        setMouseButtonDown(false);
+        dragAndDropHandlers.handleEllipseMouseMove(event);
         break;
       default:
-        console.warn('Unknown tool:', activeTool);
-        setIsDrawing(false);
-        setMouseButtonDown(false);
+        // For basic drawing tools (pencil, eraser, eyedropper, paintbucket)
+        dragAndDropHandlers.handleDrawingMouseMove(event);
+        break;
     }
-  }, [
-    activeTool, 
-    pasteMode,
-    stopPasteDrag,
-    commitPaste,
-    pushToHistory,
-    cells,
-    setCanvasData,
-    handleSelectionMouseUp, 
-    handleRectangleMouseUp,
-    handleEllipseMouseUp, 
-    setIsDrawing, 
-    setMouseButtonDown
-  ]);
+  }, [effectiveTool, pasteMode, getGridCoordinatesFromEvent, updatePastePosition, handToolHandlers, selectionHandlers, dragAndDropHandlers]);
+
+  // Route mouse up to appropriate tool handler
+  const handleMouseUp = useCallback((event?: React.MouseEvent<HTMLCanvasElement>) => {
+    // Handle paste mode
+    if (pasteMode.isActive && pasteMode.isDragging) {
+      stopPasteDrag();
+      return;
+    }
+
+    // Normal tool handling when not in paste mode
+    if (effectiveTool === 'hand' && event) {
+      // Hand tool uses effectiveTool to handle space key override
+      handToolHandlers.handleHandMouseUp(event);
+    } else {
+      // Other tools use activeTool for proper cleanup
+      switch (activeTool) {
+        case 'select':
+          selectionHandlers.handleSelectionMouseUp();
+          break;
+        case 'rectangle':
+          dragAndDropHandlers.handleRectangleMouseUp();
+          break;
+        case 'ellipse':
+          dragAndDropHandlers.handleEllipseMouseUp();
+          break;
+        default:
+          // For basic drawing tools, we need to manually stop drawing since they don't have explicit mouse up handlers
+          setIsDrawing(false);
+          setMouseButtonDown(false);
+          break;
+      }
+    }
+  }, [effectiveTool, activeTool, pasteMode, stopPasteDrag, handToolHandlers, selectionHandlers, dragAndDropHandlers, setIsDrawing, setMouseButtonDown]);
 
   return {
     handleMouseDown,

@@ -93,75 +93,75 @@ function App() {
 
           {/* Center Canvas Area */}
           <main className="flex-1 flex flex-col">
-            <div className="p-6 flex-1 flex flex-col">
-              <Card className="flex-1 flex flex-col shadow-sm">
-                <CardHeader className="flex-row justify-between items-center pb-4 border-b border-border/50">
-                  <CanvasSettings />
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleCopySelection}
-                      disabled={!selection?.active}
-                      title="Copy selection (Cmd/Ctrl+C)"
-                      className="flex items-center gap-2"
-                    >
-                      <Copy className="w-4 h-4" />
-                      Copy
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handlePasteSelection}
-                      disabled={!hasClipboard()}
-                      title="Paste (Cmd/Ctrl+V)"
-                      className="flex items-center gap-2"
-                    >
-                      <Clipboard className="w-4 h-4" />
-                      Paste
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleUndo}
-                      disabled={!canUndo()}
-                      title="Undo (Cmd/Ctrl+Z)"
-                      className="flex items-center gap-2"
-                    >
-                      <Undo2 className="w-4 h-4" />
-                      Undo
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleRedo}
-                      disabled={!canRedo()}
-                      title="Redo (Cmd/Ctrl+Shift+Z)"
-                      className="flex items-center gap-2"
-                    >
-                      <Redo2 className="w-4 h-4" />
-                      Redo
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={clearCanvas}
-                      title="Clear entire canvas"
-                      className="flex items-center gap-2"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Clear
-                    </Button>
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="flex-1 p-6 overflow-auto">
-                  <CanvasProvider>
+            <CanvasProvider>
+              <div className="p-6 flex-1 flex flex-col">
+                <Card className="flex-1 flex flex-col shadow-sm">
+                  <CardHeader className="flex-row justify-between items-center pb-4 border-b border-border/50">
+                    <CanvasSettings />
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleCopySelection}
+                        disabled={!selection?.active}
+                        title="Copy selection (Cmd/Ctrl+C)"
+                        className="flex items-center gap-2"
+                      >
+                        <Copy className="w-4 h-4" />
+                        Copy
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handlePasteSelection}
+                        disabled={!hasClipboard()}
+                        title="Paste (Cmd/Ctrl+V)"
+                        className="flex items-center gap-2"
+                      >
+                        <Clipboard className="w-4 h-4" />
+                        Paste
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleUndo}
+                        disabled={!canUndo()}
+                        title="Undo (Cmd/Ctrl+Z)"
+                        className="flex items-center gap-2"
+                      >
+                        <Undo2 className="w-4 h-4" />
+                        Undo
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleRedo}
+                        disabled={!canRedo()}
+                        title="Redo (Cmd/Ctrl+Shift+Z)"
+                        className="flex items-center gap-2"
+                      >
+                        <Redo2 className="w-4 h-4" />
+                        Redo
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={clearCanvas}
+                        title="Clear entire canvas"
+                        className="flex items-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Clear
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="flex-1 p-6 overflow-auto">
                     <CanvasWithShortcuts className="w-full h-full" />
-                  </CanvasProvider>
-                </CardContent>
-              </Card>
-            </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </CanvasProvider>
 
             {/* Timeline Footer */}
             <div className="border-t border-border bg-muted/20">

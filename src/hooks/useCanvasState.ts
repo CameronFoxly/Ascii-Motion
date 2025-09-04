@@ -14,6 +14,8 @@ export const useCanvasState = () => {
 
   const {
     cellSize,
+    zoom,
+    panOffset,
     selectionMode,
     moveState,
     pendingSelectionStart,
@@ -119,14 +121,19 @@ export const useCanvasState = () => {
   return {
     // State
     cellSize,
+    zoom,
+    panOffset,
     selectionMode,
     moveState,
     pendingSelectionStart,
     justCommittedMove,
     
-    // Canvas dimensions
-    canvasWidth: width * cellSize,
-    canvasHeight: height * cellSize,
+    // Canvas dimensions (with zoom applied)
+    canvasWidth: width * cellSize * zoom,
+    canvasHeight: height * cellSize * zoom,
+    
+    // Effective cell size for rendering
+    effectiveCellSize: cellSize * zoom,
     
     // Computed values
     effectiveSelectionBounds: getEffectiveSelectionBounds(),

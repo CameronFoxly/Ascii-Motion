@@ -35,10 +35,14 @@ export const PastePreviewOverlay: React.FC = () => {
     <div className="absolute inset-0 pointer-events-none">
       {/* Marquee border around paste preview */}
       <div
-        className={`absolute border-2 border-dashed transition-colors duration-200 ${
+        className={`absolute border-2 transition-all duration-200 ${
+          pasteMode.isDragging
+            ? 'border-solid border-purple-600 bg-purple-200/30 shadow-lg'
+            : 'border-dashed border-purple-500 bg-purple-100/20'
+        } ${
           isOutOfBounds 
-            ? 'border-red-500 bg-red-100/20' 
-            : 'border-purple-500 bg-purple-100/20'
+            ? '!border-red-500 !bg-red-100/20' 
+            : ''
         }`}
         style={{
           left: previewLeft,
@@ -93,6 +97,19 @@ export const PastePreviewOverlay: React.FC = () => {
       >
         ({position.x}, {position.y})
       </div>
+      
+      {/* Instructions */}
+      {!pasteMode.isDragging && (
+        <div
+          className="absolute text-xs font-mono text-purple-700 bg-white/90 px-2 py-1 rounded shadow-sm pointer-events-none whitespace-nowrap"
+          style={{
+            left: previewLeft,
+            top: previewTop + previewHeight + 5,
+          }}
+        >
+          Click inside to drag • Click outside to paste • Right-click to cancel
+        </div>
+      )}
     </div>
   );
 };

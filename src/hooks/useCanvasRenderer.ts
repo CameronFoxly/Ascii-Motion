@@ -16,9 +16,9 @@ import type { Cell } from '../types';
  * - Performance measurement
  */
 export const useCanvasRenderer = () => {
-  const { canvasRef, pasteMode } = useCanvasContext();
+  const { canvasRef, pasteMode, panOffset } = useCanvasContext();
   const {
-    cellSize,
+    effectiveCellSize,
     moveState,
     canvasWidth,
     canvasHeight,
@@ -46,7 +46,7 @@ export const useCanvasRenderer = () => {
   // Memoize font and style calculations (Phase B optimization)
   const drawingStyles = useMemo(() => {
     return {
-      font: `${cellSize - 2}px 'Courier New', monospace`,
+      font: `${effectiveCellSize - 2}px 'Courier New', monospace`,
       gridLineColor: canvasBackgroundColor === '#000000' ? '#333333' : '#E5E7EB',
       gridLineWidth: 0.5,
       textAlign: 'center' as CanvasTextAlign,
@@ -54,42 +54,39 @@ export const useCanvasRenderer = () => {
       defaultTextColor: '#FFFFFF',
       defaultBgColor: '#000000'
     };
-  }, [cellSize, canvasBackgroundColor]);
+  }, [effectiveCellSize, canvasBackgroundColor]);
 
-  // Optimized drawCell function with memoized styles
-  const drawCell = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, cell?: Cell) => {
-    const pixelX = x * cellSize;
-    const pixelY = y * cellSize;
+    // Optimized drawCell function with memoized styles
+  const drawCell = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, cell: Cell) => {
+    const pixelX = x * effectiveCellSize + panOffset.x;
+    const pixelY = y * effectiveCellSize + panOffset.y;
 
-    // Only draw cell background if it's different from the canvas background
-    if (cell && cell.bgColor !== canvasBackgroundColor) {
+    // Draw background (only if different from canvas background)
+    if (cell.bgColor && cell.bgColor !== 'transparent' && cell.bgColor !== canvasBackgroundColor) {
       ctx.fillStyle = cell.bgColor;
-      ctx.fillRect(pixelX, pixelY, cellSize, cellSize);
+      ctx.fillRect(pixelX, pixelY, effectiveCellSize, effectiveCellSize);
     }
 
-    // Draw character if present
-    if (cell?.char && cell.char !== ' ') {
-      ctx.fillStyle = cell.color || '#FFFFFF';
-      // Set font once per render batch instead of per cell
-      if (ctx.font !== drawingStyles.font) {
-        ctx.font = drawingStyles.font;
-        ctx.textAlign = drawingStyles.textAlign;
-        ctx.textBaseline = drawingStyles.textBaseline;
-      }
+    // Draw character
+    if (cell.char && cell.char !== ' ') {
+      ctx.fillStyle = cell.color || drawingStyles.defaultTextColor;
+      ctx.font = drawingStyles.font;
+      ctx.textAlign = drawingStyles.textAlign;
+      ctx.textBaseline = drawingStyles.textBaseline;
       ctx.fillText(
         cell.char, 
-        pixelX + cellSize / 2, 
-        pixelY + cellSize / 2
+        pixelX + effectiveCellSize / 2, 
+        pixelY + effectiveCellSize / 2
       );
     }
 
-    // Draw grid lines only if grid is visible
+    // Draw grid lines (only if grid is enabled)
     if (showGrid) {
       ctx.strokeStyle = drawingStyles.gridLineColor;
       ctx.lineWidth = drawingStyles.gridLineWidth;
-      ctx.strokeRect(pixelX, pixelY, cellSize, cellSize);
+      ctx.strokeRect(pixelX, pixelY, effectiveCellSize, effectiveCellSize);
     }
-  }, [cellSize, drawingStyles, showGrid]);
+  }, [effectiveCellSize, panOffset, canvasBackgroundColor, drawingStyles, showGrid]);
 
   // Optimized render function with performance measurement
   const renderCanvas = useCallback(() => {
@@ -133,7 +130,9 @@ export const useCanvasRenderer = () => {
           });
         } else {
           const cell = getCell(x, y);
-          drawCell(ctx, x, y, cell);
+          if (cell) {
+            drawCell(ctx, x, y, cell);
+          }
         }
       }
     }
@@ -170,10 +169,10 @@ export const useCanvasRenderer = () => {
         ellipsePoints.forEach(({ x, y }) => {
           if (x >= 0 && y >= 0 && x < width && y < height) {
             ctx.fillRect(
-              x * cellSize,
-              y * cellSize,
-              cellSize,
-              cellSize
+              x * effectiveCellSize + panOffset.x,
+              y * effectiveCellSize + panOffset.y,
+              effectiveCellSize,
+              effectiveCellSize
             );
           }
         });
@@ -186,10 +185,10 @@ export const useCanvasRenderer = () => {
         // Draw ellipse path using HTML5 Canvas ellipse method
         ctx.beginPath();
         ctx.ellipse(
-          (centerX + 0.5) * cellSize,  // center x
-          (centerY + 0.5) * cellSize,  // center y  
-          (radiusX + 0.5) * cellSize,  // radius x
-          (radiusY + 0.5) * cellSize,  // radius y
+          (centerX + 0.5) * effectiveCellSize + panOffset.x,  // center x
+          (centerY + 0.5) * effectiveCellSize + panOffset.y,  // center y  
+          (radiusX + 0.5) * effectiveCellSize,  // radius x
+          (radiusY + 0.5) * effectiveCellSize,  // radius y
           0,                           // rotation
           0,                           // start angle
           2 * Math.PI                  // end angle
@@ -202,10 +201,10 @@ export const useCanvasRenderer = () => {
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 5]);
         ctx.strokeRect(
-          selectionData.startX * cellSize,
-          selectionData.startY * cellSize,
-          selectionData.width * cellSize,
-          selectionData.height * cellSize
+          selectionData.startX * effectiveCellSize + panOffset.x,
+          selectionData.startY * effectiveCellSize + panOffset.y,
+          selectionData.width * effectiveCellSize,
+          selectionData.height * effectiveCellSize
         );
         ctx.setLineDash([]);
       }
@@ -226,19 +225,19 @@ export const useCanvasRenderer = () => {
       ctx.lineWidth = 2;
       ctx.setLineDash([8, 4]);
       ctx.strokeRect(
-        previewStartX * cellSize,
-        previewStartY * cellSize,
-        previewWidth * cellSize,
-        previewHeight * cellSize
+        previewStartX * effectiveCellSize + panOffset.x,
+        previewStartY * effectiveCellSize + panOffset.y,
+        previewWidth * effectiveCellSize,
+        previewHeight * effectiveCellSize
       );
 
       // Add semi-transparent background
       ctx.fillStyle = 'rgba(168, 85, 247, 0.1)';
       ctx.fillRect(
-        previewStartX * cellSize,
-        previewStartY * cellSize,
-        previewWidth * cellSize,
-        previewHeight * cellSize
+        previewStartX * effectiveCellSize + panOffset.x,
+        previewStartY * effectiveCellSize + panOffset.y,
+        previewWidth * effectiveCellSize,
+        previewHeight * effectiveCellSize
       );
 
       ctx.setLineDash([]);
@@ -263,10 +262,10 @@ export const useCanvasRenderer = () => {
           ctx.strokeStyle = 'rgba(168, 85, 247, 0.4)';
           ctx.lineWidth = 1;
           ctx.strokeRect(
-            absoluteX * cellSize, 
-            absoluteY * cellSize, 
-            cellSize, 
-            cellSize
+            absoluteX * effectiveCellSize + panOffset.x, 
+            absoluteY * effectiveCellSize + panOffset.y, 
+            effectiveCellSize, 
+            effectiveCellSize
           );
         }
       });
@@ -288,7 +287,8 @@ export const useCanvasRenderer = () => {
     moveState, 
     getTotalOffset, 
     selectionData, 
-    cellSize, 
+    effectiveCellSize,
+    panOffset,
     canvasRef,
     drawingStyles,
     pasteMode,
