@@ -27,7 +27,7 @@ npm run build
 src/
 ├── components/
 │   ├── atoms/          # Basic UI components (Button, Input, CellRenderer, PerformanceMonitor)
-│   ├── organisms/      # Complex components (CanvasGrid, CanvasRenderer, CanvasOverlay, ToolPalette)
+│   ├── organisms/      # Complex components (CanvasGrid, CanvasRenderer, CanvasOverlay, CanvasWithShortcuts, ToolPalette)
 │   ├── tools/          # Tool-specific components (SelectionTool, DrawingTool, etc.)
 │   └── ui/             # Shadcn UI components
 ├── stores/             # Zustand state management
@@ -71,6 +71,7 @@ src/
 - [x] Rectangle drawing tool implementation
 - [x] Fill tool (flood-fill algorithm with optimization)
 - [x] Selection tool copy/paste functionality
+- [x] **Enhanced Paste with Visual Preview** - Advanced paste mode with drag positioning (Sept 3, 2025)
 - [x] Keyboard shortcuts (Cmd/Ctrl+C, Cmd/Ctrl+V, Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z)
 
 ### Phase 1.5: Architecture Refactoring ✅ **COMPLETE**
@@ -106,6 +107,25 @@ src/
 - Clean separation of rendering, interaction, and tool management
 - Modular canvas system ready for animation features
 
+### **🎯 ENHANCEMENT COMPLETED: Advanced Paste with Visual Preview (Sept 3, 2025)**
+✅ **Files Created/Modified:**
+- `src/hooks/usePasteMode.ts` (NEW) - Advanced paste mode state management (188 lines)
+- `src/components/organisms/CanvasWithShortcuts.tsx` (NEW) - Context-aware shortcuts wrapper (21 lines)
+- `src/contexts/CanvasContext.tsx` (ENHANCED) - Added paste mode state and actions
+- `src/hooks/useCanvasRenderer.ts` (ENHANCED) - Integrated paste preview rendering  
+- `src/hooks/useCanvasMouseHandlers.ts` (ENHANCED) - Added paste mode mouse interactions
+- `src/hooks/useKeyboardShortcuts.ts` (ENHANCED) - Enhanced paste workflow with preview mode
+- `src/hooks/useCanvasSelection.ts` (FIXED) - Fixed selection deselection bug
+- `src/App.tsx` (UPDATED) - Updated to use CanvasWithShortcuts wrapper
+
+✅ **Enhancement Achieved:**
+- **Visual Preview**: Real-time paste preview with 85% opacity and purple marquee
+- **Drag Positioning**: Click and drag to reposition paste content before committing
+- **Professional Workflow**: Matches advanced graphics editor paste behavior
+- **Multiple Commit Options**: Keyboard shortcuts, mouse clicks, or cancel with Escape
+- **Context Integration**: Follows established CanvasProvider pattern
+- **Bug Fix**: Selection deselection now works properly when clicking outside selection
+
 ✅ **Ready for Phase 2:**
 - Timeline and animation system development
 - Export system implementation
@@ -125,7 +145,7 @@ src/
   - *Click + Shift+Click*: Click to start, move mouse, Shift+Click to complete
   - *Click Inside Selection*: Move existing selection content with real-time preview
 - **Move Mode** - Drag content within selections with live marquee box movement
-- **Copy/Paste** - Copy selected areas and paste them elsewhere
+- **Enhanced Copy/Paste** - Copy selected areas and paste with **visual preview and drag positioning** (Sept 3, 2025)
 - **Undo/Redo** - Full history management with 50-action limit
 
 ### 🎭 Character & Color Management
@@ -135,10 +155,12 @@ src/
 
 ### ⌨️ Keyboard Shortcuts
 - `Cmd/Ctrl + C` - Copy selection
-- `Cmd/Ctrl + V` - Paste at selection or (0,0)
+- `Cmd/Ctrl + V` - **Enhanced Paste with Preview** - Shows visual preview with drag positioning (Sept 3, 2025)
 - `Cmd/Ctrl + Z` - Undo (full action batching - Sept 3, 2025)
 - `Cmd/Ctrl + Shift + Z` - Redo (full action batching - Sept 3, 2025)
-- `Escape` - Clear/deselect current selection
+- `Escape` - Clear/deselect current selection or cancel paste preview
+- `Enter` - Commit paste preview (when in paste mode)
+- `Click outside selection` - Commit paste at current preview position
 
 ### 📐 Canvas Features
 - **Configurable Size** - Default 80x24 (terminal size)

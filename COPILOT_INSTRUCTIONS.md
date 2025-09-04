@@ -1077,6 +1077,7 @@ const useCanvasStore = create<CanvasState>((set) => ({
 - ✅ Rendering split into focused hook (Step 3 complete)
 - ✅ Tool-specific components (Step 4 complete)
 - ✅ Performance Optimizations - Memoization (Step 5.1 complete)
+- ✅ Enhanced Paste Functionality with Visual Preview (Sept 3, 2025)
 
 **Step 5.1 Completion - Performance Optimizations**:
 - ✅ CellRenderer.tsx: Memoized cell rendering component
@@ -1087,6 +1088,15 @@ const useCanvasStore = create<CanvasState>((set) => ({
 - ✅ Font/style calculations memoized (eliminates 1,920 repeated computations)
 - ✅ Performance measurement integration with real-time monitoring
 - ✅ Development tools for testing grid sizes up to 200x100+ cells
+
+**Enhanced Paste Functionality - September 3, 2025**:
+- ✅ **usePasteMode.ts**: Advanced paste mode hook with position tracking (188 lines)
+- ✅ **CanvasWithShortcuts.tsx**: Context-aware keyboard shortcuts wrapper (21 lines)  
+- ✅ **Enhanced Canvas Renderer**: Integrated paste preview with visual feedback
+- ✅ **Mouse Integration**: Full drag-and-drop positioning for paste content
+- ✅ **Keyboard Shortcuts**: Enhanced Cmd/Ctrl+V workflow with preview mode
+- ✅ **Visual Preview System**: Real content display with purple marquee and transparency
+- ✅ **Selection Deselect Fix**: Proper click-outside-to-deselect behavior restored
 
 **Step 4 Completion - Tool Components**:
 - CanvasGrid.tsx maintained at ~111 lines (pure composition)
@@ -1120,7 +1130,109 @@ const useCanvasStore = create<CanvasState>((set) => ({
 
 ---
 
-## 📝 **DOCUMENTATION ENFORCEMENT (Detailed Checklist)**
+## � **Architectural Decisions Log**
+
+### **Enhanced Paste Functionality with Visual Preview (Sept 3, 2025)**
+**Decision**: Implement advanced paste mode with real-time visual preview and drag positioning  
+**Issue**: Basic paste was immediate and provided no visual feedback about placement  
+**Goal**: Create professional graphics editor experience with paste preview and positioning
+
+**Implementation**:
+- Created `usePasteMode.ts` hook for paste state management and interaction
+- Integrated paste preview rendering into `useCanvasRenderer.ts`  
+- Enhanced keyboard shortcuts to support preview mode workflow
+- Added mouse interaction for drag-and-drop paste positioning
+- Fixed selection deselection bug discovered during implementation
+
+**Files Affected**:
+- `src/hooks/usePasteMode.ts` (NEW) - 188 lines of paste mode logic
+- `src/components/organisms/CanvasWithShortcuts.tsx` (NEW) - Context-aware shortcuts wrapper
+- `src/contexts/CanvasContext.tsx` - Added paste mode state and actions
+- `src/hooks/useCanvasRenderer.ts` - Integrated paste preview rendering
+- `src/hooks/useCanvasMouseHandlers.ts` - Added paste mode mouse interactions
+- `src/hooks/useKeyboardShortcuts.ts` - Enhanced paste workflow
+- `src/hooks/useCanvasSelection.ts` - Fixed selection deselection bug
+- `src/App.tsx` - Updated to use CanvasWithShortcuts wrapper
+
+**Pattern Established**:
+```typescript
+// ✅ Enhanced Paste Mode Pattern
+const usePasteMode = () => {
+  // State management for paste preview
+  const [pasteMode, setPasteMode] = useState<PasteModeState>({
+    isActive: false,
+    preview: null,
+    isDragging: false
+  });
+
+  // Actions for paste interaction
+  const startPasteMode = useCallback((position) => {
+    // Initialize paste preview at position
+  }, []);
+
+  const updatePastePosition = useCallback((position) => {
+    // Update preview position for real-time feedback
+  }, []);
+
+  return { pasteMode, startPasteMode, updatePastePosition, commitPaste };
+};
+
+// ✅ Canvas Context Integration
+const CanvasProvider = ({ children }) => {
+  const pasteMode = usePasteMode();
+  
+  return (
+    <CanvasContext.Provider value={{ ...pasteMode }}>
+      {children}
+    </CanvasContext.Provider>
+  );
+};
+
+// ✅ Visual Preview Rendering
+const useCanvasRenderer = () => {
+  const { pasteMode } = useCanvasContext();
+  
+  const renderCanvas = useCallback(() => {
+    // Draw paste preview with actual content
+    if (pasteMode.isActive && pasteMode.preview) {
+      ctx.globalAlpha = 0.85;
+      pasteMode.preview.data.forEach((cell, key) => {
+        // Render actual copied content with transparency
+        drawCell(ctx, x, y, {
+          char: cell.char,
+          color: cell.color, 
+          bgColor: cell.bgColor
+        });
+      });
+      ctx.globalAlpha = 1.0;
+    }
+  }, [pasteMode]);
+};
+```
+
+**User Experience Benefits**:
+- **Visual Feedback**: See exactly what content will be pasted and where
+- **Drag Positioning**: Click and drag to reposition paste content before committing
+- **Multiple Commit Options**: Keyboard shortcuts, mouse clicks, or UI buttons
+- **Professional Workflow**: Matches behavior of advanced graphics editors
+- **Real-time Preview**: 85% opacity with purple marquee for clear visual distinction
+
+**Technical Benefits**:
+- **Incremental Implementation**: Built and tested each component separately
+- **Context Integration**: Follows established CanvasProvider pattern
+- **Canvas Rendering**: Integrated with existing overlay system for consistency
+- **Type Safety**: Full TypeScript coverage throughout
+- **Performance**: Efficient rendering with proper alpha blending
+
+**Bug Fix During Implementation**:
+- **Issue**: Selection remained active after copy, couldn't click outside to deselect
+- **Root Cause**: Missing condition in `handleSelectionMouseDown` for "click outside active selection"
+- **Solution**: Added explicit deselection case for clicking outside selection bounds
+- **Pattern**: Always include comprehensive condition handling in mouse interaction logic
+
+---
+
+## �📝 **DOCUMENTATION ENFORCEMENT (Detailed Checklist)**
 
 **This section provides the detailed checklist referenced in the mandatory protocol at the top of this file.**
 
