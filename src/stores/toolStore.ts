@@ -39,6 +39,8 @@ interface ToolStoreState extends ToolState {
   pushToHistory: (canvasData: Map<string, any>) => void;
   undo: () => Map<string, any> | undefined;
   redo: () => Map<string, any> | undefined;
+  addToRedoStack: (canvasData: Map<string, any>) => void;
+  addToUndoStack: (canvasData: Map<string, any>) => void;
   clearHistory: () => void;
   canUndo: () => boolean;
   canRedo: () => boolean;
@@ -187,37 +189,56 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   },
 
   undo: () => {
-    const { undoStack, redoStack } = get();
+    const { undoStack } = get();
     
     if (undoStack.length === 0) return undefined;
     
+    // Get the previous state (what we want to restore)
     const previousState = undoStack[undoStack.length - 1];
     const newUndoStack = undoStack.slice(0, -1);
-    const newRedoStack = [...redoStack, previousState];
+    
+    // Note: We need the current state to be passed from the caller
+    // The redo stack will be updated when setCanvasData is called
     
     set({
       undoStack: newUndoStack,
-      redoStack: newRedoStack
+      // Don't modify redoStack here - let the caller handle it
     });
     
     return previousState;
   },
 
   redo: () => {
-    const { redoStack, undoStack } = get();
+    const { redoStack } = get();
     
     if (redoStack.length === 0) return undefined;
     
+    // Get the next state (what we want to restore)
     const nextState = redoStack[redoStack.length - 1];
     const newRedoStack = redoStack.slice(0, -1);
-    const newUndoStack = [...undoStack, nextState];
+    
+    // Note: We need the current state to be passed from the caller
+    // The undo stack will be updated when setCanvasData is called
     
     set({
-      undoStack: newUndoStack,
-      redoStack: newRedoStack
+      redoStack: newRedoStack,
+      // Don't modify undoStack here - let the caller handle it
     });
     
     return nextState;
+  },
+
+  // Helper function to update the opposite stack when undo/redo is performed
+  addToRedoStack: (canvasData: Map<string, any>) => {
+    set((state) => ({
+      redoStack: [...state.redoStack, new Map(canvasData)]
+    }));
+  },
+
+  addToUndoStack: (canvasData: Map<string, any>) => {
+    set((state) => ({
+      undoStack: [...state.undoStack, new Map(canvasData)]
+    }));
   },
 
   clearHistory: () => {

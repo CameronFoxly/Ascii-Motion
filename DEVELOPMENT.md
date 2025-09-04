@@ -66,6 +66,7 @@ src/
 - [x] Color picker
 - [x] Tool palette
 - [x] Undo/redo functionality
+- [x] Undo/redo fixed - proper full-action batching (Sept 3, 2025)
 - [x] Basic UI layout with sidebars
 - [x] Rectangle drawing tool implementation
 - [x] Fill tool (flood-fill algorithm with optimization)
@@ -135,8 +136,8 @@ src/
 ### ⌨️ Keyboard Shortcuts
 - `Cmd/Ctrl + C` - Copy selection
 - `Cmd/Ctrl + V` - Paste at selection or (0,0)
-- `Cmd/Ctrl + Z` - Undo
-- `Cmd/Ctrl + Shift + Z` - Redo
+- `Cmd/Ctrl + Z` - Undo (full action batching - Sept 3, 2025)
+- `Cmd/Ctrl + Shift + Z` - Redo (full action batching - Sept 3, 2025)
 - `Escape` - Clear/deselect current selection
 
 ### 📐 Canvas Features

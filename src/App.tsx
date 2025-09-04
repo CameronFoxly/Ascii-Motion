@@ -17,12 +17,36 @@ import { useToolStore } from './stores/toolStore'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 
 function App() {
-  const { width, height, getCellCount, clearCanvas } = useCanvasStore()
+  const { width, height, getCellCount, clearCanvas, cells, setCanvasData } = useCanvasStore()
   const { frames, currentFrameIndex } = useAnimationStore()
-  const { activeTool, selectedChar, undo, redo, canUndo, canRedo, selection, hasClipboard } = useToolStore()
+  const { activeTool, selectedChar, undo, redo, canUndo, canRedo, selection, hasClipboard, addToRedoStack, addToUndoStack } = useToolStore()
   
   // Enable keyboard shortcuts
   const { copySelection, pasteSelection } = useKeyboardShortcuts()
+
+  // Proper undo function that captures current state
+  const handleUndo = () => {
+    if (canUndo()) {
+      const currentCells = new Map(cells);
+      const undoData = undo();
+      if (undoData) {
+        addToRedoStack(currentCells);
+        setCanvasData(undoData);
+      }
+    }
+  }
+
+  // Proper redo function that captures current state
+  const handleRedo = () => {
+    if (canRedo()) {
+      const currentCells = new Map(cells);
+      const redoData = redo();
+      if (redoData) {
+        addToUndoStack(currentCells);
+        setCanvasData(redoData);
+      }
+    }
+  }
 
   return (
     <ThemeProvider>
@@ -87,7 +111,7 @@ function App() {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => undo()}
+                      onClick={handleUndo}
                       disabled={!canUndo()}
                       title="Undo (Cmd/Ctrl+Z)"
                       className="flex items-center gap-2"
@@ -98,7 +122,7 @@ function App() {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => redo()}
+                      onClick={handleRedo}
                       disabled={!canRedo()}
                       title="Redo (Cmd/Ctrl+Shift+Z)"
                       className="flex items-center gap-2"

@@ -17,6 +17,8 @@ export const useKeyboardShortcuts = () => {
     canUndo,
     canRedo,
     pushToHistory,
+    addToRedoStack,
+    addToUndoStack,
     activeTool
   } = useToolStore();
 
@@ -73,8 +75,12 @@ export const useKeyboardShortcuts = () => {
           // Shift+Cmd+Z = Redo
           if (canRedo()) {
             event.preventDefault();
+            // Capture current state for undo stack before applying redo
+            const currentCells = new Map(cells);
             const redoData = redo();
             if (redoData) {
+              // Add current state to undo stack
+              addToUndoStack(currentCells);
               setCanvasData(redoData);
             }
           }
@@ -82,8 +88,12 @@ export const useKeyboardShortcuts = () => {
           // Cmd+Z = Undo
           if (canUndo()) {
             event.preventDefault();
+            // Capture current state for redo stack before applying undo
+            const currentCells = new Map(cells);
             const undoData = undo();
             if (undoData) {
+              // Add current state to redo stack
+              addToRedoStack(currentCells);
               setCanvasData(undoData);
             }
           }
@@ -101,7 +111,9 @@ export const useKeyboardShortcuts = () => {
     undo,
     redo,
     canUndo,
-    canRedo
+    canRedo,
+    addToRedoStack,
+    addToUndoStack
   ]);
 
   useEffect(() => {
