@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { Cell } from '../types';
+import { usePasteMode } from '../hooks/usePasteMode';
+import type { PasteModeState } from '../hooks/usePasteMode';
 
 // Canvas-specific state that doesn't belong in global stores
 interface CanvasState {
@@ -23,6 +25,9 @@ interface CanvasState {
     baseOffset: { x: number; y: number };
     currentOffset: { x: number; y: number };
   } | null;
+  
+  // Paste mode state
+  pasteMode: PasteModeState;
 }
 
 interface CanvasActions {
@@ -40,6 +45,14 @@ interface CanvasActions {
   
   // Move/drag actions
   setMoveState: (state: CanvasState['moveState']) => void;
+  
+  // Paste mode actions
+  startPasteMode: (position: { x: number; y: number }) => boolean;
+  updatePastePosition: (position: { x: number; y: number }) => void;
+  startPasteDrag: () => void;
+  stopPasteDrag: () => void;
+  cancelPasteMode: () => void;
+  commitPaste: () => Map<string, any> | null;
   
   // Canvas ref
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -74,6 +87,17 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   
   // Move/drag state
   const [moveState, setMoveState] = useState<CanvasState['moveState']>(null);
+  
+  // Paste mode integration
+  const {
+    pasteMode,
+    startPasteMode,
+    updatePastePosition,
+    startPasteDrag,
+    stopPasteDrag,
+    cancelPasteMode,
+    commitPaste
+  } = usePasteMode();
 
   const contextValue: CanvasContextValue = {
     // State
@@ -84,6 +108,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     pendingSelectionStart,
     justCommittedMove,
     moveState,
+    pasteMode,
     
     // Actions
     setCellSize,
@@ -93,6 +118,12 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     setPendingSelectionStart,
     setJustCommittedMove,
     setMoveState,
+    startPasteMode,
+    updatePastePosition,
+    startPasteDrag,
+    stopPasteDrag,
+    cancelPasteMode,
+    commitPaste,
     
     // Ref
     canvasRef,

@@ -1,12 +1,14 @@
 import { useEffect, useCallback } from 'react';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useToolStore } from '../stores/toolStore';
+import { useCanvasContext } from '../contexts/CanvasContext';
 
 /**
  * Custom hook for handling keyboard shortcuts
  */
 export const useKeyboardShortcuts = () => {
   const { cells, setCanvasData } = useCanvasStore();
+  const { startPasteMode, commitPaste, pasteMode } = useCanvasContext();
   const { 
     selection, 
     copySelection, 
@@ -19,7 +21,8 @@ export const useKeyboardShortcuts = () => {
     pushToHistory,
     addToRedoStack,
     addToUndoStack,
-    activeTool
+    activeTool,
+    hasClipboard
   } = useToolStore();
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
@@ -48,24 +51,31 @@ export const useKeyboardShortcuts = () => {
         break;
         
       case 'v':
-        // Paste at selection start or (0,0)
+        // Enhanced paste with preview mode
         event.preventDefault();
-        const pasteX = selection.active ? selection.start.x : 0;
-        const pasteY = selection.active ? selection.start.y : 0;
-        const pastedData = pasteSelection(pasteX, pasteY);
         
-        if (pastedData) {
-          // Save current state for undo
-          pushToHistory(new Map(cells));
-          
-          // Merge pasted data with current canvas
-          const newCells = new Map(cells);
-          pastedData.forEach((cell, key) => {
-            // Paste the cell data at the specified location
-            newCells.set(key, cell);
-          });
-          
-          setCanvasData(newCells);
+        // If already in paste mode, commit the paste
+        if (pasteMode.isActive) {
+          const pastedData = commitPaste();
+          if (pastedData) {
+            // Save current state for undo
+            pushToHistory(new Map(cells));
+            
+            // Merge pasted data with current canvas
+            const newCells = new Map(cells);
+            pastedData.forEach((cell, key) => {
+              newCells.set(key, cell);
+            });
+            
+            setCanvasData(newCells);
+          }
+        } else {
+          // Start paste mode if clipboard has data
+          if (hasClipboard()) {
+            const pasteX = selection.active ? selection.start.x : 0;
+            const pasteY = selection.active ? selection.start.y : 0;
+            startPasteMode({ x: pasteX, y: pasteY });
+          }
         }
         break;
         
@@ -113,7 +123,11 @@ export const useKeyboardShortcuts = () => {
     canUndo,
     canRedo,
     addToRedoStack,
-    addToUndoStack
+    addToUndoStack,
+    startPasteMode,
+    commitPaste,
+    pasteMode,
+    hasClipboard
   ]);
 
   useEffect(() => {
@@ -131,17 +145,24 @@ export const useKeyboardShortcuts = () => {
       }
     },
     pasteSelection: () => {
-      const pasteX = selection.active ? selection.start.x : 0;
-      const pasteY = selection.active ? selection.start.y : 0;
-      const pastedData = pasteSelection(pasteX, pasteY);
-      
-      if (pastedData) {
-        pushToHistory(new Map(cells));
-        const newCells = new Map(cells);
-        pastedData.forEach((cell, key) => {
-          newCells.set(key, cell);
-        });
-        setCanvasData(newCells);
+      // If already in paste mode, commit the paste
+      if (pasteMode.isActive) {
+        const pastedData = commitPaste();
+        if (pastedData) {
+          pushToHistory(new Map(cells));
+          const newCells = new Map(cells);
+          pastedData.forEach((cell, key) => {
+            newCells.set(key, cell);
+          });
+          setCanvasData(newCells);
+        }
+      } else {
+        // Start paste mode if clipboard has data
+        if (hasClipboard()) {
+          const pasteX = selection.active ? selection.start.x : 0;
+          const pasteY = selection.active ? selection.start.y : 0;
+          startPasteMode({ x: pasteX, y: pasteY });
+        }
       }
     }
   };

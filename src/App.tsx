@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Copy, Clipboard, Undo2, Redo2, Trash2 } from 'lucide-react'
-import { CanvasGrid } from './components/organisms/CanvasGrid'
+import { CanvasWithShortcuts } from './components/organisms/CanvasWithShortcuts'
 import { CanvasProvider } from './contexts/CanvasContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { ThemeToggle } from './components/atoms/ThemeToggle'
@@ -14,16 +14,12 @@ import { ColorPicker } from './components/organisms/ColorPicker'
 import { useCanvasStore } from './stores/canvasStore'
 import { useAnimationStore } from './stores/animationStore'
 import { useToolStore } from './stores/toolStore'
-import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 
 function App() {
   const { width, height, getCellCount, clearCanvas, cells, setCanvasData } = useCanvasStore()
   const { frames, currentFrameIndex } = useAnimationStore()
   const { activeTool, selectedChar, undo, redo, canUndo, canRedo, selection, hasClipboard, addToRedoStack, addToUndoStack } = useToolStore()
   
-  // Enable keyboard shortcuts
-  const { copySelection, pasteSelection } = useKeyboardShortcuts()
-
   // Proper undo function that captures current state
   const handleUndo = () => {
     if (canUndo()) {
@@ -46,7 +42,22 @@ function App() {
         setCanvasData(redoData);
       }
     }
-  }
+  };
+
+  // Handle copy/paste through shortcuts exposed on window
+  const handleCopySelection = () => {
+    const shortcuts = (window as any).canvasShortcuts;
+    if (shortcuts?.copySelection) {
+      shortcuts.copySelection();
+    }
+  };
+
+  const handlePasteSelection = () => {
+    const shortcuts = (window as any).canvasShortcuts;
+    if (shortcuts?.pasteSelection) {
+      shortcuts.pasteSelection();
+    }
+  };
 
   return (
     <ThemeProvider>
@@ -89,7 +100,7 @@ function App() {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => copySelection()}
+                      onClick={handleCopySelection}
                       disabled={!selection?.active}
                       title="Copy selection (Cmd/Ctrl+C)"
                       className="flex items-center gap-2"
@@ -100,7 +111,7 @@ function App() {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => pasteSelection()}
+                      onClick={handlePasteSelection}
                       disabled={!hasClipboard()}
                       title="Paste (Cmd/Ctrl+V)"
                       className="flex items-center gap-2"
@@ -145,7 +156,7 @@ function App() {
                 
                 <CardContent className="flex-1 p-6 overflow-auto">
                   <CanvasProvider>
-                    <CanvasGrid className="w-full h-full" />
+                    <CanvasWithShortcuts className="w-full h-full" />
                   </CanvasProvider>
                 </CardContent>
               </Card>

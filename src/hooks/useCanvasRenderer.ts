@@ -14,7 +14,7 @@ import type { Cell } from '../types';
  * - Performance measurement
  */
 export const useCanvasRenderer = () => {
-  const { canvasRef } = useCanvasContext();
+  const { canvasRef, pasteMode } = useCanvasContext();
   const {
     cellSize,
     moveState,
@@ -159,6 +159,57 @@ export const useCanvasRenderer = () => {
       ctx.setLineDash([]);
     }
 
+    // Draw paste preview overlay
+    if (pasteMode.isActive && pasteMode.preview) {
+      const { position, data, bounds } = pasteMode.preview;
+      
+      // Calculate preview rectangle
+      const previewStartX = position.x + bounds.minX;
+      const previewStartY = position.y + bounds.minY;
+      const previewWidth = bounds.maxX - bounds.minX + 1;
+      const previewHeight = bounds.maxY - bounds.minY + 1;
+
+      // Draw paste preview marquee
+      ctx.strokeStyle = '#A855F7'; // Purple color
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 4]);
+      ctx.strokeRect(
+        previewStartX * cellSize,
+        previewStartY * cellSize,
+        previewWidth * cellSize,
+        previewHeight * cellSize
+      );
+
+      // Add semi-transparent background
+      ctx.fillStyle = 'rgba(168, 85, 247, 0.1)';
+      ctx.fillRect(
+        previewStartX * cellSize,
+        previewStartY * cellSize,
+        previewWidth * cellSize,
+        previewHeight * cellSize
+      );
+
+      ctx.setLineDash([]);
+
+      // Draw paste content preview with transparency
+      ctx.globalAlpha = 0.7;
+      data.forEach((cell, key) => {
+        const [relX, relY] = key.split(',').map(Number);
+        const absoluteX = position.x + relX;
+        const absoluteY = position.y + relY;
+        
+        // Only draw if within canvas bounds
+        if (absoluteX >= 0 && absoluteX < width && absoluteY >= 0 && absoluteY < height) {
+          drawCell(ctx, absoluteX, absoluteY, {
+            char: cell.char || ' ',
+            color: cell.color || drawingStyles.defaultTextColor,
+            bgColor: cell.bgColor || 'transparent'
+          });
+        }
+      });
+      ctx.globalAlpha = 1.0;
+    }
+
     // Finish performance measurement
     const totalCells = width * height;
     finishCanvasRender(totalCells);
@@ -176,7 +227,8 @@ export const useCanvasRenderer = () => {
     selectionData, 
     cellSize, 
     canvasRef,
-    drawingStyles
+    drawingStyles,
+    pasteMode
   ]);
 
   // Re-render when dependencies change
