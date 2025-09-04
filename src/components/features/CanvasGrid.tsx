@@ -15,7 +15,7 @@ interface CanvasGridProps {
 
 export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   // Use our new context and state management
-  const { canvasRef, setMouseButtonDown } = useCanvasContext();
+  const { canvasRef, setMouseButtonDown, setShiftKeyDown } = useCanvasContext();
   
   // Get active tool and tool behavior
   const { activeTool } = useToolStore();
@@ -45,9 +45,15 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   const { width, height } = useCanvasStore();
   const { selection, clearSelection } = useToolStore();
 
-  // Handle Escape key for committing moves and clearing selections
+  // Handle keyboard events for Escape and Shift keys
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Handle Shift key for aspect ratio locking
+      if (event.key === 'Shift') {
+        setShiftKeyDown(true);
+      }
+      
+      // Handle Escape key for committing moves and clearing selections
       if (event.key === 'Escape' && selection.active && activeTool === 'select') {
         event.preventDefault();
         event.stopPropagation();
@@ -60,11 +66,20 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       }
     };
 
+    const handleKeyUp = (event: KeyboardEvent) => {
+      // Handle Shift key release
+      if (event.key === 'Shift') {
+        setShiftKeyDown(false);
+      }
+    };
+
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
     };
-  }, [moveState, selection.active, activeTool, commitMove, clearSelection]);
+  }, [moveState, selection.active, activeTool, commitMove, clearSelection, setShiftKeyDown]);
 
   // Reset selection mode when tool changes
   useEffect(() => {

@@ -12,6 +12,7 @@ interface CanvasState {
   // Interaction state
   isDrawing: boolean;
   mouseButtonDown: boolean;
+  shiftKeyDown: boolean;
   
   // Selection state
   selectionMode: 'none' | 'dragging' | 'moving';
@@ -37,6 +38,7 @@ interface CanvasActions {
   // Interaction actions
   setIsDrawing: (drawing: boolean) => void;
   setMouseButtonDown: (down: boolean) => void;
+  setShiftKeyDown: (down: boolean) => void;
   
   // Selection actions
   setSelectionMode: (mode: CanvasState['selectionMode']) => void;
@@ -79,6 +81,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   // Interaction state
   const [isDrawing, setIsDrawing] = useState(false);
   const [mouseButtonDown, setMouseButtonDown] = useState(false);
+  const [shiftKeyDown, setShiftKeyDown] = useState(false);
   
   // Selection state
   const [selectionMode, setSelectionMode] = useState<CanvasState['selectionMode']>('none');
@@ -104,6 +107,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     cellSize,
     isDrawing,
     mouseButtonDown,
+    shiftKeyDown,
     selectionMode,
     pendingSelectionStart,
     justCommittedMove,
@@ -114,6 +118,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     setCellSize,
     setIsDrawing,
     setMouseButtonDown,
+    setShiftKeyDown,
     setSelectionMode,
     setPendingSelectionStart,
     setJustCommittedMove,

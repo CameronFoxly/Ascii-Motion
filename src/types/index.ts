@@ -61,6 +61,7 @@ export type Tool =
   | 'paintbucket' 
   | 'select' 
   | 'rectangle' 
+  | 'ellipse'
   | 'eyedropper'
   | 'line'
   | 'text'

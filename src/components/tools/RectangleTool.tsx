@@ -24,7 +24,7 @@ export const RectangleToolStatus: React.FC = () => {
   return (
     <span className="text-indigo-600">
       Rectangle ({rectangleFilled ? 'filled' : 'hollow'}): "{selectedChar}" with color {selectedColor}
-      {selectedBgColor !== '#FFFFFF' && ` on ${selectedBgColor}`} - Drag to draw
+      {selectedBgColor !== '#FFFFFF' && ` on ${selectedBgColor}`} - Drag to draw, hold Shift for square
     </span>
   );
 };

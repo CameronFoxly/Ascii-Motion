@@ -5,6 +5,7 @@ import {
   DrawingTool,
   PaintBucketTool,
   RectangleTool,
+  EllipseTool,
   EyedropperTool,
 } from '../tools';
 
@@ -26,6 +27,8 @@ export const ToolManager: React.FC = () => {
       return <PaintBucketTool />;
     case 'rectangle':
       return <RectangleTool />;
+    case 'ellipse':
+      return <EllipseTool />;
     case 'eyedropper':
       return <EyedropperTool />;
     default:

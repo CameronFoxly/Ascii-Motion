@@ -74,7 +74,7 @@ src/
 - [x] Basic stores (canvas, animation, tools)
 - [x] Type definitions and constants
 - [x] Canvas grid component
-- [x] Basic drawing tools (pencil, eraser, paint bucket, select, eyedropper, rectangle)
+- [x] Basic drawing tools (pencil, eraser, paint bucket, select, eyedropper, rectangle, ellipse)
 - [x] Character palette
 - [x] Color picker
 - [x] Tool palette
@@ -85,6 +85,8 @@ src/
 - [x] Fill tool (flood-fill algorithm with optimization)
 - [x] Selection tool copy/paste functionality
 - [x] **Enhanced Paste with Visual Preview** - Advanced paste mode with drag positioning (Sept 3, 2025)
+- [x] **Ellipse Drawing Tool** - Complete ellipse tool with filled/hollow modes (Sept 3, 2025)
+- [x] **Aspect Ratio Locking** - Shift key constraints for rectangle and ellipse tools (Sept 3, 2025)
 - [x] Keyboard shortcuts (Cmd/Ctrl+C, Cmd/Ctrl+V, Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z)
 
 ### Phase 1.5: Architecture Refactoring ✅ **COMPLETE**
@@ -149,7 +151,8 @@ src/
 - **Pencil** ✏️ - Draw individual characters with selected colors
 - **Eraser** 🧽 - Remove characters from cells
 - **Paint Bucket** 🪣 - Flood fill connected areas with same character/color
-- **Rectangle** ▭ - Draw filled or hollow rectangles
+- **Rectangle** ▭ - Draw filled or hollow rectangles with Shift key for perfect squares
+- **Ellipse** 🔵 - Draw filled or hollow ellipses with Shift key for perfect circles
 - **Eyedropper** 💧 - Pick character and colors from existing artwork
 
 ### 🎯 Selection & Editing
@@ -180,6 +183,7 @@ src/
 - **Grid-based Drawing** - Precise character placement
 - **Visual Selection** - Animated selection overlay
 - **Real-time Rendering** - Smooth canvas updates
+- **Aspect Ratio Constraints** - Shift key for perfect squares/circles in shape tools
 
 ### Phase 2: Animation System
 - [ ] Timeline component
@@ -296,6 +300,38 @@ We've established a new pattern for managing complex component state:
 - Always validate UI component libraries work with bleeding-edge dependencies
 - Shadcn styling issues often indicate build tool incompatibilities
 - Test with minimal components first when debugging styling issues
+
+#### **Ellipse Tool Implementation with Aspect Ratio Locking (Sept 3, 2025)**
+**Decision**: Implement ellipse tool following established 8-step tool pattern with enhanced Shift key functionality
+**Issue**: Need additional drawing tool for geometric shapes and professional graphics editor-style constraints
+**Root Cause**: User request for ellipse drawing capability with modern graphics software features
+**Solution**: 
+- Created complete ellipse tool following componentized architecture pattern
+- Enhanced existing rectangle tool with Shift key aspect ratio locking 
+- Implemented global keyboard event handling for modifier key detection
+- Added mathematical ellipse algorithms for both filled and hollow ellipses
+
+**Files Affected**:
+- `src/types/index.ts` - Added 'ellipse' to Tool union type
+- `src/components/tools/EllipseTool.tsx` - New ellipse tool component (31 lines)
+- `src/hooks/useDrawingTool.ts` - Enhanced with ellipse drawing algorithms
+- `src/hooks/useCanvasDragAndDrop.ts` - Added aspect ratio constraint logic
+- `src/contexts/CanvasContext.tsx` - Added shiftKeyDown state management
+- `src/components/features/CanvasGrid.tsx` - Added global keyboard event listeners
+- All tool management files updated per 8-step pattern
+
+**Impact for Developers**:
+- ✅ Complete ellipse drawing tool with filled/hollow modes
+- ✅ Professional aspect ratio locking (Shift for squares/circles)
+- ✅ Enhanced status messages indicating Shift key functionality  
+- ✅ Pattern established for keyboard modifier integration
+- 📋 **Architecture**: Demonstrates proper tool extensibility and modifier key handling
+
+**Lessons Learned**:
+- Mathematical approach more reliable than pixel-level algorithms for ASCII grids
+- Global keyboard event handling enables professional modifier key functionality
+- 8-step tool pattern scales well for complex interactive tools
+- Status message enhancement improves user experience significantly
 
 #### **Future Pattern Guidelines**
 When any component exceeds ~200 lines or has multiple concerns:
@@ -629,19 +665,20 @@ src/components/features/
 src/components/tools/
   SelectionTool.tsx           (53 lines - Selection behavior & status)
   DrawingTool.tsx             (42 lines - Pencil/eraser behavior & status)
+  EllipseTool.tsx             (31 lines - Ellipse drawing behavior & status)
   PaintBucketTool.tsx         (30 lines - Fill tool behavior & status)
   RectangleTool.tsx           (30 lines - Rectangle behavior & status)
   EyedropperTool.tsx          (26 lines - Eyedropper behavior & status)
   index.ts                    (11 lines - Tool exports)
 
 src/contexts/
-  CanvasContext.tsx           (98 lines - Canvas-specific state)
+  CanvasContext.tsx           (Enhanced - Canvas-specific state with shift key handling)
 
 src/hooks/
   useCanvasState.ts           (138 lines - State management & helpers)
   useCanvasMouseHandlers.ts   (123 lines - Mouse event routing)
   useCanvasSelection.ts       (185 lines - Selection tool logic)
-  useCanvasDragAndDrop.ts     (108 lines - Drawing/rectangle tools)
+  useCanvasDragAndDrop.ts     (Enhanced - Drawing/rectangle/ellipse tools with aspect ratio constraints)
   useCanvasRenderer.ts        (159 lines - Grid & overlay rendering)
   useToolBehavior.ts          (109 lines - Tool coordination & metadata)
   useDrawingTool.ts           (97 lines - Tool implementations)

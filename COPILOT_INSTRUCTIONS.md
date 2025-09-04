@@ -251,7 +251,8 @@ src/
 | **Eraser** | `useDrawingTool` (shared) | Simple: Single-click cell clearing |
 | **Paint Bucket** | `useDrawingTool` (shared) | Simple: Single-click flood fill algorithm |
 | **Eyedropper** | `useDrawingTool` (shared) | Simple: Single-click color sampling |
-| **Rectangle** | `useCanvasDragAndDrop` (shared) | Interactive: Drag-based drawing with preview |
+| **Rectangle** | `useCanvasDragAndDrop` (shared) | Interactive: Drag-based drawing with preview, aspect ratio locking |
+| **Ellipse** | `useCanvasDragAndDrop` (shared) | Interactive: Drag-based drawing with preview, aspect ratio locking |
 
 **Architecture Benefits:**
 - **Dedicated hooks** for complex tools maintain clear separation of concerns
@@ -302,6 +303,7 @@ src/
 │   │   ├── EyedropperTool.tsx        # Color picker tool
 │   │   ├── PaintBucketTool.tsx       # Fill/flood fill tool
 │   │   ├── RectangleTool.tsx         # Rectangle drawing tool
+│   │   ├── EllipseTool.tsx           # Ellipse drawing tool
 │   │   ├── SelectionTool.tsx         # Selection and copy/paste
 │   │   └── index.ts                  # Tool exports
 │   └── ui/                           # Shadcn/ui components
@@ -495,6 +497,7 @@ type Tool =
   | 'paintbucket' 
   | 'select' 
   | 'rectangle' 
+  | 'ellipse'
   | 'eyedropper'
   | 'your-new-tool'; // Add this line
 ```
@@ -611,7 +614,8 @@ case 'your-new-tool':
 - Tool requires drag operations (mousedown → drag → mouseup)
 - Creates preview during drag
 - Simple start→end coordinate logic
-- Examples: Rectangle, Line tools
+- Supports aspect ratio constraints with Shift key modifier
+- Examples: Rectangle, Ellipse, Line tools
 
 **Create New Dedicated Hook If Tool Has:**
 - **Multiple operational states** (selecting → moving → resizing)
@@ -626,10 +630,11 @@ case 'your-new-tool':
 - **If interactive drag tool**: Use existing `useCanvasDragAndDrop` hook  
 - **If complex multi-state tool**: Create new hook in `src/hooks/useYourNewTool.ts`
 
-**📝 Future Tool Examples:**
+**📝 Tool Examples by Pattern:**
 - **Spray Brush** → `useDrawingTool` (simple: click to apply random pattern)
-- **Line Tool** → `useCanvasDragAndDrop` (interactive: drag from start to end)
-- **Circle Tool** → `useCanvasDragAndDrop` (interactive: drag to define radius)
+- **Line Tool** → `useCanvasDragAndDrop` (interactive: drag from start to end, aspect ratio locking)
+- **Ellipse Tool** → `useCanvasDragAndDrop` (implemented: drag-based ellipse with Shift for circles)
+- **Rectangle Tool** → `useCanvasDragAndDrop` (implemented: drag-based rectangle with Shift for squares)
 - **Multi-Select** → `useCanvasMultiSelect` (complex: multiple selections, group operations)
 - **Animation Onion Skin** → `useOnionSkin` (complex: multi-frame state, transparency layers)
 - **Text Tool** → `useTextTool` (complex: text input mode, cursor positioning, editing)
@@ -1002,6 +1007,51 @@ const Canvas = () => {
 };
 ```
 
+**Use Global Keyboard Event Handling for Modifier Keys:**
+```typescript
+// ✅ Good: Global keyboard event handling with proper cleanup
+const CanvasGrid = () => {
+  const { setShiftKeyDown } = useCanvasContext();
+  
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Shift' && !event.repeat) {
+        setShiftKeyDown(true);
+      }
+    };
+    
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.key === 'Shift') {
+        setShiftKeyDown(false);
+      }
+    };
+    
+    // Global listeners for modifier keys
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [setShiftKeyDown]);
+};
+
+// ✅ Use shift key state for tool constraints
+const useCanvasDragAndDrop = () => {
+  const { shiftKeyDown } = useCanvasContext();
+  
+  const constrainToAspectRatio = (width: number, height: number) => {
+    if (!shiftKeyDown) return { width, height };
+    const maxDimension = Math.max(Math.abs(width), Math.abs(height));
+    return {
+      width: width >= 0 ? maxDimension : -maxDimension,
+      height: height >= 0 ? maxDimension : -maxDimension
+    };
+  };
+};
+```
+
 ### 7. Animation & Timeline Guidelines
 
 **Use RequestAnimationFrame for Playback:**
@@ -1144,6 +1194,8 @@ const useCanvasStore = create<CanvasState>((set) => ({
 - ✅ Tool-specific components (Step 4 complete)
 - ✅ Performance Optimizations - Memoization (Step 5.1 complete)
 - ✅ Enhanced Paste Functionality with Visual Preview (Sept 3, 2025)
+- ✅ **Ellipse Tool Implementation** - Complete drag-based ellipse drawing tool (Sept 3, 2025)
+- ✅ **Shift Key Aspect Ratio Locking** - Rectangle and ellipse tools support Shift for squares/circles (Sept 3, 2025)
 
 **Step 5.1 Completion - Performance Optimizations**:
 - ✅ CellRenderer.tsx: Memoized cell rendering component

@@ -20,6 +20,8 @@ export const useToolBehavior = () => {
         return 'PaintBucketTool';
       case 'rectangle':
         return 'RectangleTool';
+      case 'ellipse':
+        return 'EllipseTool';
       case 'eyedropper':
         return 'EyedropperTool';
       default:
@@ -39,6 +41,8 @@ export const useToolBehavior = () => {
         return 'PaintBucketToolStatus';
       case 'rectangle':
         return 'RectangleToolStatus';
+      case 'ellipse':
+        return 'EllipseToolStatus';
       case 'eyedropper':
         return 'EyedropperToolStatus';
       default:
@@ -58,6 +62,8 @@ export const useToolBehavior = () => {
       case 'paintbucket':
         return 'cursor-crosshair';
       case 'rectangle':
+        return 'cursor-crosshair';
+      case 'ellipse':
         return 'cursor-crosshair';
       case 'eyedropper':
         return 'cursor-crosshair';
@@ -79,6 +85,8 @@ export const useToolBehavior = () => {
         return 'Paint Bucket';
       case 'rectangle':
         return 'Rectangle';
+      case 'ellipse':
+        return 'Ellipse';
       case 'eyedropper':
         return 'Eyedropper';
       default:
@@ -88,12 +96,12 @@ export const useToolBehavior = () => {
 
   // Check if tool requires continuous interaction (click and drag)
   const isInteractiveTool = useCallback((tool: Tool) => {
-    return ['select', 'rectangle'].includes(tool);
+    return ['select', 'rectangle', 'ellipse'].includes(tool);
   }, []);
 
   // Check if tool is a drawing tool (modifies canvas on click)
   const isDrawingTool = useCallback((tool: Tool) => {
-    return ['pencil', 'eraser', 'paintbucket', 'rectangle'].includes(tool);
+    return ['pencil', 'eraser', 'paintbucket', 'rectangle', 'ellipse'].includes(tool);
   }, []);
 
   return {

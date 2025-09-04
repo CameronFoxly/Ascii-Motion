@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useCanvasStore } from '../stores/canvasStore';
+import { useToolStore } from '../stores/toolStore';
 import { useCanvasContext } from '../contexts/CanvasContext';
 import { useCanvasState } from './useCanvasState';
 import { useMemoizedGrid } from './useMemoizedGrid';
+import { useDrawingTool } from './useDrawingTool';
 import { measureCanvasRender, finishCanvasRender } from '../utils/performance';
 import type { Cell } from '../types';
 
@@ -29,6 +31,9 @@ export const useCanvasRenderer = () => {
     cells,
     getCell
   } = useCanvasStore();
+
+  const { activeTool, rectangleFilled } = useToolStore();
+  const { getEllipsePoints } = useDrawingTool();
 
   // Use memoized grid for optimized rendering  
   const { selectionData } = useMemoizedGrid(
@@ -147,16 +152,60 @@ export const useCanvasRenderer = () => {
 
     // Draw selection overlay
     if (selectionData) {
-      ctx.strokeStyle = '#3B82F6';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 5]);
-      ctx.strokeRect(
-        selectionData.startX * cellSize,
-        selectionData.startY * cellSize,
-        selectionData.width * cellSize,
-        selectionData.height * cellSize
-      );
-      ctx.setLineDash([]);
+      if (activeTool === 'ellipse') {
+        // Draw ellipse preview with highlighted cells
+        const centerX = (selectionData.startX + selectionData.startX + selectionData.width - 1) / 2;
+        const centerY = (selectionData.startY + selectionData.startY + selectionData.height - 1) / 2;
+        const radiusX = (selectionData.width - 1) / 2;
+        const radiusY = (selectionData.height - 1) / 2;
+
+        // Get ellipse points to highlight exactly which cells will be affected
+        const ellipsePoints = getEllipsePoints(centerX, centerY, radiusX, radiusY, rectangleFilled);
+        
+        // Highlight each cell that will be part of the ellipse
+        ctx.fillStyle = 'rgba(168, 85, 247, 0.3)'; // Purple highlight
+        ellipsePoints.forEach(({ x, y }) => {
+          if (x >= 0 && y >= 0 && x < width && y < height) {
+            ctx.fillRect(
+              x * cellSize,
+              y * cellSize,
+              cellSize,
+              cellSize
+            );
+          }
+        });
+
+        // Draw ellipse outline
+        ctx.strokeStyle = '#A855F7'; // Purple border
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        
+        // Draw ellipse path using HTML5 Canvas ellipse method
+        ctx.beginPath();
+        ctx.ellipse(
+          (centerX + 0.5) * cellSize,  // center x
+          (centerY + 0.5) * cellSize,  // center y  
+          (radiusX + 0.5) * cellSize,  // radius x
+          (radiusY + 0.5) * cellSize,  // radius y
+          0,                           // rotation
+          0,                           // start angle
+          2 * Math.PI                  // end angle
+        );
+        ctx.stroke();
+        ctx.setLineDash([]);
+      } else {
+        // Default rectangle preview for rectangle tool and selection tool
+        ctx.strokeStyle = '#3B82F6';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.strokeRect(
+          selectionData.startX * cellSize,
+          selectionData.startY * cellSize,
+          selectionData.width * cellSize,
+          selectionData.height * cellSize
+        );
+        ctx.setLineDash([]);
+      }
     }
 
     // Draw paste preview overlay
@@ -239,7 +288,10 @@ export const useCanvasRenderer = () => {
     cellSize, 
     canvasRef,
     drawingStyles,
-    pasteMode
+    pasteMode,
+    activeTool,
+    getEllipsePoints,
+    rectangleFilled
   ]);
 
   // Re-render when dependencies change

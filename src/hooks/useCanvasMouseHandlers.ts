@@ -48,6 +48,9 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
     handleRectangleMouseDown,
     handleRectangleMouseMove,
     handleRectangleMouseUp,
+    handleEllipseMouseDown,
+    handleEllipseMouseMove,
+    handleEllipseMouseUp,
   } = useCanvasDragAndDrop();
 
   // Utility to get grid coordinates from mouse event
@@ -105,6 +108,9 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
       case 'rectangle':
         handleRectangleMouseDown(event);
         break;
+      case 'ellipse':
+        handleEllipseMouseDown(event);
+        break;
       default:
         console.warn('Unknown tool:', activeTool);
     }
@@ -117,7 +123,8 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
     cancelPasteMode,
     handleSelectionMouseDown, 
     handleDrawingMouseDown, 
-    handleRectangleMouseDown
+    handleRectangleMouseDown,
+    handleEllipseMouseDown
   ]);
 
   // Route mouse move to appropriate tool handler
@@ -141,6 +148,9 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
       case 'rectangle':
         handleRectangleMouseMove(event);
         break;
+      case 'ellipse':
+        handleEllipseMouseMove(event);
+        break;
       case 'eyedropper':
       case 'paintbucket':
         // These tools don't need mouse move handling
@@ -155,7 +165,8 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
     updatePastePosition,
     handleSelectionMouseMove, 
     handleDrawingMouseMove, 
-    handleRectangleMouseMove
+    handleRectangleMouseMove,
+    handleEllipseMouseMove
   ]);
 
   // Route mouse up to appropriate tool handler
@@ -189,6 +200,9 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
       case 'rectangle':
         handleRectangleMouseUp();
         break;
+      case 'ellipse':
+        handleEllipseMouseUp();
+        break;
       case 'pencil':
       case 'eraser':
       case 'eyedropper':
@@ -211,7 +225,8 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
     cells,
     setCanvasData,
     handleSelectionMouseUp, 
-    handleRectangleMouseUp, 
+    handleRectangleMouseUp,
+    handleEllipseMouseUp, 
     setIsDrawing, 
     setMouseButtonDown
   ]);

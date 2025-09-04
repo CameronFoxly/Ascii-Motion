@@ -5,6 +5,7 @@ import {
   DrawingToolStatus,
   PaintBucketToolStatus,
   RectangleToolStatus,
+  EllipseToolStatus,
   EyedropperToolStatus,
 } from '../tools';
 
@@ -26,6 +27,8 @@ export const ToolStatusManager: React.FC = () => {
       return <PaintBucketToolStatus />;
     case 'rectangle':
       return <RectangleToolStatus />;
+    case 'ellipse':
+      return <EllipseToolStatus />;
     case 'eyedropper':
       return <EyedropperToolStatus />;
     default:
