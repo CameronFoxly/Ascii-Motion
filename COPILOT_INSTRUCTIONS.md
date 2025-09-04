@@ -631,6 +631,7 @@ case 'your-new-tool':
 - **If complex multi-state tool**: Create new hook in `src/hooks/useYourNewTool.ts`
 
 **📝 Tool Examples by Pattern:**
+- **Pencil Tool** → `useDrawingTool` (enhanced: click to draw, shift+click for lines using Bresenham algorithm)
 - **Spray Brush** → `useDrawingTool` (simple: click to apply random pattern)
 - **Line Tool** → `useCanvasDragAndDrop` (interactive: drag from start to end, aspect ratio locking)
 - **Ellipse Tool** → `useCanvasDragAndDrop` (implemented: drag-based ellipse with Shift for circles)
@@ -1196,6 +1197,7 @@ const useCanvasStore = create<CanvasState>((set) => ({
 - ✅ Enhanced Paste Functionality with Visual Preview (Sept 3, 2025)
 - ✅ **Ellipse Tool Implementation** - Complete drag-based ellipse drawing tool (Sept 3, 2025)
 - ✅ **Shift Key Aspect Ratio Locking** - Rectangle and ellipse tools support Shift for squares/circles (Sept 3, 2025)
+- ✅ **Enhanced Pencil Tool** - Shift+click line drawing with Bresenham algorithm (Sept 3, 2025)
 
 **Step 5.1 Completion - Performance Optimizations**:
 - ✅ CellRenderer.tsx: Memoized cell rendering component

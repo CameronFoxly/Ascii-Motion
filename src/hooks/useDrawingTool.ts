@@ -14,18 +14,74 @@ export const useDrawingTool = () => {
     selectedColor, 
     selectedBgColor,
     rectangleFilled,
-    pickFromCell 
+    pickFromCell,
+    pencilLastPosition,
+    setPencilLastPosition
   } = useToolStore();
 
-  const drawAtPosition = useCallback((x: number, y: number) => {
+  // Bresenham line algorithm for drawing lines between two points
+  const getLinePoints = useCallback((x0: number, y0: number, x1: number, y1: number) => {
+    const points: { x: number; y: number }[] = [];
+    
+    const dx = Math.abs(x1 - x0);
+    const dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1;
+    const sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy;
+    
+    let x = x0;
+    let y = y0;
+    
+    while (true) {
+      points.push({ x, y });
+      
+      if (x === x1 && y === y1) break;
+      
+      const e2 = 2 * err;
+      if (e2 > -dy) {
+        err -= dy;
+        x += sx;
+      }
+      if (e2 < dx) {
+        err += dx;
+        y += sy;
+      }
+    }
+    
+    return points;
+  }, []);
+
+  // Draw a line between two points using the line algorithm
+  const drawLine = useCallback((x0: number, y0: number, x1: number, y1: number) => {
+    const newCell: Cell = {
+      char: selectedChar,
+      color: selectedColor,
+      bgColor: selectedBgColor
+    };
+    
+    const points = getLinePoints(x0, y0, x1, y1);
+    points.forEach(({ x, y }) => {
+      setCell(x, y, newCell);
+    });
+  }, [selectedChar, selectedColor, selectedBgColor, getLinePoints, setCell]);
+
+  const drawAtPosition = useCallback((x: number, y: number, isShiftClick = false) => {
     switch (activeTool) {
       case 'pencil': {
-        const newCell: Cell = {
-          char: selectedChar,
-          color: selectedColor,
-          bgColor: selectedBgColor
-        };
-        setCell(x, y, newCell);
+        if (isShiftClick && pencilLastPosition) {
+          // Draw line from last position to current position
+          drawLine(pencilLastPosition.x, pencilLastPosition.y, x, y);
+        } else {
+          // Normal pencil drawing - draw single point
+          const newCell: Cell = {
+            char: selectedChar,
+            color: selectedColor,
+            bgColor: selectedBgColor
+          };
+          setCell(x, y, newCell);
+        }
+        // Update last position for next potential line
+        setPencilLastPosition({ x, y });
         break;
       }
       case 'eraser': {
@@ -58,7 +114,10 @@ export const useDrawingTool = () => {
     clearCell, 
     getCell, 
     fillArea,
-    pickFromCell
+    pickFromCell,
+    pencilLastPosition,
+    setPencilLastPosition,
+    drawLine
   ]);
 
   const drawRectangle = useCallback((startX: number, startY: number, endX: number, endY: number) => {

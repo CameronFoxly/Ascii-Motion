@@ -6,6 +6,9 @@ interface ToolStoreState extends ToolState {
   // Selection state
   selection: Selection;
   
+  // Pencil tool state for line drawing
+  pencilLastPosition: { x: number; y: number } | null;
+  
   // Clipboard for copy/paste
   clipboard: Map<string, any> | null;
   
@@ -24,6 +27,9 @@ interface ToolStoreState extends ToolState {
   
   // Eyedropper functionality
   pickFromCell: (char: string, color: string, bgColor: string) => void;
+  
+  // Pencil tool actions
+  setPencilLastPosition: (position: { x: number; y: number } | null) => void;
   
   // Selection actions
   startSelection: (x: number, y: number) => void;
@@ -55,6 +61,9 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   brushSize: 1,
   rectangleFilled: false,
   
+  // Pencil tool state
+  pencilLastPosition: null,
+  
   // Selection state
   selection: {
     start: { x: 0, y: 0 },
@@ -77,6 +86,10 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     if (tool !== 'select') {
       get().clearSelection();
     }
+    // Clear pencil last position when switching tools
+    if (tool !== 'pencil') {
+      get().setPencilLastPosition(null);
+    }
   },
 
   setSelectedChar: (char: string) => set({ selectedChar: char }),
@@ -92,6 +105,11 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
       selectedColor: color,
       selectedBgColor: bgColor
     });
+  },
+
+  // Pencil tool actions
+  setPencilLastPosition: (position: { x: number; y: number } | null) => {
+    set({ pencilLastPosition: position });
   },
 
   // Selection actions

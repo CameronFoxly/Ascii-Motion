@@ -87,6 +87,7 @@ src/
 - [x] **Enhanced Paste with Visual Preview** - Advanced paste mode with drag positioning (Sept 3, 2025)
 - [x] **Ellipse Drawing Tool** - Complete ellipse tool with filled/hollow modes (Sept 3, 2025)
 - [x] **Aspect Ratio Locking** - Shift key constraints for rectangle and ellipse tools (Sept 3, 2025)
+- [x] **Enhanced Pencil Tool** - Shift+click line drawing functionality (Sept 3, 2025)
 - [x] Keyboard shortcuts (Cmd/Ctrl+C, Cmd/Ctrl+V, Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z)
 
 ### Phase 1.5: Architecture Refactoring ✅ **COMPLETE**
@@ -332,6 +333,42 @@ We've established a new pattern for managing complex component state:
 - Global keyboard event handling enables professional modifier key functionality
 - 8-step tool pattern scales well for complex interactive tools
 - Status message enhancement improves user experience significantly
+
+#### **Enhanced Pencil Tool with Shift+Click Line Drawing (Sept 3, 2025)**
+**Decision**: Add shift+click line drawing functionality to pencil tool following existing patterns
+**Issue**: User request for professional line drawing capability between points using shift+click
+**Root Cause**: Need for efficient line drawing in ASCII art creation, similar to professional graphics software
+**Solution**: 
+- Added pencil-specific state tracking (`pencilLastPosition`) to tool store
+- Implemented Bresenham line algorithm for accurate ASCII grid line drawing
+- Enhanced drawAtPosition to handle shift+click mode with line drawing
+- Modified mouse handlers to detect and pass shift key state to drawing functions
+
+**Files Affected**:
+- `src/stores/toolStore.ts` - Added pencilLastPosition state and setPencilLastPosition action
+- `src/hooks/useDrawingTool.ts` - Added getLinePoints and drawLine functions with Bresenham algorithm
+- `src/hooks/useCanvasDragAndDrop.ts` - Modified to pass shift key state to drawing functions
+- `src/components/tools/DrawingTool.tsx` - Enhanced status message to indicate shift+click functionality
+
+**Impact for Developers**:
+- ✅ Professional line drawing functionality with shift+click
+- ✅ Follows established architecture patterns without introducing tech debt
+- ✅ Bresenham algorithm ensures accurate line drawing on ASCII grid
+- ✅ Enhanced user feedback through improved status messages
+- ✅ State management follows existing tool-specific patterns
+- 📋 **Architecture**: Demonstrates proper tool enhancement within existing framework
+
+**Technical Implementation**:
+- **Line Algorithm**: Bresenham's line algorithm for pixel-perfect ASCII grid lines
+- **State Management**: Tool-specific state that auto-clears when switching tools
+- **User Experience**: First click sets start point, shift+subsequent clicks draw lines to new endpoints
+- **Integration**: Leverages existing shift key detection from CanvasContext
+
+**Lessons Learned**:
+- Tool-specific state can be efficiently managed in Zustand store
+- Bresenham algorithm translates well to ASCII grid coordinates
+- Existing architecture patterns accommodate feature enhancements seamlessly
+- Clear status messages significantly improve discoverability of features
 
 #### **Future Pattern Guidelines**
 When any component exceeds ~200 lines or has multiple concerns:

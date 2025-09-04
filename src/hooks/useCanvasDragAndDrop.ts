@@ -56,20 +56,21 @@ export const useCanvasDragAndDrop = () => {
   }, [getGridCoordinates, width, height, canvasRef]);
 
   // Handle drawing operations
-  const handleDrawing = useCallback((x: number, y: number) => {
-    drawAtPosition(x, y);
+  const handleDrawing = useCallback((x: number, y: number, isShiftClick = false) => {
+    drawAtPosition(x, y, isShiftClick);
   }, [drawAtPosition]);
 
   // Handle drawing tool mouse down
   const handleDrawingMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const { x, y } = getGridCoordinatesFromEvent(event);
+    const isShiftClick = shiftKeyDown;
     
     // Save current state for undo
     pushToHistory(new Map(cells));
     setMouseButtonDown(true);
     setIsDrawing(true);
-    handleDrawing(x, y);
-  }, [getGridCoordinatesFromEvent, cells, pushToHistory, setMouseButtonDown, setIsDrawing, handleDrawing]);
+    handleDrawing(x, y, isShiftClick);
+  }, [getGridCoordinatesFromEvent, cells, pushToHistory, setMouseButtonDown, setIsDrawing, handleDrawing, shiftKeyDown]);
 
   // Handle drawing tool mouse move
   const handleDrawingMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {

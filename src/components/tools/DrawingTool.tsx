@@ -25,7 +25,7 @@ export const DrawingToolStatus: React.FC = () => {
     return (
       <span className="text-blue-600">
         Pencil: "{selectedChar}" with color {selectedColor}
-        {selectedBgColor !== '#FFFFFF' && ` on ${selectedBgColor}`}
+        {selectedBgColor !== '#FFFFFF' && ` on ${selectedBgColor}`} - Click to draw, hold Shift+click for lines
       </span>
     );
   }
