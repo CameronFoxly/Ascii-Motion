@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useToolStore } from '../stores/toolStore';
+import { useCanvasContext } from '../contexts/CanvasContext';
 import type { Tool } from '../types';
 
 /**
@@ -7,6 +8,7 @@ import type { Tool } from '../types';
  */
 export const useToolBehavior = () => {
   const { activeTool, setActiveTool } = useToolStore();
+  const { handDragging } = useCanvasContext();
 
   // Get the appropriate tool component for the active tool
   const getActiveToolComponent = useCallback(() => {
@@ -72,11 +74,11 @@ export const useToolBehavior = () => {
       case 'eyedropper':
         return 'cursor-crosshair';
       case 'hand':
-        return 'cursor-grab';
+        return handDragging ? 'cursor-grabbing' : 'cursor-grab';
       default:
         return 'cursor-default';
     }
-  }, []);
+  }, [handDragging]);
 
   // Get tool display name
   const getToolDisplayName = useCallback((tool: Tool) => {

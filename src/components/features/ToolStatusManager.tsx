@@ -1,5 +1,6 @@
 import React from 'react';
 import { useToolStore } from '../../stores/toolStore';
+import { useCanvasContext } from '../../contexts/CanvasContext';
 import {
   SelectionToolStatus,
   DrawingToolStatus,
@@ -16,6 +17,21 @@ import {
  */
 export const ToolStatusManager: React.FC = () => {
   const { activeTool } = useToolStore();
+  const { spaceKeyDown } = useCanvasContext();
+
+  // If space key is down, show hand tool status regardless of active tool
+  if (spaceKeyDown) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-blue-600 font-medium">
+          🖐️ Hand Tool (Space Override)
+        </span>
+        <span className="text-green-600">
+          Click and drag to pan canvas - Release Space to return to {activeTool}
+        </span>
+      </div>
+    );
+  }
 
   // Render the appropriate tool status component
   switch (activeTool) {

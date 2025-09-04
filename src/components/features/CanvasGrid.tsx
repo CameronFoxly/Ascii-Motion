@@ -15,11 +15,14 @@ interface CanvasGridProps {
 
 export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   // Use our new context and state management
-  const { canvasRef, setMouseButtonDown, setShiftKeyDown, setSpaceKeyDown } = useCanvasContext();
+  const { canvasRef, setMouseButtonDown, setShiftKeyDown, setSpaceKeyDown, spaceKeyDown } = useCanvasContext();
   
   // Get active tool and tool behavior
   const { activeTool } = useToolStore();
   const { getToolCursor } = useToolBehavior();
+  
+  // Calculate effective tool (space key overrides with hand tool)
+  const effectiveTool = spaceKeyDown ? 'hand' : activeTool;
   
   // Canvas dimensions hooks already provide computed values
   const {
@@ -123,7 +126,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       <div className="canvas-wrapper border-2 border-gray-300 rounded-lg overflow-auto max-w-full max-h-96 relative">
         <canvas
           ref={canvasRef}
-          className={`canvas-grid ${getToolCursor(activeTool)}`}
+          className={`canvas-grid ${getToolCursor(effectiveTool)}`}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}

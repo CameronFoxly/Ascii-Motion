@@ -16,6 +16,7 @@ interface CanvasState {
   mouseButtonDown: boolean;
   shiftKeyDown: boolean;
   spaceKeyDown: boolean;
+  handDragging: boolean;
   
   // Selection state
   selectionMode: 'none' | 'dragging' | 'moving';
@@ -45,6 +46,7 @@ interface CanvasActions {
   setMouseButtonDown: (down: boolean) => void;
   setShiftKeyDown: (down: boolean) => void;
   setSpaceKeyDown: (down: boolean) => void;
+  setHandDragging: (dragging: boolean) => void;
   
   // Selection actions
   setSelectionMode: (mode: CanvasState['selectionMode']) => void;
@@ -91,6 +93,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   const [mouseButtonDown, setMouseButtonDown] = useState(false);
   const [shiftKeyDown, setShiftKeyDown] = useState(false);
   const [spaceKeyDown, setSpaceKeyDown] = useState(false);
+  const [handDragging, setHandDragging] = useState(false);
   
   // Selection state
   const [selectionMode, setSelectionMode] = useState<CanvasState['selectionMode']>('none');
@@ -120,6 +123,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     mouseButtonDown,
     shiftKeyDown,
     spaceKeyDown,
+    handDragging,
     selectionMode,
     pendingSelectionStart,
     justCommittedMove,
@@ -134,6 +138,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     setMouseButtonDown,
     setShiftKeyDown,
     setSpaceKeyDown,
+    setHandDragging,
     setSelectionMode,
     setPendingSelectionStart,
     setJustCommittedMove,

@@ -7,28 +7,29 @@ import { useToolStore } from '../stores/toolStore';
  * Handles click and drag panning of the canvas viewport
  */
 export const useHandTool = () => {
-  const { panOffset, setPanOffset } = useCanvasContext();
+  const { panOffset, setPanOffset, spaceKeyDown, setHandDragging } = useCanvasContext();
   const { activeTool } = useToolStore();
   const isPanningRef = useRef(false);
   const lastPanPositionRef = useRef<{ x: number; y: number } | null>(null);
 
+  // Calculate effective tool (space key overrides with hand tool)
+  const effectiveTool = spaceKeyDown ? 'hand' : activeTool;
+
   // Handle mouse down for pan start
   const handleHandMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (activeTool !== 'hand') return;
+    if (effectiveTool !== 'hand') return;
 
     event.preventDefault();
     isPanningRef.current = true;
     lastPanPositionRef.current = { x: event.clientX, y: event.clientY };
     
-    // Change cursor to grabbing
-    if (event.currentTarget) {
-      event.currentTarget.style.cursor = 'grabbing';
-    }
-  }, [activeTool]);
+    // Set dragging state to update cursor
+    setHandDragging(true);
+  }, [effectiveTool, setHandDragging]);
 
   // Handle mouse move for panning
   const handleHandMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isPanningRef.current || !lastPanPositionRef.current || activeTool !== 'hand') {
+    if (!isPanningRef.current || !lastPanPositionRef.current || effectiveTool !== 'hand') {
       return;
     }
 
@@ -43,33 +44,29 @@ export const useHandTool = () => {
 
     // Update last position
     lastPanPositionRef.current = { x: event.clientX, y: event.clientY };
-  }, [activeTool, panOffset, setPanOffset]);
+  }, [effectiveTool, panOffset, setPanOffset]);
 
   // Handle mouse up for pan end
-  const handleHandMouseUp = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (activeTool !== 'hand') return;
+  const handleHandMouseUp = useCallback(() => {
+    if (effectiveTool !== 'hand') return;
 
     isPanningRef.current = false;
     lastPanPositionRef.current = null;
     
-    // Reset cursor to grab
-    if (event.currentTarget) {
-      event.currentTarget.style.cursor = 'grab';
-    }
-  }, [activeTool]);
+    // Clear dragging state to update cursor
+    setHandDragging(false);
+  }, [effectiveTool, setHandDragging]);
 
   // Handle mouse leave
-  const handleHandMouseLeave = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (activeTool !== 'hand') return;
+  const handleHandMouseLeave = useCallback(() => {
+    if (effectiveTool !== 'hand') return;
 
     isPanningRef.current = false;
     lastPanPositionRef.current = null;
     
-    // Reset cursor
-    if (event.currentTarget) {
-      event.currentTarget.style.cursor = 'grab';
-    }
-  }, [activeTool]);
+    // Clear dragging state to update cursor
+    setHandDragging(false);
+  }, [effectiveTool, setHandDragging]);
 
   return {
     handleHandMouseDown,
