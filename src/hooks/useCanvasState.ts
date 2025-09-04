@@ -9,7 +9,7 @@ import { useToolStore } from '../stores/toolStore';
  */
 export const useCanvasState = () => {
   const canvasContext = useCanvasContext();
-  const { width, height, setCell } = useCanvasStore();
+  const { width, height, setCell, canvasBackgroundColor } = useCanvasStore();
   const { selection, activeTool } = useToolStore();
 
   const {
@@ -64,14 +64,14 @@ export const useCanvasState = () => {
     return x >= bounds.startX && x <= bounds.endX && y >= bounds.startY && y <= bounds.endY;
   }, [getEffectiveSelectionBounds]);
 
-  // Commit move operation to canvas
+    // Commit move operation to canvas
   const commitMove = useCallback(() => {
     if (!moveState || moveState.originalData.size === 0) return;
 
     // Clear the original positions of moved cells
     moveState.originalData.forEach((_, key) => {
       const [origX, origY] = key.split(',').map(Number);
-      setCell(origX, origY, { char: ' ', color: '#000000', bgColor: '#FFFFFF' });
+      setCell(origX, origY, { char: ' ', color: '#FFFFFF', bgColor: canvasBackgroundColor });
     });
     
     // Place the moved cells at their new positions
@@ -89,7 +89,7 @@ export const useCanvasState = () => {
 
     setMoveState(null);
     setJustCommittedMove(false);
-  }, [moveState, setCell, width, height, getTotalOffset, setMoveState, setJustCommittedMove]);
+  }, [moveState, setCell, width, height, canvasBackgroundColor, getTotalOffset, setMoveState, setJustCommittedMove]);
 
   // Reset selection-related state when tool changes
   const resetSelectionState = useCallback(() => {
