@@ -61,7 +61,142 @@ Before submitting any architectural change, ask yourself:
 ---
 
 ## Project Context
-ASCII Motion is a React + TypeScript web application for creating and animating ASCII art. We use Vite for building, Shadcn/ui for components, Zustand for state management, and Tailwind CSS for styling.
+ASCII Motion is a React + TypeScript web application for creating and animating ASCII art. We use Vite for building, Shadcn/ui for components, Zustand for state management, and Tailwind CSS v3 for styling.
+
+## 🚨 **CRITICAL: Shadcn/UI Styling Requirements**
+
+### **⚠️ TAILWIND CSS VERSION REQUIREMENT**
+**NEVER upgrade to Tailwind CSS v4+ without extensive testing!**
+
+- ✅ **Required**: Tailwind CSS v3.4.0 or compatible v3.x version
+- ❌ **Incompatible**: Tailwind CSS v4.x+ (breaks shadcn styling)
+- 📋 **Reason**: Shadcn components were designed for Tailwind v3 architecture
+
+### **PostCSS Configuration (CRITICAL)**
+**File**: `postcss.config.js`
+```javascript
+// ✅ CORRECT (Tailwind v3):
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+
+// ❌ WRONG (Tailwind v4 - DO NOT USE):
+export default {
+  plugins: {
+    '@tailwindcss/postcss': {}, // This breaks shadcn
+    autoprefixer: {},
+  },
+}
+```
+
+### **Shadcn Component Styling Guidelines**
+
+#### **✅ DO: Follow Shadcn Patterns**
+```typescript
+// ✅ Use shadcn variants and minimal custom classes
+<Button 
+  variant={isActive ? 'default' : 'outline'}
+  size="lg"
+  className="h-16 flex flex-col gap-1" // Only layout classes
+>
+  {icon}
+  <span className="text-xs">{name}</span>
+</Button>
+
+// ✅ Let shadcn handle colors and styling
+<Card className="bg-card border-border"> // Use CSS variables
+```
+
+#### **❌ DON'T: Override Shadcn Styling**
+```typescript
+// ❌ Don't override shadcn color/background classes
+<Button 
+  className="bg-primary text-primary-foreground border-primary hover:bg-primary/90"
+  // This duplicates what variant="default" already provides!
+>
+
+// ❌ Don't use custom border styling that conflicts
+<Button className="border-2 bg-background text-foreground">
+  // This overrides shadcn's carefully crafted styling
+</Button>
+
+// ❌ Don't add universal CSS selectors that affect buttons
+// In CSS files:
+* { border-color: hsl(var(--border)); } // This breaks button styling!
+```
+
+#### **🎯 Component Styling Best Practices**
+
+**1. CSS Variable Usage:**
+```css
+/* ✅ DO: Use shadcn CSS variables */
+.custom-component {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+}
+
+/* ❌ DON'T: Use hardcoded colors that don't respond to theme */
+.custom-component {
+  background-color: #ffffff;
+  color: #000000;
+}
+```
+
+**2. Minimal Custom Classes:**
+```typescript
+// ✅ DO: Add only layout and spacing classes
+<Button 
+  variant="outline"
+  className="h-20 w-full flex flex-col items-center gap-2"
+>
+
+// ❌ DON'T: Recreate what variants already provide
+<Button 
+  className="bg-background text-foreground border-border hover:bg-accent"
+>
+```
+
+**3. CSS Scope and Specificity:**
+```css
+/* ✅ DO: Scope custom styles to specific components */
+.ascii-cell {
+  font-family: monospace;
+  /* Canvas-specific styles only */
+}
+
+.timeline-frame {
+  /* Timeline-specific styles only */
+}
+
+/* ❌ DON'T: Use universal selectors affecting shadcn */
+* { /* This affects ALL elements including buttons */ }
+button { /* This overrides shadcn button styling */ }
+```
+
+#### **🔍 Debugging Shadcn Styling Issues**
+
+**Quick Diagnostic Steps:**
+1. **Test with minimal button**: `<Button>Test</Button>` - should have proper shadcn styling
+2. **Check Tailwind version**: Ensure `package.json` has `tailwindcss@^3.4.0`
+3. **Verify PostCSS config**: Should use `tailwindcss: {}`, not `@tailwindcss/postcss`
+4. **Remove custom overrides**: Strip className to just `variant` and `size` props
+5. **Check for universal selectors**: Look for `* {` or `button {` in CSS files
+
+**Common Issues and Solutions:**
+```typescript
+// 🚨 Issue: Buttons look unstyled/grey
+// ✅ Solution: Check Tailwind version and PostCSS config
+
+// 🚨 Issue: Custom styling not working
+// ✅ Solution: Use CSS variables instead of hardcoded values
+
+// 🚨 Issue: Inconsistent theming
+// ✅ Solution: Use shadcn variants instead of custom classes
+```
 
 ## 🚨 **CRITICAL: Adding New Tools**
 **When adding ANY new drawing tool, ALWAYS follow the 8-step componentized pattern in Section 3 below.** This maintains architectural consistency and ensures all tools work seamlessly together. Do NOT add tool logic directly to CanvasGrid or mouse handlers.
@@ -465,6 +600,46 @@ Before considering your tool complete:
 - [ ] Tool works in development server
 - [ ] Tool provides helpful status messages
 - [ ] Tool follows existing interaction patterns
+- [ ] **UI components use proper shadcn styling** (see guidelines above)
+
+#### **🎨 Tool UI Styling Requirements**
+**When creating tool palettes, buttons, or status UI:**
+
+```typescript
+// ✅ DO: Use shadcn variants for tool buttons
+<Button 
+  variant={isActive ? 'default' : 'outline'}
+  size="lg"
+  className="h-16 flex flex-col gap-1" // Only layout classes
+  onClick={() => setActiveTool(toolId)}
+>
+  {toolIcon}
+  <span className="text-xs">{toolName}</span>
+</Button>
+
+// ✅ DO: Use shadcn components for tool options
+<Card>
+  <CardContent>
+    <Label htmlFor="tool-option">Tool Setting</Label>
+    <Switch 
+      id="tool-option"
+      checked={setting}
+      onCheckedChange={setSetting}
+    />
+  </CardContent>
+</Card>
+
+// ❌ DON'T: Override shadcn styling with custom classes
+<Button 
+  className="bg-gray-500 text-white border-gray-700 hover:bg-gray-400"
+  // This breaks theme consistency and shadcn styling!
+>
+
+// ❌ DON'T: Add universal CSS that affects tool UI
+/* In CSS files - DON'T do this: */
+* { border-color: gray !important; } /* Breaks shadcn buttons */
+button { background: gray; } /* Overrides all button styling */
+```
 
 #### **🚨 DO NOT**
 - ❌ Add tool logic directly to CanvasGrid
@@ -864,6 +1039,9 @@ const useCanvasStore = create<CanvasState>((set) => ({
 - Avoid any types - use unknown or specific types
 - Prefer immutable updates over mutations
 - Use semantic commit messages
+- **Follow shadcn styling patterns** - Never override component library styling
+- **Use Tailwind CSS v3.x only** - Do not upgrade to v4+ without compatibility testing
+- **Scope custom CSS** - Avoid universal selectors that affect UI components
 
 ## When Working on ASCII Motion:
 1. **Always consider performance** - App now supports large grids (200x100+) with optimized rendering
@@ -875,6 +1053,8 @@ const useCanvasStore = create<CanvasState>((set) => ({
 7. **Consider accessibility** - Use proper ARIA labels and keyboard navigation
 8. **Monitor render performance** - Use development tools to validate optimizations
 9. **📋 DOCUMENT EVERYTHING** - Complete the mandatory documentation protocol for ANY change
+10. **🎨 PRESERVE STYLING INTEGRITY** - Follow shadcn patterns, never override component styling
+11. **🔒 MAINTAIN DEPENDENCY COMPATIBILITY** - Test UI components when changing build tools
 
 **🚨 FINAL CHECKPOINT: Before considering ANY work "complete":**
 - [ ] Code implements the intended functionality
