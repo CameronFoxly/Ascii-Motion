@@ -103,6 +103,11 @@ export const useCanvasSelection = () => {
       }
       setSelectionMode('moving');
       setMouseButtonDown(true);
+    } else if (selection.active && !isPointInEffectiveSelection(x, y) && !event.shiftKey) {
+      // Click outside existing selection without shift - clear selection
+      setJustCommittedMove(false);
+      clearSelection();
+      // Don't start a new selection on this click, just clear
     } else if (!selection.active || event.shiftKey) {
       // Start new selection or extend current with shift-click
       setJustCommittedMove(false);
