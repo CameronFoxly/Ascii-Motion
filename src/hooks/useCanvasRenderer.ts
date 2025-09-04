@@ -192,7 +192,7 @@ export const useCanvasRenderer = () => {
       ctx.setLineDash([]);
 
       // Draw paste content preview with transparency
-      ctx.globalAlpha = 0.7;
+      ctx.globalAlpha = 0.85; // Make preview more visible
       data.forEach((cell, key) => {
         const [relX, relY] = key.split(',').map(Number);
         const absoluteX = position.x + relX;
@@ -200,11 +200,22 @@ export const useCanvasRenderer = () => {
         
         // Only draw if within canvas bounds
         if (absoluteX >= 0 && absoluteX < width && absoluteY >= 0 && absoluteY < height) {
+          // Draw the actual cell content
           drawCell(ctx, absoluteX, absoluteY, {
             char: cell.char || ' ',
             color: cell.color || drawingStyles.defaultTextColor,
             bgColor: cell.bgColor || 'transparent'
           });
+          
+          // Add a subtle highlight border around preview cells
+          ctx.strokeStyle = 'rgba(168, 85, 247, 0.4)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(
+            absoluteX * cellSize, 
+            absoluteY * cellSize, 
+            cellSize, 
+            cellSize
+          );
         }
       });
       ctx.globalAlpha = 1.0;
