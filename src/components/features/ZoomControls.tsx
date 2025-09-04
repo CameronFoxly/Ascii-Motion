@@ -4,7 +4,7 @@ import { Minus, Plus, RotateCcw } from 'lucide-react';
 import { useCanvasContext } from '../../contexts/CanvasContext';
 
 export const ZoomControls: React.FC = () => {
-  const { zoom, setZoom } = useCanvasContext();
+  const { zoom, setZoom, panOffset, setPanOffset } = useCanvasContext();
   
   const zoomIn = () => {
     const newZoom = Math.min(4.0, zoom * 1.25); // Max 400%
@@ -19,6 +19,14 @@ export const ZoomControls: React.FC = () => {
   const resetZoom = () => {
     setZoom(1.0);
   };
+  
+  const resetView = () => {
+    setZoom(1.0);
+    setPanOffset({ x: 0, y: 0 });
+  };
+  
+  // Check if view is at default state (zoom = 1.0 and no pan offset)
+  const isViewAtDefault = zoom === 1.0 && panOffset.x === 0 && panOffset.y === 0;
   
   const zoomPercentage = Math.round(zoom * 100);
   
@@ -60,17 +68,16 @@ export const ZoomControls: React.FC = () => {
         </Button>
       </div>
       
-      {zoom !== 1.0 && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={resetZoom}
-          title="Reset zoom"
-          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-        >
-          <RotateCcw className="w-3 h-3" />
-        </Button>
-      )}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={resetView}
+        disabled={isViewAtDefault}
+        title="Reset view (zoom and position)"
+        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground disabled:opacity-50"
+      >
+        <RotateCcw className="w-3 h-3" />
+      </Button>
     </div>
   );
 };

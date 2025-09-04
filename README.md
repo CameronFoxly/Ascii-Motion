@@ -8,8 +8,9 @@ A modern web application for creating and animating ASCII art with professional 
 ## 🎨 Features
 
 - **Grid-based ASCII Art Editor** - Intuitive character-by-character editing
+- **Zoom & Navigation** - Zoom controls (25%-400%) with pan and reset functionality
 - **Professional Animation Timeline** - Individual frame durations, no duplicate frames needed
-- **Comprehensive Tool Set** - Pencil, eraser, paintbucket, selection, rectangle, eyedropper
+- **Comprehensive Tool Set** - Pencil, eraser, paintbucket, selection, rectangle, ellipse, eyedropper, hand tool
 - **Organized Character Palette** - Characters grouped by style (borders, blocks, arrows, etc.)
 - **Multiple Export Formats** - Text files, JSON projects, GIF animations, MP4 videos
 - **Modern Architecture** - React 18, TypeScript, Zustand state management
@@ -57,12 +58,13 @@ npm run build
 - [x] Type definitions and constants
 - [x] UI components and styling (Tailwind CSS + shadcn/ui)
 - [x] Canvas grid component with full rendering
-- [x] Complete drawing tool suite (pencil, eraser, paint bucket, rectangle, selection, eyedropper)
+- [x] Complete drawing tool suite (pencil, eraser, paint bucket, rectangle, ellipse, selection, eyedropper, hand tool)
+- [x] Zoom and navigation system (25%-400% zoom, pan controls, space key override)
 - [x] Character palette interface
 - [x] Color picker
 - [x] Selection and advanced editing (copy/paste with visual preview)
 - [x] Undo/redo functionality
-- [x] Keyboard shortcuts (Cmd/Ctrl+C, V, Z, Shift+Z)
+- [x] Keyboard shortcuts (Cmd/Ctrl+C, V, Z, Shift+Z, Space for hand tool)
 - [x] Performance optimizations and memoization
 - [x] Theme system (dark/light mode)
 

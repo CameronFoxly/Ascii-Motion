@@ -226,10 +226,13 @@ src/
 │   ├── useCanvasSelection.ts      # Selection-specific logic
 │   ├── useCanvasDragAndDrop.ts    # Drawing/rectangle tools
 │   ├── useCanvasRenderer.ts       # Grid & overlay rendering
+│   ├── useHandTool.ts             # Hand tool pan functionality
 │   └── useToolBehavior.ts         # Tool coordination & metadata
 ├── components/
 │   ├── features/
 │   │   ├── CanvasGrid.tsx         # Main composition component (111 lines)
+│   │   ├── CanvasSettings.tsx     # Canvas controls with zoom/pan features
+│   │   ├── ZoomControls.tsx       # Zoom and reset view controls (78 lines)
 │   │   ├── ToolManager.tsx        # Active tool component renderer (34 lines)
 │   │   └── ToolStatusManager.tsx  # Tool status UI renderer (34 lines)
 │   └── tools/                     # Tool-specific components
@@ -253,6 +256,7 @@ src/
 | **Eyedropper** | `useDrawingTool` (shared) | Simple: Single-click color sampling |
 | **Rectangle** | `useCanvasDragAndDrop` (shared) | Interactive: Drag-based drawing with preview, aspect ratio locking |
 | **Ellipse** | `useCanvasDragAndDrop` (shared) | Interactive: Drag-based drawing with preview, aspect ratio locking |
+| **Hand** | `useHandTool` (dedicated) | Navigation: Pan offset management, space key override, cursor states |
 
 **Architecture Benefits:**
 - **Dedicated hooks** for complex tools maintain clear separation of concerns
@@ -499,6 +503,7 @@ type Tool =
   | 'rectangle' 
   | 'ellipse'
   | 'eyedropper'
+  | 'hand'
   | 'your-new-tool'; // Add this line
 ```
 
@@ -550,6 +555,7 @@ export type ToolComponent =
   | 'PaintBucketTool'
   | 'RectangleTool'
   | 'EyedropperTool'
+  | 'HandTool'
   | 'YourNewTool'; // Add this
 ```
 
