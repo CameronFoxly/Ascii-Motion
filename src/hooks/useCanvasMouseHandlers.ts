@@ -5,6 +5,7 @@ import { useCanvasStore } from '../stores/canvasStore';
 import { useCanvasSelection } from './useCanvasSelection';
 import { useCanvasDragAndDrop } from './useCanvasDragAndDrop';
 import { useHandTool } from './useHandTool';
+import { useCanvasState } from './useCanvasState';
 
 export interface MouseHandlers {
   handleMouseDown: (event: React.MouseEvent<HTMLCanvasElement>) => void;
@@ -19,10 +20,11 @@ export interface MouseHandlers {
  * Routes mouse events to appropriate tool handlers
  */
 export const useCanvasMouseHandlers = (): MouseHandlers => {
-  const { activeTool } = useToolStore();
+  const { activeTool, selection, clearSelection } = useToolStore();
   const { canvasRef, spaceKeyDown, setIsDrawing, setMouseButtonDown, pasteMode, updatePastePosition, startPasteDrag, stopPasteDrag, cancelPasteMode, commitPaste } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
   const { width, height, cells, setCanvasData } = useCanvasStore();
+  const { moveState, commitMove, isPointInEffectiveSelection } = useCanvasState();
   
   // Import tool hooks
   const selectionHandlers = useCanvasSelection();
@@ -95,6 +97,24 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
       return;
     }
 
+    // Handle selection move mode interactions
+    if (moveState && activeTool === 'select') {
+      const { x, y } = getGridCoordinatesFromEvent(event);
+      
+      if (event.button === 0) { // Left click
+        // Check if click is inside the selection being moved
+        if (isPointInEffectiveSelection(x, y)) {
+          // Click inside selection - let normal selection handler manage it
+          // (This will continue the move operation)
+        } else {
+          // Click outside selection commits the move
+          commitMove();
+          clearSelection();
+          return;
+        }
+      }
+    }
+
     // Normal tool handling when not in paste mode
     switch (effectiveTool) {
       case 'hand':
@@ -114,7 +134,7 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
         dragAndDropHandlers.handleDrawingMouseDown(event);
         break;
     }
-  }, [effectiveTool, pasteMode, getGridCoordinatesFromEvent, startPasteDrag, cancelPasteMode, commitPaste, cells, setCanvasData, handToolHandlers, selectionHandlers, dragAndDropHandlers]);
+  }, [effectiveTool, activeTool, pasteMode, moveState, getGridCoordinatesFromEvent, startPasteDrag, cancelPasteMode, commitPaste, cells, setCanvasData, isPointInEffectiveSelection, commitMove, clearSelection, handToolHandlers, selectionHandlers, dragAndDropHandlers]);
 
   // Route mouse move to appropriate tool handler
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {

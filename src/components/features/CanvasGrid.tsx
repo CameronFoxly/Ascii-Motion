@@ -25,6 +25,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   const {
     moveState,
     commitMove,
+    cancelMove,
     setSelectionMode,
     setMoveState,
     setPendingSelectionStart,
@@ -59,15 +60,23 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
         setSpaceKeyDown(true);
       }
       
-      // Handle Escape key for committing moves and clearing selections
+      // Handle Escape key for canceling moves and clearing selections
       if (event.key === 'Escape' && selection.active && activeTool === 'select') {
         event.preventDefault();
         event.stopPropagation();
         
         if (moveState) {
-          // Commit move first, then clear selection
-          commitMove();
+          // Cancel move without committing changes
+          cancelMove();
         }
+        clearSelection();
+      }
+      
+      // Handle Enter key for committing moves
+      if (event.key === 'Enter' && moveState && activeTool === 'select') {
+        event.preventDefault();
+        event.stopPropagation();
+        commitMove();
         clearSelection();
       }
     };
@@ -90,7 +99,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
     };
-  }, [moveState, selection.active, activeTool, commitMove, clearSelection, setShiftKeyDown, setSpaceKeyDown]);
+  }, [moveState, selection.active, activeTool, commitMove, cancelMove, clearSelection, setShiftKeyDown, setSpaceKeyDown]);
 
   // Reset selection mode when tool changes
   useEffect(() => {

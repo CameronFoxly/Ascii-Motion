@@ -91,6 +91,15 @@ export const useCanvasState = () => {
     setJustCommittedMove(false);
   }, [moveState, setCell, width, height, canvasBackgroundColor, getTotalOffset, setMoveState, setJustCommittedMove]);
 
+  // Cancel move operation without committing changes
+  const cancelMove = useCallback(() => {
+    if (!moveState) return;
+
+    // Simply clear the move state without making any changes to the canvas
+    setMoveState(null);
+    setJustCommittedMove(false);
+  }, [moveState, setMoveState, setJustCommittedMove]);
+
   // Reset selection-related state when tool changes
   const resetSelectionState = useCallback(() => {
     if (moveState) {
@@ -144,6 +153,7 @@ export const useCanvasState = () => {
     getEffectiveSelectionBounds,
     isPointInEffectiveSelection,
     commitMove,
+    cancelMove,
     resetSelectionState,
     
     // State setters (from context)
