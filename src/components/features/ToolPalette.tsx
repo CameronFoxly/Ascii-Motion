@@ -11,7 +11,8 @@ import {
   Pipette, 
   Square,
   Circle,
-  Hand
+  Hand,
+  Lasso
 } from 'lucide-react';
 import type { Tool } from '../../types';
 
@@ -24,6 +25,7 @@ const TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; description:
   { id: 'eraser', name: 'Eraser', icon: <Eraser className="w-4 h-4" />, description: 'Remove characters' },
   { id: 'paintbucket', name: 'Fill', icon: <PaintBucket className="w-4 h-4" />, description: 'Fill connected areas' },
   { id: 'select', name: 'Select', icon: <MousePointer className="w-4 h-4" />, description: 'Select rectangular areas' },
+  { id: 'lasso', name: 'Lasso', icon: <Lasso className="w-4 h-4" />, description: 'Freeform selection tool' },
   { id: 'eyedropper', name: 'Eyedropper', icon: <Pipette className="w-4 h-4" />, description: 'Pick character/color' },
   { id: 'rectangle', name: 'Rectangle', icon: <Square className="w-4 h-4" />, description: 'Draw rectangles' },
   { id: 'ellipse', name: 'Ellipse', icon: <Circle className="w-4 h-4" />, description: 'Draw ellipses/circles' },

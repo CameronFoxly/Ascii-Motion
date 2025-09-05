@@ -3,6 +3,7 @@ import { useCanvasContext, useCanvasDimensions } from '../contexts/CanvasContext
 import { useToolStore } from '../stores/toolStore';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useCanvasSelection } from './useCanvasSelection';
+import { useCanvasLassoSelection } from './useCanvasLassoSelection';
 import { useCanvasDragAndDrop } from './useCanvasDragAndDrop';
 import { useHandTool } from './useHandTool';
 import { useCanvasState } from './useCanvasState';
@@ -20,14 +21,15 @@ export interface MouseHandlers {
  * Routes mouse events to appropriate tool handlers
  */
 export const useCanvasMouseHandlers = (): MouseHandlers => {
-  const { activeTool, selection, clearSelection } = useToolStore();
+  const { activeTool, clearSelection, clearLassoSelection } = useToolStore();
   const { canvasRef, spaceKeyDown, setIsDrawing, setMouseButtonDown, pasteMode, updatePastePosition, startPasteDrag, stopPasteDrag, cancelPasteMode, commitPaste } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
   const { width, height, cells, setCanvasData } = useCanvasStore();
-  const { moveState, commitMove, isPointInEffectiveSelection } = useCanvasState();
+  const { moveState, commitMove, isPointInEffectiveSelection, selectionMode } = useCanvasState();
   
   // Import tool hooks
   const selectionHandlers = useCanvasSelection();
+  const lassoSelectionHandlers = useCanvasLassoSelection();
   const dragAndDropHandlers = useCanvasDragAndDrop();
   const handToolHandlers = useHandTool();
 
@@ -97,19 +99,33 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
       return;
     }
 
-    // Handle selection move mode interactions
-    if (moveState && activeTool === 'select') {
+    // Handle selection move mode interactions ONLY for existing move operations
+    // (Don't interfere with clicks that start new move operations)
+    if (moveState && (activeTool === 'select' || activeTool === 'lasso') && selectionMode === 'moving') {
+      console.log('Main handler: moveState exists and selectionMode is moving, checking interaction for tool:', activeTool);
       const { x, y } = getGridCoordinatesFromEvent(event);
       
       if (event.button === 0) { // Left click
         // Check if click is inside the selection being moved
-        if (isPointInEffectiveSelection(x, y)) {
+        const isInsideSelection = activeTool === 'select' 
+          ? isPointInEffectiveSelection(x, y)
+          : lassoSelectionHandlers.isPointInLassoSelection(x, y);
+          
+        console.log('Main handler: isInsideSelection:', isInsideSelection, 'coords:', {x, y});
+          
+        if (isInsideSelection) {
+          console.log('Main handler: Click inside selection - letting normal handler manage it');
           // Click inside selection - let normal selection handler manage it
           // (This will continue the move operation)
         } else {
+          console.log('Main handler: Click outside selection - committing move');
           // Click outside selection commits the move
           commitMove();
-          clearSelection();
+          if (activeTool === 'select') {
+            clearSelection();
+          } else {
+            clearLassoSelection();
+          }
           return;
         }
       }
@@ -123,6 +139,9 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
       case 'select':
         selectionHandlers.handleSelectionMouseDown(event);
         break;
+      case 'lasso':
+        lassoSelectionHandlers.handleLassoMouseDown(event);
+        break;
       case 'rectangle':
         dragAndDropHandlers.handleRectangleMouseDown(event);
         break;
@@ -134,7 +153,7 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
         dragAndDropHandlers.handleDrawingMouseDown(event);
         break;
     }
-  }, [effectiveTool, activeTool, pasteMode, moveState, getGridCoordinatesFromEvent, startPasteDrag, cancelPasteMode, commitPaste, cells, setCanvasData, isPointInEffectiveSelection, commitMove, clearSelection, handToolHandlers, selectionHandlers, dragAndDropHandlers]);
+  }, [effectiveTool, activeTool, pasteMode, moveState, getGridCoordinatesFromEvent, startPasteDrag, cancelPasteMode, commitPaste, cells, setCanvasData, isPointInEffectiveSelection, commitMove, clearSelection, clearLassoSelection, handToolHandlers, selectionHandlers, lassoSelectionHandlers, dragAndDropHandlers]);
 
   // Route mouse move to appropriate tool handler
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -156,6 +175,9 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
       case 'select':
         selectionHandlers.handleSelectionMouseMove(event);
         break;
+      case 'lasso':
+        lassoSelectionHandlers.handleLassoMouseMove(event);
+        break;
       case 'rectangle':
         dragAndDropHandlers.handleRectangleMouseMove(event);
         break;
@@ -167,7 +189,7 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
         dragAndDropHandlers.handleDrawingMouseMove(event);
         break;
     }
-  }, [effectiveTool, pasteMode, getGridCoordinatesFromEvent, updatePastePosition, handToolHandlers, selectionHandlers, dragAndDropHandlers]);
+  }, [effectiveTool, pasteMode, getGridCoordinatesFromEvent, updatePastePosition, handToolHandlers, selectionHandlers, lassoSelectionHandlers, dragAndDropHandlers]);
 
   // Route mouse up to appropriate tool handler
   const handleMouseUp = useCallback((event?: React.MouseEvent<HTMLCanvasElement>) => {
@@ -180,12 +202,15 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
     // Normal tool handling when not in paste mode
     if (effectiveTool === 'hand' && event) {
       // Hand tool uses effectiveTool to handle space key override
-      handToolHandlers.handleHandMouseUp(event);
+      handToolHandlers.handleHandMouseUp();
     } else {
       // Other tools use activeTool for proper cleanup
       switch (activeTool) {
         case 'select':
           selectionHandlers.handleSelectionMouseUp();
+          break;
+        case 'lasso':
+          lassoSelectionHandlers.handleLassoMouseUp();
           break;
         case 'rectangle':
           dragAndDropHandlers.handleRectangleMouseUp();
@@ -200,7 +225,7 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
           break;
       }
     }
-  }, [effectiveTool, activeTool, pasteMode, stopPasteDrag, handToolHandlers, selectionHandlers, dragAndDropHandlers, setIsDrawing, setMouseButtonDown]);
+  }, [effectiveTool, activeTool, pasteMode, stopPasteDrag, handToolHandlers, selectionHandlers, lassoSelectionHandlers, dragAndDropHandlers, setIsDrawing, setMouseButtonDown]);
 
   return {
     handleMouseDown,

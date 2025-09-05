@@ -34,7 +34,7 @@ export const useCanvasRenderer = () => {
     getCell
   } = useCanvasStore();
 
-  const { activeTool, rectangleFilled } = useToolStore();
+  const { activeTool, rectangleFilled, lassoSelection } = useToolStore();
   const { getEllipsePoints } = useDrawingTool();
 
   // Use memoized grid for optimized rendering  
@@ -140,10 +140,13 @@ export const useCanvasRenderer = () => {
     // Draw moved cells at their new positions
     if (moveState && moveState.originalData.size > 0) {
       const totalOffset = getTotalOffset(moveState);
+      console.log('Renderer: Drawing moved cells with offset:', totalOffset, 'data size:', moveState.originalData.size);
       moveState.originalData.forEach((cell: Cell, key: string) => {
         const [origX, origY] = key.split(',').map(Number);
         const newX = origX + totalOffset.x;
         const newY = origY + totalOffset.y;
+        
+        console.log('Renderer: Moving cell from', [origX, origY], 'to', [newX, newY]);
         
         // Only draw if within bounds
         if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
@@ -207,6 +210,107 @@ export const useCanvasRenderer = () => {
           selectionData.height * effectiveCellSize
         );
         ctx.setLineDash([]);
+      }
+    }
+
+    // Draw lasso selection overlay
+    if (lassoSelection.active) {
+      if (lassoSelection.isDrawing && lassoSelection.path.length > 1) {
+        // Draw the lasso path being drawn
+        ctx.strokeStyle = '#A855F7'; // Purple
+        ctx.lineWidth = 2;
+        ctx.setLineDash([3, 3]);
+        
+        ctx.beginPath();
+        const firstPoint = lassoSelection.path[0];
+        ctx.moveTo(
+          (firstPoint.x + 0.5) * effectiveCellSize + panOffset.x,
+          (firstPoint.y + 0.5) * effectiveCellSize + panOffset.y
+        );
+        
+        for (let i = 1; i < lassoSelection.path.length; i++) {
+          const point = lassoSelection.path[i];
+          ctx.lineTo(
+            (point.x + 0.5) * effectiveCellSize + panOffset.x,
+            (point.y + 0.5) * effectiveCellSize + panOffset.y
+          );
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // Highlight selected cells
+      if (lassoSelection.selectedCells.size > 0) {
+        ctx.fillStyle = 'rgba(168, 85, 247, 0.2)'; // Purple highlight with transparency
+        
+        lassoSelection.selectedCells.forEach(cellKey => {
+          const [x, y] = cellKey.split(',').map(Number);
+          
+          // Apply move offset if in move mode
+          let displayX = x;
+          let displayY = y;
+          if (moveState) {
+            const totalOffset = getTotalOffset(moveState);
+            displayX = x + totalOffset.x;
+            displayY = y + totalOffset.y;
+          }
+          
+          // Only draw if within canvas bounds
+          if (displayX >= 0 && displayY >= 0 && displayX < width && displayY < height) {
+            ctx.fillRect(
+              displayX * effectiveCellSize + panOffset.x,
+              displayY * effectiveCellSize + panOffset.y,
+              effectiveCellSize,
+              effectiveCellSize
+            );
+          }
+        });
+
+        // Draw selection border for completed lasso
+        if (!lassoSelection.isDrawing && lassoSelection.path.length > 2) {
+          ctx.strokeStyle = '#A855F7'; // Purple border
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 5]);
+          
+          ctx.beginPath();
+          const firstPoint = lassoSelection.path[0];
+          
+          // Apply move offset to path if in move mode
+          let startX = firstPoint.x;
+          let startY = firstPoint.y;
+          if (moveState) {
+            const totalOffset = getTotalOffset(moveState);
+            startX = firstPoint.x + totalOffset.x;
+            startY = firstPoint.y + totalOffset.y;
+          }
+          
+          ctx.moveTo(
+            (startX + 0.5) * effectiveCellSize + panOffset.x,
+            (startY + 0.5) * effectiveCellSize + panOffset.y
+          );
+          
+          for (let i = 1; i < lassoSelection.path.length; i++) {
+            const point = lassoSelection.path[i];
+            let pathX = point.x;
+            let pathY = point.y;
+            
+            if (moveState) {
+              const totalOffset = getTotalOffset(moveState);
+              pathX = point.x + totalOffset.x;
+              pathY = point.y + totalOffset.y;
+            }
+            
+            ctx.lineTo(
+              (pathX + 0.5) * effectiveCellSize + panOffset.x,
+              (pathY + 0.5) * effectiveCellSize + panOffset.y
+            );
+          }
+          
+          // Close the path
+          ctx.closePath();
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
       }
     }
 
@@ -296,7 +400,8 @@ export const useCanvasRenderer = () => {
     getEllipsePoints,
     rectangleFilled,
     canvasBackgroundColor,
-    showGrid
+    showGrid,
+    lassoSelection
   ]);
 
   // Re-render when dependencies change

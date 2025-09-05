@@ -1,16 +1,22 @@
 import { create } from 'zustand';
-import type { Tool, ToolState, Selection } from '../types';
+import type { Tool, ToolState, Selection, LassoSelection } from '../types';
 import { DEFAULT_COLORS } from '../constants';
 
 interface ToolStoreState extends ToolState {
-  // Selection state
+  // Rectangular selection state
   selection: Selection;
+  
+  // Lasso selection state
+  lassoSelection: LassoSelection;
   
   // Pencil tool state for line drawing
   pencilLastPosition: { x: number; y: number } | null;
   
   // Clipboard for copy/paste
   clipboard: Map<string, any> | null;
+  
+  // Lasso clipboard for copy/paste
+  lassoClipboard: Map<string, any> | null;
   
   // History for undo/redo
   undoStack: Map<string, any>[];
@@ -31,15 +37,27 @@ interface ToolStoreState extends ToolState {
   // Pencil tool actions
   setPencilLastPosition: (position: { x: number; y: number } | null) => void;
   
-  // Selection actions
+  // Rectangular selection actions
   startSelection: (x: number, y: number) => void;
   updateSelection: (x: number, y: number) => void;
   clearSelection: () => void;
+  
+  // Lasso selection actions
+  startLassoSelection: () => void;
+  addLassoPoint: (x: number, y: number) => void;
+  updateLassoSelectedCells: (selectedCells: Set<string>) => void;
+  finalizeLassoSelection: () => void;
+  clearLassoSelection: () => void;
   
   // Clipboard actions
   copySelection: (canvasData: Map<string, any>) => void;
   pasteSelection: (x: number, y: number) => Map<string, any> | null;
   hasClipboard: () => boolean;
+  
+  // Lasso clipboard actions
+  copyLassoSelection: (canvasData: Map<string, any>) => void;
+  pasteLassoSelection: (offsetX: number, offsetY: number) => Map<string, any> | null;
+  hasLassoClipboard: () => boolean;
   
   // History actions
   pushToHistory: (canvasData: Map<string, any>) => void;
@@ -64,15 +82,26 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   // Pencil tool state
   pencilLastPosition: null,
   
-  // Selection state
+  // Rectangular selection state
   selection: {
     start: { x: 0, y: 0 },
     end: { x: 0, y: 0 },
     active: false
   },
   
+  // Lasso selection state
+  lassoSelection: {
+    path: [],
+    selectedCells: new Set<string>(),
+    active: false,
+    isDrawing: false
+  },
+  
   // Clipboard state
   clipboard: null,
+  
+  // Lasso clipboard state
+  lassoClipboard: null,
   
   // History state
   undoStack: [],
@@ -82,9 +111,12 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   // Tool actions
   setActiveTool: (tool: Tool) => {
     set({ activeTool: tool });
-    // Clear selection when switching tools (except select tool)
+    // Clear selections when switching tools (except select/lasso tools)
     if (tool !== 'select') {
       get().clearSelection();
+    }
+    if (tool !== 'lasso') {
+      get().clearLassoSelection();
     }
     // Clear pencil last position when switching tools
     if (tool !== 'pencil') {
@@ -142,6 +174,56 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     });
   },
 
+  // Lasso selection actions
+  startLassoSelection: () => {
+    set({
+      lassoSelection: {
+        path: [],
+        selectedCells: new Set<string>(),
+        active: true,
+        isDrawing: true
+      }
+    });
+  },
+
+  addLassoPoint: (x: number, y: number) => {
+    set((state) => ({
+      lassoSelection: {
+        ...state.lassoSelection,
+        path: [...state.lassoSelection.path, { x, y }]
+      }
+    }));
+  },
+
+  updateLassoSelectedCells: (selectedCells: Set<string>) => {
+    set((state) => ({
+      lassoSelection: {
+        ...state.lassoSelection,
+        selectedCells
+      }
+    }));
+  },
+
+  finalizeLassoSelection: () => {
+    set((state) => ({
+      lassoSelection: {
+        ...state.lassoSelection,
+        isDrawing: false
+      }
+    }));
+  },
+
+  clearLassoSelection: () => {
+    set({
+      lassoSelection: {
+        path: [],
+        selectedCells: new Set<string>(),
+        active: false,
+        isDrawing: false
+      }
+    });
+  },
+
   // Clipboard actions
   copySelection: (canvasData: Map<string, any>) => {
     const { selection } = get();
@@ -183,7 +265,65 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   },
 
   hasClipboard: () => {
-    return get().clipboard !== null && get().clipboard!.size > 0;
+    const state = get();
+    return (state.clipboard !== null && state.clipboard!.size > 0) || 
+           (state.lassoClipboard !== null && state.lassoClipboard!.size > 0);
+  },
+
+  // Lasso clipboard actions
+  copyLassoSelection: (canvasData: Map<string, any>) => {
+    const { lassoSelection } = get();
+    console.log('copyLassoSelection called:', { 
+      active: lassoSelection.active, 
+      selectedCells: lassoSelection.selectedCells.size 
+    });
+    
+    if (!lassoSelection.active || lassoSelection.selectedCells.size === 0) {
+      console.log('copyLassoSelection: No active lasso selection');
+      return;
+    }
+
+    const copiedData = new Map<string, any>();
+    
+    // Find bounds of the selected cells to create relative coordinates
+    const cellCoords = Array.from(lassoSelection.selectedCells).map(key => {
+      const [x, y] = key.split(',').map(Number);
+      return { x, y };
+    });
+    
+    const minX = Math.min(...cellCoords.map(c => c.x));
+    const minY = Math.min(...cellCoords.map(c => c.y));
+    
+    // Copy only the selected cells with relative coordinates
+    lassoSelection.selectedCells.forEach(key => {
+      const [x, y] = key.split(',').map(Number);
+      const relativeKey = `${x - minX},${y - minY}`;
+      if (canvasData.has(key)) {
+        copiedData.set(relativeKey, canvasData.get(key));
+      }
+    });
+
+    console.log('copyLassoSelection: Copied data size:', copiedData.size);
+    set({ lassoClipboard: copiedData });
+  },
+
+  pasteLassoSelection: (offsetX: number, offsetY: number) => {
+    const { lassoClipboard } = get();
+    if (!lassoClipboard) return null;
+
+    const pastedData = new Map<string, any>();
+    
+    lassoClipboard.forEach((cell, relativeKey) => {
+      const [relX, relY] = relativeKey.split(',').map(Number);
+      const absoluteKey = `${offsetX + relX},${offsetY + relY}`;
+      pastedData.set(absoluteKey, cell);
+    });
+
+    return pastedData;
+  },
+
+  hasLassoClipboard: () => {
+    return get().lassoClipboard !== null && get().lassoClipboard!.size > 0;
   },
 
   // History actions

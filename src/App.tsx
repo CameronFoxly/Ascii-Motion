@@ -19,7 +19,7 @@ import { useToolStore } from './stores/toolStore'
 function App() {
   const { width, height, getCellCount, clearCanvas, cells, setCanvasData } = useCanvasStore()
   const { frames, currentFrameIndex } = useAnimationStore()
-  const { activeTool, selectedChar, undo, redo, canUndo, canRedo, selection, hasClipboard, addToRedoStack, addToUndoStack } = useToolStore()
+  const { activeTool, selectedChar, undo, redo, canUndo, canRedo, selection, lassoSelection, hasClipboard, addToRedoStack, addToUndoStack } = useToolStore()
   
   // Proper undo function that captures current state
   const handleUndo = () => {
@@ -103,7 +103,7 @@ function App() {
                         variant="outline" 
                         size="sm" 
                         onClick={handleCopySelection}
-                        disabled={!selection?.active}
+                        disabled={!selection?.active && !lassoSelection?.active}
                         title="Copy selection (Cmd/Ctrl+C)"
                         className="flex items-center gap-2"
                       >

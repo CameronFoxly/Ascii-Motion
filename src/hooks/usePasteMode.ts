@@ -24,14 +24,24 @@ export interface PasteModeState {
  * Hook for managing enhanced paste mode with visual preview and positioning
  */
 export const usePasteMode = () => {
-  const { hasClipboard, clipboard, clearSelection } = useToolStore();
+  const { hasClipboard, clipboard, lassoClipboard, hasLassoClipboard, clearSelection, clearLassoSelection } = useToolStore();
   const [pasteMode, setPasteMode] = useState<PasteModeState>({
     isActive: false,
     preview: null,
     isDragging: false,
-    dragOffset: undefined,
     isPlaced: false
   });
+
+  // Get the active clipboard data (prioritize lasso clipboard if it has data)
+  const getActiveClipboard = useCallback(() => {
+    if (hasLassoClipboard() && lassoClipboard) {
+      return lassoClipboard;
+    }
+    if (clipboard) {
+      return clipboard;
+    }
+    return null;
+  }, [hasLassoClipboard, lassoClipboard, clipboard]);
 
   /**
    * Calculate bounds of clipboard data
@@ -58,19 +68,25 @@ export const usePasteMode = () => {
    * Start paste mode - show preview at specified position
    */
   const startPasteMode = useCallback((initialPosition: { x: number; y: number }) => {
-    if (!hasClipboard() || !clipboard) {
+    if (!hasClipboard()) {
       return false;
     }
 
-    // Clear any existing selection when entering paste mode
-    clearSelection();
+    const activeClipboard = getActiveClipboard();
+    if (!activeClipboard) {
+      return false;
+    }
 
-    const bounds = calculateClipboardBounds(clipboard);
+    // Clear any existing selections when entering paste mode
+    clearSelection();
+    clearLassoSelection();
+
+    const bounds = calculateClipboardBounds(activeClipboard);
     
     setPasteMode({
       isActive: true,
       preview: {
-        data: new Map(clipboard),
+        data: new Map(activeClipboard),
         position: initialPosition,
         bounds
       },
@@ -80,7 +96,7 @@ export const usePasteMode = () => {
     });
 
     return true;
-  }, [hasClipboard, clipboard, clearSelection, calculateClipboardBounds]);
+  }, [hasClipboard, getActiveClipboard, clearSelection, clearLassoSelection, calculateClipboardBounds]);
 
   /**
    * Update paste preview position

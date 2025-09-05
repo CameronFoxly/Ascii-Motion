@@ -137,6 +137,49 @@ src/
    - GIF generation for animations
    - MP4 export for video output
 
+### **🎯 ENHANCEMENT COMPLETED: Lasso Selection Tool (Sept 4, 2025)**
+✅ **Files Created/Modified:**
+- `src/types/index.ts` (ENHANCED) - Added 'lasso' tool type and LassoSelection interface
+- `src/stores/toolStore.ts` (ENHANCED) - Added lasso selection state and actions (separate from rectangular selection)
+- `src/utils/polygon.ts` (NEW) - Point-in-polygon algorithms and polygon utility functions (150 lines)
+- `src/hooks/useCanvasLassoSelection.ts` (NEW) - Dedicated lasso selection hook with complex multi-state behavior (180 lines)
+- `src/components/tools/LassoTool.tsx` (NEW) - Lasso tool component and status (45 lines)
+- `src/components/tools/index.ts` (ENHANCED) - Added LassoTool exports and types
+- `src/hooks/useToolBehavior.ts` (ENHANCED) - Added lasso tool routing and metadata
+- `src/components/features/ToolManager.tsx` (ENHANCED) - Added lasso tool component routing
+- `src/components/features/ToolStatusManager.tsx` (ENHANCED) - Added lasso tool status routing
+- `src/hooks/useCanvasMouseHandlers.ts` (ENHANCED) - Integrated lasso tool mouse handling
+- `src/hooks/useKeyboardShortcuts.ts` (ENHANCED) - Extended copy/paste to support lasso selections
+- `src/components/features/ToolPalette.tsx` (ENHANCED) - Added lasso tool button with Lasso icon
+- `src/hooks/useCanvasRenderer.ts` (ENHANCED) - Added complete lasso selection rendering (path drawing, cell highlighting, move preview)
+
+✅ **Features Implemented:**
+- **Freeform Drawing**: Click and drag to draw irregular selection paths
+- **True Point-in-Polygon**: Accurate irregular shape selection using ray casting algorithm
+- **Real-time Visual Feedback**: Shows both the drawn path and highlighted selected cells during creation
+- **Auto-close on Mouse Release**: Selection automatically completes when user releases mouse
+- **Complete Selection Workflow**: Selection mode → Move mode → Commit/Cancel (same as rectangular selection)
+- **Copy/Paste Integration**: Cmd/Ctrl+C and Cmd/Ctrl+V work with lasso selections
+- **Dual Clipboard System**: Separate clipboards for rectangular and lasso selections
+- **Move Mode with Preview**: Click inside lasso selection to move content with real-time preview
+- **Keyboard Shortcuts**: Escape to cancel, Enter to commit, consistent with existing patterns
+- **Proper Tool Integration**: Follows established 8-step tool creation pattern
+
+✅ **Technical Architecture:**
+- **Dedicated Hook Pattern**: `useCanvasLassoSelection` for complex multi-state tool behavior
+- **Complete State Separation**: Lasso selection state completely separate from rectangular selection
+- **Consistent Naming Convention**: All functions/variables prefixed with "Lasso" to prevent confusion
+- **Advanced Algorithms**: Point-in-polygon detection, polygon smoothing, cell intersection testing
+- **Performance Optimized**: Efficient polygon algorithms with bounding box optimization
+- **Visual Rendering**: Real-time path drawing, cell highlighting, move mode preview with proper offsets
+
+✅ **User Experience:**
+- **Professional Feel**: Matches behavior of advanced graphics editors
+- **Visual Clarity**: Purple path and highlight colors distinguish from rectangular selection
+- **Responsive Feedback**: Real-time visual feedback during drawing and moving
+- **Error Prevention**: Minimum 3 points required for valid lasso selection
+- **Intuitive Controls**: Natural click-drag-release workflow
+
 ### **🎯 ENHANCEMENT COMPLETED: Advanced Paste with Visual Preview (Sept 3, 2025)**
 ✅ **Files Created/Modified:**
 - `src/hooks/usePasteMode.ts` (NEW) - Advanced paste mode state management (188 lines)
@@ -244,7 +287,7 @@ src/
 
 #### New Drawing Tools
 - [ ] **Type Tool** - Text input and editing directly on canvas
-- [ ] **Lasso Selection** - Freeform selection tool for irregular shapes
+- [x] **Lasso Selection** ✅ **COMPLETE** - Freeform selection tool for irregular shapes (Sept 4, 2025)
 - [ ] **Select Same/Magic Wand** - Select similar cells (contiguous and non-contiguous modes)
 - [ ] **Re-Color Brush** - Change colors without affecting characters
 - [ ] **Pattern Brush** - Apply repeating patterns while drawing

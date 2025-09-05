@@ -60,6 +60,7 @@ export type Tool =
   | 'eraser' 
   | 'paintbucket' 
   | 'select' 
+  | 'lasso'
   | 'rectangle' 
   | 'ellipse'
   | 'eyedropper'
@@ -81,6 +82,13 @@ export interface Selection {
   start: { x: number; y: number };
   end: { x: number; y: number };
   active: boolean;
+}
+
+export interface LassoSelection {
+  path: { x: number; y: number }[];
+  selectedCells: Set<string>; // Cell keys "x,y" that are inside the polygon
+  active: boolean;
+  isDrawing: boolean; // Currently drawing the lasso path
 }
 
 export interface CharacterPalette {

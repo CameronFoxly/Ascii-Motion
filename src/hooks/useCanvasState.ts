@@ -9,8 +9,8 @@ import { useToolStore } from '../stores/toolStore';
  */
 export const useCanvasState = () => {
   const canvasContext = useCanvasContext();
-  const { width, height, setCell, canvasBackgroundColor } = useCanvasStore();
-  const { selection, activeTool } = useToolStore();
+  const { width, height, cells, setCanvasData, canvasBackgroundColor } = useCanvasStore();
+  const { selection, lassoSelection, activeTool } = useToolStore();
 
   const {
     cellSize,
@@ -66,30 +66,48 @@ export const useCanvasState = () => {
 
     // Commit move operation to canvas
   const commitMove = useCallback(() => {
-    if (!moveState || moveState.originalData.size === 0) return;
+    console.log('commitMove: Called');
+    if (!moveState) {
+      console.log('commitMove: No moveState to commit');
+      return;
+    }
 
-    // Clear the original positions of moved cells
+    console.log('commitMove: Committing move with', moveState.originalData.size, 'cells');
+    const totalOffset = {
+      x: moveState.baseOffset.x + moveState.currentOffset.x,
+      y: moveState.baseOffset.y + moveState.currentOffset.y
+    };
+    console.log('commitMove: Total offset:', totalOffset);
+
+    // Create a new canvas data map with the moved cells
+    const newCells = new Map(cells);
+
+    // Clear original positions
     moveState.originalData.forEach((_, key) => {
-      const [origX, origY] = key.split(',').map(Number);
-      setCell(origX, origY, { char: ' ', color: '#FFFFFF', bgColor: canvasBackgroundColor });
+      newCells.delete(key);
     });
-    
-    // Place the moved cells at their new positions
-    const totalOffset = getTotalOffset(moveState);
+
+    // Place cells at new positions
     moveState.originalData.forEach((cell, key) => {
       const [origX, origY] = key.split(',').map(Number);
       const newX = origX + totalOffset.x;
       const newY = origY + totalOffset.y;
       
+      console.log('commitMove: Moving cell from', [origX, origY], 'to', [newX, newY]);
+      
       // Only place if within bounds
       if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
-        setCell(newX, newY, cell);
+        newCells.set(`${newX},${newY}`, cell);
       }
     });
 
+    // Update canvas data
+    setCanvasData(newCells);
+
+    // Clear move state
     setMoveState(null);
-    setJustCommittedMove(false);
-  }, [moveState, setCell, width, height, canvasBackgroundColor, getTotalOffset, setMoveState, setJustCommittedMove]);
+    setJustCommittedMove(true);
+  }, [moveState, cells, width, height, setCanvasData, setMoveState, setJustCommittedMove]);
 
   // Cancel move operation without committing changes
   const cancelMove = useCallback(() => {
@@ -112,10 +130,13 @@ export const useCanvasState = () => {
 
   // Get status message for UI display
   const getStatusMessage = useCallback(() => {
-    if (activeTool === 'select' && selectionMode === 'moving') {
+    if ((activeTool === 'select' || activeTool === 'lasso') && selectionMode === 'moving') {
       return 'Moving selection - release to place';
     }
     if (activeTool === 'select' && moveState && selection.active) {
+      return 'Content moved - press Escape or click outside to commit';
+    }
+    if (activeTool === 'lasso' && moveState && lassoSelection.active) {
       return 'Content moved - press Escape or click outside to commit';
     }
     if (activeTool === 'select' && pendingSelectionStart) {
@@ -124,8 +145,11 @@ export const useCanvasState = () => {
     if (activeTool === 'select' && selection.active && selectionMode === 'none') {
       return 'Selection ready - copy/paste/move available';
     }
+    if (activeTool === 'lasso' && lassoSelection.active && selectionMode === 'none') {
+      return 'Lasso selection ready - copy/paste/move available';
+    }
     return `Cell size: ${cellSize}px`;
-  }, [activeTool, selectionMode, moveState, selection.active, pendingSelectionStart, cellSize]);
+  }, [activeTool, selectionMode, moveState, selection.active, lassoSelection.active, pendingSelectionStart, cellSize]);
 
   return {
     // State

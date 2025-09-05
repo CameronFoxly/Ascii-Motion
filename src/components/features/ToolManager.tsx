@@ -2,6 +2,7 @@ import React from 'react';
 import { useToolStore } from '../../stores/toolStore';
 import {
   SelectionTool,
+  LassoTool,
   DrawingTool,
   PaintBucketTool,
   RectangleTool,
@@ -21,6 +22,8 @@ export const ToolManager: React.FC = () => {
   switch (activeTool) {
     case 'select':
       return <SelectionTool />;
+    case 'lasso':
+      return <LassoTool />;
     case 'pencil':
     case 'eraser':
       return <DrawingTool />;

@@ -3,6 +3,7 @@ import { useToolStore } from '../../stores/toolStore';
 import { useCanvasContext } from '../../contexts/CanvasContext';
 import {
   SelectionToolStatus,
+  LassoToolStatus,
   DrawingToolStatus,
   PaintBucketToolStatus,
   RectangleToolStatus,
@@ -37,6 +38,8 @@ export const ToolStatusManager: React.FC = () => {
   switch (activeTool) {
     case 'select':
       return <SelectionToolStatus />;
+    case 'lasso':
+      return <LassoToolStatus />;
     case 'pencil':
     case 'eraser':
       return <DrawingToolStatus />;

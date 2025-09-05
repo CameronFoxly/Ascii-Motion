@@ -12,7 +12,7 @@ export const CanvasOverlay: React.FC = () => {
     getTotalOffset,
   } = useCanvasState();
 
-  const { selection } = useToolStore();
+  const { selection, lassoSelection } = useToolStore();
 
   // Render selection overlay
   const renderOverlay = useCallback(() => {
@@ -51,6 +51,37 @@ export const CanvasOverlay: React.FC = () => {
         (endX - startX + 1) * cellSize,
         (endY - startY + 1) * cellSize
       );
+      ctx.setLineDash([]);
+    }
+
+    // Draw lasso selection overlay
+    if (lassoSelection.active && lassoSelection.selectedCells.size > 0) {
+      ctx.strokeStyle = '#3B82F6';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+
+      // Draw individual cell highlights for lasso selection
+      lassoSelection.selectedCells.forEach(cellKey => {
+        const [x, y] = cellKey.split(',').map(Number);
+        
+        let cellX = x;
+        let cellY = y;
+        
+        // If moving, adjust the cell position by the move offset
+        if (moveState) {
+          const totalOffset = getTotalOffset(moveState);
+          cellX += totalOffset.x;
+          cellY += totalOffset.y;
+        }
+        
+        ctx.strokeRect(
+          cellX * cellSize,
+          cellY * cellSize,
+          cellSize,
+          cellSize
+        );
+      });
+      
       ctx.setLineDash([]);
     }
 

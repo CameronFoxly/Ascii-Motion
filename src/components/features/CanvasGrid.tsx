@@ -47,7 +47,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   useCanvasRenderer();
 
   const { width, height } = useCanvasStore();
-  const { selection, clearSelection } = useToolStore();
+  const { selection, lassoSelection, clearSelection, clearLassoSelection } = useToolStore();
 
   // Handle keyboard events for Escape and Shift keys
   useEffect(() => {
@@ -64,19 +64,28 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       }
       
       // Handle Escape key for canceling moves and clearing selections
-      if (event.key === 'Escape' && selection.active && activeTool === 'select') {
-        event.preventDefault();
-        event.stopPropagation();
-        
-        if (moveState) {
-          // Cancel move without committing changes
-          cancelMove();
+      if (event.key === 'Escape') {
+        if ((selection.active && activeTool === 'select') || (lassoSelection.active && activeTool === 'lasso')) {
+          event.preventDefault();
+          event.stopPropagation();
+          
+          if (moveState) {
+            // Cancel move without committing changes
+            cancelMove();
+          }
+          
+          // Clear the appropriate selection
+          if (selection.active) {
+            clearSelection();
+          }
+          if (lassoSelection.active) {
+            clearLassoSelection();
+          }
         }
-        clearSelection();
       }
       
       // Handle Enter key for committing moves
-      if (event.key === 'Enter' && moveState && activeTool === 'select') {
+      if (event.key === 'Enter' && moveState && (activeTool === 'select' || activeTool === 'lasso')) {
         event.preventDefault();
         event.stopPropagation();
         commitMove();
@@ -102,7 +111,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
     };
-  }, [moveState, selection.active, activeTool, commitMove, cancelMove, clearSelection, setShiftKeyDown, setSpaceKeyDown]);
+  }, [moveState, activeTool, commitMove, cancelMove]);
 
   // Reset selection mode when tool changes
   useEffect(() => {
