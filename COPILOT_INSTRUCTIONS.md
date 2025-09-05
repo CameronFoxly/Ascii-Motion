@@ -803,6 +803,79 @@ button { background: gray; } /* Overrides all button styling */
 - ❌ Skip the status component (users need feedback)
 - ❌ Forget to update TypeScript types
 
+### **🔐 Keyboard Shortcut Protection for Text Input Tools**
+
+**When creating tools that need text input (like the Text Tool), you MUST implement keyboard shortcut protection to prevent conflicts.**
+
+#### **Text Input Tools Must Protect Against:**
+- **Space Key Conflict**: Space bar normally triggers hand tool, but should type space during text input
+- **Single-Key Tool Hotkeys**: Future tool shortcuts (P for pencil, E for eraser, etc.) must be disabled during typing
+- **Modifier Key Preservation**: Ctrl+Z (undo), Ctrl+C (copy), etc. should still work during text input
+
+#### **Required Implementation Pattern:**
+
+**Step 1: Add Text State to Tool Store**
+```typescript
+// In src/stores/toolStore.ts
+interface TextToolState {
+  isTyping: boolean;
+  cursorPosition: { x: number; y: number } | null;
+  cursorVisible: boolean;
+  textBuffer: string;
+}
+```
+
+**Step 2: Protect Space Key in CanvasGrid**
+```typescript
+// In src/components/features/CanvasGrid.tsx
+const { textToolState } = useToolStore();
+
+// Handle Space key for temporary hand tool
+// Don't override space key if text tool is actively typing
+if ((event.key === ' ' || event.code === 'Space') && !textToolState.isTyping) {
+  event.preventDefault();
+  setSpaceKeyDown(true);
+}
+```
+
+**Step 3: Protect All Non-Modifier Keys in Keyboard Shortcuts**
+```typescript
+// In src/hooks/useKeyboardShortcuts.ts
+const handleKeyDown = useCallback((event: KeyboardEvent) => {
+  // If text tool is actively typing, only allow Escape and modifier-based shortcuts
+  if (textToolState.isTyping && !event.metaKey && !event.ctrlKey && event.key !== 'Escape') {
+    return; // Let the text tool handle all other keys
+  }
+  
+  // Continue with normal shortcut processing...
+}, [textToolState, /* other deps */]);
+```
+
+**Step 4: Add Cursor Rendering**
+```typescript
+// In src/hooks/useCanvasRenderer.ts
+// Add text cursor overlay after other overlays
+if (textToolState.isTyping && textToolState.cursorVisible && textToolState.cursorPosition) {
+  const { x, y } = textToolState.cursorPosition;
+  
+  if (x >= 0 && x < width && y >= 0 && y < height) {
+    ctx.fillStyle = '#A855F7'; // Purple to match other overlays
+    ctx.fillRect(
+      x * effectiveCellSize + panOffset.x,
+      y * effectiveCellSize + panOffset.y,
+      effectiveCellSize,
+      effectiveCellSize
+    );
+  }
+}
+```
+
+#### **✅ Benefits of This Pattern:**
+- **Future-Proof**: Automatically protects against any future single-key tool hotkeys
+- **User-Friendly**: Prevents frustrating keyboard conflicts during text input  
+- **Consistent**: Maintains expected behavior for modifier-based shortcuts
+- **Extensible**: Pattern can be reused for any tool requiring text input
+
 ### **❌ WRONG APPROACH - DON'T DO THIS**
 ```typescript
 // DON'T add tool-specific logic to CanvasGrid
@@ -1282,6 +1355,7 @@ const useCanvasStore = create<CanvasState>((set) => ({
 - ✅ **Shift Key Aspect Ratio Locking** - Rectangle and ellipse tools support Shift for squares/circles (Sept 3, 2025)
 - ✅ **Enhanced Pencil Tool** - Shift+click line drawing with Bresenham algorithm (Sept 3, 2025)
 - ✅ **Lasso Selection Tool** - Complete freeform selection with precise center-based detection (Sept 4-5, 2025)
+- ✅ **Text Tool** - Complete text input with blinking cursor, word-based undo, and keyboard shortcut protection (Sept 5, 2025)
 
 **Step 5.1 Completion - Performance Optimizations**:
 - ✅ CellRenderer.tsx: Memoized cell rendering component
@@ -1311,11 +1385,14 @@ const useCanvasStore = create<CanvasState>((set) => ({
 
 **Final Architecture Achievements**:
 - Total CanvasGrid reduction: 501 → 111 lines (~78% reduction)
-- 8 specialized hooks created for canvas functionality (including performance)
-- 5 tool components created for extensible tool system
+- 10+ specialized hooks created for canvas functionality (including performance, text input, lasso selection)
+- 8+ tool components created for extensible tool system
 - Complete separation of concerns: state, interaction, rendering, tools, performance
-- Pattern established for easy addition of new tools
+- Pattern established for easy addition of new tools (8-step guide)
+- Keyboard shortcut protection system for text input tools
 - Performance optimizations support large grids (200x100+ cells)
+- Advanced selection tools (rectangular, lasso) with move functionality
+- Text input tool with cursor rendering and conflict-free operation
 - Ready for Steps 5.2-5.3 and Phase 2: Animation System
 **When Working with Canvas Components (Post Step 5.1):**
 1. **Use CanvasProvider** - Wrap canvas components in context
@@ -1325,10 +1402,11 @@ const useCanvasStore = create<CanvasState>((set) => ({
 5. **Use performance tools** - Import and use performance measurement utilities in development
 6. **Follow memoization patterns** - Use React.memo, useMemo, useCallback for expensive operations
 7. **Follow tool component pattern** - Use the 8-step guide above for ALL new tools
-8. **Test large grids** - Use PerformanceMonitor to validate performance on 200x100+ grids
-9. **Follow the pattern** - Reference existing refactored code for consistency
-10. **Check DEVELOPMENT.md** - Always review current step status before changes
-11. **📋 UPDATE DOCS** - Complete documentation protocol after ANY architectural change
+8. **Implement keyboard protection** - For text input tools, use the keyboard shortcut protection pattern
+9. **Test large grids** - Use PerformanceMonitor to validate performance on 200x100+ grids
+10. **Follow the pattern** - Reference existing refactored code for consistency
+11. **Check DEVELOPMENT.md** - Always review current step status before changes
+12. **📋 UPDATE DOCS** - Complete documentation protocol after ANY architectural change
 
 **🚨 STOP: Before finishing ANY canvas work, have you updated the documentation?**
 

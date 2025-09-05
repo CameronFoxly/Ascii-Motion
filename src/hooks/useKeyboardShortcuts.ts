@@ -26,10 +26,17 @@ export const useKeyboardShortcuts = () => {
     addToUndoStack,
     activeTool,
     hasClipboard,
-    hasLassoClipboard
+    hasLassoClipboard,
+    textToolState
   } = useToolStore();
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    // If text tool is actively typing, only allow Escape and modifier-based shortcuts
+    // This prevents conflicts with single-key tool hotkeys and the space bar
+    if (textToolState.isTyping && !event.metaKey && !event.ctrlKey && event.key !== 'Escape') {
+      return; // Let the text tool handle all other keys
+    }
+
     // Handle Escape key (without modifier)
     if (event.key === 'Escape') {
       // Let CanvasGrid handle Escape when selection tool is active (for move commits)
@@ -171,7 +178,8 @@ export const useKeyboardShortcuts = () => {
     commitPaste,
     pasteMode,
     hasClipboard,
-    hasLassoClipboard
+    hasLassoClipboard,
+    textToolState
   ]);
 
   useEffect(() => {

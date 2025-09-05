@@ -18,7 +18,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   const { canvasRef, setMouseButtonDown, setShiftKeyDown, setSpaceKeyDown, spaceKeyDown } = useCanvasContext();
   
   // Get active tool and tool behavior
-  const { activeTool } = useToolStore();
+  const { activeTool, textToolState } = useToolStore();
   const { getToolCursor } = useToolBehavior();
   
   // Track previous tool for cleanup on tool changes
@@ -61,7 +61,8 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       }
       
       // Handle Space key for temporary hand tool
-      if (event.key === ' ' || event.code === 'Space') {
+      // Don't override space key if text tool is actively typing
+      if ((event.key === ' ' || event.code === 'Space') && !textToolState.isTyping) {
         event.preventDefault(); // Prevent page scrolling
         setSpaceKeyDown(true);
       }
@@ -109,7 +110,8 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       }
       
       // Handle Space key release
-      if (event.key === ' ' || event.code === 'Space') {
+      // Only handle space release if we were handling space press (text tool not typing)
+      if ((event.key === ' ' || event.code === 'Space') && !textToolState.isTyping) {
         setSpaceKeyDown(false);
       }
     };

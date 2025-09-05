@@ -3,7 +3,7 @@ src/
 ├── components/
 │   ├── common/         # Shared/reusable components (CellRenderer, PerformanceMonitor, ThemeToggle)
 │   ├── features/       # Complex components (CanvasGrid, CanvasRenderer, CanvasOverlay, CanvasWithShortcuts, ToolPalette, CharacterPalette, ColorPicker)
-│   ├── tools/          # Tool-specific components (SelectionTool, DrawingTool, RectangleTool, PaintBucketTool, EyedropperTool)
+│   ├── tools/          # Tool-specific components (SelectionTool, DrawingTool, LassoTool, TextTool, RectangleTool, EllipseTool, PaintBucketTool, EyedropperTool)
 │   └── ui/             # Shadcn UI components
 ├── stores/             # Zustand state management
 │   ├── canvasStore.ts  # Canvas data and operations
@@ -42,7 +42,7 @@ src/
 ├── components/
 │   ├── common/         # Shared/reusable components (CellRenderer, PerformanceMonitor, ThemeToggle)
 │   ├── features/       # Complex components (CanvasGrid, CanvasRenderer, CanvasOverlay, CanvasWithShortcuts, ToolPalette, CharacterPalette, ColorPicker)
-│   ├── tools/          # Tool-specific components (SelectionTool, DrawingTool, RectangleTool, PaintBucketTool, EyedropperTool)
+│   ├── tools/          # Tool-specific components (SelectionTool, DrawingTool, LassoTool, TextTool, RectangleTool, EllipseTool, PaintBucketTool, EyedropperTool)
 │   └── ui/             # Shadcn UI components
 ├── stores/             # Zustand state management
 │   ├── canvasStore.ts  # Canvas data and operations
@@ -89,7 +89,7 @@ src/
 - [x] **Aspect Ratio Locking** - Shift key constraints for rectangle and ellipse tools (Sept 3, 2025)
 - [x] **Enhanced Pencil Tool** - Shift+click line drawing functionality (Sept 3, 2025)
 - [x] **Zoom and Navigation System** - Complete zoom/pan controls with space key override (Sept 4, 2025)
-- [x] Keyboard shortcuts (Cmd/Ctrl+C, Cmd/Ctrl+V, Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Space for hand tool)
+- [x] Keyboard shortcuts (Cmd/Ctrl+C, Cmd/Ctrl+V, Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Space for hand tool with text tool protection)
 
 ## 🔄 **Phase 1.5 COMPLETE - Enhanced Toolset Next**
 
@@ -189,6 +189,58 @@ src/
 - **useEffect Dependency Issue**: Fixed infinite commit loops by properly managing dependency arrays
 - **Tool Switching State Corruption**: Added proper cleanup logic for move states when switching tools
 - **React Passive Effects Race Condition**: Identified and fixed immediate commits caused by useEffect timing
+
+### **🎯 ENHANCEMENT COMPLETED: Text Tool (Sept 5, 2025)**
+✅ **Status**: COMPLETE - Full text input functionality with keyboard shortcut protection and visual cursor
+✅ **Files Created/Modified:**
+- `src/types/index.ts` (ENHANCED) - Added 'text' tool type and TextToolState interface
+- `src/stores/toolStore.ts` (ENHANCED) - Added text tool state and actions (startTyping, stopTyping, etc.)
+- `src/hooks/useTextTool.ts` (NEW) - Dedicated text tool hook with comprehensive text input logic (280+ lines)
+- `src/components/tools/TextTool.tsx` (NEW) - Text tool component with global keyboard listener (65 lines)
+- `src/components/tools/index.ts` (ENHANCED) - Added TextTool exports and types
+- `src/hooks/useToolBehavior.ts` (ENHANCED) - Added text tool routing and metadata
+- `src/components/features/ToolManager.tsx` (ENHANCED) - Added text tool component routing
+- `src/components/features/ToolStatusManager.tsx` (ENHANCED) - Added text tool status routing
+- `src/hooks/useCanvasMouseHandlers.ts` (ENHANCED) - Integrated text tool click handling
+- `src/hooks/useCanvasRenderer.ts` (ENHANCED) - Added purple blinking cursor rendering
+- `src/components/features/ToolPalette.tsx` (ENHANCED) - Added text tool button with Type icon
+- `src/components/features/CanvasGrid.tsx` (ENHANCED) - Protected space key from hand tool when typing
+- `src/hooks/useKeyboardShortcuts.ts` (ENHANCED) - Protected all non-modifier keys when typing
+
+✅ **Features Implemented:**
+- **Click to Position**: Click anywhere on canvas to start typing at that location
+- **Live Text Input**: Characters appear immediately as you type with real-time visual feedback
+- **Blinking Purple Cursor**: Visual cursor that blinks every 500ms when typing is active
+- **Arrow Key Navigation**: Move cursor around with arrow keys within canvas boundaries
+- **Word-based Undo**: Undo operations work on whole words, not individual characters
+- **Boundary Constraints**: Cursor and text are constrained within canvas boundaries
+- **Tool Persistence**: Text tool stays active until manually switched to another tool
+- **Paste Support**: Clipboard paste works with word-based undo batching
+- **Keyboard Shortcut Protection**: Space key and all single-key shortcuts disabled during typing
+- **Modifier Key Pass-through**: Ctrl+Z, Cmd+C, etc. still work while typing
+
+✅ **Technical Architecture:**
+- **Dedicated Hook Pattern**: `useTextTool` for complex text input behavior (280+ lines)
+- **Complete State Management**: TextToolState with isTyping, cursorPosition, textBuffer, and cursorVisible
+- **Word Boundary Detection**: Smart word detection using comprehensive character set
+- **Cursor Blink Animation**: setInterval-based blink with proper cleanup
+- **Global Keyboard Listener**: Document-level keyboard handling for seamless text input
+- **Keyboard Conflict Resolution**: Intelligent hotkey protection during active typing
+- **Visual Cursor Integration**: Purple cursor rendering in useCanvasRenderer matching selection theme
+- **Boundary Validation**: Smart cursor positioning that respects canvas dimensions
+
+✅ **User Experience:**
+- **Professional Text Editor Feel**: Immediate text input with visual cursor feedback
+- **Predictable Behavior**: Word-based undo matching user expectations
+- **Visual Consistency**: Purple cursor matches other selection tool highlighting
+- **Conflict-free Operation**: No interference with space bar or future tool hotkeys
+- **Seamless Integration**: Works naturally with existing copy/paste and undo systems
+- **Intuitive Workflow**: Click to place cursor, type to add text, arrow keys to navigate
+
+✅ **Future-Ready Design:**
+- **Hotkey Infrastructure**: Foundation established for single-key tool shortcuts
+- **Extensible Pattern**: Text tool follows established 8-step tool creation pattern
+- **Modifier Key Preservation**: Essential shortcuts remain available during text input
 
 ### **🎯 ENHANCEMENT COMPLETED: Advanced Paste with Visual Preview (Sept 3, 2025)**
 ✅ **Files Created/Modified:**
@@ -300,7 +352,7 @@ src/
 **Goal**: Complete the art creation toolset before moving to animation features
 
 #### New Drawing Tools
-- [ ] **Type Tool** - Text input and editing directly on canvas
+- [x] **Text Tool** ✅ **COMPLETE** - Text input and editing directly on canvas (Sept 5, 2025)
 - [x] **Lasso Selection** ✅ **COMPLETE** - Freeform selection tool for irregular shapes (Sept 5, 2025)
 - [ ] **Select Same/Magic Wand** - Select similar cells (contiguous and non-contiguous modes)
 - [ ] **Re-Color Brush** - Change colors without affecting characters
@@ -938,10 +990,12 @@ src/components/features/
 src/components/tools/
   SelectionTool.tsx           (53 lines - Selection behavior & status)
   DrawingTool.tsx             (42 lines - Pencil/eraser behavior & status)
+  LassoTool.tsx               (45 lines - Lasso selection behavior & status)
   EllipseTool.tsx             (31 lines - Ellipse drawing behavior & status)
   PaintBucketTool.tsx         (30 lines - Fill tool behavior & status)
   RectangleTool.tsx           (30 lines - Rectangle behavior & status)
   EyedropperTool.tsx          (26 lines - Eyedropper behavior & status)
+  TextTool.tsx                (65 lines - Text input behavior & status)
   index.ts                    (11 lines - Tool exports)
 
 src/contexts/
@@ -951,6 +1005,8 @@ src/hooks/
   useCanvasState.ts           (138 lines - State management & helpers)
   useCanvasMouseHandlers.ts   (123 lines - Mouse event routing)
   useCanvasSelection.ts       (185 lines - Selection tool logic)
+  useCanvasLassoSelection.ts  (268 lines - Lasso selection tool logic)
+  useTextTool.ts              (280+ lines - Text input tool logic)
   useCanvasDragAndDrop.ts     (Enhanced - Drawing/rectangle/ellipse tools with aspect ratio constraints)
   useCanvasRenderer.ts        (159 lines - Grid & overlay rendering)
   useToolBehavior.ts          (109 lines - Tool coordination & metadata)
@@ -960,6 +1016,7 @@ src/hooks/
 
 src/utils/
   performance.ts              (257 lines - Performance measurement utilities)
+  polygon.ts                  (150 lines - Point-in-polygon algorithms and polygon utilities)
 ```
 
 **Architecture Achievement**: Successfully transformed a 501-line monolithic component into a modular, performant system with 20+ focused components and hooks.
