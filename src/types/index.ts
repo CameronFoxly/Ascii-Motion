@@ -91,6 +91,14 @@ export interface LassoSelection {
   isDrawing: boolean; // Currently drawing the lasso path
 }
 
+export interface TextToolState {
+  isTyping: boolean;
+  cursorPosition: { x: number; y: number } | null;
+  cursorVisible: boolean; // For blink animation
+  textBuffer: string; // Current word being typed for undo batching
+  lineStartX: number; // Starting X position for line returns
+}
+
 export interface CharacterPalette {
   categories: {
     [key: string]: string[];

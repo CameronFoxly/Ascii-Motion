@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Tool, ToolState, Selection, LassoSelection } from '../types';
+import type { Tool, ToolState, Selection, LassoSelection, TextToolState } from '../types';
 import { DEFAULT_COLORS } from '../constants';
 
 interface ToolStoreState extends ToolState {
@@ -8,6 +8,9 @@ interface ToolStoreState extends ToolState {
   
   // Lasso selection state
   lassoSelection: LassoSelection;
+  
+  // Text tool state
+  textToolState: TextToolState;
   
   // Pencil tool state for line drawing
   pencilLastPosition: { x: number; y: number } | null;
@@ -59,6 +62,15 @@ interface ToolStoreState extends ToolState {
   pasteLassoSelection: (offsetX: number, offsetY: number) => Map<string, any> | null;
   hasLassoClipboard: () => boolean;
   
+  // Text tool actions
+  startTyping: (x: number, y: number) => void;
+  stopTyping: () => void;
+  setCursorPosition: (x: number, y: number) => void;
+  setCursorVisible: (visible: boolean) => void;
+  setTextBuffer: (buffer: string) => void;
+  setLineStartX: (x: number) => void;
+  commitWord: () => void;
+  
   // History actions
   pushToHistory: (canvasData: Map<string, any>) => void;
   undo: () => Map<string, any> | undefined;
@@ -97,6 +109,15 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     isDrawing: false
   },
   
+  // Text tool state
+  textToolState: {
+    isTyping: false,
+    cursorPosition: null,
+    cursorVisible: true,
+    textBuffer: '',
+    lineStartX: 0
+  },
+  
   // Clipboard state
   clipboard: null,
   
@@ -121,6 +142,10 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     // Clear pencil last position when switching tools
     if (tool !== 'pencil') {
       get().setPencilLastPosition(null);
+    }
+    // Stop typing when switching away from text tool
+    if (tool !== 'text') {
+      get().stopTyping();
     }
   },
 
@@ -407,5 +432,78 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   },
 
   canUndo: () => get().undoStack.length > 0,
-  canRedo: () => get().redoStack.length > 0
+  canRedo: () => get().redoStack.length > 0,
+  
+  // Text tool actions
+  startTyping: (x: number, y: number) => {
+    set({
+      textToolState: {
+        ...get().textToolState,
+        isTyping: true,
+        cursorPosition: { x, y },
+        cursorVisible: true,
+        textBuffer: '',
+        lineStartX: x
+      }
+    });
+  },
+
+  stopTyping: () => {
+    set({
+      textToolState: {
+        ...get().textToolState,
+        isTyping: false,
+        cursorPosition: null,
+        cursorVisible: true,
+        textBuffer: ''
+      }
+    });
+  },
+
+  setCursorPosition: (x: number, y: number) => {
+    set({
+      textToolState: {
+        ...get().textToolState,
+        cursorPosition: { x, y },
+        cursorVisible: true // Reset blink on move
+      }
+    });
+  },
+
+  setCursorVisible: (visible: boolean) => {
+    set({
+      textToolState: {
+        ...get().textToolState,
+        cursorVisible: visible
+      }
+    });
+  },
+
+  setTextBuffer: (buffer: string) => {
+    set({
+      textToolState: {
+        ...get().textToolState,
+        textBuffer: buffer
+      }
+    });
+  },
+
+  setLineStartX: (x: number) => {
+    set({
+      textToolState: {
+        ...get().textToolState,
+        lineStartX: x
+      }
+    });
+  },
+
+  commitWord: () => {
+    // Clear the text buffer after committing a word for undo
+    set({
+      textToolState: {
+        ...get().textToolState,
+        textBuffer: ''
+      }
+    });
+  }
 }));

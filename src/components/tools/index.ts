@@ -7,6 +7,7 @@ export { RectangleTool, RectangleToolStatus } from './RectangleTool';
 export { EllipseTool, EllipseToolStatus } from './EllipseTool';
 export { EyedropperTool, EyedropperToolStatus } from './EyedropperTool';
 export { HandTool, HandToolStatus } from './HandTool';
+export { TextTool, TextToolStatus } from './TextTool';
 
 // Tool Types
 export type ToolComponent = 
@@ -17,4 +18,5 @@ export type ToolComponent =
   | 'RectangleTool'
   | 'EllipseTool'
   | 'EyedropperTool'
-  | 'HandTool';
+  | 'HandTool'
+  | 'TextTool';

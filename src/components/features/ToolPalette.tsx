@@ -12,7 +12,8 @@ import {
   Square,
   Circle,
   Hand,
-  Lasso
+  Lasso,
+  Type
 } from 'lucide-react';
 import type { Tool } from '../../types';
 
@@ -29,6 +30,7 @@ const TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; description:
   { id: 'eyedropper', name: 'Eyedropper', icon: <Pipette className="w-4 h-4" />, description: 'Pick character/color' },
   { id: 'rectangle', name: 'Rectangle', icon: <Square className="w-4 h-4" />, description: 'Draw rectangles' },
   { id: 'ellipse', name: 'Ellipse', icon: <Circle className="w-4 h-4" />, description: 'Draw ellipses/circles' },
+  { id: 'text', name: 'Text', icon: <Type className="w-4 h-4" />, description: 'Type text directly' },
   { id: 'hand', name: 'Hand', icon: <Hand className="w-4 h-4" />, description: 'Pan canvas view' },
 ];
 

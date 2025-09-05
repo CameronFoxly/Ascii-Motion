@@ -6,6 +6,7 @@ import { useCanvasSelection } from './useCanvasSelection';
 import { useCanvasLassoSelection } from './useCanvasLassoSelection';
 import { useCanvasDragAndDrop } from './useCanvasDragAndDrop';
 import { useHandTool } from './useHandTool';
+import { useTextTool } from './useTextTool';
 import { useCanvasState } from './useCanvasState';
 
 export interface MouseHandlers {
@@ -32,6 +33,7 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
   const lassoSelectionHandlers = useCanvasLassoSelection();
   const dragAndDropHandlers = useCanvasDragAndDrop();
   const handToolHandlers = useHandTool();
+  const textToolHandlers = useTextTool();
 
   // Determine effective tool (space key overrides with hand tool)
   const effectiveTool = spaceKeyDown ? 'hand' : activeTool;
@@ -142,6 +144,10 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
         break;
       case 'ellipse':
         dragAndDropHandlers.handleEllipseMouseDown(event);
+        break;
+      case 'text':
+        const coords = getGridCoordinatesFromEvent(event);
+        textToolHandlers.handleTextToolClick(coords.x, coords.y);
         break;
       default:
         // For basic drawing tools (pencil, eraser, eyedropper, paintbucket)

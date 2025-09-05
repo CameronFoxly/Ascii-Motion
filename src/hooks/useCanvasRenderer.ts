@@ -35,7 +35,7 @@ export const useCanvasRenderer = () => {
     getCell
   } = useCanvasStore();
 
-  const { activeTool, rectangleFilled, lassoSelection } = useToolStore();
+  const { activeTool, rectangleFilled, lassoSelection, textToolState } = useToolStore();
   const { getEllipsePoints } = useDrawingTool();
 
   // Use memoized grid for optimized rendering  
@@ -384,6 +384,22 @@ export const useCanvasRenderer = () => {
       ctx.globalAlpha = 1.0;
     }
 
+    // Draw text cursor overlay
+    if (textToolState.isTyping && textToolState.cursorVisible && textToolState.cursorPosition) {
+      const { x, y } = textToolState.cursorPosition;
+      
+      // Only draw cursor if within canvas bounds
+      if (x >= 0 && x < width && y >= 0 && y < height) {
+        ctx.fillStyle = '#A855F7'; // Purple color to match other overlays
+        ctx.fillRect(
+          x * effectiveCellSize + panOffset.x,
+          y * effectiveCellSize + panOffset.y,
+          effectiveCellSize,
+          effectiveCellSize
+        );
+      }
+    }
+
     // Finish performance measurement
     const totalCells = width * height;
     finishCanvasRender(totalCells);
@@ -409,7 +425,8 @@ export const useCanvasRenderer = () => {
     rectangleFilled,
     canvasBackgroundColor,
     showGrid,
-    lassoSelection
+    lassoSelection,
+    textToolState
   ]);
 
   // Re-render when dependencies change
