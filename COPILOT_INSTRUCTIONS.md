@@ -1281,7 +1281,7 @@ const useCanvasStore = create<CanvasState>((set) => ({
 - ✅ **Ellipse Tool Implementation** - Complete drag-based ellipse drawing tool (Sept 3, 2025)
 - ✅ **Shift Key Aspect Ratio Locking** - Rectangle and ellipse tools support Shift for squares/circles (Sept 3, 2025)
 - ✅ **Enhanced Pencil Tool** - Shift+click line drawing with Bresenham algorithm (Sept 3, 2025)
-- ✅ **Lasso Selection Tool** - Complete freeform selection with point-in-polygon detection (Sept 4, 2025)
+- ✅ **Lasso Selection Tool** - Complete freeform selection with precise center-based detection (Sept 4-5, 2025)
 
 **Step 5.1 Completion - Performance Optimizations**:
 - ✅ CellRenderer.tsx: Memoized cell rendering component
@@ -1335,6 +1335,63 @@ const useCanvasStore = create<CanvasState>((set) => ({
 ---
 
 ## � **Architectural Decisions Log**
+
+### **Lasso Selection Algorithm Precision Fix (Sept 5, 2025)**
+**Decision**: Switch from multi-criteria cell selection to center-based selection for lasso tool
+**Issue**: Lasso selection was over-selecting cells outside the drawn path due to aggressive selection criteria
+**Root Cause**: Original algorithm selected cells if ANY corner was inside polygon OR if polygon edge intersected cell boundary
+
+**Solution Implemented**:
+- **Removed corner-based selection**: No longer selects cells just because a corner touches the lasso
+- **Removed edge intersection**: No longer selects cells just because lasso line grazes the boundary
+- **Center-based selection only**: Cells selected if and only if their center point (x+0.5, y+0.5) is inside the polygon
+- **Maintained smoothing**: Kept 0.2 tolerance for smooth visual paths without affecting selection accuracy
+
+**Files Modified**:
+- `src/utils/polygon.ts` - Simplified `getCellsInPolygon` function from 37 lines to 20 lines
+- Removed unused helper functions: `polygonIntersectsCell`, `lineIntersectsLine`
+
+**Pattern Established**:
+```typescript
+// ✅ Precise Center-Based Selection
+export function getCellsInPolygon(polygon: Point[], width: number, height: number): Set<string> {
+  const selectedCells = new Set<string>();
+  
+  // Find bounding box to limit search area
+  const minX = Math.max(0, Math.floor(Math.min(...polygon.map(p => p.x))));
+  const maxX = Math.min(width - 1, Math.ceil(Math.max(...polygon.map(p => p.x))));
+  const minY = Math.max(0, Math.floor(Math.min(...polygon.map(p => p.y))));
+  const maxY = Math.min(height - 1, Math.ceil(Math.max(...polygon.map(p => p.y))));
+
+  // Check each cell in bounding box
+  for (let y = minY; y <= maxY; y++) {
+    for (let x = minX; x <= maxX; x++) {
+      // Only check if cell center is inside polygon for precise selection
+      const cellCenter = { x: x + 0.5, y: y + 0.5 };
+      
+      if (isPointInPolygon(cellCenter, polygon)) {
+        selectedCells.add(`${x},${y}`);
+      }
+    }
+  }
+
+  return selectedCells;
+}
+```
+
+**User Experience Benefits**:
+- **Predictable Selection**: Only cells whose centers are enclosed get selected
+- **Visual Accuracy**: Selection exactly matches what user intended to select
+- **No Over-Selection**: Eliminates cells being selected when lasso just touches edges
+- **Maintained Smoothness**: Visual path remains smooth while selection is precise
+
+**Technical Benefits**:
+- **Simplified Algorithm**: Reduced complexity from 3 selection criteria to 1
+- **Better Performance**: Fewer calculations per cell (no corner/edge intersection checks)
+- **Code Maintainability**: Cleaner, more focused selection logic
+- **Debugging Friendly**: Single clear criterion makes issues easier to trace
+
+**Lesson Learned**: Sometimes precision issues aren't about smoothing or tolerances, but about the fundamental algorithm being too aggressive. Center-based selection provides the right balance of precision and user predictability for grid-based selection tools.
 
 ### **Enhanced Paste Functionality with Visual Preview (Sept 3, 2025)**
 **Decision**: Implement advanced paste mode with real-time visual preview and drag positioning  

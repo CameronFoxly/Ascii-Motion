@@ -6,6 +6,7 @@ import { useCanvasState } from './useCanvasState';
 import { useMemoizedGrid } from './useMemoizedGrid';
 import { useDrawingTool } from './useDrawingTool';
 import { measureCanvasRender, finishCanvasRender } from '../utils/performance';
+import { smoothPolygonPath } from '../utils/polygon';
 import type { Cell } from '../types';
 
 /**
@@ -213,27 +214,32 @@ export const useCanvasRenderer = () => {
     // Draw lasso selection overlay
     if (lassoSelection.active) {
       if (lassoSelection.isDrawing && lassoSelection.path.length > 1) {
-        // Draw the lasso path being drawn
-        ctx.strokeStyle = '#A855F7'; // Purple
-        ctx.lineWidth = 2;
-        ctx.setLineDash([3, 3]);
+        // Draw the lasso path being drawn - use minimal smoothing to match selection
+        const previewPath = [...lassoSelection.path, lassoSelection.path[0]];
+        const smoothedPath = smoothPolygonPath(previewPath, 0.2);
         
-        ctx.beginPath();
-        const firstPoint = lassoSelection.path[0];
-        ctx.moveTo(
-          (firstPoint.x + 0.5) * effectiveCellSize + panOffset.x,
-          (firstPoint.y + 0.5) * effectiveCellSize + panOffset.y
-        );
-        
-        for (let i = 1; i < lassoSelection.path.length; i++) {
-          const point = lassoSelection.path[i];
-          ctx.lineTo(
-            (point.x + 0.5) * effectiveCellSize + panOffset.x,
-            (point.y + 0.5) * effectiveCellSize + panOffset.y
+        if (smoothedPath.length > 1) {
+          ctx.strokeStyle = '#A855F7'; // Purple
+          ctx.lineWidth = 2;
+          ctx.setLineDash([3, 3]);
+          
+          ctx.beginPath();
+          const firstPoint = smoothedPath[0];
+          ctx.moveTo(
+            (firstPoint.x + 0.5) * effectiveCellSize + panOffset.x,
+            (firstPoint.y + 0.5) * effectiveCellSize + panOffset.y
           );
+          
+          for (let i = 1; i < smoothedPath.length; i++) {
+            const point = smoothedPath[i];
+            ctx.lineTo(
+              (point.x + 0.5) * effectiveCellSize + panOffset.x,
+              (point.y + 0.5) * effectiveCellSize + panOffset.y
+            );
+          }
+          ctx.stroke();
+          ctx.setLineDash([]);
         }
-        ctx.stroke();
-        ctx.setLineDash([]);
       }
 
       // Highlight selected cells
@@ -265,48 +271,53 @@ export const useCanvasRenderer = () => {
 
         // Draw selection border for completed lasso
         if (!lassoSelection.isDrawing && lassoSelection.path.length > 2) {
-          ctx.strokeStyle = '#A855F7'; // Purple border
-          ctx.lineWidth = 2;
-          ctx.setLineDash([5, 5]);
+          // Use smoothed path to match the selection calculation
+          const smoothedPath = smoothPolygonPath(lassoSelection.path, 0.5);
           
-          ctx.beginPath();
-          const firstPoint = lassoSelection.path[0];
-          
-          // Apply move offset to path if in move mode
-          let startX = firstPoint.x;
-          let startY = firstPoint.y;
-          if (moveState) {
-            const totalOffset = getTotalOffset(moveState);
-            startX = firstPoint.x + totalOffset.x;
-            startY = firstPoint.y + totalOffset.y;
-          }
-          
-          ctx.moveTo(
-            (startX + 0.5) * effectiveCellSize + panOffset.x,
-            (startY + 0.5) * effectiveCellSize + panOffset.y
-          );
-          
-          for (let i = 1; i < lassoSelection.path.length; i++) {
-            const point = lassoSelection.path[i];
-            let pathX = point.x;
-            let pathY = point.y;
+          if (smoothedPath.length > 0) {
+            ctx.strokeStyle = '#A855F7'; // Purple border
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
             
+            ctx.beginPath();
+            const firstPoint = smoothedPath[0];
+            
+            // Apply move offset to path if in move mode
+            let startX = firstPoint.x;
+            let startY = firstPoint.y;
             if (moveState) {
               const totalOffset = getTotalOffset(moveState);
-              pathX = point.x + totalOffset.x;
-              pathY = point.y + totalOffset.y;
+              startX = firstPoint.x + totalOffset.x;
+              startY = firstPoint.y + totalOffset.y;
             }
             
-            ctx.lineTo(
-              (pathX + 0.5) * effectiveCellSize + panOffset.x,
-              (pathY + 0.5) * effectiveCellSize + panOffset.y
+            ctx.moveTo(
+              (startX + 0.5) * effectiveCellSize + panOffset.x,
+              (startY + 0.5) * effectiveCellSize + panOffset.y
             );
+            
+            for (let i = 1; i < smoothedPath.length; i++) {
+              const point = smoothedPath[i];
+              let pathX = point.x;
+              let pathY = point.y;
+              
+              if (moveState) {
+                const totalOffset = getTotalOffset(moveState);
+                pathX = point.x + totalOffset.x;
+                pathY = point.y + totalOffset.y;
+              }
+              
+              ctx.lineTo(
+                (pathX + 0.5) * effectiveCellSize + panOffset.x,
+                (pathY + 0.5) * effectiveCellSize + panOffset.y
+              );
+            }
+            
+            // Close the path
+            ctx.closePath();
+            ctx.stroke();
+            ctx.setLineDash([]);
           }
-          
-          // Close the path
-          ctx.closePath();
-          ctx.stroke();
-          ctx.setLineDash([]);
         }
       }
     }

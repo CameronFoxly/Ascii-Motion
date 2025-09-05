@@ -37,7 +37,7 @@ export function isPointInPolygon(point: Point, polygon: Point[]): boolean {
 }
 
 /**
- * Get all grid cells that are inside or intersected by a polygon
+ * Get all grid cells that are inside a polygon (center-based selection)
  * @param polygon Array of points defining the polygon vertices
  * @param width Canvas width
  * @param height Canvas height
@@ -57,90 +57,16 @@ export function getCellsInPolygon(polygon: Point[], width: number, height: numbe
   // Check each cell in the bounding box
   for (let y = minY; y <= maxY; y++) {
     for (let x = minX; x <= maxX; x++) {
-      // Check if the cell center is inside the polygon
+      // Only check if the cell center is inside the polygon for precise selection
       const cellCenter = { x: x + 0.5, y: y + 0.5 };
       
       if (isPointInPolygon(cellCenter, polygon)) {
         selectedCells.add(`${x},${y}`);
-      } else {
-        // Also check if any cell corner is inside the polygon
-        // or if any polygon edge intersects the cell
-        const cellCorners = [
-          { x, y },
-          { x: x + 1, y },
-          { x: x + 1, y: y + 1 },
-          { x, y: y + 1 }
-        ];
-
-        const hasCornerInside = cellCorners.some(corner => 
-          isPointInPolygon(corner, polygon)
-        );
-
-        if (hasCornerInside) {
-          selectedCells.add(`${x},${y}`);
-        } else {
-          // Check if any polygon edge intersects the cell
-          if (polygonIntersectsCell(polygon, x, y)) {
-            selectedCells.add(`${x},${y}`);
-          }
-        }
       }
     }
   }
 
   return selectedCells;
-}
-
-/**
- * Check if a polygon intersects with a grid cell
- * @param polygon Array of points defining the polygon vertices
- * @param cellX Cell x coordinate
- * @param cellY Cell y coordinate
- * @returns true if polygon intersects the cell
- */
-function polygonIntersectsCell(polygon: Point[], cellX: number, cellY: number): boolean {
-  const cellLeft = cellX;
-  const cellRight = cellX + 1;
-  const cellTop = cellY;
-  const cellBottom = cellY + 1;
-
-  // Check if any polygon edge intersects any cell edge
-  for (let i = 0; i < polygon.length; i++) {
-    const j = (i + 1) % polygon.length;
-    const p1 = polygon[i];
-    const p2 = polygon[j];
-
-    // Check intersection with each cell edge
-    if (
-      lineIntersectsLine(p1, p2, { x: cellLeft, y: cellTop }, { x: cellRight, y: cellTop }) ||
-      lineIntersectsLine(p1, p2, { x: cellRight, y: cellTop }, { x: cellRight, y: cellBottom }) ||
-      lineIntersectsLine(p1, p2, { x: cellRight, y: cellBottom }, { x: cellLeft, y: cellBottom }) ||
-      lineIntersectsLine(p1, p2, { x: cellLeft, y: cellBottom }, { x: cellLeft, y: cellTop })
-    ) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-/**
- * Check if two line segments intersect
- * @param p1 First point of first line
- * @param p2 Second point of first line
- * @param p3 First point of second line
- * @param p4 Second point of second line
- * @returns true if lines intersect
- */
-function lineIntersectsLine(p1: Point, p2: Point, p3: Point, p4: Point): boolean {
-  const denom = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y);
-  
-  if (denom === 0) return false; // Lines are parallel
-
-  const ua = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x)) / denom;
-  const ub = ((p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x)) / denom;
-
-  return ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1;
 }
 
 /**

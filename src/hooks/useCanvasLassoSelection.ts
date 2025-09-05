@@ -165,7 +165,8 @@ export const useCanvasLassoSelection = () => {
       if (lassoSelection.path.length >= 2) {
         // Create a closed path by connecting to the first point for preview
         const previewPath = [...lassoSelection.path, lassoSelection.path[0]];
-        const smoothedPath = smoothPolygonPath(previewPath, 1.5);
+        // Use minimal smoothing for precision
+        const smoothedPath = smoothPolygonPath(previewPath, 0.2);
         const selectedCells = getCellsInPolygon(smoothedPath, width, height);
         updateLassoSelectedCells(selectedCells);
       }
@@ -193,8 +194,8 @@ export const useCanvasLassoSelection = () => {
     } else if (selectionMode === 'dragging' && lassoSelection.isDrawing) {
       // Lasso drawing completed - finalize the selection
       if (lassoSelection.path.length >= 3) {
-        // Close the polygon and smooth it
-        const smoothedPath = smoothPolygonPath(lassoSelection.path, 1.5);
+        // Close the polygon and smooth it minimally
+        const smoothedPath = smoothPolygonPath(lassoSelection.path, 0.2);
         const selectedCells = getCellsInPolygon(smoothedPath, width, height);
         updateLassoSelectedCells(selectedCells);
         finalizeLassoSelection();
