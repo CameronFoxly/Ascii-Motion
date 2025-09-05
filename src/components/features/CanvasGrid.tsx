@@ -92,7 +92,13 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
         event.preventDefault();
         event.stopPropagation();
         commitMove();
-        clearSelection();
+        
+        // Clear the appropriate selection based on active tool
+        if (activeTool === 'select') {
+          clearSelection();
+        } else if (activeTool === 'lasso') {
+          clearLassoSelection();
+        }
       }
     };
 
