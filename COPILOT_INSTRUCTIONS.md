@@ -224,6 +224,7 @@ src/
 │   ├── useCanvasState.ts          # Canvas state management
 │   ├── useCanvasMouseHandlers.ts  # Mouse interaction routing
 │   ├── useCanvasSelection.ts      # Selection-specific logic
+│   ├── useCanvasLassoSelection.ts # Lasso selection-specific logic
 │   ├── useCanvasDragAndDrop.ts    # Drawing/rectangle tools
 │   ├── useCanvasRenderer.ts       # Grid & overlay rendering
 │   ├── useHandTool.ts             # Hand tool pan functionality
@@ -237,6 +238,7 @@ src/
 │   │   └── ToolStatusManager.tsx  # Tool status UI renderer (34 lines)
 │   └── tools/                     # Tool-specific components
 │       ├── SelectionTool.tsx      # Selection behavior & status (53 lines)
+│       ├── LassoTool.tsx          # Lasso selection behavior & status (45 lines)
 │       ├── DrawingTool.tsx        # Pencil/eraser logic & status (42 lines)
 │       ├── PaintBucketTool.tsx    # Fill tool & status (30 lines)
 │       ├── RectangleTool.tsx      # Rectangle drawing & status (30 lines)
@@ -250,6 +252,7 @@ src/
 | Tool | Hook Used | Architecture Reason |
 |------|-----------|-------------------|
 | **Selection** | `useCanvasSelection` (dedicated) | Complex: Multi-state (select→move→resize), sophisticated coordinate tracking |
+| **Lasso** | `useCanvasLassoSelection` (dedicated) | Complex: Freeform selection, point-in-polygon algorithms, separate state from rectangular selection |
 | **Pencil** | `useDrawingTool` (shared) | Simple: Single-click cell modification |
 | **Eraser** | `useDrawingTool` (shared) | Simple: Single-click cell clearing |
 | **Paint Bucket** | `useDrawingTool` (shared) | Simple: Single-click flood fill algorithm |
@@ -433,6 +436,79 @@ export const useCanvasRenderer = () => {
 ```
 
 **Lesson Learned (Step 3)**: Always include the actual reactive data objects in dependency arrays, not just getters. This ensures hooks re-run when Zustand state changes.
+
+**🚨 CRITICAL: Tool Switching and State Management (Sept 5, 2025)**
+**MANDATORY PATTERNS for Selection Tools to Prevent State Corruption:**
+
+**Issue Discovered**: When implementing complex selection tools (like lasso), tool switching can cause state corruption if not handled properly.
+
+**Root Cause Analysis**:
+1. **useEffect Dependency Arrays**: Including `moveState` in dependency arrays can cause infinite loops or unintended commits
+2. **Tool Transition Cleanup**: Switching between selection tools doesn't automatically clean up move state
+3. **Immediate Commits**: React's passive effects can trigger commits before user interactions complete
+
+**✅ REQUIRED PATTERNS for Future Selection Tools**:
+
+```typescript
+// 1. Tool switching cleanup (CanvasGrid.tsx pattern)
+useEffect(() => {
+  const prevTool = prevToolRef.current;
+  
+  // Only run cleanup when tool actually changes
+  if (prevTool !== activeTool) {
+    // Always commit pending moves when switching tools
+    if (moveState) {
+      commitMove();
+    }
+    
+    // Clear state only when leaving selection tools entirely
+    if (activeTool !== 'select' && activeTool !== 'lasso') {
+      setSelectionMode('none');
+      setMouseButtonDown(false);
+      setPendingSelectionStart(null);
+      setMoveState(null);
+    }
+    
+    prevToolRef.current = activeTool;
+  }
+}, [activeTool, moveState, /* other deps but NOT moveState in array */);
+
+// 2. Separate state management for each selection tool
+// ❌ DON'T: Share selection state between tools
+const sharedSelectionState = { selection: ..., moveState: ... };
+
+// ✅ DO: Completely separate state systems
+const rectangularSelection = { active: false, bounds: ..., moveState: ... };
+const lassoSelection = { active: false, path: ..., selectedCells: ..., moveState: ... };
+
+// 3. Tool-specific naming conventions to prevent conflicts
+// ❌ DON'T: Generic naming that can conflict
+const isPointInSelection = (x, y) => { /* conflicts between tools */ };
+
+// ✅ DO: Tool-prefixed naming
+const isPointInLassoSelection = (x, y) => { /* lasso-specific */ };
+const isPointInRectangleSelection = (x, y) => { /* rectangle-specific */ };
+```
+
+**🎯 Testing Checklist for New Selection Tools**:
+Before completing any selection tool implementation:
+- [ ] Test tool switching during move operations (should commit and clean up)
+- [ ] Test switching between selection tools (should maintain separate state)
+- [ ] Verify no infinite re-renders when move state changes
+- [ ] Check console for unexpected commitMove calls during interaction
+- [ ] Test that visual feedback matches actual selection bounds
+
+**Debugging Commands for Selection Tool Issues**:
+```typescript
+// Add these debug logs to trace execution flow:
+console.log('=== TOOL MOUSE DOWN START ===');
+console.log('Current moveState:', moveState);
+console.log('Selection active:', selection.active);
+console.log('Point in selection:', isPointInSelection(x, y));
+
+// Add stack trace to commitMove to find unexpected callers:
+console.log('commitMove called from:', new Error().stack);
+```
 
 **Component Splitting Rules:**
 - **Single Responsibility**: Each component should have one clear purpose
@@ -642,6 +718,7 @@ case 'your-new-tool':
 - **Line Tool** → `useCanvasDragAndDrop` (interactive: drag from start to end, aspect ratio locking)
 - **Ellipse Tool** → `useCanvasDragAndDrop` (implemented: drag-based ellipse with Shift for circles)
 - **Rectangle Tool** → `useCanvasDragAndDrop` (implemented: drag-based rectangle with Shift for squares)
+- **Lasso Selection** → `useCanvasLassoSelection` (implemented: freeform selection with point-in-polygon detection)
 - **Multi-Select** → `useCanvasMultiSelect` (complex: multiple selections, group operations)
 - **Animation Onion Skin** → `useOnionSkin` (complex: multi-frame state, transparency layers)
 - **Text Tool** → `useTextTool` (complex: text input mode, cursor positioning, editing)

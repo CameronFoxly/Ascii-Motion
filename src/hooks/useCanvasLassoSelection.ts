@@ -49,12 +49,27 @@ export const useCanvasLassoSelection = () => {
   // Check if a point is inside the current lasso selection
   const isPointInLassoSelection = useCallback((x: number, y: number) => {
     if (!lassoSelection.active || lassoSelection.selectedCells.size === 0) return false;
+    
+    // If there's a move state, we need to check against the original (non-offset) coordinates
+    // because the selectedCells are stored in original coordinates
+    if (moveState) {
+      const totalOffset = {
+        x: moveState.baseOffset.x + moveState.currentOffset.x,
+        y: moveState.baseOffset.y + moveState.currentOffset.y
+      };
+      
+      // Convert the click point back to original coordinates
+      const originalX = x - totalOffset.x;
+      const originalY = y - totalOffset.y;
+      return lassoSelection.selectedCells.has(`${originalX},${originalY}`);
+    }
+    
+    // No move state, check directly
     return lassoSelection.selectedCells.has(`${x},${y}`);
-  }, [lassoSelection]);
+  }, [lassoSelection, moveState]);
 
   // Handle lasso selection mouse down
   const handleLassoMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
-    console.log('Lasso: Mouse down called at', new Date().toISOString(), 'coords:', getGridCoordinatesFromEvent(event));
     const { x, y } = getGridCoordinatesFromEvent(event);
     
     // Save current state for undo
@@ -62,7 +77,6 @@ export const useCanvasLassoSelection = () => {
 
     // If there's an uncommitted move and clicking outside selection, commit it first
     if (moveState && lassoSelection.active && !isPointInLassoSelection(x, y)) {
-      console.log('Lasso: Committing existing move and clearing selection');
       commitMove();
       clearLassoSelection();
       setJustCommittedMove(true);
@@ -70,7 +84,6 @@ export const useCanvasLassoSelection = () => {
       return;
     } else if (justCommittedMove) {
       // Previous click committed a move, this click starts fresh
-      console.log('Lasso: Starting fresh after committed move');
       setJustCommittedMove(false);
       startLassoSelection();
       addLassoPoint(x, y);
@@ -78,32 +91,26 @@ export const useCanvasLassoSelection = () => {
       setSelectionMode('dragging');
     } else if (lassoSelection.active && isPointInLassoSelection(x, y) && !lassoSelection.isDrawing) {
       // Click inside existing lasso selection - enter move mode
-      console.log('Lasso: Clicked inside selection for move, point:', { x, y });
       setJustCommittedMove(false);
       if (moveState) {
         // Already have a moveState (continuing from preview) - just update start position
-        console.log('Lasso: Updating existing moveState');
         setMoveState({
           ...moveState,
           startPos: { x, y }
         });
       } else {
         // First time moving - create new moveState
-        console.log('Lasso: Creating new moveState');
         // Store only the non-empty cells from the selection
         const originalData = new Map<string, Cell>();
         lassoSelection.selectedCells.forEach((cellKey) => {
           const [cx, cy] = cellKey.split(',').map(Number);
           const cell = getCell(cx, cy);
-          console.log('Lasso: Checking cell at', [cx, cy], ':', cell);
           // Only store non-empty cells (not spaces or empty cells)
           if (cell && cell.char !== ' ') {
-            console.log('Lasso: Adding cell to originalData:', cellKey, cell);
             originalData.set(cellKey, cell);
           }
         });
         
-        console.log('Lasso: Original data size:', originalData.size);
         setMoveState({
           originalData,
           startPos: { x, y },
@@ -111,7 +118,6 @@ export const useCanvasLassoSelection = () => {
           currentOffset: { x: 0, y: 0 }
         });
       }
-      console.log('Lasso: Setting selection mode to moving and mouseButtonDown to true');
       setSelectionMode('moving');
       setMouseButtonDown(true);
     } else if (lassoSelection.active && !isPointInLassoSelection(x, y) && !lassoSelection.isDrawing) {
@@ -138,16 +144,12 @@ export const useCanvasLassoSelection = () => {
   const handleLassoMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const { x, y } = getGridCoordinatesFromEvent(event);
 
-    console.log('Lasso: Mouse move called, coords:', { x, y }, 'selectionMode:', selectionMode, 'moveState exists:', !!moveState, 'mouseButtonDown:', mouseButtonDown);
-
     if (selectionMode === 'moving' && moveState) {
       // Calculate current drag offset from the start position
       const currentDragOffset = {
         x: x - moveState.startPos.x,
         y: y - moveState.startPos.y
       };
-      
-      console.log('Lasso: Moving, offset:', currentDragOffset);
       
       // Update the current offset for preview
       setMoveState({
@@ -176,11 +178,8 @@ export const useCanvasLassoSelection = () => {
 
   // Handle lasso selection mouse up
   const handleLassoMouseUp = useCallback(() => {
-    console.log('Lasso: Mouse up called at', new Date().toISOString(), 'selectionMode:', selectionMode, 'moveState exists:', !!moveState);
-    
     if (selectionMode === 'moving' && moveState) {
       // Move drag completed - persist the current offset into base offset for continued editing
-      console.log('Lasso: Mouse up in move mode, persisting offset:', moveState.currentOffset);
       setMoveState({
         ...moveState,
         baseOffset: {

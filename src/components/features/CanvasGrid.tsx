@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useToolStore } from '../../stores/toolStore';
 import { useCanvasContext } from '../../contexts/CanvasContext';
@@ -20,6 +20,9 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   // Get active tool and tool behavior
   const { activeTool } = useToolStore();
   const { getToolCursor } = useToolBehavior();
+  
+  // Track previous tool for cleanup on tool changes
+  const prevToolRef = useRef(activeTool);
   
   // Calculate effective tool (space key overrides with hand tool)
   const effectiveTool = spaceKeyDown ? 'hand' : activeTool;
@@ -115,17 +118,27 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
 
   // Reset selection mode when tool changes
   useEffect(() => {
-    if (activeTool !== 'select') {
-      // Commit any pending move before clearing
+    const prevTool = prevToolRef.current;
+    
+    // If tool actually changed, handle cleanup
+    if (prevTool !== activeTool) {
+      // Always commit any pending move when switching tools
       if (moveState) {
         commitMove();
       }
-      setSelectionMode('none');
-      setMouseButtonDown(false);
-      setPendingSelectionStart(null);
-      setMoveState(null);
+      
+      // Clear selection-related state when switching away from selection tools
+      if (activeTool !== 'select' && activeTool !== 'lasso') {
+        setSelectionMode('none');
+        setMouseButtonDown(false);
+        setPendingSelectionStart(null);
+        setMoveState(null);
+      }
+      
+      // Update the ref for next time
+      prevToolRef.current = activeTool;
     }
-  }, [activeTool, moveState, commitMove]);
+  }, [activeTool, moveState, commitMove, setSelectionMode, setMouseButtonDown, setPendingSelectionStart, setMoveState]);
 
   return (
     <div className={`canvas-grid-container ${className}`}>

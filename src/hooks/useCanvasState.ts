@@ -66,18 +66,14 @@ export const useCanvasState = () => {
 
     // Commit move operation to canvas
   const commitMove = useCallback(() => {
-    console.log('commitMove: Called');
     if (!moveState) {
-      console.log('commitMove: No moveState to commit');
       return;
     }
 
-    console.log('commitMove: Committing move with', moveState.originalData.size, 'cells');
     const totalOffset = {
       x: moveState.baseOffset.x + moveState.currentOffset.x,
       y: moveState.baseOffset.y + moveState.currentOffset.y
     };
-    console.log('commitMove: Total offset:', totalOffset);
 
     // Create a new canvas data map with the moved cells
     const newCells = new Map(cells);
@@ -92,8 +88,6 @@ export const useCanvasState = () => {
       const [origX, origY] = key.split(',').map(Number);
       const newX = origX + totalOffset.x;
       const newY = origY + totalOffset.y;
-      
-      console.log('commitMove: Moving cell from', [origX, origY], 'to', [newX, newY]);
       
       // Only place if within bounds
       if (newX >= 0 && newX < width && newY >= 0 && newY < height) {

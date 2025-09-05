@@ -102,7 +102,6 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
     // Handle selection move mode interactions ONLY for existing move operations
     // (Don't interfere with clicks that start new move operations)
     if (moveState && (activeTool === 'select' || activeTool === 'lasso') && selectionMode === 'moving') {
-      console.log('Main handler: moveState exists and selectionMode is moving, checking interaction for tool:', activeTool);
       const { x, y } = getGridCoordinatesFromEvent(event);
       
       if (event.button === 0) { // Left click
@@ -111,14 +110,10 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
           ? isPointInEffectiveSelection(x, y)
           : lassoSelectionHandlers.isPointInLassoSelection(x, y);
           
-        console.log('Main handler: isInsideSelection:', isInsideSelection, 'coords:', {x, y});
-          
         if (isInsideSelection) {
-          console.log('Main handler: Click inside selection - letting normal handler manage it');
           // Click inside selection - let normal selection handler manage it
           // (This will continue the move operation)
         } else {
-          console.log('Main handler: Click outside selection - committing move');
           // Click outside selection commits the move
           commitMove();
           if (activeTool === 'select') {

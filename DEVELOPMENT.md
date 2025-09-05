@@ -137,12 +137,13 @@ src/
    - GIF generation for animations
    - MP4 export for video output
 
-### **🎯 ENHANCEMENT COMPLETED: Lasso Selection Tool (Sept 4, 2025)**
+### **🎯 ENHANCEMENT COMPLETED: Lasso Selection Tool (Sept 5, 2025)**
+✅ **Status**: COMPLETE - Full implementation with move functionality and proper tool switching
 ✅ **Files Created/Modified:**
 - `src/types/index.ts` (ENHANCED) - Added 'lasso' tool type and LassoSelection interface
 - `src/stores/toolStore.ts` (ENHANCED) - Added lasso selection state and actions (separate from rectangular selection)
 - `src/utils/polygon.ts` (NEW) - Point-in-polygon algorithms and polygon utility functions (150 lines)
-- `src/hooks/useCanvasLassoSelection.ts` (NEW) - Dedicated lasso selection hook with complex multi-state behavior (180 lines)
+- `src/hooks/useCanvasLassoSelection.ts` (NEW) - Dedicated lasso selection hook with complex multi-state behavior (268 lines)
 - `src/components/tools/LassoTool.tsx` (NEW) - Lasso tool component and status (45 lines)
 - `src/components/tools/index.ts` (ENHANCED) - Added LassoTool exports and types
 - `src/hooks/useToolBehavior.ts` (ENHANCED) - Added lasso tool routing and metadata
@@ -152,6 +153,7 @@ src/
 - `src/hooks/useKeyboardShortcuts.ts` (ENHANCED) - Extended copy/paste to support lasso selections
 - `src/components/features/ToolPalette.tsx` (ENHANCED) - Added lasso tool button with Lasso icon
 - `src/hooks/useCanvasRenderer.ts` (ENHANCED) - Added complete lasso selection rendering (path drawing, cell highlighting, move preview)
+- `src/components/features/CanvasGrid.tsx` (FIXED) - Fixed tool switching cleanup to prevent move state corruption
 
 ✅ **Features Implemented:**
 - **Freeform Drawing**: Click and drag to draw irregular selection paths
@@ -164,6 +166,7 @@ src/
 - **Move Mode with Preview**: Click inside lasso selection to move content with real-time preview
 - **Keyboard Shortcuts**: Escape to cancel, Enter to commit, consistent with existing patterns
 - **Proper Tool Integration**: Follows established 8-step tool creation pattern
+- **Tool Switching Fix**: Properly handles move state cleanup when switching between tools
 
 ✅ **Technical Architecture:**
 - **Dedicated Hook Pattern**: `useCanvasLassoSelection` for complex multi-state tool behavior
@@ -172,6 +175,7 @@ src/
 - **Advanced Algorithms**: Point-in-polygon detection, polygon smoothing, cell intersection testing
 - **Performance Optimized**: Efficient polygon algorithms with bounding box optimization
 - **Visual Rendering**: Real-time path drawing, cell highlighting, move mode preview with proper offsets
+- **Tool Switching Safety**: useEffect patterns that prevent state corruption and infinite loops
 
 ✅ **User Experience:**
 - **Professional Feel**: Matches behavior of advanced graphics editors
@@ -179,6 +183,12 @@ src/
 - **Responsive Feedback**: Real-time visual feedback during drawing and moving
 - **Error Prevention**: Minimum 3 points required for valid lasso selection
 - **Intuitive Controls**: Natural click-drag-release workflow
+- **Seamless Tool Switching**: No visual artifacts or state corruption when switching tools
+
+✅ **Critical Bug Fixes Discovered and Resolved:**
+- **useEffect Dependency Issue**: Fixed infinite commit loops by properly managing dependency arrays
+- **Tool Switching State Corruption**: Added proper cleanup logic for move states when switching tools
+- **React Passive Effects Race Condition**: Identified and fixed immediate commits caused by useEffect timing
 
 ### **🎯 ENHANCEMENT COMPLETED: Advanced Paste with Visual Preview (Sept 3, 2025)**
 ✅ **Files Created/Modified:**
@@ -252,6 +262,10 @@ src/
   - *Click & Drag*: Start selection and drag to define area
   - *Click + Shift+Click*: Click to start, move mouse, Shift+Click to complete
   - *Click Inside Selection*: Move existing selection content with real-time preview
+- **Lasso Selection** ⟲ - Select freeform irregular shapes with point-in-polygon detection (Sept 5, 2025):
+  - *Click & Drag*: Draw irregular selection paths
+  - *Auto-close*: Selection completes on mouse release
+  - *Click Inside Selection*: Move lasso content with real-time preview
 - **Move Mode** - Drag content within selections with live marquee box movement
 - **Enhanced Copy/Paste** - Copy selected areas and paste with **visual preview and drag positioning** (Sept 3, 2025)
 - **Undo/Redo** - Full history management with 50-action limit
@@ -287,7 +301,7 @@ src/
 
 #### New Drawing Tools
 - [ ] **Type Tool** - Text input and editing directly on canvas
-- [x] **Lasso Selection** ✅ **COMPLETE** - Freeform selection tool for irregular shapes (Sept 4, 2025)
+- [x] **Lasso Selection** ✅ **COMPLETE** - Freeform selection tool for irregular shapes (Sept 5, 2025)
 - [ ] **Select Same/Magic Wand** - Select similar cells (contiguous and non-contiguous modes)
 - [ ] **Re-Color Brush** - Change colors without affecting characters
 - [ ] **Pattern Brush** - Apply repeating patterns while drawing
@@ -351,7 +365,105 @@ src/
 3. Check for missing React.memo on cell components
 4. Verify memoization dependencies include all reactive data
 
-## State Management
+## 🏗️ **Architectural Lessons Learned**
+
+### **Critical Selection Tool Implementation Patterns (Sept 5, 2025)**
+
+During lasso selection implementation, we discovered critical patterns that MUST be followed for all future selection tools to prevent state corruption and infinite loops.
+
+#### **1. Tool Switching State Management**
+**Problem**: Moving between selection tools (lasso ↔ rectangle) could corrupt move state and cause visual artifacts.
+
+**Solution**: Proper useEffect pattern with previous tool tracking:
+```typescript
+// ✅ REQUIRED PATTERN for tool switching cleanup
+const prevToolRef = useRef(activeTool);
+
+useEffect(() => {
+  const prevTool = prevToolRef.current;
+  
+  if (prevTool !== activeTool) {
+    // Always commit pending moves when switching tools
+    if (moveState) {
+      commitMove();
+    }
+    
+    // Only clear state when leaving selection tools entirely
+    if (activeTool !== 'select' && activeTool !== 'lasso') {
+      setSelectionMode('none');
+      setMoveState(null);
+    }
+    
+    prevToolRef.current = activeTool;
+  }
+}, [activeTool, /* other deps but carefully managed */);
+```
+
+#### **2. useEffect Dependency Array Management**
+**Problem**: Including `moveState` in dependency arrays can cause infinite loops when `commitMove` is called.
+
+**Solution**: Use refs for tracking previous values and carefully manage what triggers effects:
+```typescript
+// ❌ DANGEROUS: Can cause infinite loops
+useEffect(() => {
+  if (moveState) {
+    commitMove(); // This changes moveState, triggering the effect again!
+  }
+}, [moveState, commitMove]);
+
+// ✅ SAFE: Use refs and specific change detection
+useEffect(() => {
+  const prevTool = prevToolRef.current;
+  if (prevTool !== activeTool && moveState) {
+    commitMove();
+  }
+  prevToolRef.current = activeTool;
+}, [activeTool, moveState, commitMove]);
+```
+
+#### **3. React Passive Effects and Timing**
+**Problem**: React's passive effects can cause commits to happen immediately after state creation, bypassing user interaction.
+
+**Solution**: Add debug logging to trace execution flow and identify unexpected callers:
+```typescript
+const commitMove = useCallback(() => {
+  console.log('commitMove called from:', new Error().stack);
+  // ... rest of commit logic
+}, []);
+```
+
+#### **4. State Separation Between Tools**
+**Problem**: Sharing state between different selection tools can cause conflicts and unexpected behavior.
+
+**Solution**: Completely separate state systems with tool-prefixed naming:
+```typescript
+// ✅ CORRECT: Separate state for each tool type
+const rectangularSelection = { active: false, bounds: ... };
+const lassoSelection = { active: false, path: ..., selectedCells: ... };
+
+// ✅ CORRECT: Tool-specific function naming
+const isPointInLassoSelection = (x, y) => { /* lasso-specific logic */ };
+const isPointInRectangleSelection = (x, y) => { /* rectangle-specific logic */ };
+```
+
+#### **5. Debugging Complex Selection Tools**
+**Essential debugging patterns discovered:**
+- Add execution flow logging with timestamps
+- Use stack traces to identify unexpected function calls
+- Test tool switching during active operations
+- Verify state cleanup when switching tools
+- Check for infinite re-renders in development
+
+#### **6. Testing Checklist for Selection Tools**
+Before marking any selection tool as complete:
+- [ ] Tool switching during move operations (should commit cleanly)
+- [ ] Switching between different selection tools (should maintain separate state)
+- [ ] No infinite re-renders when state changes
+- [ ] No unexpected commits during user interactions
+- [ ] Visual feedback matches actual selection bounds
+- [ ] Console is clean of unexpected debug output in production
+
+These patterns are now incorporated into the codebase and should be followed for all future selection tool implementations.
 
 ### Canvas Store (`useCanvasStore`)
 - Canvas dimensions and cell data
