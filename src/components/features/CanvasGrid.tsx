@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useToolStore } from '../../stores/toolStore';
+import { useAnimationStore } from '../../stores/animationStore';
 import { useCanvasContext } from '../../contexts/CanvasContext';
 import { useCanvasState } from '../../hooks/useCanvasState';
 import { useCanvasMouseHandlers } from '../../hooks/useCanvasMouseHandlers';
@@ -18,7 +19,8 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   const { canvasRef, setMouseButtonDown, setShiftKeyDown, setSpaceKeyDown, spaceKeyDown } = useCanvasContext();
   
   // Get active tool and tool behavior
-  const { activeTool, textToolState } = useToolStore();
+  const { activeTool, textToolState, isPlaybackMode } = useToolStore();
+  const { isPlaying } = useAnimationStore();
   const { getToolCursor } = useToolBehavior();
   
   // Track previous tool for cleanup on tool changes
@@ -166,7 +168,13 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       {/* Tool Manager - handles tool-specific behavior */}
       <ToolManager />
       
-      <div className="canvas-wrapper border-2 border-gray-300 rounded-lg overflow-auto flex-1">
+      <div className={`canvas-wrapper border-2 rounded-lg overflow-auto flex-1 ${
+        isPlaying 
+          ? 'border-green-500 shadow-lg shadow-green-500/25' 
+          : isPlaybackMode 
+            ? 'border-orange-500 shadow-lg shadow-orange-500/25'
+            : 'border-gray-300'
+      }`}>
         <canvas
           ref={canvasRef}
           className={`canvas-grid ${getToolCursor(effectiveTool)}`}

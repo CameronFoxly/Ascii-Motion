@@ -32,6 +32,9 @@ interface ToolStoreState extends ToolState {
   redoStack: Map<string, any>[];
   maxHistorySize: number;
   
+  // Animation playback state
+  isPlaybackMode: boolean;
+  
   // Actions
   setActiveTool: (tool: Tool) => void;
   setSelectedChar: (char: string) => void;
@@ -97,6 +100,9 @@ interface ToolStoreState extends ToolState {
   clearHistory: () => void;
   canUndo: () => boolean;
   canRedo: () => boolean;
+  
+  // Playback mode actions
+  setPlaybackMode: (enabled: boolean) => void;
 }
 
 export const useToolStore = create<ToolStoreState>((set, get) => ({
@@ -109,6 +115,9 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   rectangleFilled: false,
   paintBucketContiguous: true, // Default to contiguous fill
   magicWandContiguous: true, // Default to contiguous selection
+  
+  // Animation playback state
+  isPlaybackMode: false,
   
   // Pencil tool state
   pencilLastPosition: null,
@@ -608,5 +617,10 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
         textBuffer: ''
       }
     });
+  },
+
+  // Playback mode actions
+  setPlaybackMode: (enabled: boolean) => {
+    set({ isPlaybackMode: enabled });
   }
 }));

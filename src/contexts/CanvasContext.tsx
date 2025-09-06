@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useRef, useMemo } from 'rea
 import type { ReactNode } from 'react';
 import type { Cell } from '../types';
 import { usePasteMode } from '../hooks/usePasteMode';
+import { useFrameSynchronization } from '../hooks/useFrameSynchronization';
 import type { PasteModeState } from '../hooks/usePasteMode';
 import { calculateFontMetrics, calculateCellDimensions, DEFAULT_SPACING } from '../utils/fontMetrics';
 import type { FontMetrics, SpacingSettings } from '../utils/fontMetrics';
@@ -153,6 +154,9 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     cancelPasteMode,
     commitPaste
   } = usePasteMode();
+
+  // Frame synchronization for animation
+  const frameSyncState = useFrameSynchronization();
 
   const contextValue: CanvasContextValue = {
     // Display state
