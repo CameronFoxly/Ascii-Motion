@@ -165,7 +165,7 @@ All new tools must follow the established 9-step pattern documented in COPILOT_I
    - ✅ **Text Input System**: Type tool with cursor rendering and keyboard shortcut protection
    - ✅ **Enhanced Fill Tool**: Paint bucket with contiguous/non-contiguous toggle
    - ✅ **Universal Tool Hotkeys**: Complete hotkey system for all tools with centralized configuration (Sept 5, 2025)
-   - ✅ **Typography System**: Monospace aspect ratio (~0.6) with character/line spacing controls (Sept 6, 2025)
+   - ✅ **Typography System**: Monospace aspect ratio (~0.6) with text size, character/line spacing controls (Sept 6, 2025)
    - ✅ **UI Layout Optimization**: Reorganized interface for typography controls and action buttons (Sept 6, 2025)
    - ✅ **Font Zoom Integration**: Proper font scaling with zoom levels
    - ✅ **Rectangular Cell System**: All tools updated for non-square character dimensions
@@ -636,6 +636,7 @@ All new tools must follow the established 9-step pattern documented in COPILOT_I
 - [x] **Monospace Aspect Ratio** - Realistic character dimensions (~0.6 width/height ratio)
 - [x] **Character Spacing Controls** - User-adjustable tracking (0.5x-2.0x character width)
 - [x] **Line Spacing Controls** - User-adjustable leading (0.8x-2.0x line height)
+- [x] **Text Size Control** - User-adjustable font size (8px-48px, default 16px)
 - [x] **Font Zoom Integration** - Proper font scaling with zoom levels
 - [x] **Rectangular Cell System** - All tools updated for non-square character dimensions
 - [x] **Typography UI Controls** - Integrated controls in canvas settings toolbar

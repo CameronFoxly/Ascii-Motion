@@ -17,10 +17,11 @@ The Typography System transforms ASCII Motion from square-cell rendering to real
 - **Impact**: All ASCII art now renders with realistic character proportions
 
 ### 2. Typography Controls
+- **Text Size Control**: User-adjustable font size (8px-48px, default 16px)
 - **Character Spacing (Tracking)**: 0.5x - 2.0x multiplier for character width
 - **Line Spacing (Leading)**: 0.8x - 2.0x multiplier for line height  
 - **UI Location**: Canvas Settings toolbar dropdown panel
-- **Reset Function**: One-click return to default 1.0x spacing
+- **Reset Function**: One-click return to default values (16px font, 1.0x spacing)
 - **Live Preview**: Changes apply immediately to canvas rendering
 
 ### 3. Font Zoom Integration
@@ -73,8 +74,10 @@ const { cellWidth, cellHeight } = calculateCellDimensions(
 #### Typography Context Integration
 ```typescript
 const {
-  characterSpacing,     // 0.5x - 2.0x character width multiplier
+  fontSize,            // User-adjustable font size (8px-48px, default 16px)
+  characterSpacing,    // 0.5x - 2.0x character width multiplier
   lineSpacing,         // 0.8x - 2.0x line height multiplier
+  setFontSize,
   setCharacterSpacing,
   setLineSpacing,
   fontMetrics,         // Computed font metrics
@@ -102,9 +105,10 @@ const drawingStyles = useMemo(() => {
 - **Text rendering**: Proper character positioning with aspect ratio
 
 ### 2. Context Enhancement
-- Added typography state to `CanvasContext`
+- Added typography state to `CanvasContext` (fontSize, characterSpacing, lineSpacing)
 - Computed cell dimensions with `useMemo` for performance
 - Integrated with existing canvas state management
+- Exposed fontSize control for user-adjustable text size
 
 ### 3. Renderer Optimization
 - Memoized font calculations with zoom dependency

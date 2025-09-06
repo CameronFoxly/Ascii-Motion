@@ -16,6 +16,7 @@ interface CanvasState {
   // Typography settings
   characterSpacing: number; // multiplier for character width spacing
   lineSpacing: number;      // multiplier for line height spacing
+  fontSize: number;         // base font size in pixels
   
   // Computed font metrics
   fontMetrics: FontMetrics;
@@ -55,9 +56,10 @@ interface CanvasActions {
   setZoom: (zoom: number) => void;
   setPanOffset: (offset: { x: number; y: number }) => void;
   
-  // Typography settings
+    // Typography actions
   setCharacterSpacing: (spacing: number) => void;
   setLineSpacing: (spacing: number) => void;
+  setFontSize: (size: number) => void;
   
   // Interaction actions
   setIsDrawing: (drawing: boolean) => void;
@@ -100,7 +102,7 @@ interface CanvasProviderProps {
 
 export const CanvasProvider: React.FC<CanvasProviderProps> = ({ 
   children, 
-  initialCellSize = 12 
+  initialCellSize = 16 
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
@@ -161,6 +163,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     // Typography state
     characterSpacing,
     lineSpacing,
+    fontSize: cellSize,
     fontMetrics,
     cellWidth,
     cellHeight,
@@ -186,6 +189,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     // Typography actions
     setCharacterSpacing,
     setLineSpacing,
+    setFontSize: setCellSize,
     
     // Interaction actions
     setIsDrawing,

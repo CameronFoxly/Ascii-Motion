@@ -20,8 +20,10 @@ export const CanvasSettings: React.FC = () => {
   const {
     characterSpacing,
     lineSpacing,
+    fontSize,
     setCharacterSpacing,
-    setLineSpacing
+    setLineSpacing,
+    setFontSize
   } = useCanvasContext();
 
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -104,6 +106,27 @@ export const CanvasSettings: React.FC = () => {
         {showTypographyPicker && (
           <div className="absolute top-8 left-0 z-50 p-3 bg-popover border border-border rounded-md shadow-lg min-w-[200px]">
             <div className="space-y-4">
+              {/* Text Size */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                  Text Size: {fontSize}px
+                </label>
+                <input
+                  type="range"
+                  min="8"
+                  max="48"
+                  step="1"
+                  value={fontSize}
+                  onChange={(e) => setFontSize(parseInt(e.target.value))}
+                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                  <span>8px</span>
+                  <span>24px</span>
+                  <span>48px</span>
+                </div>
+              </div>
+
               {/* Character Spacing */}
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-2 block">
@@ -152,6 +175,7 @@ export const CanvasSettings: React.FC = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => {
+                    setFontSize(16);
                     setCharacterSpacing(1.0);
                     setLineSpacing(1.0);
                   }}

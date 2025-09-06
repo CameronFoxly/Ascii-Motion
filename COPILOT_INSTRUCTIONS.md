@@ -334,8 +334,10 @@ const drawCell = useCallback((ctx: CanvasRenderingContext2D, x: number, y: numbe
 
 // ✅ Typography controls access from CanvasContext
 const {
-  characterSpacing,     // 0.5x to 2.0x character width multiplier
+  fontSize,            // Base font size (8px to 48px, default 16px)
+  characterSpacing,    // 0.5x to 2.0x character width multiplier
   lineSpacing,         // 0.8x to 2.0x line height multiplier
+  setFontSize,
   setCharacterSpacing,
   setLineSpacing,
   fontMetrics,         // Computed font metrics with 0.6 aspect ratio
@@ -413,7 +415,8 @@ When developing new tools or features, ensure:
 1. **Use CanvasContext Typography State:**
    ```typescript
    const { 
-     characterSpacing,    // Current character spacing multiplier (0.5x-2.0x)
+     fontSize,           // Base font size in pixels (8px-48px, default 16px)
+     characterSpacing,   // Current character spacing multiplier (0.5x-2.0x)
      lineSpacing,        // Current line spacing multiplier (0.8x-2.0x)  
      fontMetrics,        // Computed font metrics with 0.6 aspect ratio
      cellWidth,          // Actual cell width including character spacing

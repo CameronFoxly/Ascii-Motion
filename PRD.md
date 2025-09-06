@@ -39,6 +39,7 @@ Enable artists and developers to create sophisticated ASCII animations with intu
 
 **Typography & Character Rendering**
 - Monospace character aspect ratio (~0.6 width/height ratio) for realistic terminal-like rendering
+- Text size control: User-adjustable font size (8px-48px, default 16px) with automatic cell dimension updates
 - Character spacing controls (tracking): 0.5x - 2.0x multiplier for character width
 - Line spacing controls (leading): 0.8x - 2.0x multiplier for line height
 - Font zoom integration: proper font scaling with zoom levels
@@ -175,7 +176,7 @@ Enable artists and developers to create sophisticated ASCII animations with intu
 - ✅ Essential drawing tools (pencil, eraser, paintbucket, selection, rectangle, ellipse, eyedropper, hand tool)
 - ✅ Advanced selection tools (lasso selection, magic wand with contiguous/non-contiguous modes)
 - ✅ Text input tool with cursor rendering and keyboard shortcut protection
-- ✅ Typography system with monospace aspect ratio and spacing controls
+- ✅ Typography system with monospace aspect ratio, text size, and spacing controls
 - ✅ Zoom and navigation system (25%-400% zoom, pan controls, space key override)
 - ✅ Character palette with organized style groupings
 - ✅ Copy/paste text support with visual preview and drag positioning
