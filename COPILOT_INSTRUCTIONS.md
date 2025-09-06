@@ -331,6 +331,45 @@ export const useCanvasRenderer = () => {
     }
   }, [/* include hoveredCell in dependencies */]);
 };
+
+// ✅ Tool Hotkey System Pattern (Sept 5, 2025)
+// Centralized hotkey configuration for maintainable tool switching
+export const TOOL_HOTKEYS: ToolHotkey[] = [
+  { tool: 'pencil', key: 'p', displayName: 'P', description: 'Pencil tool hotkey' },
+  { tool: 'eraser', key: 'e', displayName: 'E', description: 'Eraser tool hotkey' },
+  { tool: 'paintbucket', key: 'g', displayName: 'G', description: 'Fill tool hotkey' },
+  { tool: 'select', key: 'm', displayName: 'M', description: 'Rectangular selection hotkey' },
+  { tool: 'lasso', key: 'l', displayName: 'L', description: 'Lasso selection hotkey' },
+  { tool: 'magicwand', key: 'w', displayName: 'W', description: 'Magic wand selection hotkey' },
+  { tool: 'eyedropper', key: 'i', displayName: 'I', description: 'Eyedropper tool hotkey' },
+  { tool: 'rectangle', key: 'r', displayName: 'R', description: 'Rectangle drawing hotkey' },
+  { tool: 'ellipse', key: 'o', displayName: 'O', description: 'Ellipse drawing hotkey' },
+  { tool: 'text', key: 't', displayName: 'T', description: 'Text tool hotkey' },
+  { tool: 'hand', key: ' ', displayName: 'Space', description: 'Hand tool (temporary while held)' },
+];
+
+// ✅ Tool Hotkey Integration Pattern - useKeyboardShortcuts.ts
+export const useKeyboardShortcuts = () => {
+  // Handle tool hotkeys (single key presses for tool switching)
+  // Only process if no modifier keys are pressed and key is a valid tool hotkey
+  if (!event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
+    const targetTool = getToolForHotkey(event.key);
+    if (targetTool && targetTool !== 'hand') { // Hand tool handled separately via space key
+      event.preventDefault();
+      console.log(`Tool hotkey: Switching to ${targetTool} via "${event.key}" key`);
+      setActiveTool(targetTool);
+      return;
+    }
+  }
+};
+
+// ✅ Tool Tooltip Enhancement Pattern - ToolPalette.tsx
+import { getToolTooltipText } from '../../constants/hotkeys';
+
+<Button
+  title={getToolTooltipText(tool.id, tool.description)} // Enhanced with hotkey display
+  onClick={() => setActiveTool(tool.id)}
+>
 ```
 
 **Directory Structure (Updated):**
@@ -371,6 +410,9 @@ src/
 │   ├── performance.ts                 # Performance measurement tools (NEW)
 │   └── ...
 ├── constants/
+│   ├── hotkeys.ts                     # Tool hotkey configuration and utilities (NEW)
+│   ├── colors.ts                      # Color definitions
+│   └── index.ts                       # Character categories and app constants
 └── lib/
 ```
 
@@ -860,6 +902,45 @@ const useToolStore = create<ToolState>((set) => ({
 )}
 ```
 
+#### **Step 9: Add Tool Hotkey (MANDATORY)**
+**🚨 CRITICAL: ALL new tools MUST have a hotkey assigned using the centralized hotkey system.**
+
+**Add to `src/constants/hotkeys.ts`:**
+```typescript
+export const TOOL_HOTKEYS: ToolHotkey[] = [
+  // ... existing hotkeys
+  { tool: 'your-new-tool', key: 'y', displayName: 'Y', description: 'Your new tool hotkey' },
+];
+```
+
+**Hotkey Selection Guidelines:**
+- **Choose intuitive letters**: First letter of tool name preferred (P=Pencil, E=Eraser)
+- **Avoid conflicts**: Check existing hotkeys and common shortcuts (avoid C, V, Z, X)
+- **Single character**: Use single lowercase letters only
+- **No modifiers**: Don't use Shift, Cmd, Ctrl combinations (reserved for other shortcuts)
+
+**Examples of Good Hotkey Choices:**
+```typescript
+{ tool: 'pencil', key: 'p', displayName: 'P' },     // P for Pencil
+{ tool: 'brush', key: 'b', displayName: 'B' },      // B for Brush  
+{ tool: 'line', key: 'n', displayName: 'N' },       // N for liNe (L taken by Lasso)
+{ tool: 'spray', key: 's', displayName: 'S' },      // S for Spray
+```
+
+**⚠️ Why This Is Mandatory:**
+- **User Experience**: Professional tools always have hotkeys for efficiency
+- **Consistency**: Maintains established interaction patterns
+- **Accessibility**: Power users rely on keyboard shortcuts
+- **Documentation**: Tooltips automatically show hotkeys
+- **Future-Proofing**: Hotkey system is designed for easy expansion
+
+**✅ Automatic Benefits When You Add Hotkey:**
+- ✅ **Tool switching**: Single key press switches to your tool
+- ✅ **Enhanced tooltips**: Tool button tooltips automatically show "(Y)"
+- ✅ **Text input protection**: Hotkey automatically disabled during text tool typing
+- ✅ **No conflicts**: System prevents conflicts with modifier-based shortcuts
+- ✅ **Professional UX**: Matches industry standard tool behavior
+
 #### **✅ Validation Checklist**
 Before considering your tool complete:
 
@@ -871,6 +952,7 @@ Before considering your tool complete:
 - [ ] ToolStatusManager renders your tool status
 - [ ] Tool logic implemented (existing hooks or new hook)
 - [ ] Tool store updated if new settings needed
+- [ ] **Tool hotkey added to TOOL_HOTKEYS array** (MANDATORY - Step 9)
 - [ ] Tool works in development server
 - [ ] Tool provides helpful status messages
 - [ ] Tool follows existing interaction patterns
@@ -921,6 +1003,94 @@ button { background: gray; } /* Overrides all button styling */
 - ❌ Create tool logic outside the component + hook pattern
 - ❌ Skip the status component (users need feedback)
 - ❌ Forget to update TypeScript types
+
+### **🎮 Universal Tool Hotkey System (Sept 5, 2025)**
+
+**IMPORTANT: ASCII Motion now has a complete hotkey system for all tools with centralized, maintainable configuration.**
+
+#### **🎯 Tool Hotkey Mappings:**
+| Tool | Hotkey | Behavior |
+|------|--------|----------|
+| **Pencil** | `P` | Switch to pencil drawing tool |
+| **Eraser** | `E` | Switch to eraser tool |
+| **Fill** | `G` | Switch to paint bucket fill tool |
+| **Rectangular Selection** | `M` | Switch to rectangular selection tool |
+| **Lasso Selection** | `L` | Switch to lasso selection tool |
+| **Magic Wand** | `W` | Switch to magic wand selection tool |
+| **Eyedropper** | `I` | Switch to eyedropper tool |
+| **Rectangle Drawing** | `R` | Switch to rectangle drawing tool |
+| **Ellipse Drawing** | `O` | Switch to ellipse drawing tool |
+| **Text Tool** | `T` | Switch to text tool |
+| **Hand Tool** | `Space` | **Temporary** - Hold space to pan, release to return to previous tool |
+
+#### **🏗️ Architecture Benefits:**
+- **Centralized Configuration**: All hotkeys defined in `src/constants/hotkeys.ts`
+- **Automatic Tooltip Enhancement**: Hotkeys automatically appear in tool button tooltips
+- **Text Input Protection**: Hotkeys disabled during text tool typing
+- **Easy Updates**: Change hotkeys in one place, updates everywhere
+- **Consistent UX**: Professional tool switching behavior
+
+#### **🔧 Implementation Pattern for Hotkey Updates:**
+
+**Step 1: Update Hotkey Configuration** (`src/constants/hotkeys.ts`):
+```typescript
+export const TOOL_HOTKEYS: ToolHotkey[] = [
+  { tool: 'newtool', key: 'n', displayName: 'N', description: 'New tool hotkey' },
+  // ... existing hotkeys
+];
+```
+
+**Step 2: Automatic Integration** - No additional code needed:
+- ✅ Hotkey processing: Automatically handled in `useKeyboardShortcuts`
+- ✅ Tooltip display: Automatically enhanced in `ToolPalette`
+- ✅ Text input protection: Automatically respects typing state
+- ✅ Keyboard shortcuts: All existing Cmd/Ctrl shortcuts preserved
+
+#### **🚨 Critical Design Decisions:**
+- **Space Key Special Behavior**: Space key activates hand tool temporarily (existing behavior preserved)
+- **Single Key Activation**: All other tools use single key press to switch permanently
+- **Modifier Key Respect**: Tool hotkeys only trigger without modifier keys (Cmd+P still available for project shortcuts)
+- **Text Tool Protection**: All single-key hotkeys automatically disabled during text input
+
+#### **🚨 MANDATORY: All New Tools Must Have Hotkeys**
+**When implementing ANY new tool, you MUST add it to the hotkey system. No exceptions.**
+
+**Why This Is Non-Negotiable:**
+- **Professional UX Standards**: Industry-standard tools always have keyboard shortcuts
+- **User Efficiency**: Power users expect hotkey access to all tools
+- **Architectural Consistency**: Maintains established interaction patterns  
+- **Future-Proof Design**: Hotkey system is core to the tool architecture
+- **Automatic Benefits**: Tool gets enhanced tooltips, text input protection, and professional behavior
+
+**Required Steps for Every New Tool:**
+1. **Add to TOOL_HOTKEYS array** in `src/constants/hotkeys.ts`
+2. **Choose intuitive key**: First letter preferred, avoid conflicts with existing hotkeys
+3. **Verify integration**: Tooltips automatically enhanced, tool switching works
+4. **Test thoroughly**: Ensure hotkey works and doesn't conflict with text input
+
+**❌ Do NOT:**
+- Skip hotkey assignment for "simple" tools
+- Use modifier keys (Shift+X, Ctrl+Y) - these are reserved
+- Choose conflicting keys (check existing TOOL_HOTKEYS first)
+- Implement custom hotkey logic - use the centralized system
+
+#### **🎯 Future Hotkey Management:**
+```typescript
+// ✅ Easy to update hotkeys:
+const TOOL_HOTKEYS = [
+  { tool: 'pencil', key: 'p', displayName: 'P' },     // Change 'p' to 'd' for different hotkey
+  { tool: 'eraser', key: 'e', displayName: 'E' },     // Change display name for UI
+  // Add new tools with hotkeys easily
+];
+
+// ✅ Hotkeys automatically work across:
+// - Tool switching in useKeyboardShortcuts
+// - Tooltip enhancement in ToolPalette  
+// - Text input protection system
+// - Future keyboard shortcut features
+
+// 🚨 REMINDER: All new tools MUST have hotkeys (see Step 9 in tool creation guide)
+```
 
 ### **🔐 Keyboard Shortcut Protection for Text Input Tools**
 

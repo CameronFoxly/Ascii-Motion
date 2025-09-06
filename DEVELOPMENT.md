@@ -67,6 +67,47 @@ src/
 ### **🚨 IMPORTANT: Tailwind CSS Version Lock**
 **This project requires Tailwind CSS v3.x**. Do NOT upgrade to v4+ without extensive testing as it breaks shadcn/ui compatibility.
 
+## Development Guidelines
+
+### **🚨 MANDATORY: New Tool Requirements**
+When adding ANY new drawing tool to ASCII Motion, you MUST follow these requirements:
+
+#### **1. Tool Hotkey Assignment (NON-NEGOTIABLE)**
+- **Every new tool must have a hotkey** assigned in `src/constants/hotkeys.ts`
+- **Choose intuitive keys**: First letter of tool name preferred (B for Brush, S for Spray)
+- **Avoid conflicts**: Check existing TOOL_HOTKEYS array and common shortcuts (C, V, Z, X)
+- **Single character only**: Use lowercase letters, no modifiers (Shift/Cmd/Ctrl)
+
+```typescript
+// Example for new brush tool:
+{ tool: 'brush', key: 'b', displayName: 'B', description: 'Brush tool hotkey' }
+```
+
+#### **2. Follow 9-Step Tool Creation Pattern**
+All new tools must follow the established 9-step pattern documented in COPILOT_INSTRUCTIONS.md:
+1. Update Tool type definition
+2. Create tool component  
+3. Export tool component
+4. Update useToolBehavior
+5. Update ToolManager
+6. Update ToolStatusManager
+7. Implement tool logic
+8. Update tool store (if needed)
+9. **Add tool hotkey (MANDATORY)**
+
+#### **3. Architecture Consistency**
+- **Use existing hooks** when possible (`useDrawingTool`, `useCanvasDragAndDrop`)
+- **Create dedicated hooks** only for complex multi-state tools
+- **Follow shadcn styling** guidelines for UI components
+- **Include status messages** for user feedback
+
+#### **Benefits of Following Guidelines:**
+- ✅ Automatic hotkey integration and tooltip enhancement
+- ✅ Text input protection for your hotkey
+- ✅ Professional tool behavior matching industry standards
+- ✅ Consistent architectural patterns
+- ✅ Easy maintenance and future updates
+
 ## Development Phases
 
 ### Phase 1: Core Editor ✅ **COMPLETE**
@@ -123,7 +164,8 @@ src/
    - ✅ **Advanced Selection Tools**: Lasso selection, magic wand with contiguous/non-contiguous modes
    - ✅ **Text Input System**: Type tool with cursor rendering and keyboard shortcut protection
    - ✅ **Enhanced Fill Tool**: Paint bucket with contiguous/non-contiguous toggle
-   - ⏳ **Remaining Items**: Hand tool improvements, additional block characters, tool hotkeys
+   - ✅ **Universal Tool Hotkeys**: Complete hotkey system for all tools with centralized configuration (Sept 5, 2025)
+   - ⏳ **Remaining Items**: Hand tool improvements, additional block characters
    - ⏳ **UI/UX Polish**: Responsive layout, enhanced status panel, active cell highlighting
 
 2. **Phase 2: Animation System** - After enhanced toolset
@@ -316,6 +358,61 @@ src/
 - `src/contexts/CanvasContext.tsx` (ENHANCED) - Added hoveredCell state and setHoveredCell action
 - `src/hooks/useCanvasMouseHandlers.ts` (ENHANCED) - Added hover cell tracking on mouse move and clearing on mouse leave
 - `src/hooks/useCanvasRenderer.ts` (ENHANCED) - Added subtle blue hover outline rendering
+
+✅ **Features Implemented:**
+- **Universal Hover Feedback**: Subtle blue outline appears on all tools except hand tool
+- **Real-time Tracking**: Mouse position tracked and outline updated during mouse move
+- **Proper State Management**: Hover state cleared when mouse leaves canvas or tool switches to hand
+- **Performance Optimized**: Hover rendering integrated into existing canvas render cycle
+- **Visual Consistency**: Blue outline matches other selection tool color themes
+- **Grid Independence**: Works whether grid overlay is visible or not
+
+### **🎯 ENHANCEMENT COMPLETED: Universal Tool Hotkey System (Sept 5, 2025)**
+✅ **Status**: COMPLETE - Comprehensive hotkey system for all tools with centralized configuration
+✅ **Files Created/Modified:**
+- `src/constants/hotkeys.ts` (NEW) - Centralized hotkey configuration with utilities (75 lines)
+- `src/constants/index.ts` (ENHANCED) - Added hotkey utility exports for easier access
+- `src/components/features/ToolPalette.tsx` (ENHANCED) - Enhanced tooltips with hotkey display using `getToolTooltipText()`
+- `src/hooks/useKeyboardShortcuts.ts` (ENHANCED) - Added comprehensive tool hotkey handling with text input protection
+
+✅ **Features Implemented:**
+- **Complete Tool Coverage**: Hotkeys for all 11 tools with intuitive key assignments
+- **Professional Hotkey Mapping**: P=Pencil, E=Eraser, G=Fill, M=Selection, L=Lasso, W=Magic Wand, I=Eyedropper, R=Rectangle, O=Ellipse, T=Text, Space=Hand
+- **Enhanced Tooltips**: All tool buttons automatically show hotkeys in tooltips (e.g., "Draw characters (P)")
+- **Text Input Protection**: All single-key hotkeys automatically disabled during text tool typing
+- **Modifier Key Preservation**: Cmd+C, Ctrl+Z, etc. continue working; hotkeys only trigger on unmodified key presses
+- **Space Key Special Behavior**: Space key maintains existing temporary hand tool behavior (hold to pan, release to return)
+- **Centralized Configuration**: All hotkey mappings in one maintainable file with lookup utilities
+- **Future-Proof Architecture**: Easy to add new tools or change hotkey assignments
+
+✅ **Technical Architecture:**
+- **Centralized Configuration**: `TOOL_HOTKEYS` array with tool, key, and display name mappings
+- **Efficient Lookup Maps**: `HOTKEY_TO_TOOL` and `TOOL_TO_HOTKEY` for O(1) key processing
+- **Utility Functions**: `getToolForHotkey()`, `getToolTooltipText()`, and other helper functions
+- **Integration Points**: Automatic integration with existing keyboard shortcut system and tool palette
+- **Text Input Compatibility**: Respects existing text input protection patterns
+- **Keyboard Event Processing**: Clean separation between tool hotkeys and modifier-based shortcuts
+
+✅ **User Experience:**
+- **Industry Standard**: Matches hotkey conventions from professional design tools
+- **Visual Feedback**: Tooltips clearly show which key activates each tool
+- **Conflict-Free Operation**: No interference with existing copy/paste, undo/redo, or space key behavior
+- **Intuitive Assignments**: Keys chosen for memorability (P=Pencil, E=Eraser, etc.)
+- **Consistent Behavior**: Single key press switches tools permanently (except space for temporary hand tool)
+- **Error Prevention**: Tool switching disabled during text input to prevent accidental switches
+
+✅ **Maintenance Benefits:**
+- **Single Source of Truth**: Change hotkey in one place, updates everywhere automatically
+- **Easy Updates**: Add new tools or modify hotkeys with minimal code changes
+- **Clear Documentation**: Self-documenting configuration with descriptive names
+- **Testable Architecture**: Hotkey utilities can be unit tested independently
+- **IDE Support**: TypeScript interfaces provide autocompletion for tool hotkey management
+
+✅ **MANDATORY REQUIREMENT FOR FUTURE TOOLS:**
+- **All New Tools Must Have Hotkeys**: Every tool added to ASCII Motion MUST include a hotkey in the TOOL_HOTKEYS array
+- **No Exceptions**: This is a core architectural requirement, not an optional enhancement
+- **Automatic Benefits**: New tools automatically get enhanced tooltips, text input protection, and professional tool switching behavior
+- **Development Guidelines**: See "Development Guidelines" section above for complete requirements
 
 ✅ **Features Implemented:**
 - **Universal Hover Tracking**: Shows subtle outline around cell under cursor for all tools except hand tool
