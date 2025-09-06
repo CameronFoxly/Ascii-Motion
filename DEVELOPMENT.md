@@ -1510,11 +1510,85 @@ src/utils/
 
 ## Next Steps
 
-1. **Phase 2: Animation System** - Ready to begin
-   - Timeline UI: Create the frame timeline with thumbnails  
-   - Animation Playback: Implement frame switching and playback controls
-   - Frame Management: Add/delete/duplicate frames
-   - Onion Skinning: Show previous/next frames for animation reference
+### **🎯 PHASE 2: ANIMATION SYSTEM - DETAILED IMPLEMENTATION PLAN (Sept 6, 2025)**
+
+**Core Requirements:**
+- Changes automatically save to the current frame
+- Horizontal scrollable timeline with full ASCII render thumbnails
+- Canvas read-only during playback with visual indicator (canvas outline color change)
+- Auto-save/load on frame switching
+- Click-to-navigate frames with keyboard shortcuts (`,` `.` keys)
+- Frame duration controls and drag-drop reordering
+- Playback controls with hotkeys
+
+**Implementation Structure:**
+
+#### Phase 2.1: Frame Synchronization Foundation
+**New Hook: `useFrameSynchronization.ts`**
+- Canvas-to-frame auto-save on changes
+- Frame-to-canvas loading on switch
+- Real-time sync between canvas and current frame data
+- Frame switching safeguards
+
+#### Phase 2.2: Timeline UI Core
+**New Components:**
+- `AnimationTimeline.tsx` - Main timeline container
+- `FrameThumbnail.tsx` - Individual frame with ASCII render
+- `FrameControls.tsx` - Add/duplicate/delete buttons
+
+**Features:**
+- Horizontal scrollable layout
+- Full ASCII miniature thumbnails
+- Frame selection/navigation
+- Visual current frame indicator
+
+#### Phase 2.3: Playback Engine
+**New Hook: `useAnimationPlayback.ts`**
+- RequestAnimationFrame-based timing
+- Timeline-driven frame progression
+- Canvas read-only mode during playback
+- Visual playback indicator (canvas outline)
+
+**New Hook: `useFrameNavigation.ts`**
+- Keyboard navigation (`,` previous, `.` next)
+- Click-to-jump frame switching
+- Automatic canvas updates
+
+#### Phase 2.4: Frame Management
+**Features:**
+- Drag & drop frame reordering
+- Per-frame duration editing (milliseconds)
+- Frame control buttons integration
+- Keyboard shortcut integration
+
+#### Phase 2.5: Integration & Polish
+- Replace "Coming Soon" timeline in App.tsx bottom panel
+- Integrate with existing hotkey system
+- Add playback controls UI
+- Canvas outline styling for playback mode
+
+**Store Enhancements:**
+- Animation Store: Add playback timing state
+- Canvas Store: Add frame sync methods  
+- Tool Store: Add playback mode state
+
+**Onion Skinning Preparation:**
+- Layered rendering system in timeline
+- Adjacent frame access infrastructure
+- Opacity/blend system foundation
+- Render optimization for future overlays
+
+**New Hooks to Create:**
+1. `useAnimationPlayback.ts` - Playback engine
+2. `useFrameSynchronization.ts` - Canvas-frame sync
+3. `useFrameNavigation.ts` - Navigation & shortcuts
+4. `useFrameThumbnails.ts` - ASCII thumbnail generation
+
+**UI Integration Points:**
+- Bottom panel timeline replacement
+- Keyboard shortcut system integration
+- Tool state management during playback
+- Canvas outline styling system
 
 2. **Phase 3: Export Functions** - Future development
    - Text export capabilities
