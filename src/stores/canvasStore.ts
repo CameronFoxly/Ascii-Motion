@@ -16,7 +16,7 @@ interface CanvasState extends Canvas {
   getCell: (x: number, y: number) => Cell | undefined;
   clearCell: (x: number, y: number) => void;
   clearCanvas: () => void;
-  fillArea: (x: number, y: number, cell: Cell) => void;
+  fillArea: (x: number, y: number, cell: Cell, contiguous?: boolean) => void;
   setCanvasData: (cells: Map<string, Cell>) => void;
   
   // Computed values
@@ -109,7 +109,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set({ cells: new Map() });
   },
 
-  fillArea: (startX: number, startY: number, newCell: Cell) => {
+  fillArea: (startX: number, startY: number, newCell: Cell, contiguous: boolean = true) => {
     const { width, height, getCell } = get();
     if (startX < 0 || startX >= width || startY < 0 || startY >= height) return;
 
@@ -124,46 +124,73 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       return; // Same cell, no need to fill
     }
 
-    const toFill: { x: number; y: number }[] = [{ x: startX, y: startY }];
-    const visited = new Set<string>();
     const newCells = new Map(get().cells);
 
-    while (toFill.length > 0) {
-      const { x, y } = toFill.pop()!;
-      const key = createCellKey(x, y);
-      
-      if (visited.has(key)) continue;
-      visited.add(key);
+    if (contiguous) {
+      // Contiguous fill (original flood fill algorithm)
+      const toFill: { x: number; y: number }[] = [{ x: startX, y: startY }];
+      const visited = new Set<string>();
 
-      const currentCell = getCell(x, y);
-      if (!currentCell || !targetCell) continue;
-      
-      if (
-        currentCell.char !== targetCell.char ||
-        currentCell.color !== targetCell.color ||
-        currentCell.bgColor !== targetCell.bgColor
-      ) {
-        continue;
-      }
+      while (toFill.length > 0) {
+        const { x, y } = toFill.pop()!;
+        const key = createCellKey(x, y);
+        
+        if (visited.has(key)) continue;
+        visited.add(key);
+
+        const currentCell = getCell(x, y);
+        if (!currentCell || !targetCell) continue;
+        
+        if (
+          currentCell.char !== targetCell.char ||
+          currentCell.color !== targetCell.color ||
+          currentCell.bgColor !== targetCell.bgColor
+        ) {
+          continue;
+        }
 
         // Set the new cell
         if (newCell.char === ' ' && newCell.color === '#FFFFFF' && newCell.bgColor === get().canvasBackgroundColor) {
           newCells.delete(key);
         } else {
           newCells.set(key, { ...newCell });
-        }      // Add adjacent cells
-      const adjacent = [
-        { x: x - 1, y },
-        { x: x + 1, y },
-        { x, y: y - 1 },
-        { x, y: y + 1 }
-      ];
+        }
+        
+        // Add adjacent cells
+        const adjacent = [
+          { x: x - 1, y },
+          { x: x + 1, y },
+          { x, y: y - 1 },
+          { x, y: y + 1 }
+        ];
 
-      for (const adj of adjacent) {
-        if (adj.x >= 0 && adj.x < width && adj.y >= 0 && adj.y < height) {
-          const adjKey = createCellKey(adj.x, adj.y);
-          if (!visited.has(adjKey)) {
-            toFill.push(adj);
+        for (const adj of adjacent) {
+          if (adj.x >= 0 && adj.x < width && adj.y >= 0 && adj.y < height) {
+            const adjKey = createCellKey(adj.x, adj.y);
+            if (!visited.has(adjKey)) {
+              toFill.push(adj);
+            }
+          }
+        }
+      }
+    } else {
+      // Non-contiguous fill - replace ALL matching cells on canvas
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const currentCell = getCell(x, y);
+          if (currentCell && 
+              currentCell.char === targetCell.char &&
+              currentCell.color === targetCell.color &&
+              currentCell.bgColor === targetCell.bgColor) {
+            
+            const key = createCellKey(x, y);
+            
+            // Set the new cell
+            if (newCell.char === ' ' && newCell.color === '#FFFFFF' && newCell.bgColor === get().canvasBackgroundColor) {
+              newCells.delete(key);
+            } else {
+              newCells.set(key, { ...newCell });
+            }
           }
         }
       }

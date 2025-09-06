@@ -77,6 +77,7 @@ export interface ToolState {
   selectedBgColor: string;
   brushSize: number;
   rectangleFilled: boolean;
+  paintBucketContiguous: boolean;
   magicWandContiguous: boolean;
 }
 

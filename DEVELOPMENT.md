@@ -119,11 +119,12 @@ src/
 
 ## Next Steps
 
-1. **Phase 1.6: Enhanced Art Creation Tools** - Next phase
-   - New tool implementations: Type tool, lasso selection, magic wand
-   - UI/UX improvements: Responsive layout, enhanced status panel
-   - Advanced systems: Custom palette, non-square grid cells
-   - Tool polish: Hotkeys, hover highlights, expanded character sets
+1. **Phase 1.6: Enhanced Art Creation Tools** - Current phase (Nearly Complete)
+   - ✅ **Advanced Selection Tools**: Lasso selection, magic wand with contiguous/non-contiguous modes
+   - ✅ **Text Input System**: Type tool with cursor rendering and keyboard shortcut protection
+   - ✅ **Enhanced Fill Tool**: Paint bucket with contiguous/non-contiguous toggle
+   - ⏳ **Remaining Items**: Hand tool improvements, additional block characters, tool hotkeys
+   - ⏳ **UI/UX Polish**: Responsive layout, enhanced status panel, active cell highlighting
 
 2. **Phase 2: Animation System** - After enhanced toolset
    - Timeline UI: Create the frame timeline with thumbnails  
@@ -309,6 +310,42 @@ src/
 - **Exact Match Criteria**: Character + color + background color equality check
 - **Performance Optimized**: Efficient algorithms for both small and large canvas sizes
 
+### **🎯 ENHANCEMENT COMPLETED: Paint Bucket Contiguous Toggle (Sept 5, 2025)**
+✅ **Status**: COMPLETE - Enhanced fill tool with contiguous/non-contiguous mode selection
+✅ **Files Created/Modified:**
+- `src/types/index.ts` (ENHANCED) - Added paintBucketContiguous boolean to ToolState interface
+- `src/stores/toolStore.ts` (ENHANCED) - Added paintBucketContiguous state and setPaintBucketContiguous action
+- `src/stores/canvasStore.ts` (ENHANCED) - Enhanced fillArea function with contiguous parameter and dual algorithms
+- `src/hooks/useDrawingTool.ts` (ENHANCED) - Updated paint bucket logic to use contiguous setting
+- `src/components/tools/PaintBucketTool.tsx` (ENHANCED) - Updated status component to show current mode
+- `src/components/features/ToolPalette.tsx` (ENHANCED) - Added contiguous toggle UI below paint bucket tool button
+
+✅ **Features Implemented:**
+- **Contiguous Fill Mode** (default): Original flood fill behavior - fills only connected areas with same character/color
+- **Non-contiguous Fill Mode**: Scans entire canvas and fills ALL cells matching the target, regardless of connection
+- **UI Toggle Integration**: Checkbox appears below paint bucket button when tool is active
+- **Status Feedback**: Tool status shows "connected areas" vs "all matching cells" based on current mode
+- **Consistent Pattern**: Follows same toggle pattern as rectangle filled/hollow and magic wand contiguous modes
+
+✅ **Technical Implementation:**
+- **Enhanced fillArea Algorithm**: Single function with contiguous parameter controlling fill behavior
+- **Tool Store Integration**: paintBucketContiguous boolean with default true (contiguous mode)
+- **Hook Integration**: useDrawingTool passes contiguous setting to fillArea function
+- **UI Pattern Consistency**: Uses same Card/checkbox styling as other tool options
+- **Type Safety**: Full TypeScript integration with interface updates
+
+✅ **User Experience:**
+- **Default Behavior**: Maintains existing contiguous fill as default to preserve familiarity
+- **Visual Feedback**: Clear status messages indicate current fill mode and expected behavior
+- **Toggle Accessibility**: Easy-to-find checkbox with descriptive label "Contiguous fill (connected areas only)"
+- **Professional Feel**: Matches behavior expectations from other graphics applications
+
+✅ **Architecture Benefits:**
+- **Backwards Compatibility**: No breaking changes to existing fill functionality
+- **Pattern Reusability**: Establishes clear pattern for future tool toggles
+- **Performance Optimization**: Non-contiguous mode efficiently scans canvas without recursion
+- **Code Maintainability**: Clean separation between contiguous and non-contiguous algorithms
+
 ### **🎯 ENHANCEMENT COMPLETED: Advanced Paste with Visual Preview (Sept 3, 2025)**
 ✅ **Files Created/Modified:**
 - `src/hooks/usePasteMode.ts` (NEW) - Advanced paste mode state management (188 lines)
@@ -427,7 +464,7 @@ src/
 - [ ] **Gradient Color Fill** *(wait until custom palette system)*
 
 #### Tool Behavior Enhancements
-- [ ] **Non-contiguous Fill** - Fill all matching cells regardless of connection
+- [x] **Non-contiguous Fill** - Fill all matching cells regardless of connection
 - [ ] **Active Cell Highlight** - Hover highlight for all drawing tools
 - [ ] **Hotkeys for All Tools** - Keyboard shortcuts for tool switching
 - [ ] **Additional Block Characters** - Expand character palette with more block sets

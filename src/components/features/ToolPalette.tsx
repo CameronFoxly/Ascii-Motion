@@ -37,7 +37,7 @@ const TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; description:
 ];
 
 export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
-  const { activeTool, setActiveTool, rectangleFilled, setRectangleFilled, magicWandContiguous, setMagicWandContiguous } = useToolStore();
+  const { activeTool, setActiveTool, rectangleFilled, setRectangleFilled, paintBucketContiguous, setPaintBucketContiguous, magicWandContiguous, setMagicWandContiguous } = useToolStore();
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -100,6 +100,25 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                 className="rounded border-border"
               />
               <span>Filled ellipse</span>
+            </label>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTool === 'paintbucket' && (
+        <Card className="bg-card/50 border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Fill Options</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={paintBucketContiguous}
+                onChange={(e) => setPaintBucketContiguous(e.target.checked)}
+                className="rounded border-border"
+              />
+              <span>Contiguous fill (connected areas only)</span>
             </label>
           </CardContent>
         </Card>

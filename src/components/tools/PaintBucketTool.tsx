@@ -19,12 +19,14 @@ export const PaintBucketTool: React.FC = () => {
  * Provides visual feedback about the paint bucket tool
  */
 export const PaintBucketToolStatus: React.FC = () => {
-  const { selectedChar, selectedColor, selectedBgColor } = useToolStore();
+  const { selectedChar, selectedColor, selectedBgColor, paintBucketContiguous } = useToolStore();
+
+  const fillMode = paintBucketContiguous ? 'connected areas' : 'all matching cells';
 
   return (
     <span className="text-purple-600">
       Fill: "{selectedChar}" with color {selectedColor}
-      {selectedBgColor !== '#FFFFFF' && ` on ${selectedBgColor}`} - Click to flood fill
+      {selectedBgColor !== '#FFFFFF' && ` on ${selectedBgColor}`} - Click to flood fill {fillMode}
     </span>
   );
 };

@@ -256,7 +256,7 @@ src/
 | **Magic Wand** | `useCanvasMagicWandSelection` (dedicated) | Complex: Multi-algorithm selection (flood fill + scan), exact matching logic, contiguous/non-contiguous modes |
 | **Pencil** | `useDrawingTool` (shared) | Simple: Single-click cell modification |
 | **Eraser** | `useDrawingTool` (shared) | Simple: Single-click cell clearing |
-| **Paint Bucket** | `useDrawingTool` (shared) | Simple: Single-click flood fill algorithm |
+| **Paint Bucket** | `useDrawingTool` (shared) | Simple: Single-click flood fill algorithm with contiguous/non-contiguous modes |
 | **Eyedropper** | `useDrawingTool` (shared) | Simple: Single-click color sampling |
 | **Rectangle** | `useCanvasDragAndDrop` (shared) | Interactive: Drag-based drawing with preview, aspect ratio locking |
 | **Ellipse** | `useCanvasDragAndDrop` (shared) | Interactive: Drag-based drawing with preview, aspect ratio locking |
@@ -784,6 +784,33 @@ const useToolStore = create<ToolState>((set) => ({
   // ... existing actions
   setYourNewToolSetting: (value: boolean) => set({ yourNewToolSetting: value }),
 }));
+```
+
+**Common Tool Toggle Patterns:**
+- `rectangleFilled: boolean` - Rectangle/ellipse filled vs hollow mode
+- `paintBucketContiguous: boolean` - Paint bucket contiguous vs non-contiguous fill  
+- `magicWandContiguous: boolean` - Magic wand contiguous vs non-contiguous selection
+
+**Tool Toggle UI Pattern (ToolPalette.tsx):**
+```typescript
+{activeTool === 'your-tool' && (
+  <Card className="bg-card/50 border-border/50">
+    <CardHeader className="pb-3">
+      <CardTitle className="text-sm font-medium">Your Tool Options</CardTitle>
+    </CardHeader>
+    <CardContent className="pt-0">
+      <label className="flex items-center gap-2 text-sm cursor-pointer">
+        <input
+          type="checkbox"
+          checked={yourToolSetting}
+          onChange={(e) => setYourToolSetting(e.target.checked)}
+          className="rounded border-border"
+        />
+        <span>Your setting description</span>
+      </label>
+    </CardContent>
+  </Card>
+)}
 ```
 
 #### **✅ Validation Checklist**
@@ -1448,6 +1475,7 @@ const useCanvasStore = create<CanvasState>((set) => ({
 - ✅ **Enhanced Pencil Tool** - Shift+click line drawing with Bresenham algorithm (Sept 3, 2025)
 - ✅ **Lasso Selection Tool** - Complete freeform selection with precise center-based detection (Sept 4-5, 2025)
 - ✅ **Text Tool** - Complete text input with blinking cursor, word-based undo, and keyboard shortcut protection (Sept 5, 2025)
+- ✅ **Paint Bucket Contiguous Toggle** - Enhanced fill tool with contiguous/non-contiguous mode selection (Sept 5, 2025)
 
 **Step 5.1 Completion - Performance Optimizations**:
 - ✅ CellRenderer.tsx: Memoized cell rendering component
@@ -1505,6 +1533,47 @@ const useCanvasStore = create<CanvasState>((set) => ({
 ---
 
 ## � **Architectural Decisions Log**
+
+### **Paint Bucket Contiguous/Non-Contiguous Toggle Enhancement (Sept 5, 2025)**
+**Decision**: Add contiguous/non-contiguous mode toggle to paint bucket tool following established patterns
+**Goal**: Provide users with both connected-area fill and global matching fill capabilities
+**Pattern**: Follow magic wand tool toggle pattern for UI consistency
+
+**Implementation Architecture**:
+- **Enhanced fillArea Function**: Modified to accept optional `contiguous` parameter with dual algorithms
+- **Tool Store Integration**: Added `paintBucketContiguous: boolean` state with default `true`
+- **UI Pattern Consistency**: Used same Card/checkbox pattern as rectangle filled and magic wand contiguous toggles
+- **Hook Integration**: useDrawingTool passes contiguous setting from tool store to fillArea function
+
+**Algorithm Design**:
+```typescript
+// Contiguous Mode (default): Original flood fill with 4-directional expansion
+const toFill: { x: number; y: number }[] = [{ x: startX, y: startY }];
+// Queue-based neighbor checking with visited set
+
+// Non-contiguous Mode: Complete canvas scan for exact matches
+for (let y = 0; y < height; y++) {
+  for (let x = 0; x < width; x++) {
+    // Check character + color + background color equality
+  }
+}
+```
+
+**Files Modified**:
+- `src/types/index.ts` - Added paintBucketContiguous to ToolState interface
+- `src/stores/toolStore.ts` - Added state and action for paint bucket toggle
+- `src/stores/canvasStore.ts` - Enhanced fillArea with contiguous parameter and dual algorithms
+- `src/hooks/useDrawingTool.ts` - Updated to pass contiguous setting to fillArea
+- `src/components/tools/PaintBucketTool.tsx` - Enhanced status to show current mode
+- `src/components/features/ToolPalette.tsx` - Added toggle UI below paint bucket button
+
+**User Experience Benefits**:
+- **Backwards Compatibility**: Default contiguous mode preserves existing behavior
+- **Professional Feel**: Matches expectations from other graphics applications
+- **Clear Feedback**: Status messages indicate "connected areas" vs "all matching cells"
+- **UI Consistency**: Same toggle pattern as other tool options
+
+**Pattern Established**: This creates a reusable pattern for tool mode toggles that can be applied to future tools requiring similar dual-mode functionality.
 
 ### **Lasso Selection Algorithm Precision Fix (Sept 5, 2025)**
 **Decision**: Switch from multi-criteria cell selection to center-based selection for lasso tool

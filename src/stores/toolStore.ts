@@ -39,6 +39,7 @@ interface ToolStoreState extends ToolState {
   setSelectedBgColor: (color: string) => void;
   setBrushSize: (size: number) => void;
   setRectangleFilled: (filled: boolean) => void;
+  setPaintBucketContiguous: (contiguous: boolean) => void;
   setMagicWandContiguous: (contiguous: boolean) => void;
   
   // Eyedropper functionality
@@ -106,6 +107,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   selectedBgColor: DEFAULT_COLORS[0], // Black
   brushSize: 1,
   rectangleFilled: false,
+  paintBucketContiguous: true, // Default to contiguous fill
   magicWandContiguous: true, // Default to contiguous selection
   
   // Pencil tool state
@@ -185,6 +187,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   setSelectedBgColor: (color: string) => set({ selectedBgColor: color }),
   setBrushSize: (size: number) => set({ brushSize: Math.max(1, size) }),
   setRectangleFilled: (filled: boolean) => set({ rectangleFilled: filled }),
+  setPaintBucketContiguous: (contiguous: boolean) => set({ paintBucketContiguous: contiguous }),
   setMagicWandContiguous: (contiguous: boolean) => set({ magicWandContiguous: contiguous }),
 
   // Eyedropper functionality

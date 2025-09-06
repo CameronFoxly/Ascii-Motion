@@ -14,6 +14,7 @@ export const useDrawingTool = () => {
     selectedColor, 
     selectedBgColor,
     rectangleFilled,
+    paintBucketContiguous,
     pickFromCell,
     pencilLastPosition,
     setPencilLastPosition
@@ -101,7 +102,7 @@ export const useDrawingTool = () => {
           color: selectedColor,
           bgColor: selectedBgColor
         };
-        fillArea(x, y, newCell);
+        fillArea(x, y, newCell, paintBucketContiguous);
         break;
       }
     }
@@ -110,6 +111,7 @@ export const useDrawingTool = () => {
     selectedChar, 
     selectedColor, 
     selectedBgColor, 
+    paintBucketContiguous,
     setCell, 
     clearCell, 
     getCell, 
