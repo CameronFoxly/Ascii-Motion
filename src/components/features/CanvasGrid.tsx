@@ -50,7 +50,14 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   useCanvasRenderer();
 
   const { width, height } = useCanvasStore();
-  const { selection, lassoSelection, clearSelection, clearLassoSelection } = useToolStore();
+  const { 
+    selection, 
+    lassoSelection, 
+    magicWandSelection, 
+    clearSelection, 
+    clearLassoSelection, 
+    clearMagicWandSelection 
+  } = useToolStore();
 
   // Handle keyboard events for Escape and Shift keys
   useEffect(() => {
@@ -69,7 +76,9 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       
       // Handle Escape key for canceling moves and clearing selections
       if (event.key === 'Escape') {
-        if ((selection.active && activeTool === 'select') || (lassoSelection.active && activeTool === 'lasso')) {
+        if ((selection.active && activeTool === 'select') || 
+            (lassoSelection.active && activeTool === 'lasso') ||
+            (magicWandSelection.active && activeTool === 'magicwand')) {
           event.preventDefault();
           event.stopPropagation();
           
@@ -85,11 +94,14 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
           if (lassoSelection.active) {
             clearLassoSelection();
           }
+          if (magicWandSelection.active) {
+            clearMagicWandSelection();
+          }
         }
       }
       
       // Handle Enter key for committing moves
-      if (event.key === 'Enter' && moveState && (activeTool === 'select' || activeTool === 'lasso')) {
+      if (event.key === 'Enter' && moveState && (activeTool === 'select' || activeTool === 'lasso' || activeTool === 'magicwand')) {
         event.preventDefault();
         event.stopPropagation();
         commitMove();
@@ -99,6 +111,8 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
           clearSelection();
         } else if (activeTool === 'lasso') {
           clearLassoSelection();
+        } else if (activeTool === 'magicwand') {
+          clearMagicWandSelection();
         }
       }
     };

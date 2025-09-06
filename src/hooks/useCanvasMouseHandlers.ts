@@ -4,6 +4,7 @@ import { useToolStore } from '../stores/toolStore';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useCanvasSelection } from './useCanvasSelection';
 import { useCanvasLassoSelection } from './useCanvasLassoSelection';
+import { useCanvasMagicWandSelection } from './useCanvasMagicWandSelection';
 import { useCanvasDragAndDrop } from './useCanvasDragAndDrop';
 import { useHandTool } from './useHandTool';
 import { useTextTool } from './useTextTool';
@@ -22,7 +23,7 @@ export interface MouseHandlers {
  * Routes mouse events to appropriate tool handlers
  */
 export const useCanvasMouseHandlers = (): MouseHandlers => {
-  const { activeTool, clearSelection, clearLassoSelection } = useToolStore();
+  const { activeTool, clearSelection, clearLassoSelection, clearMagicWandSelection } = useToolStore();
   const { canvasRef, spaceKeyDown, setIsDrawing, setMouseButtonDown, pasteMode, updatePastePosition, startPasteDrag, stopPasteDrag, cancelPasteMode, commitPaste } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
   const { width, height, cells, setCanvasData } = useCanvasStore();
@@ -31,6 +32,7 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
   // Import tool hooks
   const selectionHandlers = useCanvasSelection();
   const lassoSelectionHandlers = useCanvasLassoSelection();
+  const magicWandSelectionHandlers = useCanvasMagicWandSelection();
   const dragAndDropHandlers = useCanvasDragAndDrop();
   const handToolHandlers = useHandTool();
   const textToolHandlers = useTextTool();
@@ -139,6 +141,9 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
       case 'lasso':
         lassoSelectionHandlers.handleLassoMouseDown(event);
         break;
+      case 'magicwand':
+        magicWandSelectionHandlers.handleMagicWandMouseDown(event);
+        break;
       case 'rectangle':
         dragAndDropHandlers.handleRectangleMouseDown(event);
         break;
@@ -179,6 +184,9 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
       case 'lasso':
         lassoSelectionHandlers.handleLassoMouseMove(event);
         break;
+      case 'magicwand':
+        magicWandSelectionHandlers.handleMagicWandMouseMove(event);
+        break;
       case 'rectangle':
         dragAndDropHandlers.handleRectangleMouseMove(event);
         break;
@@ -212,6 +220,9 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
           break;
         case 'lasso':
           lassoSelectionHandlers.handleLassoMouseUp();
+          break;
+        case 'magicwand':
+          magicWandSelectionHandlers.handleMagicWandMouseUp();
           break;
         case 'rectangle':
           dragAndDropHandlers.handleRectangleMouseUp();

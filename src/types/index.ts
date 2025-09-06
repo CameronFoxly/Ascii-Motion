@@ -61,6 +61,7 @@ export type Tool =
   | 'paintbucket' 
   | 'select' 
   | 'lasso'
+  | 'magicwand'
   | 'rectangle' 
   | 'ellipse'
   | 'eyedropper'
@@ -76,6 +77,7 @@ export interface ToolState {
   selectedBgColor: string;
   brushSize: number;
   rectangleFilled: boolean;
+  magicWandContiguous: boolean;
 }
 
 export interface Selection {
@@ -89,6 +91,13 @@ export interface LassoSelection {
   selectedCells: Set<string>; // Cell keys "x,y" that are inside the polygon
   active: boolean;
   isDrawing: boolean; // Currently drawing the lasso path
+}
+
+export interface MagicWandSelection {
+  selectedCells: Set<string>; // Cell keys "x,y" that match the target criteria
+  targetCell: Cell | null; // The original clicked cell (for matching criteria)
+  active: boolean;
+  contiguous: boolean; // Whether to select only connected matching cells
 }
 
 export interface TextToolState {

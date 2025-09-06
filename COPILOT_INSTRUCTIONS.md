@@ -253,6 +253,7 @@ src/
 |------|-----------|-------------------|
 | **Selection** | `useCanvasSelection` (dedicated) | Complex: Multi-state (select→move→resize), sophisticated coordinate tracking |
 | **Lasso** | `useCanvasLassoSelection` (dedicated) | Complex: Freeform selection, point-in-polygon algorithms, separate state from rectangular selection |
+| **Magic Wand** | `useCanvasMagicWandSelection` (dedicated) | Complex: Multi-algorithm selection (flood fill + scan), exact matching logic, contiguous/non-contiguous modes |
 | **Pencil** | `useDrawingTool` (shared) | Simple: Single-click cell modification |
 | **Eraser** | `useDrawingTool` (shared) | Simple: Single-click cell clearing |
 | **Paint Bucket** | `useDrawingTool` (shared) | Simple: Single-click flood fill algorithm |
@@ -498,6 +499,49 @@ Before completing any selection tool implementation:
 - [ ] Check console for unexpected commitMove calls during interaction
 - [ ] Test that visual feedback matches actual selection bounds
 
+**🚨 Critical Testing Requirements (Lessons from Magic Wand Tool - Sept 5, 2025)**:
+Post-implementation testing revealed multiple subtle bugs that only appear during real usage:
+- [ ] **Move Operation**: Verify ONLY selected cells move, not all canvas cells (check `originalData` in move state)
+- [ ] **Copy/Paste Integration**: Test Cmd/Ctrl+C and Cmd/Ctrl+V with new selection type
+- [ ] **Keyboard Controls**: Test Escape (cancel) and Enter (commit) during move operations  
+- [ ] **Selection State After Move**: Click outside moved selection and verify no stale selection preview
+- [ ] **Post-Commit Click**: After move commit, next click should create new selection, not grab empty selection
+- [ ] **Clipboard Priority**: Verify paste mode prioritizes newest selection type clipboard
+- [ ] **Tool Switching**: Switch away and back to tool during move operation
+- [ ] **Multiple Selections**: Create selection, move it, create new selection in different area
+
+**🔧 Selection Tool Bug Patterns to Watch For**:
+```typescript
+// ❌ Common Bug: Including all cells in move state
+setMoveState({
+  originalData: new Map(cells), // WRONG - moves everything
+  // ...
+});
+
+// ✅ Correct: Only include selected cells
+const originalData = new Map();
+selectedCells.forEach(cellKey => {
+  const cell = getCell(x, y);
+  if (cell && !isEmpty(cell)) {
+    originalData.set(cellKey, cell);
+  }
+});
+
+// ❌ Common Bug: Incomplete move commit sequence
+if (clickOutsideSelection) {
+  commitMove(); // WRONG - leaves stale selection state
+  return;
+}
+
+// ✅ Correct: Complete commit sequence (match lasso pattern)
+if (clickOutsideSelection) {
+  commitMove();
+  clearSelection();           // Clear selection state
+  setJustCommittedMove(true); // Prevent immediate new selection
+  return;
+}
+```
+
 **Debugging Commands for Selection Tool Issues**:
 ```typescript
 // Add these debug logs to trace execution flow:
@@ -719,6 +763,7 @@ case 'your-new-tool':
 - **Ellipse Tool** → `useCanvasDragAndDrop` (implemented: drag-based ellipse with Shift for circles)
 - **Rectangle Tool** → `useCanvasDragAndDrop` (implemented: drag-based rectangle with Shift for squares)
 - **Lasso Selection** → `useCanvasLassoSelection` (implemented: freeform selection with point-in-polygon detection)
+- **Magic Wand Selection** → `useCanvasMagicWandSelection` (implemented: select same character/color with contiguous/non-contiguous modes)
 - **Multi-Select** → `useCanvasMultiSelect` (complex: multiple selections, group operations)
 - **Animation Onion Skin** → `useOnionSkin` (complex: multi-frame state, transparency layers)
 - **Text Tool** → `useTextTool` (complex: text input mode, cursor positioning, editing)
@@ -875,6 +920,53 @@ if (textToolState.isTyping && textToolState.cursorVisible && textToolState.curso
 - **User-Friendly**: Prevents frustrating keyboard conflicts during text input  
 - **Consistent**: Maintains expected behavior for modifier-based shortcuts
 - **Extensible**: Pattern can be reused for any tool requiring text input
+
+### **🎮 Selection Tool Keyboard Integration Requirements**
+
+**Every selection tool MUST be included in global keyboard handlers for consistent UX:**
+
+**Step 1: Add to CanvasGrid Escape/Enter Handlers**
+```typescript
+// In src/components/features/CanvasGrid.tsx
+if (event.key === 'Escape') {
+  if ((selection.active && activeTool === 'select') || 
+      (lassoSelection.active && activeTool === 'lasso') ||
+      (magicWandSelection.active && activeTool === 'magicwand')) { // ADD NEW TOOL
+    // Handle escape logic
+  }
+}
+
+if (event.key === 'Enter' && moveState && 
+    (activeTool === 'select' || activeTool === 'lasso' || activeTool === 'magicwand')) { // ADD NEW TOOL
+  // Handle enter logic
+}
+```
+
+**Step 2: Add to useKeyboardShortcuts Copy/Paste Priority**
+```typescript
+// In src/hooks/useKeyboardShortcuts.ts - Copy priority
+if (magicWandSelection.active) {          // HIGHEST PRIORITY
+  copyMagicWandSelection(cells);
+} else if (lassoSelection.active) {       // MIDDLE PRIORITY  
+  copyLassoSelection(cells);
+} else if (selection.active) {            // LOWEST PRIORITY
+  copySelection(cells);
+}
+
+// Paste mode priority  
+if (hasMagicWandClipboard()) {           // HIGHEST PRIORITY
+  // Handle magic wand paste
+} else if (hasLassoClipboard()) {        // MIDDLE PRIORITY
+  // Handle lasso paste  
+} else if (hasClipboard()) {             // LOWEST PRIORITY
+  // Handle rectangular paste
+}
+```
+
+#### **✅ Why This Matters (Magic Wand Bug Discovery - Sept 5, 2025):**
+- **Missing keyboard integration** led to Escape/Enter not working for move operations
+- **Incomplete clipboard priority** broke copy/paste workflow
+- **Selection tool consistency** requires identical keyboard behavior across all tools
 
 ### **❌ WRONG APPROACH - DON'T DO THIS**
 ```typescript

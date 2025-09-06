@@ -24,7 +24,17 @@ export interface PasteModeState {
  * Hook for managing enhanced paste mode with visual preview and positioning
  */
 export const usePasteMode = () => {
-  const { hasClipboard, clipboard, lassoClipboard, hasLassoClipboard, clearSelection, clearLassoSelection } = useToolStore();
+  const { 
+    hasClipboard, 
+    clipboard, 
+    lassoClipboard, 
+    hasLassoClipboard, 
+    magicWandClipboard,
+    hasMagicWandClipboard,
+    clearSelection, 
+    clearLassoSelection,
+    clearMagicWandSelection
+  } = useToolStore();
   const [pasteMode, setPasteMode] = useState<PasteModeState>({
     isActive: false,
     preview: null,
@@ -32,8 +42,11 @@ export const usePasteMode = () => {
     isPlaced: false
   });
 
-  // Get the active clipboard data (prioritize lasso clipboard if it has data)
+  // Get the active clipboard data (prioritize magic wand, then lasso, then regular clipboard)
   const getActiveClipboard = useCallback(() => {
+    if (hasMagicWandClipboard() && magicWandClipboard) {
+      return magicWandClipboard;
+    }
     if (hasLassoClipboard() && lassoClipboard) {
       return lassoClipboard;
     }
@@ -41,7 +54,7 @@ export const usePasteMode = () => {
       return clipboard;
     }
     return null;
-  }, [hasLassoClipboard, lassoClipboard, clipboard]);
+  }, [hasMagicWandClipboard, magicWandClipboard, hasLassoClipboard, lassoClipboard, clipboard]);
 
   /**
    * Calculate bounds of clipboard data
@@ -68,7 +81,7 @@ export const usePasteMode = () => {
    * Start paste mode - show preview at specified position
    */
   const startPasteMode = useCallback((initialPosition: { x: number; y: number }) => {
-    if (!hasClipboard()) {
+    if (!hasClipboard() && !hasLassoClipboard() && !hasMagicWandClipboard()) {
       return false;
     }
 
@@ -80,6 +93,7 @@ export const usePasteMode = () => {
     // Clear any existing selections when entering paste mode
     clearSelection();
     clearLassoSelection();
+    clearMagicWandSelection();
 
     const bounds = calculateClipboardBounds(activeClipboard);
     
@@ -96,7 +110,7 @@ export const usePasteMode = () => {
     });
 
     return true;
-  }, [hasClipboard, getActiveClipboard, clearSelection, clearLassoSelection, calculateClipboardBounds]);
+  }, [hasClipboard, hasLassoClipboard, hasMagicWandClipboard, getActiveClipboard, clearSelection, clearLassoSelection, clearMagicWandSelection, calculateClipboardBounds]);
 
   /**
    * Update paste preview position

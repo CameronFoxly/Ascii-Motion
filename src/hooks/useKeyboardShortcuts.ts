@@ -12,11 +12,15 @@ export const useKeyboardShortcuts = () => {
   const { 
     selection, 
     lassoSelection,
+    magicWandSelection,
     copySelection, 
     copyLassoSelection,
+    copyMagicWandSelection,
     pasteSelection,
+    pasteMagicWandSelection,
     clearSelection,
     clearLassoSelection,
+    clearMagicWandSelection,
     undo,
     redo,
     canUndo,
@@ -27,6 +31,7 @@ export const useKeyboardShortcuts = () => {
     activeTool,
     hasClipboard,
     hasLassoClipboard,
+    hasMagicWandClipboard,
     textToolState
   } = useToolStore();
 
@@ -48,6 +53,10 @@ export const useKeyboardShortcuts = () => {
         event.preventDefault();
         clearLassoSelection();
       }
+      if (magicWandSelection.active && activeTool !== 'magicwand') {
+        event.preventDefault();
+        clearMagicWandSelection();
+      }
       return;
     }
 
@@ -58,8 +67,12 @@ export const useKeyboardShortcuts = () => {
 
     switch (event.key.toLowerCase()) {
       case 'c':
-        // Copy selection (prioritize lasso over rectangular)
-        if (lassoSelection.active) {
+        // Copy selection (prioritize magic wand, then lasso, then rectangular)
+        if (magicWandSelection.active) {
+          event.preventDefault();
+          console.log('Keyboard shortcut: Copying magic wand selection');
+          copyMagicWandSelection(cells);
+        } else if (lassoSelection.active) {
           event.preventDefault();
           console.log('Keyboard shortcut: Copying lasso selection');
           copyLassoSelection(cells);
@@ -90,8 +103,21 @@ export const useKeyboardShortcuts = () => {
             setCanvasData(newCells);
           }
         } else {
-          // Start paste mode if any clipboard has data (prioritize lasso over rectangular)
-          if (hasLassoClipboard()) {
+          // Start paste mode if any clipboard has data (prioritize magic wand, then lasso, then rectangular)
+          if (hasMagicWandClipboard()) {
+            // For magic wand selection, use the center of the selected cells as paste position
+            if (magicWandSelection.active && magicWandSelection.selectedCells.size > 0) {
+              const cellCoords = Array.from(magicWandSelection.selectedCells).map(key => {
+                const [x, y] = key.split(',').map(Number);
+                return { x, y };
+              });
+              const avgX = Math.floor(cellCoords.reduce((sum, c) => sum + c.x, 0) / cellCoords.length);
+              const avgY = Math.floor(cellCoords.reduce((sum, c) => sum + c.y, 0) / cellCoords.length);
+              startPasteMode({ x: avgX, y: avgY });
+            } else {
+              startPasteMode({ x: 0, y: 0 });
+            }
+          } else if (hasLassoClipboard()) {
             // For lasso selection, use the center of the selected cells as paste position
             if (lassoSelection.active && lassoSelection.selectedCells.size > 0) {
               const cellCoords = Array.from(lassoSelection.selectedCells).map(key => {
@@ -161,11 +187,14 @@ export const useKeyboardShortcuts = () => {
     cells, 
     selection, 
     lassoSelection,
+    magicWandSelection,
     copySelection, 
     copyLassoSelection,
+    copyMagicWandSelection,
     pasteSelection, 
     clearSelection,
     clearLassoSelection,
+    clearMagicWandSelection,
     pushToHistory, 
     setCanvasData,
     undo,
@@ -179,6 +208,7 @@ export const useKeyboardShortcuts = () => {
     pasteMode,
     hasClipboard,
     hasLassoClipboard,
+    hasMagicWandClipboard,
     textToolState
   ]);
 
@@ -192,7 +222,9 @@ export const useKeyboardShortcuts = () => {
   return {
     // Expose functions for UI buttons
     copySelection: () => {
-      if (lassoSelection.active) {
+      if (magicWandSelection.active) {
+        copyMagicWandSelection(cells);
+      } else if (lassoSelection.active) {
         copyLassoSelection(cells);
       } else if (selection.active) {
         copySelection(cells);

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Tool, ToolState, Selection, LassoSelection, TextToolState } from '../types';
+import type { Tool, ToolState, Selection, LassoSelection, MagicWandSelection, TextToolState } from '../types';
 import { DEFAULT_COLORS } from '../constants';
 
 interface ToolStoreState extends ToolState {
@@ -8,6 +8,9 @@ interface ToolStoreState extends ToolState {
   
   // Lasso selection state
   lassoSelection: LassoSelection;
+  
+  // Magic wand selection state
+  magicWandSelection: MagicWandSelection;
   
   // Text tool state
   textToolState: TextToolState;
@@ -21,6 +24,9 @@ interface ToolStoreState extends ToolState {
   // Lasso clipboard for copy/paste
   lassoClipboard: Map<string, any> | null;
   
+  // Magic wand clipboard for copy/paste
+  magicWandClipboard: Map<string, any> | null;
+  
   // History for undo/redo
   undoStack: Map<string, any>[];
   redoStack: Map<string, any>[];
@@ -33,6 +39,7 @@ interface ToolStoreState extends ToolState {
   setSelectedBgColor: (color: string) => void;
   setBrushSize: (size: number) => void;
   setRectangleFilled: (filled: boolean) => void;
+  setMagicWandContiguous: (contiguous: boolean) => void;
   
   // Eyedropper functionality
   pickFromCell: (char: string, color: string, bgColor: string) => void;
@@ -52,6 +59,10 @@ interface ToolStoreState extends ToolState {
   finalizeLassoSelection: () => void;
   clearLassoSelection: () => void;
   
+  // Magic wand selection actions
+  startMagicWandSelection: (targetCell: any, selectedCells: Set<string>) => void;
+  clearMagicWandSelection: () => void;
+  
   // Clipboard actions
   copySelection: (canvasData: Map<string, any>) => void;
   pasteSelection: (x: number, y: number) => Map<string, any> | null;
@@ -61,6 +72,11 @@ interface ToolStoreState extends ToolState {
   copyLassoSelection: (canvasData: Map<string, any>) => void;
   pasteLassoSelection: (offsetX: number, offsetY: number) => Map<string, any> | null;
   hasLassoClipboard: () => boolean;
+  
+  // Magic wand clipboard actions
+  copyMagicWandSelection: (canvasData: Map<string, any>) => void;
+  pasteMagicWandSelection: (offsetX: number, offsetY: number) => Map<string, any> | null;
+  hasMagicWandClipboard: () => boolean;
   
   // Text tool actions
   startTyping: (x: number, y: number) => void;
@@ -90,6 +106,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   selectedBgColor: DEFAULT_COLORS[0], // Black
   brushSize: 1,
   rectangleFilled: false,
+  magicWandContiguous: true, // Default to contiguous selection
   
   // Pencil tool state
   pencilLastPosition: null,
@@ -109,6 +126,14 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     isDrawing: false
   },
   
+  // Magic wand selection state
+  magicWandSelection: {
+    selectedCells: new Set<string>(),
+    targetCell: null,
+    active: false,
+    contiguous: true
+  },
+  
   // Text tool state
   textToolState: {
     isTyping: false,
@@ -124,6 +149,9 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   // Lasso clipboard state
   lassoClipboard: null,
   
+  // Magic wand clipboard state
+  magicWandClipboard: null,
+  
   // History state
   undoStack: [],
   redoStack: [],
@@ -132,12 +160,15 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   // Tool actions
   setActiveTool: (tool: Tool) => {
     set({ activeTool: tool });
-    // Clear selections when switching tools (except select/lasso tools)
+    // Clear selections when switching tools (except select/lasso/magicwand tools)
     if (tool !== 'select') {
       get().clearSelection();
     }
     if (tool !== 'lasso') {
       get().clearLassoSelection();
+    }
+    if (tool !== 'magicwand') {
+      get().clearMagicWandSelection();
     }
     // Clear pencil last position when switching tools
     if (tool !== 'pencil') {
@@ -154,6 +185,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   setSelectedBgColor: (color: string) => set({ selectedBgColor: color }),
   setBrushSize: (size: number) => set({ brushSize: Math.max(1, size) }),
   setRectangleFilled: (filled: boolean) => set({ rectangleFilled: filled }),
+  setMagicWandContiguous: (contiguous: boolean) => set({ magicWandContiguous: contiguous }),
 
   // Eyedropper functionality
   pickFromCell: (char: string, color: string, bgColor: string) => {
@@ -245,6 +277,29 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
         selectedCells: new Set<string>(),
         active: false,
         isDrawing: false
+      }
+    });
+  },
+
+  // Magic wand selection actions
+  startMagicWandSelection: (targetCell: any, selectedCells: Set<string>) => {
+    set({
+      magicWandSelection: {
+        selectedCells: new Set(selectedCells),
+        targetCell: targetCell,
+        active: true,
+        contiguous: get().magicWandContiguous
+      }
+    });
+  },
+
+  clearMagicWandSelection: () => {
+    set({
+      magicWandSelection: {
+        selectedCells: new Set<string>(),
+        targetCell: null,
+        active: false,
+        contiguous: get().magicWandContiguous
       }
     });
   },
@@ -349,6 +404,51 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
 
   hasLassoClipboard: () => {
     return get().lassoClipboard !== null && get().lassoClipboard!.size > 0;
+  },
+
+  // Magic wand clipboard actions
+  copyMagicWandSelection: (canvasData: Map<string, any>) => {
+    const { magicWandSelection } = get();
+    if (!magicWandSelection.active || magicWandSelection.selectedCells.size === 0) {
+      console.log('copyMagicWandSelection: No active magic wand selection');
+      return;
+    }
+
+    const copiedData = new Map<string, any>();
+    
+    // Copy all selected cells with their relative positions
+    const selectedArray = Array.from(magicWandSelection.selectedCells);
+    for (const cellKey of selectedArray) {
+      const cell = canvasData.get(cellKey);
+      if (cell) {
+        copiedData.set(cellKey, { ...cell });
+      }
+    }
+    
+    set({ magicWandClipboard: copiedData });
+    console.log('copyMagicWandSelection: Copied data size:', copiedData.size);
+  },
+
+  pasteMagicWandSelection: (offsetX: number, offsetY: number) => {
+    const { magicWandClipboard } = get();
+    if (!magicWandClipboard || magicWandClipboard.size === 0) {
+      return null;
+    }
+
+    const pasteData = new Map<string, any>();
+    
+    // Apply offset to each cell position
+    for (const [cellKey, cell] of magicWandClipboard.entries()) {
+      const [x, y] = cellKey.split(',').map(Number);
+      const newKey = `${x + offsetX},${y + offsetY}`;
+      pasteData.set(newKey, { ...cell });
+    }
+    
+    return pasteData;
+  },
+
+  hasMagicWandClipboard: () => {
+    return get().magicWandClipboard !== null && get().magicWandClipboard!.size > 0;
   },
 
   // History actions

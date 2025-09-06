@@ -13,7 +13,8 @@ import {
   Circle,
   Hand,
   Lasso,
-  Type
+  Type,
+  Wand2
 } from 'lucide-react';
 import type { Tool } from '../../types';
 
@@ -27,6 +28,7 @@ const TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; description:
   { id: 'paintbucket', name: 'Fill', icon: <PaintBucket className="w-4 h-4" />, description: 'Fill connected areas' },
   { id: 'select', name: 'Select', icon: <MousePointer className="w-4 h-4" />, description: 'Select rectangular areas' },
   { id: 'lasso', name: 'Lasso', icon: <Lasso className="w-4 h-4" />, description: 'Freeform selection tool' },
+  { id: 'magicwand', name: 'Magic Wand', icon: <Wand2 className="w-4 h-4" />, description: 'Select matching cells' },
   { id: 'eyedropper', name: 'Eyedropper', icon: <Pipette className="w-4 h-4" />, description: 'Pick character/color' },
   { id: 'rectangle', name: 'Rectangle', icon: <Square className="w-4 h-4" />, description: 'Draw rectangles' },
   { id: 'ellipse', name: 'Ellipse', icon: <Circle className="w-4 h-4" />, description: 'Draw ellipses/circles' },
@@ -35,7 +37,7 @@ const TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; description:
 ];
 
 export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
-  const { activeTool, setActiveTool, rectangleFilled, setRectangleFilled } = useToolStore();
+  const { activeTool, setActiveTool, rectangleFilled, setRectangleFilled, magicWandContiguous, setMagicWandContiguous } = useToolStore();
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -98,6 +100,25 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                 className="rounded border-border"
               />
               <span>Filled ellipse</span>
+            </label>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTool === 'magicwand' && (
+        <Card className="bg-card/50 border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Magic Wand Options</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={magicWandContiguous}
+                onChange={(e) => setMagicWandContiguous(e.target.checked)}
+                className="rounded border-border"
+              />
+              <span>Contiguous selection (connected cells only)</span>
             </label>
           </CardContent>
         </Card>

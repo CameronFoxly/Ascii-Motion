@@ -1,6 +1,7 @@
 // Tool Components
 export { SelectionTool, SelectionToolStatus } from './SelectionTool';
 export { LassoTool, LassoToolStatus } from './LassoTool';
+export { MagicWandTool, MagicWandToolStatus } from './MagicWandTool';
 export { DrawingTool, DrawingToolStatus } from './DrawingTool';
 export { PaintBucketTool, PaintBucketToolStatus } from './PaintBucketTool';
 export { RectangleTool, RectangleToolStatus } from './RectangleTool';
@@ -13,6 +14,7 @@ export { TextTool, TextToolStatus } from './TextTool';
 export type ToolComponent = 
   | 'SelectionTool'
   | 'LassoTool'
+  | 'MagicWandTool'
   | 'DrawingTool' 
   | 'PaintBucketTool'
   | 'RectangleTool'

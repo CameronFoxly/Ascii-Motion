@@ -4,6 +4,7 @@ import { useCanvasContext } from '../../contexts/CanvasContext';
 import {
   SelectionToolStatus,
   LassoToolStatus,
+  MagicWandToolStatus,
   DrawingToolStatus,
   PaintBucketToolStatus,
   RectangleToolStatus,
@@ -41,6 +42,8 @@ export const ToolStatusManager: React.FC = () => {
       return <SelectionToolStatus />;
     case 'lasso':
       return <LassoToolStatus />;
+    case 'magicwand':
+      return <MagicWandToolStatus />;
     case 'pencil':
     case 'eraser':
       return <DrawingToolStatus />;

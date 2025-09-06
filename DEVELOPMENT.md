@@ -242,6 +242,73 @@ src/
 - **Extensible Pattern**: Text tool follows established 8-step tool creation pattern
 - **Modifier Key Preservation**: Essential shortcuts remain available during text input
 
+### **🎯 ENHANCEMENT COMPLETED: Magic Wand Selection Tool (Sept 5, 2025)**
+✅ **Status**: COMPLETE - Full implementation with contiguous/non-contiguous modes and move functionality
+✅ **Files Created/Modified:**
+- `src/types/index.ts` (ENHANCED) - Added 'magicwand' tool type and MagicWandSelection interface
+- `src/stores/toolStore.ts` (ENHANCED) - Added magic wand selection state and actions with contiguous toggle
+- `src/hooks/useCanvasMagicWandSelection.ts` (NEW) - Dedicated magic wand selection hook with flood fill and scan algorithms (295+ lines)
+- `src/components/tools/MagicWandTool.tsx` (NEW) - Magic wand tool component and status (50 lines)
+- `src/components/tools/index.ts` (ENHANCED) - Added MagicWandTool exports and types
+- `src/hooks/useToolBehavior.ts` (ENHANCED) - Added magic wand tool routing and metadata
+- `src/components/features/ToolManager.tsx` (ENHANCED) - Added magic wand tool component routing
+- `src/components/features/ToolStatusManager.tsx` (ENHANCED) - Added magic wand tool status routing
+- `src/hooks/useCanvasMouseHandlers.ts` (ENHANCED) - Integrated magic wand tool mouse handling
+- `src/hooks/useKeyboardShortcuts.ts` (ENHANCED) - Extended copy/paste to support magic wand selections
+- `src/components/features/ToolPalette.tsx` (ENHANCED) - Added magic wand tool button with Wand2 icon and contiguous toggle
+- `src/hooks/useCanvasRenderer.ts` (ENHANCED) - Added magic wand selection rendering with orange highlighting
+
+✅ **Features Implemented:**
+- **Exact Match Selection**: Selects cells with identical character, color, and background color
+- **Contiguous/Non-contiguous Modes**: Toggle between connected areas only (flood fill) or all matching cells (full scan)
+- **Empty Cell Handling**: Ignores all empty cells (cells with no character or whitespace)
+- **Single-click Selection**: Click to select all matching cells instantly
+- **Complete Selection Workflow**: Selection → Move mode → Commit/Cancel (same as other selection tools)
+- **Copy/Paste Integration**: Cmd/Ctrl+C and Cmd/Ctrl+V work with magic wand selections
+- **Triple Clipboard System**: Separate clipboards for rectangular, lasso, and magic wand selections
+- **Move Mode with Preview**: Click inside magic wand selection to move content with real-time preview
+- **Keyboard Shortcuts**: Escape to cancel, consistent with existing patterns
+- **Tool Preference Toggle**: UI toggle for contiguous/non-contiguous mode (like rectangle filled/hollow)
+
+✅ **Technical Architecture:**
+- **Dedicated Hook Pattern**: `useCanvasMagicWandSelection` for complex selection tool behavior
+- **Flood Fill Algorithm**: Efficient contiguous selection using queue-based flood fill
+- **Full Canvas Scan**: Non-contiguous mode scans entire canvas for matching cells
+- **Cell Matching Logic**: Exact comparison of character, color, and background with empty cell filtering
+- **Complete State Separation**: Magic wand selection state completely separate from other selection tools
+- **Consistent Naming Convention**: All functions/variables prefixed with "MagicWand" to prevent confusion
+- **Visual Rendering**: Orange cell highlighting and borders to distinguish from other selection tools
+- **Tool Integration**: Follows established 8-step tool creation pattern perfectly
+
+✅ **User Experience:**
+- **Professional Graphics Editor Feel**: Matches behavior of industry-standard magic wand tools
+- **Visual Clarity**: Orange highlighting distinguishes from purple (lasso) and blue (rectangular) selections
+- **Responsive Feedback**: Instant selection feedback shows selected cell count and mode
+- **Flexible Selection Modes**: Contiguous for connected areas, non-contiguous for scattered matching cells
+- **Intuitive Controls**: Single-click to select, click inside to move, toggle for mode switching
+- **Status Messages**: Clear feedback about selection state and available actions
+
+✅ **Critical Bug Fixes Discovered and Resolved (Sept 5, 2025):**
+- **Move State Bug**: Fixed `originalData` including all canvas cells instead of just selected cells, causing all filled cells to move together
+- **Copy/Paste Integration Bug**: Fixed missing magic wand clipboard support in keyboard shortcuts and paste mode hooks
+- **Keyboard Control Bug**: Fixed missing Escape (cancel) and Enter (commit) key support for magic wand move operations
+- **Selection State Management Bug**: Fixed selection preview jumping back to original location after move commit by properly clearing selection state
+- **Move Commit Sequence Bug**: Fixed incomplete move commit logic that left stale selection state after clicking outside moved selection
+
+✅ **Architecture Lessons Learned:**
+- **Dedicated Hook Pattern Validation**: Complex selection tools require dedicated hooks (250+ lines) to manage state properly
+- **State Management Consistency**: All selection tools must follow identical move commit sequences (`commitMove() + clearSelection() + setJustCommittedMove()`)
+- **Clipboard System Architecture**: Each selection type needs separate clipboard state and paste mode integration
+- **Keyboard Handler Completeness**: All selection tools must be included in global keyboard event handlers for consistent UX
+- **Testing Methodology**: Real-world usage testing revealed bugs not caught during initial implementation
+
+✅ **Algorithm Implementation:**
+- **Contiguous Mode**: Queue-based flood fill with 4-directional neighbor checking
+- **Non-contiguous Mode**: Complete canvas scan with efficient cell matching
+- **Empty Cell Detection**: Robust filtering of cells with no character, empty string, or whitespace
+- **Exact Match Criteria**: Character + color + background color equality check
+- **Performance Optimized**: Efficient algorithms for both small and large canvas sizes
+
 ### **🎯 ENHANCEMENT COMPLETED: Advanced Paste with Visual Preview (Sept 3, 2025)**
 ✅ **Files Created/Modified:**
 - `src/hooks/usePasteMode.ts` (NEW) - Advanced paste mode state management (188 lines)
@@ -354,7 +421,7 @@ src/
 #### New Drawing Tools
 - [x] **Text Tool** ✅ **COMPLETE** - Text input and editing directly on canvas (Sept 5, 2025)
 - [x] **Lasso Selection** ✅ **COMPLETE** - Freeform selection tool for irregular shapes (Sept 5, 2025)
-- [ ] **Select Same/Magic Wand** - Select similar cells (contiguous and non-contiguous modes)
+- [x] **Magic Wand Selection** ✅ **COMPLETE** - Select cells with matching character/color (contiguous and non-contiguous modes) (Sept 5, 2025)
 - [ ] **Re-Color Brush** - Change colors without affecting characters
 - [ ] **Pattern Brush** - Apply repeating patterns while drawing
 - [ ] **Gradient Color Fill** *(wait until custom palette system)*

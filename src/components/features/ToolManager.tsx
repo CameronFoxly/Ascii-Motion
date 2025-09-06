@@ -3,6 +3,7 @@ import { useToolStore } from '../../stores/toolStore';
 import {
   SelectionTool,
   LassoTool,
+  MagicWandTool,
   DrawingTool,
   PaintBucketTool,
   RectangleTool,
@@ -25,6 +26,8 @@ export const ToolManager: React.FC = () => {
       return <SelectionTool />;
     case 'lasso':
       return <LassoTool />;
+    case 'magicwand':
+      return <MagicWandTool />;
     case 'pencil':
     case 'eraser':
       return <DrawingTool />;

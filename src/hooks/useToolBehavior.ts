@@ -17,6 +17,8 @@ export const useToolBehavior = () => {
         return 'SelectionTool';
       case 'lasso':
         return 'LassoTool';
+      case 'magicwand':
+        return 'MagicWandTool';
       case 'pencil':
       case 'eraser':
         return 'DrawingTool';
@@ -44,6 +46,8 @@ export const useToolBehavior = () => {
         return 'SelectionToolStatus';
       case 'lasso':
         return 'LassoToolStatus';
+      case 'magicwand':
+        return 'MagicWandToolStatus';
       case 'pencil':
       case 'eraser':
         return 'DrawingToolStatus';
@@ -70,6 +74,8 @@ export const useToolBehavior = () => {
       case 'select':
         return 'cursor-crosshair';
       case 'lasso':
+        return 'cursor-crosshair';
+      case 'magicwand':
         return 'cursor-crosshair';
       case 'pencil':
         return 'cursor-crosshair';
@@ -99,6 +105,8 @@ export const useToolBehavior = () => {
         return 'Selection';
       case 'lasso':
         return 'Lasso';
+      case 'magicwand':
+        return 'Magic Wand';
       case 'pencil':
         return 'Pencil';
       case 'eraser':
@@ -122,7 +130,7 @@ export const useToolBehavior = () => {
 
   // Check if tool requires continuous interaction (click and drag)
   const isInteractiveTool = useCallback((tool: Tool) => {
-    return ['select', 'lasso', 'rectangle', 'ellipse', 'hand', 'text'].includes(tool);
+    return ['select', 'lasso', 'magicwand', 'rectangle', 'ellipse', 'hand', 'text'].includes(tool);
   }, []);
 
   // Check if tool is a drawing tool (modifies canvas on click)
