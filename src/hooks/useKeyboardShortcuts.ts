@@ -60,6 +60,76 @@ export const useKeyboardShortcuts = () => {
       return;
     }
 
+    // Handle Delete/Backspace key (without modifier) - Clear selected cells
+    if (event.key === 'Delete' || event.key === 'Backspace') {
+      // Check if any selection is active and clear the selected cells
+      if (magicWandSelection.active && magicWandSelection.selectedCells.size > 0) {
+        event.preventDefault();
+        console.log('Delete key: Clearing magic wand selection content');
+        
+        // Save current state for undo
+        pushToHistory(new Map(cells));
+        
+        // Clear all selected cells
+        const newCells = new Map(cells);
+        magicWandSelection.selectedCells.forEach(cellKey => {
+          newCells.delete(cellKey);
+        });
+        setCanvasData(newCells);
+        
+        // Clear the selection after deleting content
+        clearMagicWandSelection();
+        return;
+      }
+      
+      if (lassoSelection.active && lassoSelection.selectedCells.size > 0) {
+        event.preventDefault();
+        console.log('Delete key: Clearing lasso selection content');
+        
+        // Save current state for undo
+        pushToHistory(new Map(cells));
+        
+        // Clear all selected cells
+        const newCells = new Map(cells);
+        lassoSelection.selectedCells.forEach(cellKey => {
+          newCells.delete(cellKey);
+        });
+        setCanvasData(newCells);
+        
+        // Clear the selection after deleting content
+        clearLassoSelection();
+        return;
+      }
+      
+      if (selection.active) {
+        event.preventDefault();
+        console.log('Delete key: Clearing rectangular selection content');
+        
+        // Save current state for undo
+        pushToHistory(new Map(cells));
+        
+        // Clear all cells in rectangular selection
+        const newCells = new Map(cells);
+        const { start, end } = selection;
+        const minX = Math.min(start.x, end.x);
+        const maxX = Math.max(start.x, end.x);
+        const minY = Math.min(start.y, end.y);
+        const maxY = Math.max(start.y, end.y);
+        
+        for (let y = minY; y <= maxY; y++) {
+          for (let x = minX; x <= maxX; x++) {
+            const cellKey = `${x},${y}`;
+            newCells.delete(cellKey);
+          }
+        }
+        setCanvasData(newCells);
+        
+        // Clear the selection after deleting content
+        clearSelection();
+        return;
+      }
+    }
+
     // Check for modifier keys (Cmd on Mac, Ctrl on Windows/Linux)
     const isModifierPressed = event.metaKey || event.ctrlKey;
     

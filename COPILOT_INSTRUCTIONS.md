@@ -503,6 +503,7 @@ Before completing any selection tool implementation:
 Post-implementation testing revealed multiple subtle bugs that only appear during real usage:
 - [ ] **Move Operation**: Verify ONLY selected cells move, not all canvas cells (check `originalData` in move state)
 - [ ] **Copy/Paste Integration**: Test Cmd/Ctrl+C and Cmd/Ctrl+V with new selection type
+- [ ] **Delete Key Integration**: Test Delete/Backspace keys clear selection content and then clear selection state
 - [ ] **Keyboard Controls**: Test Escape (cancel) and Enter (commit) during move operations  
 - [ ] **Selection State After Move**: Click outside moved selection and verify no stale selection preview
 - [ ] **Post-Commit Click**: After move commit, next click should create new selection, not grab empty selection
@@ -952,6 +953,13 @@ if (textToolState.isTyping && textToolState.cursorVisible && textToolState.curso
 
 **Every selection tool MUST be included in global keyboard handlers for consistent UX:**
 
+**Standard Selection Tool Keyboard Controls:**
+- **Delete/Backspace**: Clear all selected cells and clear selection state
+- **Cmd/Ctrl+C**: Copy selection to appropriate clipboard
+- **Cmd/Ctrl+V**: Paste from appropriate clipboard (priority: magic wand → lasso → rectangular)
+- **Escape**: Cancel/clear selection (handled by individual tools when active)
+- **Enter**: Commit move operation (handled by individual tools when active)
+
 **Step 1: Add to CanvasGrid Escape/Enter Handlers**
 ```typescript
 // In src/components/features/CanvasGrid.tsx
@@ -969,7 +977,7 @@ if (event.key === 'Enter' && moveState &&
 }
 ```
 
-**Step 2: Add to useKeyboardShortcuts Copy/Paste Priority**
+**Step 2: Add to useKeyboardShortcuts Copy/Paste/Delete Priority**
 ```typescript
 // In src/hooks/useKeyboardShortcuts.ts - Copy priority
 if (magicWandSelection.active) {          // HIGHEST PRIORITY
@@ -987,6 +995,15 @@ if (hasMagicWandClipboard()) {           // HIGHEST PRIORITY
   // Handle lasso paste  
 } else if (hasClipboard()) {             // LOWEST PRIORITY
   // Handle rectangular paste
+}
+
+// Delete/Backspace key priority (clear selection content)
+if (magicWandSelection.active) {         // HIGHEST PRIORITY
+  // Clear magic wand selected cells and clear selection
+} else if (lassoSelection.active) {      // MIDDLE PRIORITY
+  // Clear lasso selected cells and clear selection
+} else if (selection.active) {           // LOWEST PRIORITY
+  // Clear rectangular selected cells and clear selection
 }
 ```
 
