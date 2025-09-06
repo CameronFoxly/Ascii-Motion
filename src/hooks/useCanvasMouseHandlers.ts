@@ -24,7 +24,7 @@ export interface MouseHandlers {
  */
 export const useCanvasMouseHandlers = (): MouseHandlers => {
   const { activeTool, clearSelection, clearLassoSelection, clearMagicWandSelection } = useToolStore();
-  const { canvasRef, spaceKeyDown, setIsDrawing, setMouseButtonDown, pasteMode, updatePastePosition, startPasteDrag, stopPasteDrag, cancelPasteMode, commitPaste } = useCanvasContext();
+  const { canvasRef, spaceKeyDown, setIsDrawing, setMouseButtonDown, setHoveredCell, pasteMode, updatePastePosition, startPasteDrag, stopPasteDrag, cancelPasteMode, commitPaste } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
   const { width, height, cells, setCanvasData } = useCanvasStore();
   const { moveState, commitMove, isPointInEffectiveSelection, selectionMode } = useCanvasState();
@@ -61,7 +61,8 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
   const handleMouseLeave = useCallback(() => {
     setIsDrawing(false);
     setMouseButtonDown(false);
-  }, [setIsDrawing, setMouseButtonDown]);
+    setHoveredCell(null); // Clear hover state when mouse leaves canvas
+  }, [setIsDrawing, setMouseButtonDown, setHoveredCell]);
 
   // Route mouse down to appropriate tool handler based on effective tool
   const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -163,6 +164,15 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
 
   // Route mouse move to appropriate tool handler
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
+    // Update hovered cell for all tools except hand tool
+    if (effectiveTool !== 'hand') {
+      const { x, y } = getGridCoordinatesFromEvent(event);
+      setHoveredCell({ x, y });
+    } else {
+      // Clear hover when using hand tool
+      setHoveredCell(null);
+    }
+
     // Handle paste mode interactions first
     if (pasteMode.isActive) {
       // Only update position if we're currently dragging
@@ -198,7 +208,7 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
         dragAndDropHandlers.handleDrawingMouseMove(event);
         break;
     }
-  }, [effectiveTool, pasteMode, getGridCoordinatesFromEvent, updatePastePosition, handToolHandlers, selectionHandlers, lassoSelectionHandlers, dragAndDropHandlers]);
+  }, [effectiveTool, pasteMode, getGridCoordinatesFromEvent, setHoveredCell, updatePastePosition, handToolHandlers, selectionHandlers, lassoSelectionHandlers, dragAndDropHandlers]);
 
   // Route mouse up to appropriate tool handler
   const handleMouseUp = useCallback((event?: React.MouseEvent<HTMLCanvasElement>) => {

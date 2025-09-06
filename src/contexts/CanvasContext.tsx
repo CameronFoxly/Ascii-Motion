@@ -23,6 +23,9 @@ interface CanvasState {
   pendingSelectionStart: { x: number; y: number } | null;
   justCommittedMove: boolean;
   
+  // Hover state
+  hoveredCell: { x: number; y: number } | null;
+  
   // Move/drag state
   moveState: {
     originalData: Map<string, Cell>;
@@ -52,6 +55,9 @@ interface CanvasActions {
   setSelectionMode: (mode: CanvasState['selectionMode']) => void;
   setPendingSelectionStart: (start: { x: number; y: number } | null) => void;
   setJustCommittedMove: (committed: boolean) => void;
+  
+  // Hover actions
+  setHoveredCell: (cell: { x: number; y: number } | null) => void;
   
   // Move/drag actions
   setMoveState: (state: CanvasState['moveState']) => void;
@@ -100,6 +106,9 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   const [pendingSelectionStart, setPendingSelectionStart] = useState<{ x: number; y: number } | null>(null);
   const [justCommittedMove, setJustCommittedMove] = useState(false);
   
+  // Hover state
+  const [hoveredCell, setHoveredCell] = useState<{ x: number; y: number } | null>(null);
+  
   // Move/drag state
   const [moveState, setMoveState] = useState<CanvasState['moveState']>(null);
   
@@ -127,6 +136,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     selectionMode,
     pendingSelectionStart,
     justCommittedMove,
+    hoveredCell,
     moveState,
     pasteMode,
     
@@ -142,6 +152,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     setSelectionMode,
     setPendingSelectionStart,
     setJustCommittedMove,
+    setHoveredCell,
     setMoveState,
     startPasteMode,
     updatePastePosition,

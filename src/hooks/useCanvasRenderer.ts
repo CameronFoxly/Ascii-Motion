@@ -17,7 +17,7 @@ import type { Cell } from '../types';
  * - Performance measurement
  */
 export const useCanvasRenderer = () => {
-  const { canvasRef, pasteMode, panOffset } = useCanvasContext();
+  const { canvasRef, pasteMode, panOffset, hoveredCell } = useCanvasContext();
   const {
     effectiveCellSize,
     moveState,
@@ -421,6 +421,19 @@ export const useCanvasRenderer = () => {
       ctx.globalAlpha = 1.0;
     }
 
+    // Draw hover cell outline (subtle outline for current cell under cursor)
+    if (hoveredCell && hoveredCell.x >= 0 && hoveredCell.x < width && hoveredCell.y >= 0 && hoveredCell.y < height) {
+      ctx.strokeStyle = 'rgba(59, 130, 246, 0.2)'; // Subtle blue outline
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([]);
+      ctx.strokeRect(
+        hoveredCell.x * effectiveCellSize + panOffset.x,
+        hoveredCell.y * effectiveCellSize + panOffset.y,
+        effectiveCellSize,
+        effectiveCellSize
+      );
+    }
+
     // Draw text cursor overlay
     if (textToolState.isTyping && textToolState.cursorVisible && textToolState.cursorPosition) {
       const { x, y } = textToolState.cursorPosition;
@@ -454,6 +467,7 @@ export const useCanvasRenderer = () => {
     selectionData, 
     effectiveCellSize,
     panOffset,
+    hoveredCell,
     canvasRef,
     drawingStyles,
     pasteMode,

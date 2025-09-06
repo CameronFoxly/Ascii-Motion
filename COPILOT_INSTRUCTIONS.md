@@ -287,6 +287,52 @@ function CanvasGrid() {
 }
 ```
 
+**Canvas Interaction Patterns:**
+```typescript
+// ✅ Hover Cell Tracking Pattern (Sept 5, 2025)
+// Track mouse position for visual feedback on all tools except hand tool
+export const useCanvasMouseHandlers = () => {
+  const { setHoveredCell } = useCanvasContext();
+  
+  const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
+    // Update hovered cell for all tools except hand tool
+    if (effectiveTool !== 'hand') {
+      const { x, y } = getGridCoordinatesFromEvent(event);
+      setHoveredCell({ x, y });
+    } else {
+      setHoveredCell(null); // Clear hover when using hand tool
+    }
+    // ... rest of mouse handling
+  }, [effectiveTool, setHoveredCell, getGridCoordinatesFromEvent]);
+  
+  const handleMouseLeave = useCallback(() => {
+    setHoveredCell(null); // Clear hover state when mouse leaves canvas
+  }, [setHoveredCell]);
+};
+
+// ✅ Hover Outline Rendering Pattern
+export const useCanvasRenderer = () => {
+  const { hoveredCell } = useCanvasContext();
+  
+  const renderCanvas = useCallback(() => {
+    // ... main canvas rendering
+    
+    // Draw hover cell outline (after main content, before text cursor)
+    if (hoveredCell && hoveredCell.x >= 0 && hoveredCell.x < width && hoveredCell.y >= 0 && hoveredCell.y < height) {
+      ctx.strokeStyle = 'rgba(59, 130, 246, 0.2)'; // Subtle blue outline
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([]);
+      ctx.strokeRect(
+        hoveredCell.x * effectiveCellSize + panOffset.x,
+        hoveredCell.y * effectiveCellSize + panOffset.y,
+        effectiveCellSize,
+        effectiveCellSize
+      );
+    }
+  }, [/* include hoveredCell in dependencies */]);
+};
+```
+
 **Directory Structure (Updated):**
 ```
 src/
@@ -1480,7 +1526,7 @@ const useCanvasStore = create<CanvasState>((set) => ({
 
 **Always check DEVELOPMENT.md for current refactoring status before modifying canvas-related code.**
 
-**Current State** (Updated Sept 4, 2025):
+**Current State** (Updated Sept 5, 2025):
 - ✅ Canvas Context & State extracted (Step 1 complete)  
 - ✅ Mouse Interaction Logic extracted to Hooks (Step 2 complete)
 - ✅ Rendering split into focused hook (Step 3 complete)
@@ -1492,7 +1538,9 @@ const useCanvasStore = create<CanvasState>((set) => ({
 - ✅ **Enhanced Pencil Tool** - Shift+click line drawing with Bresenham algorithm (Sept 3, 2025)
 - ✅ **Lasso Selection Tool** - Complete freeform selection with precise center-based detection (Sept 4-5, 2025)
 - ✅ **Text Tool** - Complete text input with blinking cursor, word-based undo, and keyboard shortcut protection (Sept 5, 2025)
+- ✅ **Magic Wand Selection** - Content-aware selection with contiguous/non-contiguous modes (Sept 5, 2025)
 - ✅ **Paint Bucket Contiguous Toggle** - Enhanced fill tool with contiguous/non-contiguous mode selection (Sept 5, 2025)
+- ✅ **Cell Hover Outline** - Universal hover feedback for all tools except hand tool (Sept 5, 2025)
 
 **Step 5.1 Completion - Performance Optimizations**:
 - ✅ CellRenderer.tsx: Memoized cell rendering component
