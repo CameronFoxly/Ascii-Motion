@@ -1,12 +1,13 @@
 import React from 'react';
 import { useCanvasContext } from '../../contexts/CanvasContext';
 import { useCanvasStore } from '../../stores/canvasStore';
+import { getFontString } from '../../utils/fontMetrics';
 
 /**
  * Component that renders paste preview overlay on the canvas
  */
 export const PastePreviewOverlay: React.FC = () => {
-  const { pasteMode, cellSize } = useCanvasContext();
+  const { pasteMode, cellWidth, cellHeight, fontMetrics } = useCanvasContext();
   const { width, height } = useCanvasStore();
 
   // Don't render if not in paste mode
@@ -17,14 +18,14 @@ export const PastePreviewOverlay: React.FC = () => {
   const { position, data, bounds } = pasteMode.preview;
 
   // Calculate preview rectangle dimensions
-  const previewWidth = (bounds.maxX - bounds.minX + 1) * cellSize;
-  const previewHeight = (bounds.maxY - bounds.minY + 1) * cellSize;
-  const previewLeft = (position.x + bounds.minX) * cellSize;
-  const previewTop = (position.y + bounds.minY) * cellSize;
+  const previewWidth = (bounds.maxX - bounds.minX + 1) * cellWidth;
+  const previewHeight = (bounds.maxY - bounds.minY + 1) * cellHeight;
+  const previewLeft = (position.x + bounds.minX) * cellWidth;
+  const previewTop = (position.y + bounds.minY) * cellHeight;
 
   // Ensure preview stays within canvas bounds
-  const canvasWidth = width * cellSize;
-  const canvasHeight = height * cellSize;
+  const canvasWidth = width * cellWidth;
+  const canvasHeight = height * cellHeight;
   const isOutOfBounds = 
     previewLeft < 0 || 
     previewTop < 0 || 
@@ -63,8 +64,8 @@ export const PastePreviewOverlay: React.FC = () => {
           return null;
         }
 
-        const cellLeft = absoluteX * cellSize;
-        const cellTop = absoluteY * cellSize;
+        const cellLeft = absoluteX * cellWidth;
+        const cellTop = absoluteY * cellHeight;
 
         return (
           <div
@@ -73,12 +74,12 @@ export const PastePreviewOverlay: React.FC = () => {
             style={{
               left: cellLeft,
               top: cellTop,
-              width: cellSize,
-              height: cellSize,
+              width: cellWidth,
+              height: cellHeight,
               color: cell.color || '#000000',
               backgroundColor: cell.backgroundColor || 'transparent',
-              fontSize: `${Math.max(8, cellSize * 0.8)}px`,
-              fontFamily: 'monospace',
+              fontSize: `${fontMetrics.fontSize}px`,
+              fontFamily: fontMetrics.fontFamily,
               lineHeight: 1,
             }}
           >

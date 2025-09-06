@@ -7,6 +7,7 @@ import { useMemoizedGrid } from './useMemoizedGrid';
 import { useDrawingTool } from './useDrawingTool';
 import { measureCanvasRender, finishCanvasRender } from '../utils/performance';
 import { smoothPolygonPath } from '../utils/polygon';
+import { getFontString } from '../utils/fontMetrics';
 import type { Cell } from '../types';
 
 /**
@@ -21,7 +22,6 @@ export const useCanvasRenderer = () => {
   const {
     effectiveCellWidth,
     effectiveCellHeight,
-    zoom,
     moveState,
     canvasWidth,
     canvasHeight,
@@ -48,12 +48,8 @@ export const useCanvasRenderer = () => {
 
   // Memoize font and style calculations (Phase B optimization)
   const drawingStyles = useMemo(() => {
-    // Scale font size with zoom for proper rendering
-    const scaledFontSize = fontMetrics.fontSize * zoom;
-    const scaledFontString = `${scaledFontSize}px '${fontMetrics.fontFamily}', monospace`;
-    
     return {
-      font: scaledFontString,
+      font: getFontString(fontMetrics),
       gridLineColor: canvasBackgroundColor === '#000000' ? '#333333' : '#E5E7EB',
       gridLineWidth: 0.5,
       textAlign: 'center' as CanvasTextAlign,
@@ -61,7 +57,7 @@ export const useCanvasRenderer = () => {
       defaultTextColor: '#FFFFFF',
       defaultBgColor: '#000000'
     };
-  }, [fontMetrics, zoom, canvasBackgroundColor]);
+  }, [fontMetrics, canvasBackgroundColor]);
 
     // Optimized drawCell function with memoized styles
   const drawCell = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, cell: Cell) => {
@@ -176,10 +172,10 @@ export const useCanvasRenderer = () => {
         ellipsePoints.forEach(({ x, y }) => {
           if (x >= 0 && y >= 0 && x < width && y < height) {
             ctx.fillRect(
-              x * effectiveCellWidth + panOffset.x,
-              y * effectiveCellHeight + panOffset.y,
-              effectiveCellWidth,
-              effectiveCellHeight
+              x * effectiveCellSize + panOffset.x,
+              y * effectiveCellSize + panOffset.y,
+              effectiveCellSize,
+              effectiveCellSize
             );
           }
         });
@@ -192,10 +188,10 @@ export const useCanvasRenderer = () => {
         // Draw ellipse path using HTML5 Canvas ellipse method
         ctx.beginPath();
         ctx.ellipse(
-          (centerX + 0.5) * effectiveCellWidth + panOffset.x,  // center x
-          (centerY + 0.5) * effectiveCellHeight + panOffset.y,  // center y  
-          (radiusX + 0.5) * effectiveCellWidth,  // radius x
-          (radiusY + 0.5) * effectiveCellHeight,  // radius y
+          (centerX + 0.5) * effectiveCellSize + panOffset.x,  // center x
+          (centerY + 0.5) * effectiveCellSize + panOffset.y,  // center y  
+          (radiusX + 0.5) * effectiveCellSize,  // radius x
+          (radiusY + 0.5) * effectiveCellSize,  // radius y
           0,                           // rotation
           0,                           // start angle
           2 * Math.PI                  // end angle
@@ -208,10 +204,10 @@ export const useCanvasRenderer = () => {
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 5]);
         ctx.strokeRect(
-          selectionData.startX * effectiveCellWidth + panOffset.x,
-          selectionData.startY * effectiveCellHeight + panOffset.y,
-          selectionData.width * effectiveCellWidth,
-          selectionData.height * effectiveCellHeight
+          selectionData.startX * effectiveCellSize + panOffset.x,
+          selectionData.startY * effectiveCellSize + panOffset.y,
+          selectionData.width * effectiveCellSize,
+          selectionData.height * effectiveCellSize
         );
         ctx.setLineDash([]);
       }
@@ -232,15 +228,15 @@ export const useCanvasRenderer = () => {
           ctx.beginPath();
           const firstPoint = smoothedPath[0];
           ctx.moveTo(
-            (firstPoint.x + 0.5) * effectiveCellWidth + panOffset.x,
-            (firstPoint.y + 0.5) * effectiveCellHeight + panOffset.y
+            (firstPoint.x + 0.5) * effectiveCellSize + panOffset.x,
+            (firstPoint.y + 0.5) * effectiveCellSize + panOffset.y
           );
           
           for (let i = 1; i < smoothedPath.length; i++) {
             const point = smoothedPath[i];
             ctx.lineTo(
-              (point.x + 0.5) * effectiveCellWidth + panOffset.x,
-              (point.y + 0.5) * effectiveCellHeight + panOffset.y
+              (point.x + 0.5) * effectiveCellSize + panOffset.x,
+              (point.y + 0.5) * effectiveCellSize + panOffset.y
             );
           }
           ctx.stroke();
@@ -267,10 +263,10 @@ export const useCanvasRenderer = () => {
           // Only draw if within canvas bounds
           if (displayX >= 0 && displayY >= 0 && displayX < width && displayY < height) {
             ctx.fillRect(
-              displayX * effectiveCellWidth + panOffset.x,
-              displayY * effectiveCellHeight + panOffset.y,
-              effectiveCellWidth,
-              effectiveCellHeight
+              displayX * effectiveCellSize + panOffset.x,
+              displayY * effectiveCellSize + panOffset.y,
+              effectiveCellSize,
+              effectiveCellSize
             );
           }
         });
@@ -298,8 +294,8 @@ export const useCanvasRenderer = () => {
             }
             
             ctx.moveTo(
-              (startX + 0.5) * effectiveCellWidth + panOffset.x,
-              (startY + 0.5) * effectiveCellHeight + panOffset.y
+              (startX + 0.5) * effectiveCellSize + panOffset.x,
+              (startY + 0.5) * effectiveCellSize + panOffset.y
             );
             
             for (let i = 1; i < smoothedPath.length; i++) {
@@ -314,8 +310,8 @@ export const useCanvasRenderer = () => {
               }
               
               ctx.lineTo(
-                (pathX + 0.5) * effectiveCellWidth + panOffset.x,
-                (pathY + 0.5) * effectiveCellHeight + panOffset.y
+                (pathX + 0.5) * effectiveCellSize + panOffset.x,
+                (pathY + 0.5) * effectiveCellSize + panOffset.y
               );
             }
             
@@ -346,10 +342,10 @@ export const useCanvasRenderer = () => {
         // Draw cell highlight - use orange color to distinguish from other selections
         ctx.fillStyle = 'rgba(255, 165, 0, 0.3)'; // Orange with transparency
         ctx.fillRect(
-          cellX * effectiveCellWidth + panOffset.x,
-          cellY * effectiveCellHeight + panOffset.y,
-          effectiveCellWidth,
-          effectiveCellHeight
+          cellX * effectiveCellSize + panOffset.x,
+          cellY * effectiveCellSize + panOffset.y,
+          effectiveCellSize,
+          effectiveCellSize
         );
         
         // Draw cell border
@@ -357,10 +353,10 @@ export const useCanvasRenderer = () => {
         ctx.lineWidth = 1;
         ctx.setLineDash([]);
         ctx.strokeRect(
-          cellX * effectiveCellWidth + panOffset.x,
-          cellY * effectiveCellHeight + panOffset.y,
-          effectiveCellWidth,
-          effectiveCellHeight
+          cellX * effectiveCellSize + panOffset.x,
+          cellY * effectiveCellSize + panOffset.y,
+          effectiveCellSize,
+          effectiveCellSize
         );
       });
     }
@@ -380,19 +376,19 @@ export const useCanvasRenderer = () => {
       ctx.lineWidth = 2;
       ctx.setLineDash([8, 4]);
       ctx.strokeRect(
-        previewStartX * effectiveCellWidth + panOffset.x,
-        previewStartY * effectiveCellHeight + panOffset.y,
-        previewWidth * effectiveCellWidth,
-        previewHeight * effectiveCellHeight
+        previewStartX * effectiveCellSize + panOffset.x,
+        previewStartY * effectiveCellSize + panOffset.y,
+        previewWidth * effectiveCellSize,
+        previewHeight * effectiveCellSize
       );
 
       // Add semi-transparent background
       ctx.fillStyle = 'rgba(168, 85, 247, 0.1)';
       ctx.fillRect(
-        previewStartX * effectiveCellWidth + panOffset.x,
-        previewStartY * effectiveCellHeight + panOffset.y,
-        previewWidth * effectiveCellWidth,
-        previewHeight * effectiveCellHeight
+        previewStartX * effectiveCellSize + panOffset.x,
+        previewStartY * effectiveCellSize + panOffset.y,
+        previewWidth * effectiveCellSize,
+        previewHeight * effectiveCellSize
       );
 
       ctx.setLineDash([]);
@@ -417,10 +413,10 @@ export const useCanvasRenderer = () => {
           ctx.strokeStyle = 'rgba(168, 85, 247, 0.4)';
           ctx.lineWidth = 1;
           ctx.strokeRect(
-            absoluteX * effectiveCellWidth + panOffset.x, 
-            absoluteY * effectiveCellHeight + panOffset.y, 
-            effectiveCellWidth, 
-            effectiveCellHeight
+            absoluteX * effectiveCellSize + panOffset.x, 
+            absoluteY * effectiveCellSize + panOffset.y, 
+            effectiveCellSize, 
+            effectiveCellSize
           );
         }
       });
@@ -433,10 +429,10 @@ export const useCanvasRenderer = () => {
       ctx.lineWidth = 1.5;
       ctx.setLineDash([]);
       ctx.strokeRect(
-        hoveredCell.x * effectiveCellWidth + panOffset.x,
-        hoveredCell.y * effectiveCellHeight + panOffset.y,
-        effectiveCellWidth,
-        effectiveCellHeight
+        hoveredCell.x * effectiveCellSize + panOffset.x,
+        hoveredCell.y * effectiveCellSize + panOffset.y,
+        effectiveCellSize,
+        effectiveCellSize
       );
     }
 
@@ -448,10 +444,10 @@ export const useCanvasRenderer = () => {
       if (x >= 0 && x < width && y >= 0 && y < height) {
         ctx.fillStyle = '#A855F7'; // Purple color to match other overlays
         ctx.fillRect(
-          x * effectiveCellWidth + panOffset.x,
-          y * effectiveCellHeight + panOffset.y,
-          effectiveCellWidth,
-          effectiveCellHeight
+          x * effectiveCellSize + panOffset.x,
+          y * effectiveCellSize + panOffset.y,
+          effectiveCellSize,
+          effectiveCellSize
         );
       }
     }
@@ -471,8 +467,7 @@ export const useCanvasRenderer = () => {
     moveState, 
     getTotalOffset, 
     selectionData, 
-    effectiveCellWidth,
-    effectiveCellHeight,
+    effectiveCellSize,
     panOffset,
     hoveredCell,
     canvasRef,

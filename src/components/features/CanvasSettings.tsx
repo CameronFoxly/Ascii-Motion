@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Grid3X3, Palette } from 'lucide-react';
+import { Grid3X3, Palette, Type } from 'lucide-react';
 import { useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasContext } from '@/contexts/CanvasContext';
 import { CanvasSizePicker } from './CanvasSizePicker';
 import { ZoomControls } from './ZoomControls';
 
@@ -16,9 +17,18 @@ export const CanvasSettings: React.FC = () => {
     toggleGrid 
   } = useCanvasStore();
 
+  const {
+    characterSpacing,
+    lineSpacing,
+    setCharacterSpacing,
+    setLineSpacing
+  } = useCanvasContext();
+
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showTypographyPicker, setShowTypographyPicker] = useState(false);
   const [tempColor, setTempColor] = useState(canvasBackgroundColor);
   const colorPickerRef = useRef<HTMLDivElement>(null);
+  const typographyPickerRef = useRef<HTMLDivElement>(null);
 
   // Sync tempColor with actual background color
   useEffect(() => {
@@ -31,13 +41,16 @@ export const CanvasSettings: React.FC = () => {
       if (colorPickerRef.current && !colorPickerRef.current.contains(event.target as Node)) {
         setShowColorPicker(false);
       }
+      if (typographyPickerRef.current && !typographyPickerRef.current.contains(event.target as Node)) {
+        setShowTypographyPicker(false);
+      }
     };
 
-    if (showColorPicker) {
+    if (showColorPicker || showTypographyPicker) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [showColorPicker]);
+  }, [showColorPicker, showTypographyPicker]);
 
   const handleColorChange = (color: string) => {
     setTempColor(color);
@@ -73,6 +86,84 @@ export const CanvasSettings: React.FC = () => {
         <Grid3X3 className="w-3 h-3" />
         <span className="text-xs">Grid</span>
       </Button>
+
+      {/* Typography Controls */}
+      <div className="relative" ref={typographyPickerRef}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowTypographyPicker(!showTypographyPicker)}
+          title="Character and line spacing"
+          className="h-7 px-3 flex items-center gap-2"
+        >
+          <Type className="w-3 h-3" />
+          <span className="text-xs">Typography</span>
+        </Button>
+
+        {/* Typography Picker Dropdown */}
+        {showTypographyPicker && (
+          <div className="absolute top-8 left-0 z-50 p-3 bg-popover border border-border rounded-md shadow-lg min-w-[200px]">
+            <div className="space-y-4">
+              {/* Character Spacing */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                  Character Spacing: {characterSpacing.toFixed(2)}x
+                </label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2.0"
+                  step="0.05"
+                  value={characterSpacing}
+                  onChange={(e) => setCharacterSpacing(parseFloat(e.target.value))}
+                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                  <span>0.5x</span>
+                  <span>1.0x</span>
+                  <span>2.0x</span>
+                </div>
+              </div>
+
+              {/* Line Spacing */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                  Line Spacing: {lineSpacing.toFixed(2)}x
+                </label>
+                <input
+                  type="range"
+                  min="0.8"
+                  max="2.0"
+                  step="0.05"
+                  value={lineSpacing}
+                  onChange={(e) => setLineSpacing(parseFloat(e.target.value))}
+                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                  <span>0.8x</span>
+                  <span>1.0x</span>
+                  <span>2.0x</span>
+                </div>
+              </div>
+
+              {/* Reset Button */}
+              <div className="pt-2 border-t border-border">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setCharacterSpacing(1.0);
+                    setLineSpacing(1.0);
+                  }}
+                  className="w-full h-7 text-xs"
+                >
+                  Reset to Default
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Canvas Background Color */}
       <div className="relative" ref={colorPickerRef}>

@@ -24,17 +24,31 @@ Enable artists and developers to create sophisticated ASCII animations with intu
 
 **Drawing Tools (Phase 1)**
 - Character palette with organized style groups
-- Paintbucket tool for flood fill
-- Selection tool (rectangular select, move/copy regions)
-- Rectangle tool (hollow/filled)
+- Paintbucket tool for flood fill (contiguous/non-contiguous modes)
+- Selection tools (rectangular, lasso, magic wand with contiguous/non-contiguous)
+- Rectangle tool (hollow/filled) with aspect ratio locking
 - Ellipse tool (hollow/filled) with aspect ratio locking
+- Text tool for direct text input with cursor rendering
 - Eyedropper (pick character/color from existing art)
 - Hand tool for canvas panning and navigation
 - Eraser tool
 - Copy/paste from external text sources with visual preview
 - Zoom controls (25%-400%) with pan offset management
 - Space key override for temporary hand tool activation
-- Undo/redo system
+- Undo/redo system with proper batching
+
+**Typography & Character Rendering**
+- Monospace character aspect ratio (~0.6 width/height ratio) for realistic terminal-like rendering
+- Character spacing controls (tracking): 0.5x - 2.0x multiplier for character width
+- Line spacing controls (leading): 0.8x - 2.0x multiplier for line height
+- Font zoom integration: proper font scaling with zoom levels
+- Rectangular cell system: all tools respect non-square character dimensions
+
+**Tool Enhancement Features**
+- Universal hotkey system for all tools (P-pencil, E-eraser, M-select, L-lasso, etc.)
+- Active cell hover highlighting for all drawing tools
+- Keyboard shortcut protection for text input tool
+- Contiguous/non-contiguous modes for flood fill and magic wand selection
 
 **Character Palette Organization**
 - Basic Text: A-Z, a-z, 0-9
@@ -156,13 +170,19 @@ Enable artists and developers to create sophisticated ASCII animations with intu
 
 ## Development Phases
 
-### Phase 1: Core Editor (MVP) - ✅ COMPLETE
-- ✅ Grid-based canvas with basic editing
-- ✅ Essential drawing tools (palette, paintbucket, selection, rectangle, ellipse, eyedropper, eraser, hand tool)
+### Phase 1: Core Editor (MVP) - ✅ COMPLETE (Sept 6, 2025)
+- ✅ Grid-based canvas with configurable dimensions
+- ✅ Essential drawing tools (pencil, eraser, paintbucket, selection, rectangle, ellipse, eyedropper, hand tool)
+- ✅ Advanced selection tools (lasso selection, magic wand with contiguous/non-contiguous modes)
+- ✅ Text input tool with cursor rendering and keyboard shortcut protection
+- ✅ Typography system with monospace aspect ratio and spacing controls
 - ✅ Zoom and navigation system (25%-400% zoom, pan controls, space key override)
-- ✅ Character palette with style groupings
+- ✅ Character palette with organized style groupings
 - ✅ Copy/paste text support with visual preview and drag positioning
 - ✅ Undo/redo system with full action batching
+- ✅ Universal hotkey system for all tools
+- ✅ Active cell hover highlighting
+- ✅ Optimized UI layout with typography controls and action button organization
 - ✅ Local storage auto-save
 
 ### Phase 2: Animation System
@@ -178,18 +198,19 @@ Enable artists and developers to create sophisticated ASCII animations with intu
 - GIF export with user settings
 - MP4 export
 
-### Phase 4: Advanced Tools
-- Line tool
-- Text tool
+### Phase 4: Advanced Tools (Relocated features)
 - Custom brush system
-- Advanced selection tools
+- Advanced color palettes beyond ANSI
+- Re-color brush (change colors without affecting characters)
+- Pattern brush (apply repeating patterns)
 - Onion skinning mode
 
 ### Phase 5: Polish & Optimization
 - Performance optimizations
-- UI/UX improvements
+- UI/UX improvements  
 - Additional export options
 - User preferences system
+- Mobile responsiveness
 
 ## Future Enhancements
 - Cloud storage and user accounts

@@ -8,6 +8,7 @@ import { useCanvasRenderer } from '../../hooks/useCanvasRenderer';
 import { useToolBehavior } from '../../hooks/useToolBehavior';
 import { ToolManager } from './ToolManager';
 import { ToolStatusManager } from './ToolStatusManager';
+import { CanvasActionButtons } from './CanvasActionButtons';
 
 interface CanvasGridProps {
   className?: string;
@@ -186,9 +187,12 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       </div>
       
       {/* Canvas info */}
-      <div className="mt-2 text-sm text-gray-600 flex justify-between">
-        <span>Grid: {width} × {height}</span>
-        <ToolStatusManager />
+      <div className="mt-2 flex justify-between items-center">
+        <span className="text-sm text-muted-foreground">Grid: {width} × {height}</span>
+        <div className="flex items-center gap-2">
+          <CanvasActionButtons />
+          <ToolStatusManager />
+        </div>
       </div>
     </div>
   );

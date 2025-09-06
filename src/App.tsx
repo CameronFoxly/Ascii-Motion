@@ -1,9 +1,7 @@
 import './App.css'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { Copy, Clipboard, Undo2, Redo2, Trash2 } from 'lucide-react'
 import { CanvasWithShortcuts } from './components/features/CanvasWithShortcuts'
 import { CanvasProvider } from './contexts/CanvasContext'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -17,48 +15,9 @@ import { useAnimationStore } from './stores/animationStore'
 import { useToolStore } from './stores/toolStore'
 
 function App() {
-  const { width, height, getCellCount, clearCanvas, cells, setCanvasData } = useCanvasStore()
+  const { width, height, getCellCount } = useCanvasStore()
   const { frames, currentFrameIndex } = useAnimationStore()
-  const { activeTool, selectedChar, undo, redo, canUndo, canRedo, selection, lassoSelection, hasClipboard, addToRedoStack, addToUndoStack } = useToolStore()
-  
-  // Proper undo function that captures current state
-  const handleUndo = () => {
-    if (canUndo()) {
-      const currentCells = new Map(cells);
-      const undoData = undo();
-      if (undoData) {
-        addToRedoStack(currentCells);
-        setCanvasData(undoData);
-      }
-    }
-  }
-
-  // Proper redo function that captures current state
-  const handleRedo = () => {
-    if (canRedo()) {
-      const currentCells = new Map(cells);
-      const redoData = redo();
-      if (redoData) {
-        addToUndoStack(currentCells);
-        setCanvasData(redoData);
-      }
-    }
-  };
-
-  // Handle copy/paste through shortcuts exposed on window
-  const handleCopySelection = () => {
-    const shortcuts = (window as any).canvasShortcuts;
-    if (shortcuts?.copySelection) {
-      shortcuts.copySelection();
-    }
-  };
-
-  const handlePasteSelection = () => {
-    const shortcuts = (window as any).canvasShortcuts;
-    if (shortcuts?.pasteSelection) {
-      shortcuts.pasteSelection();
-    }
-  };
+  const { activeTool, selectedChar } = useToolStore()
 
   return (
     <ThemeProvider>
@@ -96,64 +55,8 @@ function App() {
             <CanvasProvider>
               <div className="p-6 flex-1 flex flex-col">
                 <Card className="flex-1 flex flex-col shadow-sm">
-                  <CardHeader className="flex-row justify-between items-center pb-4 border-b border-border/50">
+                  <CardHeader className="flex-row justify-center items-center pb-4 border-b border-border/50">
                     <CanvasSettings />
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handleCopySelection}
-                        disabled={!selection?.active && !lassoSelection?.active}
-                        title="Copy selection (Cmd/Ctrl+C)"
-                        className="flex items-center gap-2"
-                      >
-                        <Copy className="w-4 h-4" />
-                        Copy
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handlePasteSelection}
-                        disabled={!hasClipboard()}
-                        title="Paste (Cmd/Ctrl+V)"
-                        className="flex items-center gap-2"
-                      >
-                        <Clipboard className="w-4 h-4" />
-                        Paste
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handleUndo}
-                        disabled={!canUndo()}
-                        title="Undo (Cmd/Ctrl+Z)"
-                        className="flex items-center gap-2"
-                      >
-                        <Undo2 className="w-4 h-4" />
-                        Undo
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handleRedo}
-                        disabled={!canRedo()}
-                        title="Redo (Cmd/Ctrl+Shift+Z)"
-                        className="flex items-center gap-2"
-                      >
-                        <Redo2 className="w-4 h-4" />
-                        Redo
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={clearCanvas}
-                        title="Clear entire canvas"
-                        className="flex items-center gap-2"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Clear
-                      </Button>
-                    </div>
                   </CardHeader>
                   
                   <CardContent className="flex-1 p-6 overflow-auto">

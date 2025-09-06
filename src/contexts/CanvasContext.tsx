@@ -1,15 +1,26 @@
-import React, { createContext, useContext, useState, useRef } from 'react';
+import React, { createContext, useContext, useState, useRef, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { Cell } from '../types';
 import { usePasteMode } from '../hooks/usePasteMode';
 import type { PasteModeState } from '../hooks/usePasteMode';
+import { calculateFontMetrics, calculateCellDimensions, DEFAULT_SPACING } from '../utils/fontMetrics';
+import type { FontMetrics, SpacingSettings } from '../utils/fontMetrics';
 
 // Canvas-specific state that doesn't belong in global stores
 interface CanvasState {
   // Canvas display settings
-  cellSize: number;
+  cellSize: number; // Base font size for character height
   zoom: number; // 0.25 to 4.0 (25% to 400%)
   panOffset: { x: number; y: number };
+  
+  // Typography settings
+  characterSpacing: number; // multiplier for character width spacing
+  lineSpacing: number;      // multiplier for line height spacing
+  
+  // Computed font metrics
+  fontMetrics: FontMetrics;
+  cellWidth: number;   // actual cell width including spacing
+  cellHeight: number;  // actual cell height including spacing
   
   // Interaction state
   isDrawing: boolean;
@@ -43,6 +54,10 @@ interface CanvasActions {
   setCellSize: (size: number) => void;
   setZoom: (zoom: number) => void;
   setPanOffset: (offset: { x: number; y: number }) => void;
+  
+  // Typography settings
+  setCharacterSpacing: (spacing: number) => void;
+  setLineSpacing: (spacing: number) => void;
   
   // Interaction actions
   setIsDrawing: (drawing: boolean) => void;
@@ -94,6 +109,20 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   const [zoom, setZoom] = useState(1.0);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   
+  // Typography settings
+  const [characterSpacing, setCharacterSpacing] = useState(DEFAULT_SPACING.characterSpacing);
+  const [lineSpacing, setLineSpacing] = useState(DEFAULT_SPACING.lineSpacing);
+  
+  // Computed font metrics (recalculated when cellSize changes)
+  const fontMetrics = useMemo(() => {
+    return calculateFontMetrics(cellSize);
+  }, [cellSize]);
+  
+  // Computed cell dimensions (recalculated when metrics or spacing changes)
+  const { cellWidth, cellHeight } = useMemo(() => {
+    return calculateCellDimensions(fontMetrics, { characterSpacing, lineSpacing });
+  }, [fontMetrics, characterSpacing, lineSpacing]);
+  
   // Interaction state
   const [isDrawing, setIsDrawing] = useState(false);
   const [mouseButtonDown, setMouseButtonDown] = useState(false);
@@ -124,10 +153,19 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   } = usePasteMode();
 
   const contextValue: CanvasContextValue = {
-    // State
+    // Display state
     cellSize,
     zoom,
     panOffset,
+    
+    // Typography state
+    characterSpacing,
+    lineSpacing,
+    fontMetrics,
+    cellWidth,
+    cellHeight,
+    
+    // Interaction state
     isDrawing,
     mouseButtonDown,
     shiftKeyDown,
@@ -140,10 +178,16 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     moveState,
     pasteMode,
     
-    // Actions
+    // Display actions
     setCellSize,
     setZoom,
     setPanOffset,
+    
+    // Typography actions
+    setCharacterSpacing,
+    setLineSpacing,
+    
+    // Interaction actions
     setIsDrawing,
     setMouseButtonDown,
     setShiftKeyDown,
@@ -182,13 +226,14 @@ export const useCanvasContext = (): CanvasContextValue => {
 
 // Helper hook for canvas dimensions calculations
 export const useCanvasDimensions = () => {
-  const { cellSize, zoom, panOffset } = useCanvasContext();
+  const { cellWidth, cellHeight, zoom, panOffset } = useCanvasContext();
   
   return {
-    cellSize,
+    cellWidth,
+    cellHeight,
     getCanvasSize: (gridWidth: number, gridHeight: number) => ({
-      width: gridWidth * cellSize,
-      height: gridHeight * cellSize,
+      width: gridWidth * cellWidth,
+      height: gridHeight * cellHeight,
     }),
     getGridCoordinates: (
       mouseX: number, 
@@ -206,9 +251,10 @@ export const useCanvasDimensions = () => {
       const adjustedY = relativeY - panOffset.y;
       
       // Account for zoom - divide by zoomed cell size
-      const effectiveCellSize = cellSize * zoom;
-      const x = Math.floor(adjustedX / effectiveCellSize);
-      const y = Math.floor(adjustedY / effectiveCellSize);
+      const effectiveCellWidth = cellWidth * zoom;
+      const effectiveCellHeight = cellHeight * zoom;
+      const x = Math.floor(adjustedX / effectiveCellWidth);
+      const y = Math.floor(adjustedY / effectiveCellHeight);
       
       return {
         x: Math.max(0, Math.min(x, gridWidth - 1)),

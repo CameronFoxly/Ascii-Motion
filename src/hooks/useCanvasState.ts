@@ -14,6 +14,8 @@ export const useCanvasState = () => {
 
   const {
     cellSize,
+    cellWidth,
+    cellHeight,
     zoom,
     panOffset,
     selectionMode,
@@ -142,12 +144,14 @@ export const useCanvasState = () => {
     if (activeTool === 'lasso' && lassoSelection.active && selectionMode === 'none') {
       return 'Lasso selection ready - copy/paste/move available';
     }
-    return `Cell size: ${cellSize}px`;
-  }, [activeTool, selectionMode, moveState, selection.active, lassoSelection.active, pendingSelectionStart, cellSize]);
+    return `Font: ${cellSize}px | Cell: ${cellWidth.toFixed(1)}×${cellHeight.toFixed(1)}`;
+  }, [activeTool, selectionMode, moveState, selection.active, lassoSelection.active, pendingSelectionStart, cellSize, cellWidth, cellHeight]);
 
   return {
     // State
     cellSize,
+    cellWidth,
+    cellHeight,
     zoom,
     panOffset,
     selectionMode,
@@ -156,11 +160,12 @@ export const useCanvasState = () => {
     justCommittedMove,
     
     // Canvas dimensions (with zoom applied)
-    canvasWidth: width * cellSize * zoom,
-    canvasHeight: height * cellSize * zoom,
+    canvasWidth: width * cellWidth * zoom,
+    canvasHeight: height * cellHeight * zoom,
     
-    // Effective cell size for rendering
-    effectiveCellSize: cellSize * zoom,
+    // Effective cell dimensions for rendering  
+    effectiveCellWidth: cellWidth * zoom,
+    effectiveCellHeight: cellHeight * zoom,
     
     // Computed values
     effectiveSelectionBounds: getEffectiveSelectionBounds(),

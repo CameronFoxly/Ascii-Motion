@@ -219,20 +219,21 @@ The canvas system has been refactored to use Context + Hooks pattern for better 
 ```
 src/
 ├── contexts/
-│   └── CanvasContext.tsx          # Canvas-specific state provider
+│   └── CanvasContext.tsx          # Canvas-specific state provider with typography settings
 ├── hooks/
-│   ├── useCanvasState.ts          # Canvas state management
+│   ├── useCanvasState.ts          # Canvas state management with cell dimensions
 │   ├── useCanvasMouseHandlers.ts  # Mouse interaction routing
 │   ├── useCanvasSelection.ts      # Selection-specific logic
 │   ├── useCanvasLassoSelection.ts # Lasso selection-specific logic
 │   ├── useCanvasDragAndDrop.ts    # Drawing/rectangle tools
-│   ├── useCanvasRenderer.ts       # Grid & overlay rendering
+│   ├── useCanvasRenderer.ts       # Grid & overlay rendering with font metrics
 │   ├── useHandTool.ts             # Hand tool pan functionality
 │   └── useToolBehavior.ts         # Tool coordination & metadata
 ├── components/
 │   ├── features/
 │   │   ├── CanvasGrid.tsx         # Main composition component (111 lines)
-│   │   ├── CanvasSettings.tsx     # Canvas controls with zoom/pan features
+│   │   ├── CanvasSettings.tsx     # Canvas controls with typography settings
+│   │   ├── CanvasActionButtons.tsx # Copy/paste/undo/redo/clear buttons (relocated Sept 6)
 │   │   ├── ZoomControls.tsx       # Zoom and reset view controls (78 lines)
 │   │   ├── ToolManager.tsx        # Active tool component renderer (34 lines)
 │   │   └── ToolStatusManager.tsx  # Tool status UI renderer (34 lines)
@@ -244,6 +245,9 @@ src/
 │       ├── RectangleTool.tsx      # Rectangle drawing & status (30 lines)
 │       ├── EyedropperTool.tsx     # Color picking & status (26 lines)
 │       └── index.ts               # Tool exports
+├── utils/
+│   ├── fontMetrics.ts             # Font metrics and character spacing utilities (NEW)
+│   └── ...
 ```
 
 ### **Tool Architecture Reference**
@@ -269,7 +273,7 @@ src/
 
 **Canvas Component Pattern:**
 ```tsx
-// ✅ NEW PATTERN: Use CanvasProvider + Context
+// ✅ NEW PATTERN: Use CanvasProvider + Context with Typography
 function App() {
   return (
     <CanvasProvider>
@@ -280,11 +284,64 @@ function App() {
 
 // ✅ Inside canvas components, use context hooks:
 function CanvasGrid() {
-  const { canvasRef, cellSize } = useCanvasContext();
+  const { canvasRef, cellWidth, cellHeight, fontMetrics } = useCanvasContext();
   const { statusMessage, commitMove } = useCanvasState();
   const { getGridCoordinates } = useCanvasDimensions();
   // ...
 }
+```
+
+**Typography & Font Metrics Pattern (ENHANCED - Sept 6, 2025):**
+```typescript
+// ✅ Font metrics calculation with proper monospace aspect ratio (~0.6)
+import { calculateFontMetrics, calculateCellDimensions } from '../utils/fontMetrics';
+
+const fontMetrics = useMemo(() => {
+  return calculateFontMetrics(fontSize); // Auto-calculates 0.6 aspect ratio
+}, [fontSize]);
+
+const { cellWidth, cellHeight } = useMemo(() => {
+  return calculateCellDimensions(fontMetrics, { characterSpacing, lineSpacing });
+}, [fontMetrics, characterSpacing, lineSpacing]);
+
+// ✅ Canvas rendering with proper character dimensions and zoom scaling
+const drawingStyles = useMemo(() => {
+  const scaledFontSize = fontMetrics.fontSize * zoom;
+  const scaledFontString = `${scaledFontSize}px '${fontMetrics.fontFamily}', monospace`;
+  
+  return {
+    font: scaledFontString,
+    textAlign: 'center' as CanvasTextAlign,
+    textBaseline: 'middle' as CanvasTextBaseline
+  };
+}, [fontMetrics, zoom]);
+
+const drawCell = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, cell: Cell) => {
+  const pixelX = x * effectiveCellWidth + panOffset.x;
+  const pixelY = y * effectiveCellHeight + panOffset.y;
+  
+  // Use scaled font with zoom support
+  ctx.font = drawingStyles.font;
+  ctx.textAlign = drawingStyles.textAlign;
+  ctx.textBaseline = drawingStyles.textBaseline;
+  
+  ctx.fillText(
+    cell.char, 
+    pixelX + effectiveCellWidth / 2, 
+    pixelY + effectiveCellHeight / 2
+  );
+}, [effectiveCellWidth, effectiveCellHeight, drawingStyles, panOffset]);
+
+// ✅ Typography controls access from CanvasContext
+const {
+  characterSpacing,     // 0.5x to 2.0x character width multiplier
+  lineSpacing,         // 0.8x to 2.0x line height multiplier
+  setCharacterSpacing,
+  setLineSpacing,
+  fontMetrics,         // Computed font metrics with 0.6 aspect ratio
+  cellWidth,          // Actual cell width including spacing
+  cellHeight          // Actual cell height including spacing
+} = useCanvasContext();
 ```
 
 **Canvas Interaction Patterns:**
@@ -342,6 +399,72 @@ export const TOOL_HOTKEYS: ToolHotkey[] = [
   { tool: 'lasso', key: 'l', displayName: 'L', description: 'Lasso selection hotkey' },
   { tool: 'magicwand', key: 'w', displayName: 'W', description: 'Magic wand selection hotkey' },
   { tool: 'eyedropper', key: 'i', displayName: 'I', description: 'Eyedropper tool hotkey' },
+  { tool: 'hand', key: 'h', displayName: 'H', description: 'Hand tool hotkey' },
+  { tool: 'text', key: 't', displayName: 'T', description: 'Text tool hotkey' }
+  // Add new tools here with unique hotkeys
+];
+
+// ✅ Typography System Requirements (Sept 6, 2025)
+// MANDATORY: All new tools and features must respect typography settings
+
+**Typography System Integration Checklist:**
+When developing new tools or features, ensure:
+
+1. **Use CanvasContext Typography State:**
+   ```typescript
+   const { 
+     characterSpacing,    // Current character spacing multiplier (0.5x-2.0x)
+     lineSpacing,        // Current line spacing multiplier (0.8x-2.0x)  
+     fontMetrics,        // Computed font metrics with 0.6 aspect ratio
+     cellWidth,          // Actual cell width including character spacing
+     cellHeight          // Actual cell height including line spacing
+   } = useCanvasContext();
+   ```
+
+2. **Coordinate System Must Use Typography-Aware Dimensions:**
+   ```typescript
+   // ❌ DON'T: Use fixed square cells
+   const pixelX = gridX * cellSize;
+   const pixelY = gridY * cellSize;
+
+   // ✅ DO: Use typography-aware cell dimensions
+   const pixelX = gridX * cellWidth;
+   const pixelY = gridY * cellHeight;
+   ```
+
+3. **Font Rendering Must Scale with Zoom:**
+   ```typescript
+   // ✅ Always use scaled font string from drawingStyles
+   const drawingStyles = useMemo(() => ({
+     font: `${fontMetrics.fontSize * zoom}px '${fontMetrics.fontFamily}', monospace`
+   }), [fontMetrics, zoom]);
+   
+   ctx.font = drawingStyles.font; // Scales properly with zoom
+   ```
+
+4. **Selection Tools Must Account for Rectangular Cells:**
+   - Rectangle selection: Use `cellWidth` × `cellHeight` for accurate bounds
+   - Lasso selection: Account for aspect ratio in point calculations  
+   - Magic wand: Consider non-square cell dimensions in flood fill
+   - Move operations: Use typography-aware coordinate transforms
+
+5. **New UI Controls Must Not Conflict with Typography Panel:**
+   - Typography controls are in `CanvasSettings` dropdown
+   - Action buttons moved to bottom of canvas area  
+   - Ensure new controls don't overcrowd top toolbar
+
+**Typography State Dependencies:**
+```typescript
+// ✅ Include typography state in useCallback dependencies
+const toolFunction = useCallback(() => {
+  // Tool logic using cellWidth/cellHeight
+}, [cellWidth, cellHeight, characterSpacing, lineSpacing]);
+
+// ✅ Include fontMetrics in rendering dependencies  
+const renderFunction = useCallback(() => {
+  // Rendering logic using fontMetrics
+}, [fontMetrics, zoom, /* other deps */]);
+```
   { tool: 'rectangle', key: 'r', displayName: 'R', description: 'Rectangle drawing hotkey' },
   { tool: 'ellipse', key: 'o', displayName: 'O', description: 'Ellipse drawing hotkey' },
   { tool: 'text', key: 't', displayName: 'T', description: 'Text tool hotkey' },
@@ -1767,7 +1890,60 @@ const useCanvasStore = create<CanvasState>((set) => ({
 
 ---
 
-## � **Architectural Decisions Log**
+## **UI Layout & Typography Guidelines (Sept 6, 2025)**
+
+### **Current Layout Architecture:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Header: ASCII Motion + Theme Toggle                        │
+├─────────────────────────────────────────────────────────────┤
+│ Left Sidebar    │ Center Canvas Area  │ Right Sidebar       │
+│ - Tools (11)    │ ┌─────────────────┐ │ - Status Info       │
+│ - Characters    │ │ Canvas Settings │ │ - Canvas Info       │
+│ - Colors        │ │ (Centered)      │ │ - Animation Info    │
+│                 │ ├─────────────────┤ │ - Current Tool      │
+│                 │ │                 │ │ - Character Info    │
+│                 │ │ Canvas Grid     │ │                     │
+│                 │ │                 │ │                     │
+│                 │ │                 │ │                     │
+│                 │ ├─────────────────┤ │                     │
+│                 │ │ Grid: 80×26     │ │                     │
+│                 │ │ [Action Buttons]│ │                     │
+│                 │ │ Status: Ready   │ │                     │
+│                 │ └─────────────────┘ │                     │
+├─────────────────────────────────────────────────────────────┤
+│ Timeline Footer: Coming Soon                               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### **Typography Controls Location:**
+- **CanvasSettings Toolbar**: Typography button with dropdown panel
+- **Controls Available**: Character Spacing (0.5x-2.0x), Line Spacing (0.8x-2.0x), Reset button
+- **UI Priority**: Typography controls have dedicated space in centered toolbar
+
+### **Action Buttons Relocation (Sept 6, 2025):**
+- **Previous Location**: Top toolbar (caused crowding with typography controls)
+- **New Location**: Below canvas grid, replacing simple grid size readout  
+- **Benefits**: More space for canvas settings, better visual hierarchy
+- **Components**: CanvasActionButtons.tsx handles Copy/Paste/Undo/Redo/Clear
+
+### **Layout Guidelines for New Features:**
+1. **Top Toolbar Space**: Reserved for canvas settings (size, zoom, grid, typography, background)
+2. **Bottom Canvas Area**: Action buttons + grid info + tool status
+3. **Left Sidebar**: Tools, character palette, color palette
+4. **Right Sidebar**: Read-only status information and statistics
+5. **Typography Priority**: Always ensure typography controls remain accessible
+
+### **UI Constraint Requirements:**
+- **Never crowd top toolbar** - Move action buttons to bottom if needed
+- **Respect typography space** - New controls must not conflict with typography dropdown
+- **Maintain responsive design** - Test at different window sizes
+- **Follow shadcn patterns** - Use consistent button sizes and spacing
+- **Compact bottom area** - Use smaller buttons (`h-6`, `text-xs`) for canvas footer
+
+---
+
+## 📋 **Architectural Decisions Log**
 
 ### **Paint Bucket Contiguous/Non-Contiguous Toggle Enhancement (Sept 5, 2025)**
 **Decision**: Add contiguous/non-contiguous mode toggle to paint bucket tool following established patterns
@@ -1809,6 +1985,58 @@ for (let y = 0; y < height; y++) {
 - **UI Consistency**: Same toggle pattern as other tool options
 
 **Pattern Established**: This creates a reusable pattern for tool mode toggles that can be applied to future tools requiring similar dual-mode functionality.
+
+### **Typography System & UI Layout Enhancement (Sept 6, 2025)**
+**Decision**: Implement monospace character aspect ratio (~0.6) with user-adjustable spacing controls
+**Goal**: Provide realistic terminal-like ASCII art rendering with proper character proportions
+**UI Impact**: Reorganize layout to accommodate typography controls without crowding interface
+
+**Core Typography Implementation**:
+- **Font Metrics System**: `src/utils/fontMetrics.ts` - Calculates monospace aspect ratio, character/line spacing
+- **Context Integration**: Enhanced `CanvasContext` with typography state (characterSpacing, lineSpacing, fontMetrics)
+- **Renderer Updates**: `useCanvasRenderer` now uses rectangular cells with zoom-scaled fonts
+- **Coordinate System**: All tools updated to use `cellWidth` × `cellHeight` instead of square `cellSize`
+
+**Typography Controls**:
+```typescript
+// User Controls Added to CanvasSettings
+characterSpacing: 0.5x - 2.0x  // Character width multiplier (tracking)
+lineSpacing: 0.8x - 2.0x       // Line height multiplier (leading)  
+fontMetrics: {                 // Computed automatically
+  fontSize: number,            // Base font size (from cellSize)
+  fontFamily: 'Courier New',   // Monospace font
+  aspectRatio: 0.6            // Character width/height ratio
+}
+```
+
+**UI Layout Reorganization**:
+- **Problem**: Top toolbar crowded with canvas settings + action buttons + typography controls
+- **Solution**: Moved Copy/Paste/Undo/Redo/Clear buttons from top toolbar to bottom of canvas area
+- **New Component**: `CanvasActionButtons.tsx` - Compact buttons with `h-6` sizing for canvas footer
+- **Result**: Typography controls have dedicated space in centered top toolbar
+
+**Architecture Changes**:
+- **Typography-Aware Coordinate System**: All tools now use `cellWidth`/`cellHeight` from context
+- **Zoom Integration**: Font scaling properly respects zoom level (fixed font size × zoom)
+- **Selection Tools Updated**: Rectangle, lasso, magic wand account for non-square cell dimensions
+- **Rendering Optimization**: Memoized font calculations with zoom dependency
+
+**Files Modified**:
+- `src/utils/fontMetrics.ts` - NEW: Font metrics calculation utilities
+- `src/contexts/CanvasContext.tsx` - Added typography state and computed cell dimensions
+- `src/hooks/useCanvasRenderer.ts` - Updated for rectangular cells and zoom-scaled fonts
+- `src/components/features/CanvasSettings.tsx` - Added typography controls dropdown
+- `src/components/features/CanvasActionButtons.tsx` - NEW: Relocated action buttons
+- `src/components/features/CanvasGrid.tsx` - Updated layout to include action buttons
+- `src/App.tsx` - Simplified top toolbar, removed action buttons
+
+**User Experience Benefits**:
+- **Realistic ASCII Art**: Character aspect ratio matches terminal/editor rendering
+- **Customizable Spacing**: Fine-tune character tracking and line spacing for different art styles
+- **Professional Layout**: Clean, uncluttered interface with logical control grouping
+- **Preserved Functionality**: All tools work correctly with rectangular cell system
+
+**Pattern Established**: Typography system provides foundation for future text-rendering features while maintaining clean UI organization patterns.
 
 ### **Lasso Selection Algorithm Precision Fix (Sept 5, 2025)**
 **Decision**: Switch from multi-criteria cell selection to center-based selection for lasso tool
