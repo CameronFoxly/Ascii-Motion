@@ -56,15 +56,18 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
         
         <Card>
           <CardContent className="p-2">
-            <div className="grid grid-cols-3 gap-1">
+            <div className="grid grid-cols-3 gap-1" role="toolbar" aria-label="Drawing tools">
               {TOOLS.map((tool) => (
                 <Tooltip key={tool.id}>
                   <TooltipTrigger asChild>
                     <Button
                       variant={activeTool === tool.id ? 'default' : 'outline'}
                       size="sm"
-                      className="h-8 w-8 p-0"
+                      className="h-10 w-10 p-0 touch-manipulation sm:h-8 sm:w-8"
                       onClick={() => setActiveTool(tool.id)}
+                      aria-label={`${tool.name} tool - ${tool.description}`}
+                      aria-pressed={activeTool === tool.id}
+                      title={`${tool.name} - ${tool.description}`}
                     >
                       {tool.icon}
                     </Button>

@@ -86,10 +86,15 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
         size="sm"
         onClick={onToggle}
         className={cn(
-          'h-6 w-6 p-0 bg-background border shadow-sm hover:bg-accent',
+          // Increased touch target size for mobile accessibility
+          'h-8 w-8 p-0 bg-background border shadow-sm hover:bg-accent touch-manipulation',
+          'sm:h-6 sm:w-6', // Smaller on desktop
           getTogglePosition()
         )}
         title={`${isOpen ? 'Collapse' : 'Expand'} panel`}
+        aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${side} panel`}
+        aria-expanded={isOpen}
+        aria-controls={`panel-${side}`}
       >
         {getToggleIcon()}
       </Button>
@@ -97,10 +102,15 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
       {isOpen && (
         <Collapsible open={isOpen}>
           <CollapsibleContent className="h-full">
-            <div className={cn(
-              'h-full',
-              side === 'bottom' ? 'p-3' : 'p-4'
-            )}>
+            <div 
+              id={`panel-${side}`}
+              className={cn(
+                'h-full',
+                side === 'bottom' ? 'p-3' : 'p-4'
+              )}
+              role="region"
+              aria-label={`${side} panel content`}
+            >
               {children}
             </div>
           </CollapsibleContent>
