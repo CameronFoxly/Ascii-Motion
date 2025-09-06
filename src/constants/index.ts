@@ -1,5 +1,8 @@
 // ASCII character sets organized by style
 
+// Re-export hotkey utilities for easier access
+export * from './hotkeys';
+
 export const CHARACTER_CATEGORIES = {
   "Basic Text": [
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 

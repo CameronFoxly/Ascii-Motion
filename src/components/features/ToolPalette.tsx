@@ -17,6 +17,7 @@ import {
   Wand2
 } from 'lucide-react';
 import type { Tool } from '../../types';
+import { getToolTooltipText } from '../../constants/hotkeys';
 
 interface ToolPaletteProps {
   className?: string;
@@ -56,7 +57,7 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                 size="lg"
                 className="h-16 flex flex-col gap-1"
                 onClick={() => setActiveTool(tool.id)}
-                title={tool.description}
+                title={getToolTooltipText(tool.id, tool.description)}
               >
                 {tool.icon}
                 <span className="text-xs">{tool.name}</span>

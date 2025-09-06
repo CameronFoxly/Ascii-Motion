@@ -2,6 +2,7 @@ import { useEffect, useCallback } from 'react';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useToolStore } from '../stores/toolStore';
 import { useCanvasContext } from '../contexts/CanvasContext';
+import { getToolForHotkey } from '../constants/hotkeys';
 
 /**
  * Custom hook for handling keyboard shortcuts
@@ -29,6 +30,7 @@ export const useKeyboardShortcuts = () => {
     addToRedoStack,
     addToUndoStack,
     activeTool,
+    setActiveTool,
     hasClipboard,
     hasLassoClipboard,
     hasMagicWandClipboard,
@@ -126,6 +128,18 @@ export const useKeyboardShortcuts = () => {
         
         // Clear the selection after deleting content
         clearSelection();
+        return;
+      }
+    }
+
+    // Handle tool hotkeys (single key presses for tool switching)
+    // Only process if no modifier keys are pressed and key is a valid tool hotkey
+    if (!event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
+      const targetTool = getToolForHotkey(event.key);
+      if (targetTool && targetTool !== 'hand') { // Hand tool handled separately via space key
+        event.preventDefault();
+        console.log(`Tool hotkey: Switching to ${targetTool} via "${event.key}" key`);
+        setActiveTool(targetTool);
         return;
       }
     }
@@ -279,7 +293,8 @@ export const useKeyboardShortcuts = () => {
     hasClipboard,
     hasLassoClipboard,
     hasMagicWandClipboard,
-    textToolState
+    textToolState,
+    setActiveTool
   ]);
 
   useEffect(() => {
