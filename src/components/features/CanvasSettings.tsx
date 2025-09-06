@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Grid3X3, Palette, Type } from 'lucide-react';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useCanvasContext } from '@/contexts/CanvasContext';
@@ -66,41 +67,52 @@ export const CanvasSettings: React.FC = () => {
   ];
 
   return (
-    <div className="flex items-center gap-4">
-      {/* Canvas Size Picker */}
-      <CanvasSizePicker
-        width={width}
-        height={height}
-        onSizeChange={setCanvasSize}
-      />
+    <TooltipProvider>
+      <div className="flex items-center gap-1">
+        {/* Canvas Size Picker */}
+        <CanvasSizePicker
+          width={width}
+          height={height}
+          onSizeChange={setCanvasSize}
+        />
 
-      {/* Zoom Controls */}
-      <ZoomControls />
+        {/* Zoom Controls */}
+        <ZoomControls />
 
-      {/* Grid Toggle */}
-      <Button
-        variant={showGrid ? "default" : "outline"}
-        size="sm"
-        onClick={toggleGrid}
-        title={showGrid ? "Hide grid" : "Show grid"}
-        className="h-7 px-3 flex items-center gap-2"
-      >
-        <Grid3X3 className="w-3 h-3" />
-        <span className="text-xs">Grid</span>
-      </Button>
+        {/* Grid Toggle */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={showGrid ? "default" : "outline"}
+              size="sm"
+              onClick={toggleGrid}
+              className="h-6 w-6 p-0"
+            >
+              <Grid3X3 className="w-3 h-3" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs">{showGrid ? "Hide grid" : "Show grid"}</p>
+          </TooltipContent>
+        </Tooltip>
 
-      {/* Typography Controls */}
-      <div className="relative" ref={typographyPickerRef}>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowTypographyPicker(!showTypographyPicker)}
-          title="Character and line spacing"
-          className="h-7 px-3 flex items-center gap-2"
-        >
-          <Type className="w-3 h-3" />
-          <span className="text-xs">Typography</span>
-        </Button>
+        {/* Typography Controls */}
+        <div className="relative" ref={typographyPickerRef}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowTypographyPicker(!showTypographyPicker)}
+                className="h-6 w-6 p-0"
+              >
+                <Type className="w-3 h-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs">Typography settings</p>
+            </TooltipContent>
+          </Tooltip>
 
         {/* Typography Picker Dropdown */}
         {showTypographyPicker && (
@@ -191,20 +203,21 @@ export const CanvasSettings: React.FC = () => {
 
       {/* Canvas Background Color */}
       <div className="relative" ref={colorPickerRef}>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowColorPicker(!showColorPicker)}
-          title="Canvas background color"
-          className="h-7 px-3 flex items-center gap-2"
-        >
-          <div 
-            className="w-3 h-3 rounded border border-border" 
-            style={{ backgroundColor: canvasBackgroundColor }}
-          />
-          <Palette className="w-3 h-3" />
-          <span className="text-xs">Background</span>
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowColorPicker(!showColorPicker)}
+              className="h-6 w-6 p-0"
+            >
+              <Palette className="w-3 h-3" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs">Background color</p>
+          </TooltipContent>
+        </Tooltip>
 
         {/* Color Picker Dropdown */}
         {showColorPicker && (
@@ -283,6 +296,7 @@ export const CanvasSettings: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 };

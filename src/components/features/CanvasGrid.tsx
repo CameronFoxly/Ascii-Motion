@@ -164,11 +164,11 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   }, [activeTool, moveState, commitMove, setSelectionMode, setMouseButtonDown, setPendingSelectionStart, setMoveState]);
 
   return (
-    <div className={`canvas-grid-container ${className}`}>
+    <div className={`canvas-grid-container ${className} h-full flex flex-col relative`}>
       {/* Tool Manager - handles tool-specific behavior */}
       <ToolManager />
       
-      <div className="canvas-wrapper border-2 border-gray-300 rounded-lg overflow-auto max-w-full max-h-96 relative">
+      <div className="canvas-wrapper border-2 border-gray-300 rounded-lg overflow-auto flex-1">
         <canvas
           ref={canvasRef}
           className={`canvas-grid ${getToolCursor(effectiveTool)}`}
@@ -186,9 +186,9 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
         />
       </div>
       
-      {/* Canvas info */}
+      {/* Action buttons and status info positioned outside canvas */}
       <div className="mt-2 flex justify-between items-center">
-        <span className="text-sm text-muted-foreground">Grid: {width} × {height}</span>
+        <span className="text-xs text-muted-foreground">Grid: {width} × {height}</span>
         <div className="flex items-center gap-2">
           <CanvasActionButtons />
           <ToolStatusManager />
