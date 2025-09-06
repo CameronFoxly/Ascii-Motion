@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import { useCanvasStore } from '../../stores/canvasStore';
 import { useToolStore } from '../../stores/toolStore';
 import { useCanvasContext } from '../../contexts/CanvasContext';
 import { useCanvasState } from '../../hooks/useCanvasState';
@@ -50,7 +49,6 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   // Use the new renderer hook that handles both grid and overlay rendering
   useCanvasRenderer();
 
-  const { width, height } = useCanvasStore();
   const { 
     selection, 
     lassoSelection, 
@@ -188,11 +186,8 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       
       {/* Action buttons and status info positioned outside canvas */}
       <div className="mt-2 flex justify-between items-center">
-        <span className="text-xs text-muted-foreground">Grid: {width} × {height}</span>
-        <div className="flex items-center gap-2">
-          <CanvasActionButtons />
-          <ToolStatusManager />
-        </div>
+        <CanvasActionButtons />
+        <ToolStatusManager />
       </div>
     </div>
   );

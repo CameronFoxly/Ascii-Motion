@@ -25,7 +25,7 @@ export const ToolStatusManager: React.FC = () => {
   // If space key is down, show hand tool status regardless of active tool
   if (spaceKeyDown) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 text-xs">
         <span className="text-blue-600 font-medium">
           🖐️ Hand Tool (Space Override)
         </span>
@@ -36,30 +36,38 @@ export const ToolStatusManager: React.FC = () => {
     );
   }
 
-  // Render the appropriate tool status component
-  switch (activeTool) {
-    case 'select':
-      return <SelectionToolStatus />;
-    case 'lasso':
-      return <LassoToolStatus />;
-    case 'magicwand':
-      return <MagicWandToolStatus />;
-    case 'pencil':
-    case 'eraser':
-      return <DrawingToolStatus />;
-    case 'paintbucket':
-      return <PaintBucketToolStatus />;
-    case 'rectangle':
-      return <RectangleToolStatus />;
-    case 'ellipse':
-      return <EllipseToolStatus />;
-    case 'eyedropper':
-      return <EyedropperToolStatus />;
-    case 'hand':
-      return <HandToolStatus />;
-    case 'text':
-      return <TextToolStatus />;
-    default:
-      return <span className="text-gray-500">No tool selected</span>;
-  }
+  // Render the appropriate tool status component with smaller text
+  const statusContent = (() => {
+    switch (activeTool) {
+      case 'select':
+        return <SelectionToolStatus />;
+      case 'lasso':
+        return <LassoToolStatus />;
+      case 'magicwand':
+        return <MagicWandToolStatus />;
+      case 'pencil':
+      case 'eraser':
+        return <DrawingToolStatus />;
+      case 'paintbucket':
+        return <PaintBucketToolStatus />;
+      case 'rectangle':
+        return <RectangleToolStatus />;
+      case 'ellipse':
+        return <EllipseToolStatus />;
+      case 'eyedropper':
+        return <EyedropperToolStatus />;
+      case 'hand':
+        return <HandToolStatus />;
+      case 'text':
+        return <TextToolStatus />;
+      default:
+        return <span className="text-gray-500">No tool selected</span>;
+    }
+  })();
+
+  return (
+    <div className="text-xs">
+      {statusContent}
+    </div>
+  );
 };
