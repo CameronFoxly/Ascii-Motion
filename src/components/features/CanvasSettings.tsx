@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Grid3X3, Palette, Type } from 'lucide-react';
@@ -30,8 +31,21 @@ export const CanvasSettings: React.FC = () => {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showTypographyPicker, setShowTypographyPicker] = useState(false);
   const [tempColor, setTempColor] = useState(canvasBackgroundColor);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const colorPickerRef = useRef<HTMLDivElement>(null);
   const typographyPickerRef = useRef<HTMLDivElement>(null);
+
+  // Calculate dropdown position
+  const calculatePosition = (buttonRef: HTMLDivElement | null) => {
+    if (!buttonRef) return { top: 0, left: 0, width: 200 };
+    
+    const rect = buttonRef.getBoundingClientRect();
+    return {
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: Math.max(200, rect.width)
+    };
+  };
 
   // Sync tempColor with actual background color
   useEffect(() => {
@@ -41,11 +55,28 @@ export const CanvasSettings: React.FC = () => {
   // Close color picker when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (colorPickerRef.current && !colorPickerRef.current.contains(event.target as Node)) {
-        setShowColorPicker(false);
+      const target = event.target as Node;
+      
+      // Check if click is outside color picker
+      if (showColorPicker && 
+          colorPickerRef.current && 
+          !colorPickerRef.current.contains(target)) {
+        // Also check if click is not on the portal dropdown
+        const colorDropdown = document.getElementById('color-dropdown');
+        if (!colorDropdown || !colorDropdown.contains(target)) {
+          setShowColorPicker(false);
+        }
       }
-      if (typographyPickerRef.current && !typographyPickerRef.current.contains(event.target as Node)) {
-        setShowTypographyPicker(false);
+      
+      // Check if click is outside typography picker
+      if (showTypographyPicker && 
+          typographyPickerRef.current && 
+          !typographyPickerRef.current.contains(target)) {
+        // Also check if click is not on the portal dropdown
+        const typographyDropdown = document.getElementById('typography-dropdown');
+        if (!typographyDropdown || !typographyDropdown.contains(target)) {
+          setShowTypographyPicker(false);
+        }
       }
     };
 
@@ -103,10 +134,19 @@ export const CanvasSettings: React.FC = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowTypographyPicker(!showTypographyPicker)}
-                className="h-6 w-6 p-0"
+                onClick={() => {
+                  const position = calculatePosition(typographyPickerRef.current);
+                  setDropdownPosition(position);
+                  setShowTypographyPicker(!showTypographyPicker);
+                  setShowColorPicker(false);
+                }}
+                className="h-6 px-2 gap-1"
+                aria-label="Typography settings"
+                aria-expanded={showTypographyPicker}
+                aria-controls="typography-dropdown"
               >
                 <Type className="w-3 h-3" />
+                <span className="text-xs">Font</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -114,9 +154,21 @@ export const CanvasSettings: React.FC = () => {
             </TooltipContent>
           </Tooltip>
 
-        {/* Typography Picker Dropdown */}
-        {showTypographyPicker && (
-          <div className="absolute top-8 left-0 z-50 p-3 bg-popover border border-border rounded-md shadow-lg min-w-[200px]">
+        {/* Typography Picker Dropdown - Portal rendered for proper layering */}
+        {showTypographyPicker && createPortal(
+          <div 
+            id="typography-dropdown"
+            className="fixed z-[99999] p-3 bg-popover border border-border rounded-md shadow-lg"
+            style={{
+              top: `${dropdownPosition.top}px`,
+              left: `${dropdownPosition.left}px`,
+              minWidth: `${dropdownPosition.width}px`
+            }}
+            role="menu"
+            aria-label="Typography settings menu"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="space-y-4">
               {/* Text Size */}
               <div>
@@ -197,7 +249,8 @@ export const CanvasSettings: React.FC = () => {
                 </Button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
 
@@ -208,20 +261,41 @@ export const CanvasSettings: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowColorPicker(!showColorPicker)}
-              className="h-6 w-6 p-0"
+              onClick={() => {
+                const position = calculatePosition(colorPickerRef.current);
+                setDropdownPosition(position);
+                setShowColorPicker(!showColorPicker);
+                setShowTypographyPicker(false);
+              }}
+              className="h-6 px-2 gap-1"
+              aria-label="Canvas background color"
+              aria-expanded={showColorPicker}
+              aria-controls="color-dropdown"
             >
               <Palette className="w-3 h-3" />
+              <span className="text-xs">Background</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p className="text-xs">Background color</p>
+            <p className="text-xs">Canvas background color</p>
           </TooltipContent>
         </Tooltip>
 
-        {/* Color Picker Dropdown */}
-        {showColorPicker && (
-          <div className="absolute top-8 left-0 z-50 p-3 bg-popover border border-border rounded-md shadow-lg">
+        {/* Background Color Picker Dropdown - Portal rendered for proper layering */}
+        {showColorPicker && createPortal(
+          <div 
+            id="color-dropdown"
+            className="fixed z-[99999] p-3 bg-popover border border-border rounded-md shadow-lg"
+            style={{
+              top: `${dropdownPosition.top}px`,
+              left: `${dropdownPosition.left}px`,
+              minWidth: `${dropdownPosition.width}px`
+            }}
+            role="menu"
+            aria-label="Background color selection menu"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="space-y-3">
               {/* Preset Colors */}
               <div>
@@ -293,7 +367,8 @@ export const CanvasSettings: React.FC = () => {
                 />
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
       </div>

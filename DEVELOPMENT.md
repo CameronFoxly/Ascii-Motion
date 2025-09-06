@@ -108,6 +108,78 @@ All new tools must follow the established 9-step pattern documented in COPILOT_I
 - ✅ Consistent architectural patterns
 - ✅ Easy maintenance and future updates
 
+### **🚨 MANDATORY: Dropdown Menu Best Practices**
+When implementing dropdown menus or overlays in ASCII Motion, follow these patterns to prevent layering issues:
+
+#### **1. Use React Portals for Complex Dropdowns**
+```typescript
+import { createPortal } from 'react-dom';
+
+// Dropdown with portal rendering
+{showDropdown && createPortal(
+  <div 
+    className="fixed z-[99999] p-3 bg-popover border border-border rounded-md shadow-lg"
+    style={{ top: `${position.top}px`, left: `${position.left}px` }}
+    onMouseDown={(e) => e.stopPropagation()}
+    onClick={(e) => e.stopPropagation()}
+  >
+    {/* Dropdown content */}
+  </div>,
+  document.body
+)}
+```
+
+#### **2. Z-Index Hierarchy**
+- **Canvas layers**: `z-10` to `z-40`
+- **UI overlays**: `z-50` to `z-[999]` 
+- **Dropdown menus**: `z-[99999]` (using portals)
+- **Modals/dialogs**: `z-[100000]+`
+
+#### **3. Click-Outside Detection**
+```typescript
+useEffect(() => {
+  const handleClickOutside = (event: MouseEvent) => {
+    const target = event.target as Node;
+    
+    if (showDropdown && 
+        buttonRef.current && 
+        !buttonRef.current.contains(target)) {
+      // Check if click is not on the portal dropdown
+      const dropdown = document.getElementById('dropdown-id');
+      if (!dropdown || !dropdown.contains(target)) {
+        setShowDropdown(false);
+      }
+    }
+  };
+
+  if (showDropdown) {
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }
+}, [showDropdown]);
+```
+
+#### **4. Dynamic Positioning**
+```typescript
+const calculatePosition = (buttonRef: HTMLElement | null) => {
+  if (!buttonRef) return { top: 0, left: 0 };
+  
+  const rect = buttonRef.getBoundingClientRect();
+  return {
+    top: rect.bottom + 4, // 4px gap
+    left: rect.left,
+    width: Math.max(200, rect.width)
+  };
+};
+```
+
+#### **Benefits of Following Dropdown Guidelines:**
+- ✅ Dropdowns appear above canvas and other content
+- ✅ Proper interaction without unexpected closures
+- ✅ Consistent positioning and behavior
+- ✅ Accessible keyboard and mouse navigation
+- ✅ No z-index conflicts or layering issues
+
 ## Development Phases
 
 ### Phase 1: Core Editor ✅ **COMPLETE**
@@ -926,6 +998,44 @@ We've established a new pattern for managing complex component state:
 **Technical Implementation**:
 - **Line Algorithm**: Bresenham's line algorithm for pixel-perfect ASCII grid lines
 - **State Management**: Tool-specific state that auto-clears when switching tools
+- **User Experience**: Visual feedback through enhanced status messages
+- **Keyboard Integration**: Shift key detection without interfering with text input tools
+- **Architecture**: Enhances existing tool framework without breaking established patterns
+
+#### **Portal-Based Dropdown System for Layering Control (Sept 6, 2025)**
+**Decision**: Implement dropdown menus using React portals to escape canvas stacking context
+**Issue**: Typography and background color dropdowns appearing behind canvas due to z-index conflicts
+**Root Cause**: Canvas components create stacking contexts that override traditional z-index values
+**Solution**: 
+- Implemented `createPortal(element, document.body)` for dropdown rendering
+- Established z-index hierarchy: canvas (z-10-40), UI (z-50-999), dropdowns (z-99999+)
+- Enhanced click-outside detection to work with portal-rendered elements
+- Added event propagation control to prevent dropdown closure during interaction
+
+**Files Affected**:
+- `src/components/features/CanvasSettings.tsx` - Portal-based dropdown implementation
+- `DEVELOPMENT.md` - Added dropdown best practices and z-index guidelines
+- `COPILOT_INSTRUCTIONS.md` - Added component patterns for dropdown implementation
+
+**Impact for Developers**:
+- ✅ Dropdowns now properly layer above canvas content regardless of container nesting
+- ✅ Reliable interaction without unexpected closure when using dropdown controls
+- ✅ Established patterns for future overlay components (modals, tooltips, popovers)
+- ✅ Clear z-index hierarchy prevents future layering conflicts
+- 📋 **Architecture**: Portal pattern available for any component needing to escape stacking context
+
+**Technical Implementation**:
+- **Portal Rendering**: React.createPortal() to document.body for proper DOM hierarchy
+- **Dynamic Positioning**: Calculate position relative to trigger button with getBoundingClientRect()
+- **Event Handling**: stopPropagation() on dropdown content to prevent event bubbling
+- **Click Detection**: Enhanced outside-click logic accounting for portal-rendered elements
+- **Z-Index System**: Documented hierarchy prevents conflicts across component types
+
+**Lessons Learned**:
+- Canvas containers with relative positioning create stacking contexts that override z-index
+- Portal rendering is essential for dropdowns/overlays that need to appear above complex layouts
+- Event propagation must be carefully controlled when content is rendered outside normal DOM hierarchy
+- Dynamic positioning calculations should account for viewport boundaries and scroll positions
 - **User Experience**: First click sets start point, shift+subsequent clicks draw lines to new endpoints
 - **Integration**: Leverages existing shift key detection from CanvasContext
 

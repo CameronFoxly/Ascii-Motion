@@ -823,6 +823,68 @@ const Canvas = () => {
 };
 ```
 
+**Dropdown Menu and Overlay Patterns:**
+```typescript
+// ✅ Good: Portal-based dropdown with proper layering
+import { createPortal } from 'react-dom';
+
+const DropdownComponent = () => {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef<HTMLDivElement>(null);
+
+  const calculatePosition = (buttonRef: HTMLElement | null) => {
+    if (!buttonRef) return { top: 0, left: 0 };
+    const rect = buttonRef.getBoundingClientRect();
+    return { top: rect.bottom + 4, left: rect.left };
+  };
+
+  // Portal dropdown for proper z-index layering
+  return (
+    <>
+      <Button 
+        ref={buttonRef}
+        onClick={() => {
+          const pos = calculatePosition(buttonRef.current);
+          setPosition(pos);
+          setShowDropdown(!showDropdown);
+        }}
+      >
+        Open Dropdown
+      </Button>
+      
+      {showDropdown && createPortal(
+        <div 
+          className="fixed z-[99999] bg-popover border border-border rounded-md shadow-lg"
+          style={{ top: `${position.top}px`, left: `${position.left}px` }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Dropdown content */}
+        </div>,
+        document.body
+      )}
+    </>
+  );
+};
+
+// ❌ Avoid: Absolute positioning within canvas containers
+const BadDropdown = () => (
+  <div className="relative">
+    <Button>Open</Button>
+    <div className="absolute top-8 left-0 z-50"> {/* Will be behind canvas */}
+      Dropdown content
+    </div>
+  </div>
+);
+```
+
+**Z-Index Management:**
+- Canvas layers: `z-10` to `z-40`
+- UI overlays: `z-50` to `z-[999]`
+- Dropdown menus: `z-[99999]` (with portals)
+- Modals: `z-[100000]+`
+
 ### 🔧 **Adding New Tools - Step-by-Step Guide**
 
 **CRITICAL**: When adding ANY new tool, follow this exact pattern to maintain architectural consistency.
@@ -1837,6 +1899,7 @@ const useCanvasStore = create<CanvasState>((set) => ({
 - ✅ **Magic Wand Selection** - Content-aware selection with contiguous/non-contiguous modes (Sept 5, 2025)
 - ✅ **Paint Bucket Contiguous Toggle** - Enhanced fill tool with contiguous/non-contiguous mode selection (Sept 5, 2025)
 - ✅ **Cell Hover Outline** - Universal hover feedback for all tools except hand tool (Sept 5, 2025)
+- ✅ **Dropdown Layering System** - Portal-based dropdown menus with proper z-index hierarchy (Sept 6, 2025)
 
 **Step 5.1 Completion - Performance Optimizations**:
 - ✅ CellRenderer.tsx: Memoized cell rendering component
@@ -1856,6 +1919,15 @@ const useCanvasStore = create<CanvasState>((set) => ({
 - ✅ **Keyboard Shortcuts**: Enhanced Cmd/Ctrl+V workflow with preview mode
 - ✅ **Visual Preview System**: Real content display with purple marquee and transparency
 - ✅ **Selection Deselect Fix**: Proper click-outside-to-deselect behavior restored
+
+**Dropdown Layering System - September 6, 2025**:
+- ✅ **Portal-based Rendering**: Typography and background color dropdowns use React portals for proper layering
+- ✅ **Z-Index Hierarchy**: Established clear z-index system (canvas: z-10-40, UI: z-50-999, dropdowns: z-99999+)
+- ✅ **Dynamic Positioning**: Dropdowns calculate position relative to trigger buttons with proper spacing
+- ✅ **Click-Outside Detection**: Enhanced click handling prevents accidental closure during dropdown interaction
+- ✅ **Event Propagation Control**: stopPropagation() on dropdown content prevents unwanted event bubbling
+- ✅ **Accessibility Enhancements**: Added proper ARIA labels, expanded states, and controls relationships
+- ✅ **Development Guidelines**: Documented best practices in both DEVELOPMENT.md and COPILOT_INSTRUCTIONS.md
 
 **Step 4 Completion - Tool Components**:
 - CanvasGrid.tsx maintained at ~111 lines (pure composition)
@@ -2290,6 +2362,79 @@ Use this template to ensure consistent, complete documentation with every change
 - ✅ **When adding new patterns or conventions**
 - ✅ **When major file structure changes**
 - ✅ **Before marking any phase as complete**
+
+---
+
+## 🚀 Quick Reference: Dropdown Implementation
+
+When implementing dropdowns/overlays that need to appear above canvas content:
+
+```typescript
+// Template: Portal-based dropdown with proper layering
+import { createPortal } from 'react-dom';
+
+const DropdownComponent = () => {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef<HTMLDivElement>(null);
+
+  const calculatePosition = (buttonRef: HTMLElement | null) => {
+    if (!buttonRef) return { top: 0, left: 0 };
+    const rect = buttonRef.getBoundingClientRect();
+    return { top: rect.bottom + 4, left: rect.left };
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (showDropdown && buttonRef.current && !buttonRef.current.contains(target)) {
+        const dropdown = document.getElementById('dropdown-id');
+        if (!dropdown || !dropdown.contains(target)) {
+          setShowDropdown(false);
+        }
+      }
+    };
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showDropdown]);
+
+  return (
+    <>
+      <Button 
+        ref={buttonRef}
+        onClick={() => {
+          const pos = calculatePosition(buttonRef.current);
+          setPosition(pos);
+          setShowDropdown(!showDropdown);
+        }}
+      >
+        Trigger
+      </Button>
+      
+      {showDropdown && createPortal(
+        <div 
+          id="dropdown-id"
+          className="fixed z-[99999] bg-popover border border-border rounded-md shadow-lg"
+          style={{ top: `${position.top}px`, left: `${position.left}px` }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Content */}
+        </div>,
+        document.body
+      )}
+    </>
+  );
+};
+```
+
+**Z-Index Hierarchy**:
+- Canvas: `z-10` to `z-40`
+- UI overlays: `z-50` to `z-[999]`
+- Dropdowns: `z-[99999]` (with portals)
+- Modals: `z-[100000]+`
 
 ### Quick Documentation Health Check:
 Ask yourself:
