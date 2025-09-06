@@ -54,7 +54,7 @@ export const CanvasSizePicker: React.FC<CanvasSizePickerProps> = ({
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      <span className="text-sm font-medium text-muted-foreground">Size:</span>
+      <span className="text-sm font-medium text-muted-foreground">Canvas size:</span>
       
       {/* Width controls */}
       <div className="flex items-center gap-1">

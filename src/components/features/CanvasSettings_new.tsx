@@ -110,6 +110,11 @@ export const CanvasSettings: React.FC = () => {
 
         <Separator orientation="vertical" className="h-6" />
 
+        {/* Zoom Controls */}
+        <ZoomControls />
+
+        <Separator orientation="vertical" className="h-6" />
+
         {/* Display Controls */}
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-muted-foreground">Display:</span>
@@ -193,11 +198,6 @@ export const CanvasSettings: React.FC = () => {
             </Tooltip>
           </div>
         </div>
-
-        <Separator orientation="vertical" className="h-6" />
-
-        {/* Zoom Controls - moved to the end */}
-        <ZoomControls />
 
         {/* Typography Picker Dropdown - Portal rendered for proper layering */}
         {showTypographyPicker && createPortal(
