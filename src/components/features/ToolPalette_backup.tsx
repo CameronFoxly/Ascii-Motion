@@ -2,6 +2,7 @@ import React from 'react';
 import { useToolStore } from '../../stores/toolStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
@@ -58,17 +59,19 @@ const SELECTION_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; de
   { id: 'select', name: 'Select', icon: <DashedRectangleIcon className="w-3 h-3" />, description: 'Select rectangular areas' },
   { id: 'lasso', name: 'Lasso', icon: <Lasso className="w-3 h-3" />, description: 'Freeform selection tool' },
   { id: 'magicwand', name: 'Magic Wand', icon: <Wand2 className="w-3 h-3" />, description: 'Select matching cells' },
+  { id: 'hand', name: 'Hand', icon: <Hand className="w-3 h-3" />, description: 'Pan canvas view' },
 ];
 
+// Separate utility tool
 const UTILITY_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; description: string }> = [
   { id: 'eyedropper', name: 'Eyedropper', icon: <Pipette className="w-3 h-3" />, description: 'Pick character/color' },
-  { id: 'hand', name: 'Hand', icon: <Hand className="w-3 h-3" />, description: 'Pan canvas view' },
 ];
 
 export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
   const { activeTool, setActiveTool, rectangleFilled, setRectangleFilled, paintBucketContiguous, setPaintBucketContiguous, magicWandContiguous, setMagicWandContiguous } = useToolStore();
   const [showOptions, setShowOptions] = React.useState(false);
 
+  const allTools = [...DRAWING_TOOLS, ...SELECTION_TOOLS, ...UTILITY_TOOLS];
   const hasOptions = ['rectangle', 'ellipse', 'paintbucket', 'magicwand'].includes(activeTool);
 
   const ToolButton: React.FC<{ tool: { id: Tool; name: string; icon: React.ReactNode; description: string } }> = ({ tool }) => (
@@ -94,17 +97,18 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
 
   return (
     <TooltipProvider>
-      <div className={`space-y-1 ${className}`}>
+      <div className={`space-y-2 ${className}`}>
         <div className="flex justify-between items-center">
           <h3 className="text-sm font-semibold">Tools</h3>
+          <Badge variant="outline" className="text-xs h-4">{allTools.length}</Badge>
         </div>
         
         <Card className="border-border/50">
-          <CardContent className="p-2">
+          <CardContent className="p-3">
             {/* Drawing Tools Section */}
-            <div className="space-y-1">
+            <div className="space-y-2">
               <h4 className="text-xs font-medium text-muted-foreground">Drawing</h4>
-              <div className="flex flex-wrap gap-1" role="toolbar" aria-label="Drawing tools">
+              <div className="grid grid-cols-3 gap-1" role="toolbar" aria-label="Drawing tools">
                 {DRAWING_TOOLS.map((tool) => (
                   <ToolButton key={tool.id} tool={tool} />
                 ))}
@@ -112,9 +116,9 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
             </div>
 
             {/* Selection Tools Section */}
-            <div className="space-y-1 mt-2">
+            <div className="space-y-2 mt-3">
               <h4 className="text-xs font-medium text-muted-foreground">Selection</h4>
-              <div className="flex flex-wrap gap-1" role="toolbar" aria-label="Selection tools">
+              <div className="grid grid-cols-2 gap-1" role="toolbar" aria-label="Selection tools">
                 {SELECTION_TOOLS.map((tool) => (
                   <ToolButton key={tool.id} tool={tool} />
                 ))}
@@ -122,9 +126,9 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
             </div>
 
             {/* Utility Tools Section */}
-            <div className="space-y-1 mt-2">
+            <div className="space-y-2 mt-3">
               <h4 className="text-xs font-medium text-muted-foreground">Utility</h4>
-              <div className="flex flex-wrap gap-1" role="toolbar" aria-label="Utility tools">
+              <div className="flex gap-1" role="toolbar" aria-label="Utility tools">
                 {UTILITY_TOOLS.map((tool) => (
                   <ToolButton key={tool.id} tool={tool} />
                 ))}

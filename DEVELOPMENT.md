@@ -180,6 +180,77 @@ const calculatePosition = (buttonRef: HTMLElement | null) => {
 - ✅ Accessible keyboard and mouse navigation
 - ✅ No z-index conflicts or layering issues
 
+### **🚨 MANDATORY: Tool Palette Organization Guidelines**
+When adding new tools to ASCII Motion, they must be categorized properly in the ToolPalette component to maintain a logical and organized UI.
+
+#### **1. Tool Category Definitions**
+Tools are organized into three logical categories in `src/components/features/ToolPalette.tsx`:
+
+**DRAWING_TOOLS** - Tools that create or modify content:
+- `pencil` - Freehand drawing
+- `eraser` - Remove characters
+- `paintbucket` - Fill connected areas
+- `rectangle` - Draw rectangular shapes
+- `ellipse` - Draw circular/oval shapes
+- `text` - Type text directly
+
+**SELECTION_TOOLS** - Tools for selecting and manipulating existing content:
+- `select` - Rectangular area selection
+- `lasso` - Freeform area selection
+- `magicwand` - Select matching content
+
+**UTILITY_TOOLS** - Special purpose tools that don't fit drawing/selection:
+- `eyedropper` - Pick character/color from canvas
+- `hand` - Pan and navigate canvas view
+
+#### **2. Adding New Tools - Category Assignment Rules**
+
+**For Drawing Tools:**
+- Creates new content on canvas
+- Modifies existing characters/colors
+- Examples: brush, spray, line, shapes, patterns
+
+**For Selection Tools:**
+- Selects areas or content for manipulation
+- Used for copy/paste operations
+- Examples: polygonal select, color range select, similar content select
+
+**For Utility Tools:**
+- Special navigation or information tools
+- Doesn't directly modify canvas content
+- Examples: zoom, measure, grid toggle, eyedropper
+
+#### **3. Implementation Requirements**
+
+When adding a new tool, update the appropriate array in `ToolPalette.tsx`:
+
+```typescript
+// Example: Adding a new brush tool (DRAWING category)
+const DRAWING_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; description: string }> = [
+  // ... existing tools
+  { id: 'brush', name: 'Brush', icon: <Brush className="w-3 h-3" />, description: 'Brush with adjustable size' },
+];
+
+// Example: Adding a new color select tool (SELECTION category)  
+const SELECTION_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; description: string }> = [
+  // ... existing tools
+  { id: 'colorselect', name: 'Color Select', icon: <Palette className="w-3 h-3" />, description: 'Select by color' },
+];
+```
+
+#### **4. UI Layout Behavior**
+- **Flexible Wrapping**: Tools use `flex flex-wrap gap-1` for optimal space usage
+- **Compact Panel**: Panel width is optimized to fit ~4 tools per row (176px width)
+- **Section Headers**: Each category has a descriptive header ("Drawing", "Selection", "Utility")
+- **Consistent Styling**: All tools use 32x32px buttons with 3x3px icons
+
+#### **Benefits of Following Tool Organization:**
+- ✅ Logical grouping makes tools easy to find
+- ✅ Consistent visual hierarchy across tool types
+- ✅ Efficient use of limited panel space
+- ✅ Scalable organization as new tools are added
+- ✅ Professional user experience matching industry standards
+
 ## Development Phases
 
 ### Phase 1: Core Editor ✅ **COMPLETE**
