@@ -70,8 +70,8 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
       case 'bottom':
         return cn(
           baseClasses,
-          'border-t overflow-y-auto overflow-x-hidden',
-          isOpen ? minHeight || 'h-48' : 'h-8',
+          'border-t',
+          isOpen ? minHeight || 'h-auto' : 'h-8',
           className
         );
       default:
@@ -101,11 +101,11 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
       
       {isOpen && (
         <Collapsible open={isOpen}>
-          <CollapsibleContent className="h-full">
+          <CollapsibleContent className={side === 'bottom' ? '' : 'h-full'}>
             <div 
               id={`panel-${side}`}
               className={cn(
-                'h-full',
+                side === 'bottom' ? '' : 'h-full',
                 side === 'bottom' ? 'p-3' : 'p-4'
               )}
               role="region"

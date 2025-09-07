@@ -7,7 +7,6 @@ import { FrameThumbnail } from './FrameThumbnail';
 import { PlaybackControls } from './PlaybackControls';
 import { FrameControls } from './FrameControls';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Separator } from '../ui/separator';
 import { MAX_LIMITS } from '../../constants';
 
 /**
@@ -96,8 +95,8 @@ export const AnimationTimeline: React.FC = () => {
   const totalDuration = frames.reduce((total, frame) => total + frame.duration, 0);
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
+    <Card className="">
+      <CardHeader className="pb-2 py-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium">Animation Timeline</CardTitle>
           <div className="text-xs text-muted-foreground">
@@ -106,47 +105,45 @@ export const AnimationTimeline: React.FC = () => {
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        {/* Playback Controls */}
-        <PlaybackControls
-          isPlaying={isPlaying}
-          canPlay={canPlay}
-          currentFrame={currentFrameIndex}
-          totalFrames={frames.length}
-          onPlay={startPlayback}
-          onPause={pausePlayback}
-          onStop={stopPlayback}
-          onPrevious={navigatePrevious}
-          onNext={navigateNext}
-          onToggleLoop={() => setLooping(!looping)}
-          isLooping={looping}
-        />
-
-        <Separator />
-
-        {/* Frame Controls */}
+      <CardContent className="space-y-3 p-3">
+        {/* Combined Controls Row */}
         <div className="flex items-center justify-between">
-          <FrameControls
-            canAddFrame={frames.length < MAX_LIMITS.FRAME_COUNT}
-            canDeleteFrame={frames.length > 1}
-            onAddFrame={handleAddFrame}
-            onDuplicateFrame={handleDuplicateFrame}
-            onDeleteFrame={handleDeleteFrame}
-            disabled={isPlaying}
+          {/* Playback Controls - Left Side */}
+          <PlaybackControls
+            isPlaying={isPlaying}
+            canPlay={canPlay}
+            currentFrame={currentFrameIndex}
+            totalFrames={frames.length}
+            onPlay={startPlayback}
+            onPause={pausePlayback}
+            onStop={stopPlayback}
+            onPrevious={navigatePrevious}
+            onNext={navigateNext}
+            onToggleLoop={() => setLooping(!looping)}
+            isLooping={looping}
           />
-          
-          <div className="text-xs text-muted-foreground">
-            Max {MAX_LIMITS.FRAME_COUNT} frames
+
+          {/* Frame Controls - Right Side */}
+          <div className="flex items-center gap-4">
+            <FrameControls
+              canAddFrame={frames.length < MAX_LIMITS.FRAME_COUNT}
+              canDeleteFrame={frames.length > 1}
+              onAddFrame={handleAddFrame}
+              onDuplicateFrame={handleDuplicateFrame}
+              onDeleteFrame={handleDeleteFrame}
+              disabled={isPlaying}
+            />
+            <div className="text-xs text-muted-foreground">
+              {frames.length}/{MAX_LIMITS.FRAME_COUNT}
+            </div>
           </div>
         </div>
 
-        <Separator />
-
         {/* Frame Timeline */}
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium">Frames</h4>
+        <div className="space-y-1">
+          <h4 className="text-xs font-medium text-muted-foreground">Frames</h4>
           <div className="w-full overflow-x-auto" ref={scrollAreaRef}>
-            <div className="flex gap-2 pb-2" style={{ minWidth: 'max-content' }}>
+            <div className="flex gap-2 pb-1" style={{ minWidth: 'max-content' }}>
               {frames.map((frame, index) => (
                 <FrameThumbnail
                   key={frame.id}
@@ -163,13 +160,6 @@ export const AnimationTimeline: React.FC = () => {
               ))}
             </div>
           </div>
-        </div>
-
-        {/* Animation info */}
-        <div className="text-xs text-muted-foreground space-y-1">
-          <div>• Use Space to play/pause, Esc to stop</div>
-          <div>• Use , and . keys to navigate frames</div>
-          <div>• Click frames to jump, drag to reorder</div>
         </div>
       </CardContent>
     </Card>

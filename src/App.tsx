@@ -167,7 +167,6 @@ function App() {
             isOpen={layout.bottomPanelOpen}
             onToggle={toggleBottomPanel}
             side="bottom"
-            minHeight="h-40"
             className="col-span-3"
           >
             <AnimationTimeline />
