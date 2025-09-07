@@ -3,6 +3,9 @@ import type { Animation, Frame, FrameId, Cell } from '../types';
 import { DEFAULT_FRAME_DURATION } from '../constants';
 
 interface AnimationState extends Animation {
+  // Drag state for frame reordering
+  isDraggingFrame: boolean;
+  
   // Actions
   addFrame: (atIndex?: number) => void;
   removeFrame: (index: number) => void;
@@ -11,6 +14,9 @@ interface AnimationState extends Animation {
   updateFrameDuration: (index: number, duration: number) => void;
   updateFrameName: (index: number, name: string) => void;
   reorderFrames: (fromIndex: number, toIndex: number) => void;
+  
+  // Drag controls
+  setDraggingFrame: (isDragging: boolean) => void;
   
   // Frame data management
   setFrameData: (frameIndex: number, data: Map<string, Cell>) => void;
@@ -52,6 +58,7 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   frameRate: 12,
   totalDuration: DEFAULT_FRAME_DURATION,
   looping: false,
+  isDraggingFrame: false,
 
   // Actions
   addFrame: (atIndex?: number) => {
@@ -155,8 +162,18 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
 
       // Create a deep copy of frames to avoid reference issues
       const newFrames = state.frames.map(frame => ({
-        ...frame,
-        data: new Map(frame.data) // Deep copy the data Map
+        id: frame.id,
+        name: frame.name,
+        duration: frame.duration,
+        thumbnail: frame.thumbnail,
+        data: new Map(Array.from(frame.data.entries()).map(([key, cell]) => [
+          key,
+          {
+            char: cell.char,
+            color: cell.color,
+            bgColor: cell.bgColor
+          }
+        ]))
       }));
       
       // Perform the move operation
@@ -227,6 +244,7 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
 
   setLooping: (looping: boolean) => set({ looping }),
   setFrameRate: (frameRate: number) => set({ frameRate }),
+  setDraggingFrame: (isDraggingFrame: boolean) => set({ isDraggingFrame }),
 
   // Navigation
   nextFrame: () => {

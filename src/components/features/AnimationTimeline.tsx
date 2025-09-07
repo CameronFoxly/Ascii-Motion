@@ -25,7 +25,8 @@ export const AnimationTimeline: React.FC = () => {
     duplicateFrame,
     updateFrameDuration,
     reorderFrames,
-    setLooping
+    setLooping,
+    setDraggingFrame
   } = useAnimationStore();
 
   const {
@@ -53,7 +54,8 @@ export const AnimationTimeline: React.FC = () => {
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/plain', index.toString());
     setDraggedIndex(index);
-  }, [isPlaying]);
+    setDraggingFrame(true); // Set global drag state
+  }, [isPlaying, setDraggingFrame]);
 
   // Handle drag over
   const handleDragOver = useCallback((event: React.DragEvent, index: number) => {
@@ -132,8 +134,9 @@ export const AnimationTimeline: React.FC = () => {
     setTimeout(() => {
       setDraggedIndex(null);
       setDragOverIndex(null);
+      setDraggingFrame(false); // Clear global drag state
     }, 100);
-  }, []);
+  }, [setDraggingFrame]);
 
   // Handle frame selection
   const handleFrameSelect = useCallback((frameIndex: number) => {
