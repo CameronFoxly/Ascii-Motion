@@ -6,6 +6,14 @@ interface AnimationState extends Animation {
   // Drag state for frame reordering
   isDraggingFrame: boolean;
   
+  // Onion skin state
+  onionSkin: {
+    enabled: boolean;
+    previousFrames: number; // 0-10 frames back
+    nextFrames: number;     // 0-10 frames forward
+    wasEnabledBeforePlayback: boolean; // To restore after pause
+  };
+  
   // Actions
   addFrame: (atIndex?: number) => void;
   removeFrame: (index: number) => void;
@@ -17,6 +25,12 @@ interface AnimationState extends Animation {
   
   // Drag controls
   setDraggingFrame: (isDragging: boolean) => void;
+  
+  // Onion skin actions
+  toggleOnionSkin: () => void;
+  setPreviousFrames: (count: number) => void;
+  setNextFrames: (count: number) => void;
+  setOnionSkinEnabled: (enabled: boolean) => void;
   
   // Frame data management
   setFrameData: (frameIndex: number, data: Map<string, Cell>) => void;
@@ -59,6 +73,14 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   totalDuration: DEFAULT_FRAME_DURATION,
   looping: false,
   isDraggingFrame: false,
+
+  // Onion skin initial state
+  onionSkin: {
+    enabled: false,
+    previousFrames: 1,
+    nextFrames: 1,
+    wasEnabledBeforePlayback: false,
+  },
 
   // Actions
   addFrame: (atIndex?: number) => {
@@ -234,9 +256,37 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   },
 
   // Playback controls
-  play: () => set({ isPlaying: true }),
-  pause: () => set({ isPlaying: false }),
-  stop: () => set({ isPlaying: false, currentFrameIndex: 0 }),
+  play: () => {
+    set((state) => ({
+      isPlaying: true,
+      onionSkin: {
+        ...state.onionSkin,
+        wasEnabledBeforePlayback: state.onionSkin.enabled,
+        enabled: false // Disable onion skin during playback for performance
+      }
+    }));
+  },
+  
+  pause: () => {
+    set((state) => ({
+      isPlaying: false,
+      onionSkin: {
+        ...state.onionSkin,
+        enabled: state.onionSkin.wasEnabledBeforePlayback // Restore previous state
+      }
+    }));
+  },
+  
+  stop: () => {
+    set((state) => ({
+      isPlaying: false,
+      currentFrameIndex: 0,
+      onionSkin: {
+        ...state.onionSkin,
+        enabled: state.onionSkin.wasEnabledBeforePlayback // Restore previous state
+      }
+    }));
+  },
   
   togglePlayback: () => {
     set((state) => ({ isPlaying: !state.isPlaying }));
@@ -299,5 +349,44 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
     }
     
     return frames.length - 1; // Return last frame if time exceeds total duration
+  },
+
+  // Onion skin actions
+  toggleOnionSkin: () => {
+    set((state) => ({
+      onionSkin: {
+        ...state.onionSkin,
+        enabled: !state.onionSkin.enabled
+      }
+    }));
+  },
+
+  setPreviousFrames: (count: number) => {
+    const clampedCount = Math.max(0, Math.min(10, count));
+    set((state) => ({
+      onionSkin: {
+        ...state.onionSkin,
+        previousFrames: clampedCount
+      }
+    }));
+  },
+
+  setNextFrames: (count: number) => {
+    const clampedCount = Math.max(0, Math.min(10, count));
+    set((state) => ({
+      onionSkin: {
+        ...state.onionSkin,
+        nextFrames: clampedCount
+      }
+    }));
+  },
+
+  setOnionSkinEnabled: (enabled: boolean) => {
+    set((state) => ({
+      onionSkin: {
+        ...state.onionSkin,
+        enabled
+      }
+    }));
   }
 }));

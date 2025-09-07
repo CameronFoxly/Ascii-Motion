@@ -6,6 +6,7 @@ import { useFrameNavigation } from '../../hooks/useFrameNavigation';
 import { FrameThumbnail } from './FrameThumbnail';
 import { PlaybackControls } from './PlaybackControls';
 import { FrameControls } from './FrameControls';
+import { OnionSkinControls } from './OnionSkinControls';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { MAX_LIMITS } from '../../constants';
 
@@ -20,6 +21,7 @@ export const AnimationTimeline: React.FC = () => {
     currentFrameIndex,
     isPlaying,
     looping,
+    onionSkin,
     addFrame,
     removeFrame,
     duplicateFrame,
@@ -149,8 +151,50 @@ export const AnimationTimeline: React.FC = () => {
   const handleAddFrame = useCallback(() => {
     if (frames.length < MAX_LIMITS.FRAME_COUNT) {
       addFrame(currentFrameIndex + 1);
+      // Scroll to new frame
+      setTimeout(() => {
+        scrollAreaRef.current?.scrollTo({
+          left: scrollAreaRef.current.scrollLeft + 180, // Approximate frame width
+          behavior: 'smooth'
+        });
+      }, 100);
     }
-  }, [frames.length, currentFrameIndex, addFrame]);
+  }, [addFrame, frames.length, currentFrameIndex]);
+
+  // Helper function to determine onion skin status for a frame
+  const getOnionSkinStatus = useCallback((frameIndex: number) => {
+    if (!onionSkin.enabled) {
+      return {
+        isOnionSkinPrevious: false,
+        isOnionSkinNext: false,
+        onionSkinDistance: 0
+      };
+    }
+
+    const distance = frameIndex - currentFrameIndex;
+    
+    if (distance < 0 && Math.abs(distance) <= onionSkin.previousFrames) {
+      // This is a previous frame within onion skin range
+      return {
+        isOnionSkinPrevious: true,
+        isOnionSkinNext: false,
+        onionSkinDistance: Math.abs(distance)
+      };
+    } else if (distance > 0 && distance <= onionSkin.nextFrames) {
+      // This is a next frame within onion skin range
+      return {
+        isOnionSkinPrevious: false,
+        isOnionSkinNext: true,
+        onionSkinDistance: distance
+      };
+    }
+
+    return {
+      isOnionSkinPrevious: false,
+      isOnionSkinNext: false,
+      onionSkinDistance: 0
+    };
+  }, [onionSkin.enabled, onionSkin.previousFrames, onionSkin.nextFrames, currentFrameIndex]);
 
   // Handle duplicating current frame
   const handleDuplicateFrame = useCallback(() => {
@@ -217,6 +261,9 @@ export const AnimationTimeline: React.FC = () => {
             isLooping={looping}
           />
 
+          {/* Onion Skin Controls - Center */}
+          <OnionSkinControls />
+
           {/* Frame Controls - Right Side */}
           <div className="flex items-center gap-4">
             <FrameControls
@@ -263,6 +310,7 @@ export const AnimationTimeline: React.FC = () => {
                     onDelete={() => handleFrameDelete(index)}
                     onDurationChange={(duration) => handleFrameDurationChange(index, duration)}
                     isDragging={draggedIndex === index}
+                    {...getOnionSkinStatus(index)}
                     dragHandleProps={{
                       draggable: !isPlaying,
                       onDragStart: (e: React.DragEvent) => handleDragStart(e, index),

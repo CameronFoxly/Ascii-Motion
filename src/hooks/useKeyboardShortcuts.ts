@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useToolStore } from '../stores/toolStore';
+import { useAnimationStore } from '../stores/animationStore';
 import { useCanvasContext } from '../contexts/CanvasContext';
 import { getToolForHotkey } from '../constants/hotkeys';
 
@@ -10,6 +11,7 @@ import { getToolForHotkey } from '../constants/hotkeys';
 export const useKeyboardShortcuts = () => {
   const { cells, setCanvasData } = useCanvasStore();
   const { startPasteMode, commitPaste, pasteMode } = useCanvasContext();
+  const { toggleOnionSkin } = useAnimationStore();
   const { 
     selection, 
     lassoSelection,
@@ -236,6 +238,15 @@ export const useKeyboardShortcuts = () => {
         }
         break;
         
+      case 'o':
+        // Shift+O = Toggle Onion Skin
+        if (event.shiftKey) {
+          event.preventDefault();
+          console.log('Keyboard shortcut: Toggling onion skin');
+          toggleOnionSkin();
+        }
+        break;
+        
       case 'z':
         // Undo/Redo
         if (event.shiftKey) {
@@ -294,7 +305,8 @@ export const useKeyboardShortcuts = () => {
     hasLassoClipboard,
     hasMagicWandClipboard,
     textToolState,
-    setActiveTool
+    setActiveTool,
+    toggleOnionSkin
   ]);
 
   useEffect(() => {

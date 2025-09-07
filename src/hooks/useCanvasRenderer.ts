@@ -5,6 +5,7 @@ import { useCanvasContext } from '../contexts/CanvasContext';
 import { useCanvasState } from './useCanvasState';
 import { useMemoizedGrid } from './useMemoizedGrid';
 import { useDrawingTool } from './useDrawingTool';
+import { useOnionSkinRenderer } from './useOnionSkinRenderer';
 import { measureCanvasRender, finishCanvasRender } from '../utils/performance';
 import { smoothPolygonPath } from '../utils/polygon';
 import type { Cell } from '../types';
@@ -39,6 +40,9 @@ export const useCanvasRenderer = () => {
 
   const { activeTool, rectangleFilled, lassoSelection, magicWandSelection, textToolState } = useToolStore();
   const { getEllipsePoints } = useDrawingTool();
+
+  // Use onion skin renderer for frame overlays
+  const { renderOnionSkins, clearCache: clearOnionSkinCache } = useOnionSkinRenderer();
 
   // Use memoized grid for optimized rendering  
   const { selectionData } = useMemoizedGrid(
@@ -109,6 +113,9 @@ export const useCanvasRenderer = () => {
     // Clear canvas and fill with background color
     ctx.fillStyle = canvasBackgroundColor;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    // Render onion skin layers (previous and next frames)
+    renderOnionSkins();
 
     // Set font context once for the entire render batch
     ctx.font = drawingStyles.font;
@@ -485,7 +492,8 @@ export const useCanvasRenderer = () => {
     showGrid,
     lassoSelection,
     magicWandSelection,
-    textToolState
+    textToolState,
+    renderOnionSkins
   ]);
 
   // Re-render when dependencies change

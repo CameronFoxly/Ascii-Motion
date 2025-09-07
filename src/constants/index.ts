@@ -3,6 +3,9 @@
 // Re-export hotkey utilities for easier access
 export * from './hotkeys';
 
+// Re-export onion skin constants
+export * from './onionSkin';
+
 export const CHARACTER_CATEGORIES = {
   "Basic Text": [
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 

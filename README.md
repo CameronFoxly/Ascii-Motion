@@ -10,6 +10,7 @@ A modern web application for creating and animating ASCII art with professional 
 - **Grid-based ASCII Art Editor** - Intuitive character-by-character editing
 - **Zoom & Navigation** - Zoom controls (25%-400%) with pan and reset functionality
 - **Professional Animation Timeline** - Individual frame durations, no duplicate frames needed
+- **Onion Skinning** - See previous/next frames with blue/red tinting for smooth animation workflow
 - **Comprehensive Tool Set** - Pencil, eraser, paintbucket, selection, rectangle, ellipse, eyedropper, hand tool
 - **Organized Character Palette** - Characters grouped by style (borders, blocks, arrows, etc.)
 - **Multiple Export Formats** - Text files, JSON projects, GIF animations, MP4 videos
@@ -68,11 +69,13 @@ npm run build
 - [x] Performance optimizations and memoization
 - [x] Theme system (dark/light mode)
 
-### 📅 Phase 2: Animation System (Planned)
-- [ ] Timeline component
-- [ ] Frame management
-- [ ] Playback controls
-- [ ] Frame thumbnails
+### ✅ Phase 2: Animation System (Complete)
+- [x] Timeline component with frame management
+- [x] Playback controls with variable speed
+- [x] Frame thumbnails with visual indicators
+- [x] Onion skinning with performance caching
+- [x] Animation state management and synchronization
+- [x] Keyboard shortcuts (Shift+O for onion skinning)
 
 ### 📅 Phase 3: Export System (Planned)
 - [ ] Text file export
@@ -102,6 +105,8 @@ src/
 
 - **[Product Requirements Document](./PRD.md)** - Complete feature specifications
 - **[Development Guide](./DEVELOPMENT.md)** - Setup and project structure
+- **[Animation System Guide](./ANIMATION_SYSTEM_GUIDE.md)** - Animation architecture and implementation
+- **[Onion Skinning Guide](./ONION_SKINNING_GUIDE.md)** - Complete onion skinning implementation reference
 - **[Copilot Instructions](./COPILOT_INSTRUCTIONS.md)** - Development guidelines
 
 ## 🤝 Contributing

@@ -17,6 +17,10 @@ interface FrameThumbnailProps {
   onDurationChange: (duration: number) => void;
   isDragging?: boolean;
   dragHandleProps?: any;
+  // Onion skin props
+  isOnionSkinPrevious?: boolean;
+  isOnionSkinNext?: boolean;
+  onionSkinDistance?: number;
 }
 
 /**
@@ -34,7 +38,10 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
   onDelete,
   onDurationChange,
   isDragging = false,
-  dragHandleProps
+  dragHandleProps,
+  isOnionSkinPrevious = false,
+  isOnionSkinNext = false,
+  onionSkinDistance = 0
 }) => {
   // Local state for duration input to allow free typing
   const [durationInput, setDurationInput] = useState(frame.duration.toString());
@@ -151,13 +158,26 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
     }
   };
 
+  // Calculate onion skin border styling
+  const getOnionSkinBorderStyle = () => {
+    if (isOnionSkinPrevious) {
+      return 'ring-2 ring-blue-500 border-blue-500 bg-blue-50/30';
+    }
+    if (isOnionSkinNext) {
+      return 'ring-2 ring-red-500 border-red-500 bg-red-50/30';
+    }
+    return '';
+  };
+
   return (
     <Card
       className={`
         relative flex-shrink-0 w-44 h-28 p-2 cursor-pointer transition-all select-none
         ${isSelected 
           ? 'ring-2 ring-primary border-primary bg-primary/5' 
-          : 'border-border hover:border-primary/50'
+          : isOnionSkinPrevious || isOnionSkinNext
+            ? getOnionSkinBorderStyle()
+            : 'border-border hover:border-primary/50'
         }
         ${isDragging ? 'opacity-50 scale-95' : ''}
       `}
@@ -173,9 +193,25 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
     >
       {/* Frame number and controls */}
       <div className="flex items-center justify-between mb-1">
-        <Badge variant="outline" className="text-xs px-1 py-0">
-          {frameIndex + 1}
-        </Badge>
+        <div className="flex items-center gap-1">
+          <Badge variant="outline" className="text-xs px-1 py-0">
+            {frameIndex + 1}
+          </Badge>
+          
+          {/* Onion skin distance indicator */}
+          {(isOnionSkinPrevious || isOnionSkinNext) && onionSkinDistance > 0 && (
+            <Badge 
+              variant="outline" 
+              className={`text-xs px-1 py-0 ${
+                isOnionSkinPrevious 
+                  ? 'border-blue-500 text-blue-600' 
+                  : 'border-red-500 text-red-600'
+              }`}
+            >
+              -{onionSkinDistance}
+            </Badge>
+          )}
+        </div>
         
         <div className="flex gap-1">
           <Button
