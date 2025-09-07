@@ -82,4 +82,4 @@ export const MAX_LIMITS = {
 
 export const DEFAULT_FRAME_DURATION = 100; // ms
 export const MIN_FRAME_DURATION = 50; // ms
-export const MAX_FRAME_DURATION = 5000; // ms
+export const MAX_FRAME_DURATION = 10000; // ms

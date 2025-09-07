@@ -145,23 +145,54 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
 
   reorderFrames: (fromIndex: number, toIndex: number) => {
     set((state) => {
-      const newFrames = [...state.frames];
-      const [movedFrame] = newFrames.splice(fromIndex, 1);
-      newFrames.splice(toIndex, 0, movedFrame);
+      // Validate indices - toIndex can be frames.length for "append to end"
+      if (fromIndex < 0 || fromIndex >= state.frames.length ||
+          toIndex < 0 || toIndex > state.frames.length ||
+          fromIndex === toIndex) {
+        console.log(`Invalid reorder: from=${fromIndex}, to=${toIndex}, length=${state.frames.length}`);
+        return state; // No change if indices are invalid
+      }
+
+      // Create a deep copy of frames to avoid reference issues
+      const newFrames = state.frames.map(frame => ({
+        ...frame,
+        data: new Map(frame.data) // Deep copy the data Map
+      }));
       
-      // Update current frame index if needed
+      // Perform the move operation
+      const [movedFrame] = newFrames.splice(fromIndex, 1);
+      
+      // Handle end-of-list insertion
+      if (toIndex >= newFrames.length) {
+        newFrames.push(movedFrame); // Append to end
+      } else {
+        newFrames.splice(toIndex, 0, movedFrame); // Insert at position
+      }
+      
+      // Calculate new current frame index
       let newCurrentIndex = state.currentFrameIndex;
+      
       if (state.currentFrameIndex === fromIndex) {
+        // The current frame is being moved
         newCurrentIndex = toIndex;
       } else if (fromIndex < state.currentFrameIndex && toIndex >= state.currentFrameIndex) {
+        // Frame moved from before current to after/at current position
         newCurrentIndex = state.currentFrameIndex - 1;
       } else if (fromIndex > state.currentFrameIndex && toIndex <= state.currentFrameIndex) {
+        // Frame moved from after current to before/at current position
         newCurrentIndex = state.currentFrameIndex + 1;
       }
       
+      // Ensure the new index is within bounds
+      newCurrentIndex = Math.max(0, Math.min(newCurrentIndex, newFrames.length - 1));
+      
+      console.log(`Reorder complete: ${fromIndex} → ${toIndex}, currentFrame: ${state.currentFrameIndex} → ${newCurrentIndex}`);
+      
       return {
+        ...state,
         frames: newFrames,
-        currentFrameIndex: newCurrentIndex
+        currentFrameIndex: newCurrentIndex,
+        totalDuration: newFrames.reduce((total, frame) => total + frame.duration, 0)
       };
     });
   },

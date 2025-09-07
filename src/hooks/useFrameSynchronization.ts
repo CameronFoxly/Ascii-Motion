@@ -27,9 +27,14 @@ export const useFrameSynchronization = () => {
   const saveCurrentCanvasToFrame = useCallback(() => {
     if (isLoadingFrameRef.current || isPlaying) return; // Don't save during frame loading or playback
     
-    const currentCells = new Map(cells);
-    setFrameData(currentFrameIndex, currentCells);
-    lastCellsRef.current = currentCells;
+    // Add small delay to prevent race conditions during frame reordering
+    setTimeout(() => {
+      if (isLoadingFrameRef.current || isPlaying) return;
+      
+      const currentCells = new Map(cells);
+      setFrameData(currentFrameIndex, currentCells);
+      lastCellsRef.current = currentCells;
+    }, 50);
   }, [cells, currentFrameIndex, setFrameData, isPlaying]);
 
   // Load frame data into canvas when frame changes
@@ -76,7 +81,14 @@ export const useFrameSynchronization = () => {
     const lastCellsString = JSON.stringify(Array.from(lastCellsRef.current.entries()).sort());
     
     if (currentCellsString !== lastCellsString) {
-      saveCurrentCanvasToFrame();
+      // Longer delay to prevent interference with drag operations
+      const timeoutId = setTimeout(() => {
+        if (!isLoadingFrameRef.current && !isPlaying) {
+          saveCurrentCanvasToFrame();
+        }
+      }, 150);
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [cells, saveCurrentCanvasToFrame, isPlaying]);
 

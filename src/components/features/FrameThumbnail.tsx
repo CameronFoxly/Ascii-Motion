@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
@@ -36,39 +36,125 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
   isDragging = false,
   dragHandleProps
 }) => {
-  // Generate ASCII preview from frame data
-  const asciiPreview = useMemo(() => {
-    const lines: string[] = [];
-    const maxPreviewHeight = 8; // Max lines to show in thumbnail
-    const maxPreviewWidth = 20; // Max chars per line
-    
-    // Calculate scaling to fit preview
-    const scaleX = Math.max(1, Math.ceil(canvasWidth / maxPreviewWidth));
-    const scaleY = Math.max(1, Math.ceil(canvasHeight / maxPreviewHeight));
-    
-    for (let y = 0; y < Math.min(canvasHeight, maxPreviewHeight); y += scaleY) {
-      let line = '';
-      for (let x = 0; x < Math.min(canvasWidth, maxPreviewWidth); x += scaleX) {
-        const cellKey = `${x * scaleX},${y * scaleY}`;
-        const cell = frame.data.get(cellKey);
-        line += cell?.char || ' ';
-      }
-      lines.push(line);
+  // Local state for duration input to allow free typing
+  const [durationInput, setDurationInput] = useState(frame.duration.toString());
+  const [isEditingDuration, setIsEditingDuration] = useState(false);
+  
+  // Update local input when frame duration changes externally
+  React.useEffect(() => {
+    if (!isEditingDuration) {
+      setDurationInput(frame.duration.toString());
     }
-    
-    return lines;
+  }, [frame.duration, isEditingDuration]);
+
+  // Generate pixel-based thumbnail canvas
+  const thumbnailCanvas = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    // Set thumbnail dimensions (keep it small but readable)
+    const thumbnailWidth = 120;
+    const thumbnailHeight = 60;
+    canvas.width = thumbnailWidth;
+    canvas.height = thumbnailHeight;
+
+    // Calculate scaling factors
+    const scaleX = thumbnailWidth / canvasWidth;
+    const scaleY = thumbnailHeight / canvasHeight;
+    const cellWidth = Math.max(1, scaleX);
+    const cellHeight = Math.max(1, scaleY);
+
+    // Clear canvas with dark background
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, thumbnailWidth, thumbnailHeight);
+
+    // If frame is empty, show a subtle grid pattern
+    if (frame.data.size === 0) {
+      ctx.strokeStyle = '#333333';
+      ctx.lineWidth = 0.5;
+      const gridSpacing = 8;
+      
+      // Draw vertical lines
+      for (let x = 0; x < thumbnailWidth; x += gridSpacing) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, thumbnailHeight);
+        ctx.stroke();
+      }
+      
+      // Draw horizontal lines
+      for (let y = 0; y < thumbnailHeight; y += gridSpacing) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(thumbnailWidth, y);
+        ctx.stroke();
+      }
+      
+      return canvas.toDataURL();
+    }
+
+    // Render each cell as a colored rectangle
+    for (const [key, cell] of frame.data) {
+      const coords = key.split(',').map(Number);
+      const x = coords[0];
+      const y = coords[1];
+
+      if (x >= 0 && x < canvasWidth && y >= 0 && y < canvasHeight) {
+        // Calculate pixel position in thumbnail
+        const pixelX = Math.floor(x * scaleX);
+        const pixelY = Math.floor(y * scaleY);
+
+        // Use character color (foreground) primarily, fallback to background, then white
+        const color = cell.color || cell.bgColor || '#ffffff';
+        ctx.fillStyle = color;
+        ctx.fillRect(pixelX, pixelY, Math.ceil(cellWidth), Math.ceil(cellHeight));
+      }
+    }
+
+    return canvas.toDataURL();
   }, [frame.data, canvasWidth, canvasHeight]);
 
-  // Handle duration input change
-  const handleDurationChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newDuration = parseInt(event.target.value) || 100;
-    onDurationChange(Math.max(50, Math.min(5000, newDuration))); // Clamp between 50-5000ms
+  // Handle duration input change (allow free typing)
+  const handleDurationInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setDurationInput(event.target.value);
+  };
+
+  // Handle duration input focus (start editing)
+  const handleDurationFocus = () => {
+    setIsEditingDuration(true);
+  };
+
+  // Handle duration input blur (validate and commit)
+  const handleDurationBlur = () => {
+    setIsEditingDuration(false);
+    const parsedDuration = parseInt(durationInput);
+    
+    if (isNaN(parsedDuration) || parsedDuration < 50) {
+      // Invalid input, reset to minimum and update store
+      setDurationInput('50');
+      onDurationChange(50);
+    } else if (parsedDuration > 10000) {
+      // Exceeds maximum, clamp and update store
+      setDurationInput('10000');
+      onDurationChange(10000);
+    } else {
+      // Valid input, update store
+      onDurationChange(parsedDuration);
+    }
+  };
+
+  // Handle Enter key to commit changes
+  const handleDurationKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.currentTarget.blur(); // Trigger blur event
+    }
   };
 
   return (
     <Card
       className={`
-        relative flex-shrink-0 w-44 h-28 p-2 cursor-pointer transition-all
+        relative flex-shrink-0 w-44 h-28 p-2 cursor-pointer transition-all select-none
         ${isSelected 
           ? 'ring-2 ring-primary border-primary bg-primary/5' 
           : 'border-border hover:border-primary/50'
@@ -77,6 +163,13 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
       `}
       onClick={onSelect}
       {...dragHandleProps}
+      style={{
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        MozUserSelect: 'none',
+        msUserSelect: 'none',
+        ...dragHandleProps?.style
+      }}
     >
       {/* Frame number and controls */}
       <div className="flex items-center justify-between mb-1">
@@ -111,17 +204,18 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
         </div>
       </div>
 
-      {/* ASCII preview */}
+      {/* Frame preview */}
       <div className="flex-1 mb-1 overflow-hidden">
-        <div className="text-xs font-mono leading-none bg-muted/30 p-1 rounded border h-full">
-          {asciiPreview.length > 0 ? (
-            asciiPreview.map((line, idx) => (
-              <div key={idx} className="whitespace-pre">
-                {line || ' '}
-              </div>
-            ))
+        <div className="bg-muted/30 p-1 rounded border h-full flex items-center justify-center">
+          {thumbnailCanvas ? (
+            <img 
+              src={thumbnailCanvas} 
+              alt={`Frame ${frameIndex} preview`}
+              className="max-w-full max-h-full object-contain rounded-sm"
+              style={{ imageRendering: 'pixelated' }}
+            />
           ) : (
-            <div className="text-muted-foreground italic text-center flex items-center justify-center h-full text-xs">
+            <div className="text-muted-foreground italic text-center text-xs">
               Empty
             </div>
           )}
@@ -132,12 +226,15 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
       <div className="flex items-center gap-1">
         <input
           type="number"
-          value={frame.duration}
-          onChange={handleDurationChange}
+          value={durationInput}
+          onChange={handleDurationInputChange}
+          onFocus={handleDurationFocus}
+          onBlur={handleDurationBlur}
+          onKeyDown={handleDurationKeyDown}
           onClick={(e) => e.stopPropagation()}
           className="flex-1 text-xs px-1 py-0.5 border rounded w-12 bg-background"
           min="50"
-          max="5000"
+          max="10000"
           step="10"
         />
         <span className="text-xs text-muted-foreground">ms</span>

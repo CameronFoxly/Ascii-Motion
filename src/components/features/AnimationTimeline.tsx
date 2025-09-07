@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { useAnimationStore } from '../../stores/animationStore';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useAnimationPlayback } from '../../hooks/useAnimationPlayback';
@@ -25,8 +25,7 @@ export const AnimationTimeline: React.FC = () => {
     duplicateFrame,
     updateFrameDuration,
     reorderFrames,
-    setLooping,
-    goToFrame
+    setLooping
   } = useAnimationStore();
 
   const {
@@ -43,6 +42,98 @@ export const AnimationTimeline: React.FC = () => {
   } = useFrameNavigation();
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Drag and drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  // Handle drag start
+  const handleDragStart = useCallback((event: React.DragEvent, index: number) => {
+    if (isPlaying) return; // Don't allow reordering during playback
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', index.toString());
+    setDraggedIndex(index);
+  }, [isPlaying]);
+
+  // Handle drag over
+  const handleDragOver = useCallback((event: React.DragEvent, index: number) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    
+    if (draggedIndex === null || draggedIndex === index) return;
+    
+    // Determine if we're closer to the left or right edge of the frame
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = event.clientX;
+    const centerX = rect.left + rect.width / 2;
+    
+    // If dragging to the right half, show indicator after this frame
+    if (x > centerX) {
+      setDragOverIndex(index + 1);
+    } else {
+      setDragOverIndex(index);
+    }
+  }, [draggedIndex]);
+
+  // Handle drag enter
+  const handleDragEnter = useCallback((event: React.DragEvent, index: number) => {
+    event.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDragOverIndex(index);
+    }
+  }, [draggedIndex]);
+
+  // Handle drag leave
+  const handleDragLeave = useCallback((event: React.DragEvent) => {
+    // Only clear if we're leaving the container, not just moving between frames
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = event.clientX;
+    const y = event.clientY;
+    
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setDragOverIndex(null);
+    }
+  }, []);
+
+  // Handle drop
+  const handleDrop = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    const dragIndex = parseInt(event.dataTransfer.getData('text/plain'));
+    
+    if (!isNaN(dragIndex) && dragOverIndex !== null) {
+      // Validate indices - dragOverIndex can be frames.length for "append to end"
+      if (dragIndex >= 0 && dragIndex < frames.length && 
+          dragOverIndex >= 0 && dragOverIndex <= frames.length &&
+          dragIndex !== dragOverIndex) {
+        
+        // For drops, use dragOverIndex directly - the store will handle end-of-list
+        let targetIndex = dragOverIndex;
+        
+        // Adjust target index when moving forward (except for end drops)
+        if (dragOverIndex < frames.length && dragIndex < dragOverIndex) {
+          targetIndex = dragOverIndex - 1;
+        }
+        
+        console.log(`Reordering: from ${dragIndex} to ${targetIndex} (dragOver was ${dragOverIndex}, frames.length=${frames.length})`);
+        reorderFrames(dragIndex, targetIndex);
+      }
+    }
+    
+    // Clean up drag state with delay to prevent race conditions
+    setTimeout(() => {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+    }, 100);
+  }, [dragOverIndex, reorderFrames, frames.length]);
+
+  // Handle drag end
+  const handleDragEnd = useCallback(() => {
+    // Clean up drag state with delay to prevent race conditions
+    setTimeout(() => {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+    }, 100);
+  }, []);
 
   // Handle frame selection
   const handleFrameSelect = useCallback((frameIndex: number) => {
@@ -143,20 +234,48 @@ export const AnimationTimeline: React.FC = () => {
         <div className="space-y-1">
           <h4 className="text-xs font-medium text-muted-foreground">Frames</h4>
           <div className="w-full overflow-x-auto" ref={scrollAreaRef}>
-            <div className="flex gap-2 pb-1" style={{ minWidth: 'max-content' }}>
+            <div 
+              className="flex gap-2 pb-1" 
+              style={{ 
+                minWidth: 'max-content',
+                userSelect: 'none', // Prevent text selection
+                WebkitUserSelect: 'none' // Webkit browsers
+              }}
+            >
               {frames.map((frame, index) => (
-                <FrameThumbnail
-                  key={frame.id}
-                  frame={frame}
-                  frameIndex={index}
-                  isSelected={index === currentFrameIndex}
-                  canvasWidth={canvasWidth}
-                  canvasHeight={canvasHeight}
-                  onSelect={() => handleFrameSelect(index)}
-                  onDuplicate={() => handleFrameDuplicate(index)}
-                  onDelete={() => handleFrameDelete(index)}
-                  onDurationChange={(duration) => handleFrameDurationChange(index, duration)}
-                />
+                <React.Fragment key={frame.id}>
+                  {/* Drop indicator line */}
+                  {dragOverIndex === index && draggedIndex !== null && draggedIndex !== index && (
+                    <div className="w-1 bg-white rounded-full shadow-lg flex-shrink-0 self-stretch" />
+                  )}
+                  
+                  <FrameThumbnail
+                    frame={frame}
+                    frameIndex={index}
+                    isSelected={index === currentFrameIndex}
+                    canvasWidth={canvasWidth}
+                    canvasHeight={canvasHeight}
+                    onSelect={() => handleFrameSelect(index)}
+                    onDuplicate={() => handleFrameDuplicate(index)}
+                    onDelete={() => handleFrameDelete(index)}
+                    onDurationChange={(duration) => handleFrameDurationChange(index, duration)}
+                    isDragging={draggedIndex === index}
+                    dragHandleProps={{
+                      draggable: !isPlaying,
+                      onDragStart: (e: React.DragEvent) => handleDragStart(e, index),
+                      onDragOver: (e: React.DragEvent) => handleDragOver(e, index),
+                      onDragEnter: (e: React.DragEvent) => handleDragEnter(e, index),
+                      onDragLeave: handleDragLeave,
+                      onDrop: handleDrop,
+                      onDragEnd: handleDragEnd
+                    }}
+                  />
+                  
+                  {/* Drop indicator at the end */}
+                  {index === frames.length - 1 && dragOverIndex === frames.length && draggedIndex !== null && (
+                    <div className="w-1 bg-white rounded-full shadow-lg flex-shrink-0 self-stretch" />
+                  )}
+                </React.Fragment>
               ))}
             </div>
           </div>
