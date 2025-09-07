@@ -65,6 +65,31 @@
     scroll-behavior: smooth;
   }
 
+  /* Canvas text rendering optimization for ASCII Motion
+   * 
+   * After testing multiple approaches (high-DPI scaling, pixel-perfect rendering),
+   * this configuration provides the optimal balance of:
+   * - Smooth, readable text without pixelation
+   * - Professional appearance matching code editors
+   * - Accurate mouse coordinate handling
+   * - Cross-browser compatibility
+   */
+  canvas {
+    /* Use auto rendering for smoothest text - lets browser choose best method */
+    image-rendering: auto;
+    
+    /* High quality font smoothing for professional appearance */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    
+    /* Prevent blur from fractional positioning during transforms */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
   /* Improve focus visibility */
   *:focus-visible {
     outline: 2px solid hsl(var(--ring));

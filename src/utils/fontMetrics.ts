@@ -1,6 +1,8 @@
 /**
  * Font metrics and character spacing utilities for ASCII Motion
- * Handles proper monospace character aspect ratios and spacing calculations
+ * 
+ * Handles proper monospace character aspect ratios and spacing calculations.
+ * Uses a modern font stack optimized for crisp text rendering.
  */
 
 export interface FontMetrics {
@@ -17,10 +19,23 @@ export interface SpacingSettings {
 }
 
 /**
+ * Modern monospace font stack optimized for crisp rendering
+ * 
+ * Priority order:
+ * 1. SF Mono - macOS system font, excellent rendering quality
+ * 2. Monaco - macOS classic monospace, crisp and readable  
+ * 3. Inconsolata - Popular web font with good character spacing
+ * 4. Roboto Mono - Google's high-quality monospace font
+ * 5. Consolas - Windows system font, good for cross-platform
+ * 6. Courier New - Universal fallback, available everywhere
+ */
+const OPTIMAL_FONT_STACK = 'SF Mono, Monaco, Inconsolata, "Roboto Mono", Consolas, "Courier New"';
+
+/**
  * Calculate font metrics for a given font size
  * Monospace fonts typically have an aspect ratio of ~0.6 (width/height)
  */
-export const calculateFontMetrics = (fontSize: number, fontFamily: string = 'Courier New'): FontMetrics => {
+export const calculateFontMetrics = (fontSize: number, fontFamily: string = OPTIMAL_FONT_STACK): FontMetrics => {
   // Standard monospace aspect ratio (character width / character height)
   const MONOSPACE_ASPECT_RATIO = 0.6;
   
