@@ -23,7 +23,7 @@ export interface MouseHandlers {
  * Routes mouse events to appropriate tool handlers
  */
 export const useCanvasMouseHandlers = (): MouseHandlers => {
-  const { activeTool, clearSelection, clearLassoSelection, clearMagicWandSelection } = useToolStore();
+  const { activeTool, clearSelection, clearLassoSelection, clearMagicWandSelection, isPlaybackMode } = useToolStore();
   const { canvasRef, spaceKeyDown, setIsDrawing, setMouseButtonDown, setHoveredCell, pasteMode, updatePastePosition, startPasteDrag, stopPasteDrag, cancelPasteMode, commitPaste } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
   const { width, height, cells, setCanvasData } = useCanvasStore();
@@ -66,6 +66,11 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
 
   // Route mouse down to appropriate tool handler based on effective tool
   const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
+    // Block mouse interactions during playback
+    if (isPlaybackMode) {
+      return;
+    }
+
     // Handle paste mode interactions first
     if (pasteMode.isActive && pasteMode.preview) {
       const { x, y } = getGridCoordinatesFromEvent(event);
@@ -160,10 +165,15 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
         dragAndDropHandlers.handleDrawingMouseDown(event);
         break;
     }
-  }, [effectiveTool, activeTool, pasteMode, moveState, getGridCoordinatesFromEvent, startPasteDrag, cancelPasteMode, commitPaste, cells, setCanvasData, isPointInEffectiveSelection, commitMove, clearSelection, clearLassoSelection, handToolHandlers, selectionHandlers, lassoSelectionHandlers, dragAndDropHandlers]);
+  }, [isPlaybackMode, effectiveTool, activeTool, pasteMode, moveState, getGridCoordinatesFromEvent, startPasteDrag, cancelPasteMode, commitPaste, cells, setCanvasData, isPointInEffectiveSelection, commitMove, clearSelection, clearLassoSelection, handToolHandlers, selectionHandlers, lassoSelectionHandlers, dragAndDropHandlers]);
 
   // Route mouse move to appropriate tool handler
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
+    // Block mouse interactions during playback
+    if (isPlaybackMode) {
+      return;
+    }
+
     // Update hovered cell for all tools except hand tool
     if (effectiveTool !== 'hand') {
       const { x, y } = getGridCoordinatesFromEvent(event);
@@ -208,10 +218,15 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
         dragAndDropHandlers.handleDrawingMouseMove(event);
         break;
     }
-  }, [effectiveTool, pasteMode, getGridCoordinatesFromEvent, setHoveredCell, updatePastePosition, handToolHandlers, selectionHandlers, lassoSelectionHandlers, dragAndDropHandlers]);
+  }, [isPlaybackMode, effectiveTool, pasteMode, getGridCoordinatesFromEvent, setHoveredCell, updatePastePosition, handToolHandlers, selectionHandlers, lassoSelectionHandlers, dragAndDropHandlers]);
 
   // Route mouse up to appropriate tool handler
   const handleMouseUp = useCallback((event?: React.MouseEvent<HTMLCanvasElement>) => {
+    // Block mouse interactions during playback
+    if (isPlaybackMode) {
+      return;
+    }
+
     // Handle paste mode
     if (pasteMode.isActive && pasteMode.isDragging) {
       stopPasteDrag();
@@ -247,7 +262,7 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
           break;
       }
     }
-  }, [effectiveTool, activeTool, pasteMode, stopPasteDrag, handToolHandlers, selectionHandlers, lassoSelectionHandlers, dragAndDropHandlers, setIsDrawing, setMouseButtonDown]);
+  }, [isPlaybackMode, effectiveTool, activeTool, pasteMode, stopPasteDrag, handToolHandlers, selectionHandlers, lassoSelectionHandlers, dragAndDropHandlers, setIsDrawing, setMouseButtonDown]);
 
   return {
     handleMouseDown,

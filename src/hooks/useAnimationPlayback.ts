@@ -13,11 +13,9 @@ export const useAnimationPlayback = () => {
     frames,
     currentFrameIndex,
     isPlaying,
-    looping,
     play,
     pause,
-    stop,
-    goToFrame
+    stop
   } = useAnimationStore();
   
   const { setPlaybackMode } = useToolStore();
@@ -50,6 +48,13 @@ export const useAnimationPlayback = () => {
 
   // Animation loop function
   const animateFrame = useCallback((timestamp: number) => {
+    const state = useAnimationStore.getState();
+    const { frames, currentFrameIndex, isPlaying, looping } = state;
+    
+    if (!isPlaying || frames.length === 0) {
+      return;
+    }
+
     if (!startTimeRef.current) {
       startTimeRef.current = timestamp;
       frameStartTimeRef.current = timestamp;
@@ -68,25 +73,26 @@ export const useAnimationPlayback = () => {
         // End of animation
         if (looping) {
           // Loop back to first frame
-          goToFrame(0);
+          state.goToFrame(0);
           frameStartTimeRef.current = timestamp;
         } else {
           // Stop playback
-          stop();
+          state.stop();
           return;
         }
       } else {
         // Move to next frame
-        goToFrame(nextIndex);
+        state.goToFrame(nextIndex);
         frameStartTimeRef.current = timestamp;
       }
     }
 
     // Continue animation if still playing
-    if (isPlaying) {
+    const newState = useAnimationStore.getState();
+    if (newState.isPlaying) {
       animationRef.current = requestAnimationFrame(animateFrame);
     }
-  }, [frames, currentFrameIndex, looping, isPlaying, goToFrame, stop]);
+  }, []); // Remove dependencies to avoid stale closures
 
   // Start animation playback
   const startPlayback = useCallback(() => {
