@@ -313,11 +313,244 @@ const SELECTION_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; de
    - ✅ **Font Zoom Integration**: Proper font scaling with zoom levels
    - ✅ **Rectangular Cell System**: All tools updated for non-square character dimensions
 
-2. **Phase 2: Animation System** - 🎯 **NEXT**
-   - Timeline UI: Create the frame timeline with thumbnails  
-   - Animation Playback: Implement frame switching and playback controls
-   - Frame Management: Add/delete/duplicate frames
-   - Onion Skinning: Show previous/next frames for animation reference
+2. **Phase 2: Animation System** - ✅ **COMPLETED** (Sept 6, 2025)
+   - ✅ **Timeline UI**: Complete frame timeline with pixel-perfect thumbnails and drag-and-drop reordering
+   - ✅ **Animation Playback**: RequestAnimationFrame-based playback engine with frame-accurate timing
+   - ✅ **Frame Management**: Add/delete/duplicate frames with auto-save synchronization
+   - ✅ **Frame Synchronization**: Seamless canvas-to-frame data sync with conflict prevention
+   - ✅ **Duration Controls**: Per-frame timing (50ms-10s) with visual duration indicators
+   - ✅ **Drag-and-Drop Reordering**: HTML5 drag API with visual indicators and edge case handling
+   - 🎯 **Next**: Onion Skinning - Show previous/next frames for animation reference
+
+## 🎬 Phase 2: Animation System Architecture (COMPLETED)
+
+### Overview
+The animation system provides a complete frame-based animation workflow with seamless canvas integration, real-time playback, and professional drag-and-drop frame reordering. The architecture is designed to support onion skinning as the next natural extension.
+
+### Core Components
+
+#### 1. Animation Store (`src/stores/animationStore.ts`)
+**Purpose**: Central state management for animation data and operations
+
+**Key Features:**
+- **Frame Management**: Add, remove, duplicate, and reorder frames
+- **Playback State**: Play/pause/stop with looping support  
+- **Frame Data Storage**: Deep copying with reference isolation
+- **Drag State Tracking**: Global `isDraggingFrame` prevents auto-save interference
+- **Current Frame Tracking**: Seamless frame switching with state persistence
+
+**Critical Architecture Decisions:**
+```typescript
+interface AnimationState {
+  frames: Frame[];
+  currentFrameIndex: number;
+  isPlaying: boolean;
+  isDraggingFrame: boolean; // Prevents auto-save during reordering
+  
+  // Deep copying for reordering (prevents reference sharing)
+  reorderFrames: (fromIndex: number, toIndex: number) => void;
+  
+  // Drag state coordination
+  setDraggingFrame: (isDragging: boolean) => void;
+}
+```
+
+**Frame Data Structure:**
+```typescript
+interface Frame {
+  id: FrameId;
+  name: string;
+  duration: number; // 50ms - 10,000ms range
+  data: Map<string, Cell>; // "x,y" coordinate mapping
+  thumbnail?: string; // Base64 image data URL
+}
+```
+
+#### 2. Frame Synchronization (`src/hooks/useFrameSynchronization.ts`)
+**Purpose**: Bidirectional sync between canvas state and frame data
+
+**Critical Features:**
+- **Auto-save Canvas Changes**: Detects canvas modifications and saves to current frame
+- **Auto-load Frame Data**: Switches frame data into canvas on frame changes
+- **Conflict Prevention**: Disables auto-save during playback, dragging, and loading operations
+- **Race Condition Protection**: Loading flags and timeouts prevent data corruption
+
+**Conflict Prevention Logic:**
+```typescript
+// Auto-save only when safe
+if (!isLoadingFrameRef.current && !isPlaying && !isDraggingFrame) {
+  setFrameData(currentFrameIndex, currentCells);
+}
+```
+
+**Onion Skinning Readiness:**
+- Frame data accessible via `getFrameData(frameIndex)`
+- Canvas loading system ready for overlay rendering
+- Conflict prevention extensible for onion skin updates
+
+#### 3. Animation Timeline (`src/components/features/AnimationTimeline.tsx`)
+**Purpose**: Visual frame management interface with drag-and-drop reordering
+
+**Drag-and-Drop Implementation:**
+- **HTML5 Drag API**: Native browser drag-and-drop with `dataTransfer`
+- **Visual Indicators**: White drop lines and drag state styling
+- **Edge Case Handling**: Special logic for dropping after last frame
+- **Global State Coordination**: Sets `isDraggingFrame` to prevent auto-save conflicts
+
+**Timeline Features:**
+- Frame thumbnails with real-time updates
+- Duration controls with deferred validation
+- Playback controls (play/pause/stop/loop)
+- Frame operations (add/duplicate/delete)
+
+#### 4. Frame Thumbnails (`src/components/features/FrameThumbnail.tsx`)
+**Purpose**: Individual frame display with thumbnail generation and controls
+
+**Thumbnail System:**
+- **Canvas-based Rendering**: Pixel-perfect preview generation
+- **Real-time Updates**: Thumbnails regenerate on frame data changes  
+- **Performance Optimized**: Base64 caching in frame data
+- **Aspect Ratio Maintenance**: Consistent character spacing and sizing
+
+**Duration Controls:**
+- Range: 50ms to 10,000ms (10 seconds)
+- Deferred validation prevents input conflicts
+- Visual indicators for current duration
+
+#### 5. Animation Playback (`src/hooks/useAnimationPlayback.ts`)
+**Purpose**: RequestAnimationFrame-based animation engine
+
+**Playback Features:**
+- **Frame-accurate Timing**: Uses individual frame durations
+- **State Synchronization**: Prevents stale closures with `getState()`
+- **Automatic Looping**: Seamless loop transitions
+- **Tool Coordination**: Disables canvas tools during playback
+
+**Integration Architecture:**
+```typescript
+const animateFrame = useCallback(() => {
+  const state = getState(); // Fresh state on each frame
+  
+  if (!state.isPlaying) return;
+  
+  // Frame progression with timing
+  const currentFrame = state.frames[state.currentFrameIndex];
+  const frameDuration = currentFrame?.duration || DEFAULT_FRAME_DURATION;
+  
+  // Schedule next frame
+  setTimeout(() => requestAnimationFrame(animateFrame), frameDuration);
+}, [getState]);
+```
+
+### Data Flow Architecture
+
+#### Canvas ↔ Frame Synchronization
+1. **Canvas Changes** → Auto-save to current frame (when not dragging/playing)
+2. **Frame Switch** → Load frame data into canvas
+3. **Frame Reorder** → Drag state prevents auto-save interference
+4. **Playback** → Loads each frame in sequence with timing
+
+#### Conflict Prevention System
+- **Loading States**: `isLoadingFrameRef` prevents auto-save during frame loading
+- **Drag States**: `isDraggingFrame` prevents auto-save during reordering
+- **Playback States**: `isPlaying` prevents auto-save during animation
+- **Timeouts**: 50ms delays prevent race conditions
+
+### Performance Optimizations
+
+#### Memory Management
+- **Selective Deep Copying**: Only during reordering to prevent reference sharing
+- **Thumbnail Caching**: Base64 images stored in frame data
+- **Map-based Storage**: Efficient coordinate-based cell access
+
+#### Render Optimizations
+- **Debounced Auto-save**: 150ms delay prevents excessive operations
+- **Conditional Rendering**: Thumbnails only regenerate when frame data changes
+- **RequestAnimationFrame**: Smooth 60fps playback coordination
+
+### Drag-and-Drop Implementation Details
+
+#### HTML5 Drag API Usage
+```typescript
+// Drag start - set data and global state
+const handleDragStart = (event: React.DragEvent, index: number) => {
+  event.dataTransfer.setData('text/plain', index.toString());
+  setDraggingFrame(true); // Global state
+};
+
+// Drop handling with edge cases
+const handleDrop = (event: React.DragEvent) => {
+  const dragIndex = parseInt(event.dataTransfer.getData('text/plain'));
+  
+  // Special handling for end-of-list drops
+  if (dragOverIndex === frames.length) {
+    targetIndex = frames.length - 1; // Append to end
+  }
+  
+  reorderFrames(dragIndex, targetIndex);
+};
+```
+
+#### Edge Case Resolution
+- **End-of-list Drops**: Special index calculation for dropping after last frame
+- **Forward Move Adjustment**: Index adjustment for moves within the array
+- **Cleanup Delays**: 100ms timeout for drag state cleanup prevents race conditions
+
+### Integration Points for Onion Skinning
+
+The animation system is architected to seamlessly support onion skinning:
+
+#### Frame Access Layer
+```typescript
+// Ready for onion skin rendering
+const previousFrames = Array.from({length: previousCount}, (_, i) => 
+  getFrameData(currentFrameIndex - i - 1)
+).filter(Boolean);
+
+const nextFrames = Array.from({length: nextCount}, (_, i) => 
+  getFrameData(currentFrameIndex + i + 1)
+).filter(Boolean);
+```
+
+#### Canvas Overlay System
+- **Existing Infrastructure**: `CanvasOverlay.tsx` ready for onion skin layers
+- **Z-index Coordination**: Overlay system supports multiple layers
+- **Render Integration**: Canvas renderer supports additional render passes
+
+#### State Management Extension Points
+```typescript
+// Proposed onion skin state extension
+interface OnionSkinState {
+  enabled: boolean;
+  previousFrames: number; // frames back to show
+  nextFrames: number;     // frames forward to show
+  opacity: number;        // 0-1 transparency
+  colorMode: 'original' | 'monochrome' | 'tinted';
+  previousColor: string;  // tint for previous frames
+  nextColor: string;      // tint for next frames
+}
+```
+
+### Next Phase: Onion Skinning Implementation
+
+#### Required Components
+1. **Onion Skin State**: Extend animation store with visibility/opacity controls
+2. **Onion Skin Renderer**: New component for overlay frame rendering
+3. **Onion Skin Controls**: UI for enabling/configuring onion skins
+4. **Integration Layer**: Connect to existing canvas overlay system
+
+#### Implementation Strategy
+1. Add onion skin state to `animationStore.ts`
+2. Create `OnionSkinRenderer.tsx` component
+3. Integrate with `CanvasOverlay.tsx` system
+4. Extend conflict prevention for onion skin operations
+5. Add onion skin controls to timeline UI
+
+#### Performance Considerations
+- Render only visible onion skins (previous/next N frames)
+- Use opacity blending for performance
+- Cache onion skin renders when frame data unchanged
+- Leverage existing thumbnail generation system
 
 3. **Phase 3: Export Functions** - Final development
    - Text export capabilities
