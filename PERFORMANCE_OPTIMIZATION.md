@@ -1,52 +1,71 @@
-# Performance Optimization: Smart High-DPI Scaling
+# Canvas Rendering: Final Implementation Guide
 
-## Problem Identified
-The previous implementation was **always rendering at 2x resolution** regardless of display type, causing unnecessary performance overhead:
+## Problem Solved
+After extensive testing and bug fixing, we achieved optimal canvas text rendering with correct mouse coordinates and excellent performance across all display types.
 
-### Performance Impact Analysis
-- **Default canvas**: 80×24 cells
-- **Font size**: 16px (character: 9.6×16px)
-- **Display size**: 768×384 pixels
+## Final Solution: Device Pixel Ratio Scaling
 
-**Before (Always 2x):**
-- Canvas resolution: 1,536×768 = **1,179,648 pixels** (4x overhead!)
-- Rendering performance: Unnecessarily slow on standard displays
-
-**After (Smart Scaling):**
-- Standard displays: 768×384 = **294,912 pixels** (optimal)
-- High-DPI displays: 1,536×768 = **1,179,648 pixels** (crisp when needed)
-
-## Solution: Device-Aware Scaling
-
-### Implementation
+### Current Implementation
 ```typescript
 const setupHighDPICanvas = (canvas, displayWidth, displayHeight) => {
+  const ctx = canvas.getContext('2d');
   const devicePixelRatio = window.devicePixelRatio || 1;
-  const isHighDPI = devicePixelRatio > 1;
-
-  if (isHighDPI) {
-    // High-DPI: 2x rendering + CSS scaling for crisp text
-    const scale = 2;
-    canvas.width = displayWidth * scale;
-    canvas.height = displayHeight * scale;
-    canvas.style.transform = `scale(${1/scale})`;
-    ctx.scale(scale, scale);
-    return { ctx, scale };
-  } else {
-    // Standard: 1:1 pixel ratio for optimal performance
-    canvas.width = displayWidth;
-    canvas.height = displayHeight;
-    canvas.style.transform = 'none';
-    return { ctx, scale: 1 };
-  }
+  
+  // Set canvas internal resolution to match device pixel ratio
+  canvas.width = displayWidth * devicePixelRatio;
+  canvas.height = displayHeight * devicePixelRatio;
+  
+  // Set CSS size to desired display size (no transform needed)
+  canvas.style.width = `${displayWidth}px`;
+  canvas.style.height = `${displayHeight}px`;
+  
+  // Scale the drawing context to match the device pixel ratio
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  
+  // Apply high-quality text rendering settings
+  ctx.textBaseline = 'top';
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  
+  return { ctx, scale: devicePixelRatio };
 };
 ```
 
-### Performance Benefits
-1. **75% fewer pixels** rendered on standard displays
-2. **Faster frame rates** on non-retina screens
-3. **Maintained quality** on high-DPI displays
-4. **No coordinate issues** - CSS transforms don't affect mouse events
+### Key Benefits ✅
+1. **Correct canvas size**: Displays at intended size (no 0.5x scaling issues)
+2. **Accurate mouse coordinates**: No CSS transforms to interfere with mouse events
+3. **Crisp text on high-DPI**: Uses actual device pixel ratio for optimal quality
+4. **Optimal performance**: Only scales when needed (devicePixelRatio > 1)
+5. **Browser compatibility**: Works consistently across VS Code, Chrome, Safari, Firefox
+
+### What We Learned
+- **CSS transforms are problematic**: They affect visual size but break mouse coordinate mapping
+- **Always 2x scaling wastes performance**: Standard displays don't need extra pixels
+- **Device pixel ratio is the key**: Use the actual ratio instead of hard-coded values
+- **Console logging kills performance**: Especially with dev tools open
+
+## Performance Impact
+
+### Standard Displays (devicePixelRatio = 1)
+- Canvas resolution: 768×384 = **294,912 pixels** 
+- Performance: **Optimal** ⚡
+
+### High-DPI Displays (devicePixelRatio = 2)  
+- Canvas resolution: 1,536×768 = **1,179,648 pixels**
+- Performance: **Good** with crisp text ✨
+
+### Retina Displays (devicePixelRatio = 3)
+- Canvas resolution: 2,304×1,152 = **2,654,208 pixels** 
+- Performance: **Acceptable** with excellent quality 💎
+
+## Console Log Cleanup
+Removed 15+ console logs that were causing performance issues:
+- Canvas setup logs (fired on every resize)
+- Keyboard shortcut logs (fired on every keystroke)  
+- Selection operation logs (fired on copy/paste)
+- Animation logs (fired during drag-and-drop)
+
+**Result**: Dramatic performance improvement when dev tools are open.
 
 ### Browser Compatibility Matrix
 | Display Type | Browser | Scaling | Performance | Quality |
