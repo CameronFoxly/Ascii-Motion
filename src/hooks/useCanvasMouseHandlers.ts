@@ -62,6 +62,10 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
     setIsDrawing(false);
     setMouseButtonDown(false);
     setHoveredCell(null); // Clear hover state when mouse leaves canvas
+    
+    // Reset pencil position to prevent unwanted connecting lines
+    const { setPencilLastPosition } = useToolStore.getState();
+    setPencilLastPosition(null);
   }, [setIsDrawing, setMouseButtonDown, setHoveredCell]);
 
   // Route mouse down to appropriate tool handler based on effective tool
@@ -259,6 +263,10 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
           // For basic drawing tools, we need to manually stop drawing since they don't have explicit mouse up handlers
           setIsDrawing(false);
           setMouseButtonDown(false);
+          
+          // Reset pencil position to prevent unwanted connecting lines on next stroke
+          const { setPencilLastPosition } = useToolStore.getState();
+          setPencilLastPosition(null);
           break;
       }
     }

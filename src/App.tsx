@@ -12,6 +12,7 @@ import { CharacterPalette } from './components/features/CharacterPalette'
 import { ColorPicker } from './components/features/ColorPicker'
 import { CanvasSettings } from './components/features/CanvasSettings'
 import { AnimationTimeline } from './components/features/AnimationTimeline'
+import { PerformanceOverlay } from './components/common/PerformanceOverlay'
 import { useCanvasStore } from './stores/canvasStore'
 import { useAnimationStore } from './stores/animationStore'
 import { useToolStore } from './stores/toolStore'
@@ -172,6 +173,9 @@ function App() {
             <AnimationTimeline />
           </CollapsiblePanel>
         </div>
+        
+        {/* Performance Overlay for Development */}
+        <PerformanceOverlay />
       </div>
     </ThemeProvider>
   )

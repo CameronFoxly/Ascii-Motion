@@ -11,6 +11,8 @@ import { smoothPolygonPath } from '../utils/polygon';
 import { 
   setupTextRendering
 } from '../utils/canvasTextRendering';
+import { scheduleCanvasRender } from '../utils/renderScheduler';
+import { markFullRedraw } from '../utils/dirtyTracker';
 import type { Cell } from '../types';
 
 /**
@@ -86,6 +88,36 @@ export const useCanvasRenderer = () => {
     moveState,
     getTotalOffset
   );
+
+  // Memoize canvas dimensions and styling to reduce re-renders
+  const canvasConfig = useMemo(() => ({
+    width,
+    height,
+    canvasWidth,
+    canvasHeight,
+    effectiveCellWidth,
+    effectiveCellHeight,
+    panOffset,
+    showGrid,
+    canvasBackgroundColor
+  }), [width, height, canvasWidth, canvasHeight, effectiveCellWidth, effectiveCellHeight, panOffset, showGrid, canvasBackgroundColor]);
+
+  // Memoize tool state to reduce re-renders
+  const toolState = useMemo(() => ({
+    activeTool,
+    rectangleFilled,
+    lassoSelection,
+    magicWandSelection,
+    textToolState
+  }), [activeTool, rectangleFilled, lassoSelection, magicWandSelection, textToolState]);
+
+  // Memoize overlay state
+  const overlayState = useMemo(() => ({
+    moveState,
+    selectionData,
+    hoveredCell,
+    pasteMode
+  }), [moveState, selectionData, hoveredCell, pasteMode]);
 
   // Memoize font and style calculations
   const drawingStyles = useMemo(() => {
@@ -174,8 +206,8 @@ export const useCanvasRenderer = () => {
     measureCanvasRender();
 
     // Clear canvas and fill with background color
-    ctx.fillStyle = canvasBackgroundColor;
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    ctx.fillStyle = canvasConfig.canvasBackgroundColor;
+    ctx.fillRect(0, 0, canvasConfig.canvasWidth, canvasConfig.canvasHeight);
 
     // Render grid background layer first (behind content)
     drawGridBackground(ctx);
@@ -197,8 +229,8 @@ export const useCanvasRenderer = () => {
     }
 
     // Draw static cells (excluding cells being moved)
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
+    for (let y = 0; y < canvasConfig.height; y++) {
+      for (let x = 0; x < canvasConfig.width; x++) {
         const key = `${x},${y}`;
         
         if (movingCells.has(key)) {
@@ -218,41 +250,41 @@ export const useCanvasRenderer = () => {
     }
 
     // Draw moved cells at their new positions
-    if (moveState && moveState.originalData.size > 0) {
-      const totalOffset = getTotalOffset(moveState);
-      moveState.originalData.forEach((cell: Cell, key: string) => {
+    if (overlayState.moveState && overlayState.moveState.originalData.size > 0) {
+      const totalOffset = getTotalOffset(overlayState.moveState);
+      overlayState.moveState.originalData.forEach((cell: Cell, key: string) => {
         const [origX, origY] = key.split(',').map(Number);
         const newX = origX + totalOffset.x;
         const newY = origY + totalOffset.y;
         
         // Only draw if within bounds
-        if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
+        if (newX >= 0 && newX < canvasConfig.width && newY >= 0 && newY < canvasConfig.height) {
           drawCell(ctx, newX, newY, cell);
         }
       });
     }
 
     // Draw selection overlay
-    if (selectionData) {
-      if (activeTool === 'ellipse') {
+    if (overlayState.selectionData) {
+      if (toolState.activeTool === 'ellipse') {
         // Draw ellipse preview with highlighted cells
-        const centerX = (selectionData.startX + selectionData.startX + selectionData.width - 1) / 2;
-        const centerY = (selectionData.startY + selectionData.startY + selectionData.height - 1) / 2;
-        const radiusX = (selectionData.width - 1) / 2;
-        const radiusY = (selectionData.height - 1) / 2;
+        const centerX = (overlayState.selectionData.startX + overlayState.selectionData.startX + overlayState.selectionData.width - 1) / 2;
+        const centerY = (overlayState.selectionData.startY + overlayState.selectionData.startY + overlayState.selectionData.height - 1) / 2;
+        const radiusX = (overlayState.selectionData.width - 1) / 2;
+        const radiusY = (overlayState.selectionData.height - 1) / 2;
 
         // Get ellipse points to highlight exactly which cells will be affected
-        const ellipsePoints = getEllipsePoints(centerX, centerY, radiusX, radiusY, rectangleFilled);
+        const ellipsePoints = getEllipsePoints(centerX, centerY, radiusX, radiusY, toolState.rectangleFilled);
         
         // Highlight each cell that will be part of the ellipse
         ctx.fillStyle = 'rgba(168, 85, 247, 0.3)'; // Purple highlight
         ellipsePoints.forEach(({ x, y }) => {
-          if (x >= 0 && y >= 0 && x < width && y < height) {
+          if (x >= 0 && y >= 0 && x < canvasConfig.width && y < canvasConfig.height) {
             ctx.fillRect(
-              Math.round(x * effectiveCellWidth + panOffset.x),
-              Math.round(y * effectiveCellHeight + panOffset.y),
-              Math.round(effectiveCellWidth),
-              Math.round(effectiveCellHeight)
+              Math.round(x * canvasConfig.effectiveCellWidth + canvasConfig.panOffset.x),
+              Math.round(y * canvasConfig.effectiveCellHeight + canvasConfig.panOffset.y),
+              Math.round(canvasConfig.effectiveCellWidth),
+              Math.round(canvasConfig.effectiveCellHeight)
             );
           }
         });
@@ -265,10 +297,10 @@ export const useCanvasRenderer = () => {
         // Draw ellipse path using HTML5 Canvas ellipse method
         ctx.beginPath();
         ctx.ellipse(
-          (centerX + 0.5) * effectiveCellWidth + panOffset.x,  // center x
-          (centerY + 0.5) * effectiveCellHeight + panOffset.y,  // center y  
-          (radiusX + 0.5) * effectiveCellWidth,  // radius x
-          (radiusY + 0.5) * effectiveCellHeight,  // radius y
+          (centerX + 0.5) * canvasConfig.effectiveCellWidth + canvasConfig.panOffset.x,  // center x
+          (centerY + 0.5) * canvasConfig.effectiveCellHeight + canvasConfig.panOffset.y,  // center y  
+          (radiusX + 0.5) * canvasConfig.effectiveCellWidth,  // radius x
+          (radiusY + 0.5) * canvasConfig.effectiveCellHeight,  // radius y
           0,                           // rotation
           0,                           // start angle
           2 * Math.PI                  // end angle
@@ -281,20 +313,20 @@ export const useCanvasRenderer = () => {
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 5]);
         ctx.strokeRect(
-          Math.round(selectionData.startX * effectiveCellWidth + panOffset.x),
-          Math.round(selectionData.startY * effectiveCellHeight + panOffset.y),
-          Math.round(selectionData.width * effectiveCellWidth),
-          Math.round(selectionData.height * effectiveCellHeight)
+          Math.round(overlayState.selectionData.startX * canvasConfig.effectiveCellWidth + canvasConfig.panOffset.x),
+          Math.round(overlayState.selectionData.startY * canvasConfig.effectiveCellHeight + canvasConfig.panOffset.y),
+          Math.round(overlayState.selectionData.width * canvasConfig.effectiveCellWidth),
+          Math.round(overlayState.selectionData.height * canvasConfig.effectiveCellHeight)
         );
         ctx.setLineDash([]);
       }
     }
 
     // Draw lasso selection overlay
-    if (lassoSelection.active) {
-      if (lassoSelection.isDrawing && lassoSelection.path.length > 1) {
+    if (toolState.lassoSelection.active) {
+      if (toolState.lassoSelection.isDrawing && toolState.lassoSelection.path.length > 1) {
         // Draw the lasso path being drawn - use minimal smoothing to match selection
-        const previewPath = [...lassoSelection.path, lassoSelection.path[0]];
+        const previewPath = [...toolState.lassoSelection.path, toolState.lassoSelection.path[0]];
         const smoothedPath = smoothPolygonPath(previewPath, 0.2);
         
         if (smoothedPath.length > 1) {
@@ -534,38 +566,37 @@ export const useCanvasRenderer = () => {
     finishCanvasRender(totalCells);
 
   }, [
-    width, 
-    height, 
+    // Use memoized objects to reduce re-renders
+    canvasConfig,
+    toolState,
+    overlayState,
+    // Keep these individual dependencies for now
     cells, 
     getCell, 
     drawCell, 
-    canvasWidth, 
-    canvasHeight, 
-    moveState, 
-    getTotalOffset, 
-    selectionData, 
-    effectiveCellWidth,
-    effectiveCellHeight,
-    panOffset,
-    hoveredCell,
+    getTotalOffset,
     canvasRef,
     drawingStyles,
-    pasteMode,
-    activeTool,
     getEllipsePoints,
-    rectangleFilled,
-    canvasBackgroundColor,
-    showGrid,
-    lassoSelection,
-    magicWandSelection,
-    textToolState,
     renderOnionSkins
   ]);
 
-  // Re-render when dependencies change
-  useEffect(() => {
-    renderCanvas();
+  // Throttled render function that uses requestAnimationFrame
+  const scheduleRender = useCallback(() => {
+    scheduleCanvasRender(renderCanvas);
   }, [renderCanvas]);
+
+  // Optimized render trigger - use scheduled rendering for better performance
+  const triggerRender = useCallback(() => {
+    // Mark that we need a full redraw for now (we can optimize this later)
+    markFullRedraw();
+    scheduleRender();
+  }, [scheduleRender]);
+
+  // Re-render when dependencies change (now throttled)
+  useEffect(() => {
+    triggerRender();
+  }, [triggerRender]);
 
   // Handle canvas resize with high-DPI setup
   useEffect(() => {
@@ -575,11 +606,13 @@ export const useCanvasRenderer = () => {
     // Setup high-DPI canvas for crisp text rendering
     setupHighDPICanvas(canvas, canvasWidth, canvasHeight);
     
-    // Re-render after resize
+    // Re-render after resize (immediate for resize)
     renderCanvas();
   }, [canvasWidth, canvasHeight, renderCanvas]);
 
   return {
-    renderCanvas
+    renderCanvas,
+    scheduleRender,
+    triggerRender
   };
 };

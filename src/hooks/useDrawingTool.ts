@@ -66,27 +66,46 @@ export const useDrawingTool = () => {
     });
   }, [selectedChar, selectedColor, selectedBgColor, getLinePoints, setCell]);
 
-  const drawAtPosition = useCallback((x: number, y: number, isShiftClick = false) => {
+  const drawAtPosition = useCallback((x: number, y: number, isShiftClick = false, isFirstStroke = false) => {
     switch (activeTool) {
       case 'pencil': {
         if (isShiftClick && pencilLastPosition) {
           // Draw line from last position to current position
           drawLine(pencilLastPosition.x, pencilLastPosition.y, x, y);
         } else {
-          // Normal pencil drawing - draw single point
-          const newCell: Cell = {
-            char: selectedChar,
-            color: selectedColor,
-            bgColor: selectedBgColor
-          };
-          setCell(x, y, newCell);
+          // Check if we need to draw a connecting line for continuous drawing
+          if (!isFirstStroke && pencilLastPosition && 
+              (Math.abs(x - pencilLastPosition.x) > 1 || Math.abs(y - pencilLastPosition.y) > 1)) {
+            // Draw line to connect previous position to current position for smooth drawing
+            drawLine(pencilLastPosition.x, pencilLastPosition.y, x, y);
+          } else {
+            // Normal pencil drawing - draw single point
+            const newCell: Cell = {
+              char: selectedChar,
+              color: selectedColor,
+              bgColor: selectedBgColor
+            };
+            setCell(x, y, newCell);
+          }
         }
         // Update last position for next potential line
         setPencilLastPosition({ x, y });
         break;
       }
       case 'eraser': {
-        clearCell(x, y);
+        // Apply same logic for eraser to prevent gaps
+        if (!isFirstStroke && pencilLastPosition && 
+            (Math.abs(x - pencilLastPosition.x) > 1 || Math.abs(y - pencilLastPosition.y) > 1)) {
+          // Clear cells along the line for smooth erasing
+          const points = getLinePoints(pencilLastPosition.x, pencilLastPosition.y, x, y);
+          points.forEach(({ x: px, y: py }) => {
+            clearCell(px, py);
+          });
+        } else {
+          clearCell(x, y);
+        }
+        // Update last position for eraser too
+        setPencilLastPosition({ x, y });
         break;
       }
       case 'eyedropper': {

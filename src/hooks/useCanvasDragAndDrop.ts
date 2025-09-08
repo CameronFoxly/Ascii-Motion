@@ -56,8 +56,8 @@ export const useCanvasDragAndDrop = () => {
   }, [getGridCoordinates, width, height, canvasRef]);
 
   // Handle drawing operations
-  const handleDrawing = useCallback((x: number, y: number, isShiftClick = false) => {
-    drawAtPosition(x, y, isShiftClick);
+  const handleDrawing = useCallback((x: number, y: number, isShiftClick = false, isFirstStroke = false) => {
+    drawAtPosition(x, y, isShiftClick, isFirstStroke);
   }, [drawAtPosition]);
 
   // Handle drawing tool mouse down
@@ -69,7 +69,7 @@ export const useCanvasDragAndDrop = () => {
     pushToHistory(new Map(cells));
     setMouseButtonDown(true);
     setIsDrawing(true);
-    handleDrawing(x, y, isShiftClick);
+    handleDrawing(x, y, isShiftClick, true); // Mark as first stroke
   }, [getGridCoordinatesFromEvent, cells, pushToHistory, setMouseButtonDown, setIsDrawing, handleDrawing, shiftKeyDown]);
 
   // Handle drawing tool mouse move
@@ -77,7 +77,7 @@ export const useCanvasDragAndDrop = () => {
     const { x, y } = getGridCoordinatesFromEvent(event);
     
     if (isDrawing && (activeTool === 'pencil' || activeTool === 'eraser')) {
-      handleDrawing(x, y);
+      handleDrawing(x, y, false, false); // Continuous stroke, not first
     }
   }, [getGridCoordinatesFromEvent, isDrawing, activeTool, handleDrawing]);
 
