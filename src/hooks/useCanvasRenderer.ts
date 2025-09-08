@@ -25,48 +25,26 @@ const setupHighDPICanvas = (
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Failed to get 2D context');
 
+  // Use device pixel ratio for crisp rendering on high-DPI displays
   const devicePixelRatio = window.devicePixelRatio || 1;
-  const isHighDPI = devicePixelRatio > 1;
-
-  if (isHighDPI) {
-    // High-DPI displays: Use CSS-only scaling approach
-    // Render at 2x resolution for crisp text, scale down with CSS
-    const scale = 2;
-    
-    // Set canvas to render at high resolution
-    canvas.width = displayWidth * scale;
-    canvas.height = displayHeight * scale;
-    
-    // Apply CSS scaling to display at correct size
-    canvas.style.width = `${displayWidth}px`;
-    canvas.style.height = `${displayHeight}px`;
-    canvas.style.transform = `scale(${1/scale})`;
-    canvas.style.transformOrigin = 'top left';
-    
-    // Scale the drawing context to match canvas resolution
-    ctx.scale(scale, scale);
-    
-    // Apply high-quality text rendering settings
-    ctx.textBaseline = 'top';
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    
-    return { ctx, scale };
-  } else {
-    // Standard displays: No scaling needed, render at 1:1 pixel ratio
-    canvas.width = displayWidth;
-    canvas.height = displayHeight;
-    canvas.style.width = `${displayWidth}px`;
-    canvas.style.height = `${displayHeight}px`;
-    canvas.style.transform = 'none';
-    
-    // Apply high-quality text rendering settings
-    ctx.textBaseline = 'top';
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    
-    return { ctx, scale: 1 };
-  }
+  
+  // Set canvas internal resolution to match device pixel ratio
+  canvas.width = displayWidth * devicePixelRatio;
+  canvas.height = displayHeight * devicePixelRatio;
+  
+  // Set CSS size to desired display size (no transform needed)
+  canvas.style.width = `${displayWidth}px`;
+  canvas.style.height = `${displayHeight}px`;
+  
+  // Scale the drawing context to match the device pixel ratio
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  
+  // Apply high-quality text rendering settings
+  ctx.textBaseline = 'top';
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  
+  return { ctx, scale: devicePixelRatio };
 };
 
 /**
