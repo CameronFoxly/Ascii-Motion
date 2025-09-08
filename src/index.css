@@ -82,4 +82,18 @@
       font-size: 16px;
     }
   }
+
+  /* High-DPI Canvas Text Rendering */
+  canvas {
+    /* Enable high-quality text rendering */
+    image-rendering: auto;
+    font-smooth: always;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    
+    /* Ensure crisp rendering */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: optimize-contrast;
+    -ms-interpolation-mode: nearest-neighbor;
+  }
 }

@@ -178,7 +178,6 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
       if (fromIndex < 0 || fromIndex >= state.frames.length ||
           toIndex < 0 || toIndex > state.frames.length ||
           fromIndex === toIndex) {
-        console.log(`Invalid reorder: from=${fromIndex}, to=${toIndex}, length=${state.frames.length}`);
         return state; // No change if indices are invalid
       }
 
@@ -224,8 +223,6 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
       
       // Ensure the new index is within bounds
       newCurrentIndex = Math.max(0, Math.min(newCurrentIndex, newFrames.length - 1));
-      
-      console.log(`Reorder complete: ${fromIndex} → ${toIndex}, currentFrame: ${state.currentFrameIndex} → ${newCurrentIndex}`);
       
       return {
         ...state,

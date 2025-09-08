@@ -11,6 +11,62 @@ import { smoothPolygonPath } from '../utils/polygon';
 import type { Cell } from '../types';
 
 /**
+ * Setup high-DPI canvas for crisp text rendering
+ * Returns scale factor for coordinate transformations
+ */
+const setupHighDPICanvas = (
+  canvas: HTMLCanvasElement,
+  displayWidth: number,
+  displayHeight: number
+): { ctx: CanvasRenderingContext2D; scale: number } => {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Failed to get 2D context');
+
+  const devicePixelRatio = window.devicePixelRatio || 1;
+  const isHighDPI = devicePixelRatio > 1;
+
+  if (isHighDPI) {
+    // High-DPI displays: Use CSS-only scaling approach
+    // Render at 2x resolution for crisp text, scale down with CSS
+    const scale = 2;
+    
+    // Set canvas to render at high resolution
+    canvas.width = displayWidth * scale;
+    canvas.height = displayHeight * scale;
+    
+    // Apply CSS scaling to display at correct size
+    canvas.style.width = `${displayWidth}px`;
+    canvas.style.height = `${displayHeight}px`;
+    canvas.style.transform = `scale(${1/scale})`;
+    canvas.style.transformOrigin = 'top left';
+    
+    // Scale the drawing context to match canvas resolution
+    ctx.scale(scale, scale);
+    
+    // Apply high-quality text rendering settings
+    ctx.textBaseline = 'top';
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    
+    return { ctx, scale };
+  } else {
+    // Standard displays: No scaling needed, render at 1:1 pixel ratio
+    canvas.width = displayWidth;
+    canvas.height = displayHeight;
+    canvas.style.width = `${displayWidth}px`;
+    canvas.style.height = `${displayHeight}px`;
+    canvas.style.transform = 'none';
+    
+    // Apply high-quality text rendering settings
+    ctx.textBaseline = 'top';
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    
+    return { ctx, scale: 1 };
+  }
+};
+
+/**
  * Hook for optimized canvas rendering with memoization
  * Implements Step 5.1 performance optimizations:
  * - Memoized font and style calculations
@@ -42,7 +98,7 @@ export const useCanvasRenderer = () => {
   const { getEllipsePoints } = useDrawingTool();
 
   // Use onion skin renderer for frame overlays
-  const { renderOnionSkins, clearCache: clearOnionSkinCache } = useOnionSkinRenderer();
+  const { renderOnionSkins } = useOnionSkinRenderer();
 
   // Use memoized grid for optimized rendering  
   const { selectionData } = useMemoizedGrid(
@@ -501,14 +557,13 @@ export const useCanvasRenderer = () => {
     renderCanvas();
   }, [renderCanvas]);
 
-  // Handle canvas resize
+  // Handle canvas resize with high-DPI setup
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Set canvas size
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
+    // Setup high-DPI canvas for crisp text rendering
+    setupHighDPICanvas(canvas, canvasWidth, canvasHeight);
     
     // Re-render after resize
     renderCanvas();

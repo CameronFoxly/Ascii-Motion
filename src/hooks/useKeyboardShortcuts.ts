@@ -20,7 +20,6 @@ export const useKeyboardShortcuts = () => {
     copyLassoSelection,
     copyMagicWandSelection,
     pasteSelection,
-    pasteMagicWandSelection,
     clearSelection,
     clearLassoSelection,
     clearMagicWandSelection,
@@ -69,7 +68,6 @@ export const useKeyboardShortcuts = () => {
       // Check if any selection is active and clear the selected cells
       if (magicWandSelection.active && magicWandSelection.selectedCells.size > 0) {
         event.preventDefault();
-        console.log('Delete key: Clearing magic wand selection content');
         
         // Save current state for undo
         pushToHistory(new Map(cells));
@@ -88,7 +86,6 @@ export const useKeyboardShortcuts = () => {
       
       if (lassoSelection.active && lassoSelection.selectedCells.size > 0) {
         event.preventDefault();
-        console.log('Delete key: Clearing lasso selection content');
         
         // Save current state for undo
         pushToHistory(new Map(cells));
@@ -107,7 +104,6 @@ export const useKeyboardShortcuts = () => {
       
       if (selection.active) {
         event.preventDefault();
-        console.log('Delete key: Clearing rectangular selection content');
         
         // Save current state for undo
         pushToHistory(new Map(cells));
@@ -140,7 +136,6 @@ export const useKeyboardShortcuts = () => {
       const targetTool = getToolForHotkey(event.key);
       if (targetTool && targetTool !== 'hand') { // Hand tool handled separately via space key
         event.preventDefault();
-        console.log(`Tool hotkey: Switching to ${targetTool} via "${event.key}" key`);
         setActiveTool(targetTool);
         return;
       }
@@ -156,15 +151,12 @@ export const useKeyboardShortcuts = () => {
         // Copy selection (prioritize magic wand, then lasso, then rectangular)
         if (magicWandSelection.active) {
           event.preventDefault();
-          console.log('Keyboard shortcut: Copying magic wand selection');
           copyMagicWandSelection(cells);
         } else if (lassoSelection.active) {
           event.preventDefault();
-          console.log('Keyboard shortcut: Copying lasso selection');
           copyLassoSelection(cells);
         } else if (selection.active) {
           event.preventDefault();
-          console.log('Keyboard shortcut: Copying rectangular selection');
           copySelection(cells);
         }
         break;
@@ -242,7 +234,6 @@ export const useKeyboardShortcuts = () => {
         // Shift+O = Toggle Onion Skin
         if (event.shiftKey) {
           event.preventDefault();
-          console.log('Keyboard shortcut: Toggling onion skin');
           toggleOnionSkin();
         }
         break;

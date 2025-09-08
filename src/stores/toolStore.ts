@@ -365,13 +365,8 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   // Lasso clipboard actions
   copyLassoSelection: (canvasData: Map<string, any>) => {
     const { lassoSelection } = get();
-    console.log('copyLassoSelection called:', { 
-      active: lassoSelection.active, 
-      selectedCells: lassoSelection.selectedCells.size 
-    });
     
     if (!lassoSelection.active || lassoSelection.selectedCells.size === 0) {
-      console.log('copyLassoSelection: No active lasso selection');
       return;
     }
 
@@ -395,7 +390,6 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
       }
     });
 
-    console.log('copyLassoSelection: Copied data size:', copiedData.size);
     set({ lassoClipboard: copiedData });
   },
 
@@ -422,7 +416,6 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   copyMagicWandSelection: (canvasData: Map<string, any>) => {
     const { magicWandSelection } = get();
     if (!magicWandSelection.active || magicWandSelection.selectedCells.size === 0) {
-      console.log('copyMagicWandSelection: No active magic wand selection');
       return;
     }
 
@@ -438,7 +431,6 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     }
     
     set({ magicWandClipboard: copiedData });
-    console.log('copyMagicWandSelection: Copied data size:', copiedData.size);
   },
 
   pasteMagicWandSelection: (offsetX: number, offsetY: number) => {

@@ -43,12 +43,10 @@ export const CanvasActionButtons: React.FC = () => {
 
   const handleCopySelection = () => {
     // Copy selection logic would go here
-    console.log('Copy selection');
   };
 
   const handlePasteSelection = () => {
     // Paste selection logic would go here
-    console.log('Paste selection');
   };
 
   return (

@@ -250,9 +250,15 @@ export const useCanvasDimensions = () => {
       gridWidth: number,
       gridHeight: number
     ) => {
-      // Get relative position within canvas
+      // Get relative position within canvas (in CSS pixels)
       const relativeX = mouseX - canvasRect.left;
       const relativeY = mouseY - canvasRect.top;
+      
+      // Note: No need to account for device pixel ratio here because:
+      // - mouseX/mouseY are in CSS pixels 
+      // - canvasRect is in CSS pixels
+      // - Our coordinate calculations should remain in CSS pixel space
+      // - The high-DPI scaling happens only in the rendering context
       
       // Account for pan offset - subtract pan offset to get actual grid position
       const adjustedX = relativeX - panOffset.x;

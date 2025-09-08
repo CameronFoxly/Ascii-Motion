@@ -21,7 +21,7 @@ function App() {
   const { width, height, getCellCount } = useCanvasStore()
   const { frames, currentFrameIndex } = useAnimationStore()
   const { activeTool, selectedChar, selectedColor, selectedBgColor } = useToolStore()
-  const { layout, isMobile, toggleLeftPanel, toggleRightPanel, toggleBottomPanel } = useLayoutState()
+  const { layout, toggleLeftPanel, toggleRightPanel, toggleBottomPanel } = useLayoutState()
 
   return (
     <ThemeProvider>

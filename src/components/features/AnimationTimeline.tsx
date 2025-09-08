@@ -118,7 +118,6 @@ export const AnimationTimeline: React.FC = () => {
           targetIndex = dragOverIndex - 1;
         }
         
-        console.log(`Reordering: from ${dragIndex} to ${targetIndex} (dragOver was ${dragOverIndex}, frames.length=${frames.length})`);
         reorderFrames(dragIndex, targetIndex);
       }
     }
