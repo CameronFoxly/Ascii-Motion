@@ -35,12 +35,10 @@ npm run dev
 npm run build
 ```
 
-## Project Structure
-
 ```
 src/
 ├── components/
-│   ├── common/         # Shared/reusable components (CellRenderer, PerformanceMonitor, ThemeToggle)
+│   ├── common/         # Shared/reusable components (CellRenderer, PerformanceMonitor, PerformanceOverlay, ThemeToggle)
 │   ├── features/       # Complex components (CanvasGrid, CanvasRenderer, CanvasOverlay, CanvasWithShortcuts, ToolPalette, CharacterPalette, ColorPicker)
 │   ├── tools/          # Tool-specific components (SelectionTool, DrawingTool, LassoTool, TextTool, RectangleTool, EllipseTool, PaintBucketTool, EyedropperTool)
 │   └── ui/             # Shadcn UI components
@@ -50,7 +48,15 @@ src/
 │   └── toolStore.ts    # Active tools and settings
 ├── types/              # TypeScript type definitions
 ├── hooks/              # Custom React hooks
+│   ├── useCanvasRenderer.ts    # Optimized canvas rendering with batching
+│   ├── useOptimizedRender.ts   # Performance-optimized render scheduling
+│   └── ...
 ├── utils/              # Utility functions
+│   ├── performance.ts          # Performance monitoring and metrics
+│   ├── renderScheduler.ts      # 60fps render batching system
+│   ├── dirtyTracker.ts         # Dirty region tracking for optimizations
+│   ├── canvasTextRendering.ts  # High-DPI text rendering utilities
+│   └── ...
 ├── constants/          # App constants and configurations
 └── lib/                # Third-party library configurations
 ```
@@ -457,6 +463,13 @@ const animateFrame = useCallback(() => {
 - **Timeouts**: 50ms delays prevent race conditions
 
 ### Performance Optimizations
+
+#### Canvas Rendering
+- **High-DPI Support**: Device pixel ratio scaling for crisp text on all displays
+- **Render Batching**: RequestAnimationFrame-based scheduling maintains 60fps
+- **Dirty Region Tracking**: Only redraws changed areas for optimal performance
+- **Line Interpolation**: Gap-free drawing tools using Bresenham's algorithm
+- **Performance Monitoring**: Real-time FPS tracking and efficiency metrics (Ctrl+Shift+P)
 
 #### Memory Management
 - **Selective Deep Copying**: Only during reordering to prevent reference sharing

@@ -7,14 +7,16 @@ A modern web application for creating and animating ASCII art with professional 
 
 ## 🎨 Features
 
-- **Grid-based ASCII Art Editor** - Intuitive character-by-character editing
+- **Grid-based ASCII Art Editor** - Intuitive character-by-character editing with crisp text rendering
 - **Zoom & Navigation** - Zoom controls (25%-400%) with pan and reset functionality
 - **Professional Animation Timeline** - Individual frame durations, no duplicate frames needed
 - **Onion Skinning** - See previous/next frames with blue/red tinting for smooth animation workflow
 - **Comprehensive Tool Set** - Pencil, eraser, paintbucket, selection, rectangle, ellipse, eyedropper, hand tool
+- **High-Performance Drawing** - Smooth 60fps drawing with gap-free line interpolation
 - **Organized Character Palette** - Characters grouped by style (borders, blocks, arrows, etc.)
 - **Multiple Export Formats** - Text files, JSON projects, GIF animations, MP4 videos
 - **Modern Architecture** - React 18, TypeScript, Zustand state management
+- **Performance Monitoring** - Real-time performance metrics and optimization tools
 
 ## 🚀 Quick Start
 
@@ -35,6 +37,18 @@ npm run dev
 ```
 
 Visit `http://localhost:5173` to see the application.
+
+### Performance Testing
+To monitor rendering performance:
+1. Press **Ctrl+Shift+P** to toggle the performance overlay
+2. Watch metrics while drawing:
+   - **Green render times** (<16ms) = Optimal performance
+   - **High FPS** (50-60) = Smooth experience
+   - **Efficiency: Excellent/Good** = Well optimized
+3. Test scenarios:
+   - Rapid pencil drawing across canvas
+   - Fast erasing with quick movements
+   - Large selection operations
 
 ### Build
 ```bash
@@ -66,7 +80,10 @@ npm run build
 - [x] Selection and advanced editing (copy/paste with visual preview)
 - [x] Undo/redo functionality
 - [x] Keyboard shortcuts (Cmd/Ctrl+C, V, Z, Shift+Z, Space for hand tool)
-- [x] Performance optimizations and memoization
+- [x] **High-DPI canvas rendering** - Crisp text quality on all displays
+- [x] **Performance optimizations** - 60fps rendering with batched updates
+- [x] **Gap-free drawing tools** - Smooth line interpolation for professional drawing
+- [x] **Performance monitoring** - Real-time metrics overlay (Ctrl+Shift+P)
 - [x] Theme system (dark/light mode)
 
 ### ✅ Phase 2: Animation System (Complete)
@@ -107,6 +124,9 @@ src/
 - **[Development Guide](./DEVELOPMENT.md)** - Setup and project structure
 - **[Animation System Guide](./ANIMATION_SYSTEM_GUIDE.md)** - Animation architecture and implementation
 - **[Onion Skinning Guide](./ONION_SKINNING_GUIDE.md)** - Complete onion skinning implementation reference
+- **[Canvas Text Rendering](./CANVAS_TEXT_RENDERING.md)** - High-DPI text rendering implementation
+- **[Performance Optimization](./PERFORMANCE_OPTIMIZATION_PHASE1.md)** - Render batching and optimization strategies
+- **[Drawing Gap Fix](./DRAWING_GAP_FIX.md)** - Line interpolation for smooth drawing tools
 - **[Copilot Instructions](./COPILOT_INSTRUCTIONS.md)** - Development guidelines
 
 ## 🤝 Contributing
