@@ -8,6 +8,9 @@ import { useDrawingTool } from './useDrawingTool';
 import { useOnionSkinRenderer } from './useOnionSkinRenderer';
 import { measureCanvasRender, finishCanvasRender } from '../utils/performance';
 import { smoothPolygonPath } from '../utils/polygon';
+import { 
+  setupTextRendering
+} from '../utils/canvasTextRendering';
 import type { Cell } from '../types';
 
 /**
@@ -106,16 +109,16 @@ export const useCanvasRenderer = () => {
     getTotalOffset
   );
 
-  // Memoize font and style calculations (Phase B optimization)
+  // Memoize font and style calculations
   const drawingStyles = useMemo(() => {
-    // Scale font size with zoom for proper rendering
+    // Scale font size with zoom - keep original logic
     const scaledFontSize = fontMetrics.fontSize * zoom;
     const scaledFontString = `${scaledFontSize}px '${fontMetrics.fontFamily}', monospace`;
     
     return {
       font: scaledFontString,
       gridLineColor: canvasBackgroundColor === '#000000' ? '#333333' : '#E5E7EB',
-      gridLineWidth: 0.5,
+      gridLineWidth: 1, // Use 1 pixel for crisp grid lines
       textAlign: 'center' as CanvasTextAlign,
       textBaseline: 'middle' as CanvasTextBaseline,
       defaultTextColor: '#FFFFFF',
@@ -123,39 +126,62 @@ export const useCanvasRenderer = () => {
     };
   }, [fontMetrics, zoom, canvasBackgroundColor]);
 
-    // Optimized drawCell function with memoized styles
+    // Optimized drawCell function with pixel-aligned rendering (but no coordinate changes)
   const drawCell = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, cell: Cell) => {
-    const pixelX = x * effectiveCellWidth + panOffset.x;
-    const pixelY = y * effectiveCellHeight + panOffset.y;
+    // Round pixel positions to ensure crisp rendering
+    const pixelX = Math.round(x * effectiveCellWidth + panOffset.x);
+    const pixelY = Math.round(y * effectiveCellHeight + panOffset.y);
+    const cellWidth = Math.round(effectiveCellWidth);
+    const cellHeight = Math.round(effectiveCellHeight);
 
     // Draw background (only if different from canvas background)
     if (cell.bgColor && cell.bgColor !== 'transparent' && cell.bgColor !== canvasBackgroundColor) {
       ctx.fillStyle = cell.bgColor;
-      ctx.fillRect(pixelX, pixelY, effectiveCellWidth, effectiveCellHeight);
+      ctx.fillRect(pixelX, pixelY, cellWidth, cellHeight);
     }
 
-    // Draw character
+    // Draw character with pixel-perfect positioning
     if (cell.char && cell.char !== ' ') {
       ctx.fillStyle = cell.color || drawingStyles.defaultTextColor;
       ctx.font = drawingStyles.font;
       ctx.textAlign = drawingStyles.textAlign;
       ctx.textBaseline = drawingStyles.textBaseline;
-      ctx.fillText(
-        cell.char, 
-        pixelX + effectiveCellWidth / 2, 
-        pixelY + effectiveCellHeight / 2
-      );
+      
+      // Center text with rounded positions for crisp rendering
+      const centerX = Math.round(pixelX + cellWidth / 2);
+      const centerY = Math.round(pixelY + cellHeight / 2);
+      
+      ctx.fillText(cell.char, centerX, centerY);
     }
+  }, [effectiveCellWidth, effectiveCellHeight, panOffset, canvasBackgroundColor, drawingStyles]);
 
-    // Draw grid lines (only if grid is enabled)
-    if (showGrid) {
-      ctx.strokeStyle = drawingStyles.gridLineColor;
-      ctx.lineWidth = drawingStyles.gridLineWidth;
-      ctx.strokeRect(pixelX, pixelY, effectiveCellWidth, effectiveCellHeight);
+  // Separate function to render grid background
+  const drawGridBackground = useCallback((ctx: CanvasRenderingContext2D) => {
+    if (!showGrid) return;
+    
+    ctx.strokeStyle = drawingStyles.gridLineColor;
+    ctx.lineWidth = drawingStyles.gridLineWidth;
+    
+    // Draw vertical lines
+    for (let x = 0; x <= width; x++) {
+      const lineX = Math.round(x * effectiveCellWidth + panOffset.x) + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(lineX, panOffset.y);
+      ctx.lineTo(lineX, height * effectiveCellHeight + panOffset.y);
+      ctx.stroke();
     }
-  }, [effectiveCellWidth, effectiveCellHeight, panOffset, canvasBackgroundColor, drawingStyles, showGrid]);
+    
+    // Draw horizontal lines
+    for (let y = 0; y <= height; y++) {
+      const lineY = Math.round(y * effectiveCellHeight + panOffset.y) + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(panOffset.x, lineY);
+      ctx.lineTo(width * effectiveCellWidth + panOffset.x, lineY);
+      ctx.stroke();
+    }
+  }, [width, height, effectiveCellWidth, effectiveCellHeight, panOffset, drawingStyles, showGrid]);
 
-  // Optimized render function with performance measurement
+  // Optimized render function with performance measurement and subtle DPI improvements
   const renderCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -163,12 +189,18 @@ export const useCanvasRenderer = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Apply only text rendering optimizations without affecting canvas size/coordinates
+    setupTextRendering(ctx);
+
     // Start performance measurement
     measureCanvasRender();
 
     // Clear canvas and fill with background color
     ctx.fillStyle = canvasBackgroundColor;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    // Render grid background layer first (behind content)
+    drawGridBackground(ctx);
 
     // Render onion skin layers (previous and next frames)
     renderOnionSkins();
@@ -239,10 +271,10 @@ export const useCanvasRenderer = () => {
         ellipsePoints.forEach(({ x, y }) => {
           if (x >= 0 && y >= 0 && x < width && y < height) {
             ctx.fillRect(
-              x * effectiveCellWidth + panOffset.x,
-              y * effectiveCellHeight + panOffset.y,
-              effectiveCellWidth,
-              effectiveCellHeight
+              Math.round(x * effectiveCellWidth + panOffset.x),
+              Math.round(y * effectiveCellHeight + panOffset.y),
+              Math.round(effectiveCellWidth),
+              Math.round(effectiveCellHeight)
             );
           }
         });
@@ -271,10 +303,10 @@ export const useCanvasRenderer = () => {
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 5]);
         ctx.strokeRect(
-          selectionData.startX * effectiveCellWidth + panOffset.x,
-          selectionData.startY * effectiveCellHeight + panOffset.y,
-          selectionData.width * effectiveCellWidth,
-          selectionData.height * effectiveCellHeight
+          Math.round(selectionData.startX * effectiveCellWidth + panOffset.x),
+          Math.round(selectionData.startY * effectiveCellHeight + panOffset.y),
+          Math.round(selectionData.width * effectiveCellWidth),
+          Math.round(selectionData.height * effectiveCellHeight)
         );
         ctx.setLineDash([]);
       }
@@ -330,10 +362,10 @@ export const useCanvasRenderer = () => {
           // Only draw if within canvas bounds
           if (displayX >= 0 && displayY >= 0 && displayX < width && displayY < height) {
             ctx.fillRect(
-              displayX * effectiveCellWidth + panOffset.x,
-              displayY * effectiveCellHeight + panOffset.y,
-              effectiveCellWidth,
-              effectiveCellHeight
+              Math.round(displayX * effectiveCellWidth + panOffset.x),
+              Math.round(displayY * effectiveCellHeight + panOffset.y),
+              Math.round(effectiveCellWidth),
+              Math.round(effectiveCellHeight)
             );
           }
         });
@@ -409,10 +441,10 @@ export const useCanvasRenderer = () => {
         // Draw cell highlight - use orange color to distinguish from other selections
         ctx.fillStyle = 'rgba(255, 165, 0, 0.3)'; // Orange with transparency
         ctx.fillRect(
-          cellX * effectiveCellWidth + panOffset.x,
-          cellY * effectiveCellHeight + panOffset.y,
-          effectiveCellWidth,
-          effectiveCellHeight
+          Math.round(cellX * effectiveCellWidth + panOffset.x),
+          Math.round(cellY * effectiveCellHeight + panOffset.y),
+          Math.round(effectiveCellWidth),
+          Math.round(effectiveCellHeight)
         );
         
         // Draw cell border
@@ -420,10 +452,10 @@ export const useCanvasRenderer = () => {
         ctx.lineWidth = 1;
         ctx.setLineDash([]);
         ctx.strokeRect(
-          cellX * effectiveCellWidth + panOffset.x,
-          cellY * effectiveCellHeight + panOffset.y,
-          effectiveCellWidth,
-          effectiveCellHeight
+          Math.round(cellX * effectiveCellWidth + panOffset.x),
+          Math.round(cellY * effectiveCellHeight + panOffset.y),
+          Math.round(effectiveCellWidth),
+          Math.round(effectiveCellHeight)
         );
       });
     }
@@ -443,19 +475,19 @@ export const useCanvasRenderer = () => {
       ctx.lineWidth = 2;
       ctx.setLineDash([8, 4]);
       ctx.strokeRect(
-        previewStartX * effectiveCellWidth + panOffset.x,
-        previewStartY * effectiveCellHeight + panOffset.y,
-        previewWidth * effectiveCellWidth,
-        previewHeight * effectiveCellHeight
+        Math.round(previewStartX * effectiveCellWidth + panOffset.x),
+        Math.round(previewStartY * effectiveCellHeight + panOffset.y),
+        Math.round(previewWidth * effectiveCellWidth),
+        Math.round(previewHeight * effectiveCellHeight)
       );
 
       // Add semi-transparent background
       ctx.fillStyle = 'rgba(168, 85, 247, 0.1)';
       ctx.fillRect(
-        previewStartX * effectiveCellWidth + panOffset.x,
-        previewStartY * effectiveCellHeight + panOffset.y,
-        previewWidth * effectiveCellWidth,
-        previewHeight * effectiveCellHeight
+        Math.round(previewStartX * effectiveCellWidth + panOffset.x),
+        Math.round(previewStartY * effectiveCellHeight + panOffset.y),
+        Math.round(previewWidth * effectiveCellWidth),
+        Math.round(previewHeight * effectiveCellHeight)
       );
 
       ctx.setLineDash([]);
@@ -480,10 +512,10 @@ export const useCanvasRenderer = () => {
           ctx.strokeStyle = 'rgba(168, 85, 247, 0.4)';
           ctx.lineWidth = 1;
           ctx.strokeRect(
-            absoluteX * effectiveCellWidth + panOffset.x, 
-            absoluteY * effectiveCellHeight + panOffset.y, 
-            effectiveCellWidth, 
-            effectiveCellHeight
+            Math.round(absoluteX * effectiveCellWidth + panOffset.x), 
+            Math.round(absoluteY * effectiveCellHeight + panOffset.y), 
+            Math.round(effectiveCellWidth), 
+            Math.round(effectiveCellHeight)
           );
         }
       });
@@ -496,10 +528,10 @@ export const useCanvasRenderer = () => {
       ctx.lineWidth = 1.5;
       ctx.setLineDash([]);
       ctx.strokeRect(
-        hoveredCell.x * effectiveCellWidth + panOffset.x,
-        hoveredCell.y * effectiveCellHeight + panOffset.y,
-        effectiveCellWidth,
-        effectiveCellHeight
+        Math.round(hoveredCell.x * effectiveCellWidth + panOffset.x),
+        Math.round(hoveredCell.y * effectiveCellHeight + panOffset.y),
+        Math.round(effectiveCellWidth),
+        Math.round(effectiveCellHeight)
       );
     }
 
@@ -511,10 +543,10 @@ export const useCanvasRenderer = () => {
       if (x >= 0 && x < width && y >= 0 && y < height) {
         ctx.fillStyle = '#A855F7'; // Purple color to match other overlays
         ctx.fillRect(
-          x * effectiveCellWidth + panOffset.x,
-          y * effectiveCellHeight + panOffset.y,
-          effectiveCellWidth,
-          effectiveCellHeight
+          Math.round(x * effectiveCellWidth + panOffset.x),
+          Math.round(y * effectiveCellHeight + panOffset.y),
+          Math.round(effectiveCellWidth),
+          Math.round(effectiveCellHeight)
         );
       }
     }

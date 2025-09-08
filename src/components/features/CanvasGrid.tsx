@@ -184,10 +184,8 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
           onMouseLeave={handleMouseLeave}
           onContextMenu={handleContextMenu}
           style={{
-            imageRendering: 'pixelated',
-            display: 'block',
-            minWidth: 'fit-content',
-            minHeight: 'fit-content'
+            display: 'block'
+            // Width and height are set by canvas resize logic in useCanvasRenderer
           }}
         />
       </div>
