@@ -1207,6 +1207,38 @@ These patterns are now incorporated into the codebase and should be followed for
 
 ### 🏗️ **Architectural Decisions Made**
 
+#### **Frame Synchronization Move Commit Pattern**
+**Decision**: Move operations are committed to the original frame before clearing state during frame navigation  
+**Problem**: During frame switching, move operations were being cancelled instead of committed, losing user work  
+**Solution**: Enhanced `useFrameSynchronization` to commit moves to canvas and save committed data to frame  
+**Files**: `src/hooks/useFrameSynchronization.ts`, `src/contexts/CanvasContext.tsx`  
+**Pattern**: 
+```typescript
+// Commit move operations before frame switching
+if (moveStateParam && setMoveStateParam) {
+  // Calculate final position
+  const totalOffset = { x: baseOffset.x + currentOffset.x, y: baseOffset.y + currentOffset.y };
+  
+  // Create new canvas with committed moves
+  const newCells = new Map(cells);
+  moveStateParam.originalData.forEach((cell, key) => {
+    newCells.delete(key); // Clear original position
+    const [origX, origY] = key.split(',').map(Number);
+    const newX = origX + totalOffset.x;
+    const newY = origY + totalOffset.y;
+    if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
+      newCells.set(`${newX},${newY}`, cell); // Place at new position
+    }
+  });
+  
+  // Save committed data to frame (not original canvas data)
+  currentCellsToSave = newCells;
+  setCanvasData(newCells);
+  setMoveStateParam(null);
+}
+```
+**Lesson**: When managing state across frame boundaries, ensure user operations are committed before state transitions
+
 #### **Context + Hooks Pattern for Canvas System**
 We've established a new pattern for managing complex component state:
 

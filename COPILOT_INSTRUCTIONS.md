@@ -755,6 +755,24 @@ if (clickOutsideSelection) {
   setJustCommittedMove(true); // Prevent immediate new selection
   return;
 }
+
+// ❌ Common Bug: Frame switching loses user work
+if (currentFrameIndex !== previousFrameIndex) {
+  setMoveState(null); // WRONG - cancels moves instead of committing
+  setFrameData(previousFrameIndex, cells); // Saves uncommitted data
+}
+
+// ✅ Correct: Commit moves before frame switching (see Animation Guidelines)
+if (currentFrameIndex !== previousFrameIndex) {
+  let dataToSave = new Map(cells);
+  if (moveState) {
+    // Commit move operation first
+    dataToSave = commitMoveToCanvas(moveState, cells);
+    setCanvasData(dataToSave);
+    setMoveState(null);
+  }
+  setFrameData(previousFrameIndex, dataToSave); // Save committed data
+}
 ```
 
 **Debugging Commands for Selection Tool Issues**:
@@ -1750,6 +1768,52 @@ const useCanvasDragAndDrop = () => {
 ```
 
 ### 7. Animation & Timeline Guidelines
+
+**Frame Synchronization with Move Commit Pattern:**
+```typescript
+// ✅ CORRECT: Commit move operations before frame switching
+const useFrameSynchronization = (moveState, setMoveState) => {
+  useEffect(() => {
+    if (currentFrameIndex !== previousFrameIndex) {
+      let currentCellsToSave = new Map(cells);
+      
+      // Commit pending moves to preserve user work
+      if (moveState) {
+        const totalOffset = {
+          x: moveState.baseOffset.x + moveState.currentOffset.x,
+          y: moveState.baseOffset.y + moveState.currentOffset.y
+        };
+        
+        const newCells = new Map(cells);
+        moveState.originalData.forEach((_, key) => newCells.delete(key));
+        moveState.originalData.forEach((cell, key) => {
+          const [origX, origY] = key.split(',').map(Number);
+          const newX = origX + totalOffset.x;
+          const newY = origY + totalOffset.y;
+          if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
+            newCells.set(`${newX},${newY}`, cell);
+          }
+        });
+        
+        // Save committed data, not original canvas data
+        currentCellsToSave = newCells;
+        setCanvasData(newCells);
+        setMoveState(null);
+      }
+      
+      // Save committed changes to frame before switching
+      setFrameData(previousFrameIndex, currentCellsToSave);
+      loadFrameToCanvas(currentFrameIndex);
+    }
+  }, [currentFrameIndex, moveState]);
+};
+
+// ❌ WRONG: Lose user work by not committing moves
+if (currentFrameIndex !== previousFrameIndex) {
+  setMoveState(null); // Cancels move instead of committing
+  setFrameData(previousFrameIndex, cells); // Saves uncommitted state
+}
+```
 
 **Use RequestAnimationFrame for Playback:**
 ```typescript

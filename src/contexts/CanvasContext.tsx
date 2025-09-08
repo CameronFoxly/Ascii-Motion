@@ -156,7 +156,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   } = usePasteMode();
 
   // Frame synchronization for animation
-  const frameSyncState = useFrameSynchronization();
+  const frameSyncState = useFrameSynchronization(moveState, setMoveState);
 
   const contextValue: CanvasContextValue = {
     // Display state
