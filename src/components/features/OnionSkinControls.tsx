@@ -78,7 +78,7 @@ export const OnionSkinControls: React.FC = () => {
             max="10"
             value={onionSkin.previousFrames}
             onChange={handlePreviousFramesChange}
-            className="w-12 h-8 text-xs text-center border border-border rounded bg-background text-foreground"
+            className="w-12 h-8 text-xs text-center border border-border rounded bg-background text-foreground [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             style={{ color: '#3B82F6' }} // Blue for previous frames
           />
         </div>
@@ -108,7 +108,7 @@ export const OnionSkinControls: React.FC = () => {
             max="10"
             value={onionSkin.nextFrames}
             onChange={handleNextFramesChange}
-            className="w-12 h-8 text-xs text-center border border-border rounded bg-background text-foreground"
+            className="w-12 h-8 text-xs text-center border border-border rounded bg-background text-foreground [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             style={{ color: '#EF4444' }} // Red for next frames
           />
           <div className="flex flex-col">

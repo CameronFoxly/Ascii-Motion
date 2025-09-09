@@ -20,12 +20,12 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
     <div className={`space-y-2 ${className}`}>      
       {/* Color picker tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 h-6">
-          <TabsTrigger value="text" className="text-xs h-5 flex items-center justify-center gap-1">
+        <TabsList className="grid w-full grid-cols-2 h-8">
+          <TabsTrigger value="text" className="text-xs h-full flex items-center justify-center gap-1">
             <Type className="w-3 h-3" />
             Text
           </TabsTrigger>
-          <TabsTrigger value="bg" className="text-xs h-5 flex items-center justify-center gap-1">
+          <TabsTrigger value="bg" className="text-xs h-full flex items-center justify-center gap-1">
             <Palette className="w-3 h-3" />
             BG
           </TabsTrigger>

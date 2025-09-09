@@ -104,7 +104,7 @@ export const CanvasSettings: React.FC = () => {
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-muted-foreground">Canvas size:</span>
           
-          {/* Width controls with stacked plus/minus */}
+          {/* Width controls with controls to the left */}
           <div className="flex items-center gap-1">
             <div className="flex flex-col">
               <Button
@@ -142,7 +142,7 @@ export const CanvasSettings: React.FC = () => {
                   setCanvasSize(constrainedValue, height);
                 }
               }}
-              className="w-12 h-8 text-xs text-center border border-border rounded bg-background text-foreground [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="w-12 h-7 text-xs text-center border border-border rounded bg-background text-foreground [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               min="4"
               max="200"
             />
@@ -150,8 +150,22 @@ export const CanvasSettings: React.FC = () => {
 
           <span className="text-xs text-muted-foreground">×</span>
 
-          {/* Height controls with stacked plus/minus */}
+          {/* Height controls with input and controls to the right */}
           <div className="flex items-center gap-1">
+            <input
+              type="number"
+              value={height}
+              onChange={(e) => {
+                const numValue = parseInt(e.target.value, 10);
+                if (!isNaN(numValue)) {
+                  const constrainedValue = Math.max(4, Math.min(100, numValue));
+                  setCanvasSize(width, constrainedValue);
+                }
+              }}
+              className="w-12 h-7 text-xs text-center border border-border rounded bg-background text-foreground [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              min="4"
+              max="100"
+            />
             <div className="flex flex-col">
               <Button
                 size="sm"
@@ -178,20 +192,6 @@ export const CanvasSettings: React.FC = () => {
                 -
               </Button>
             </div>
-            <input
-              type="number"
-              value={height}
-              onChange={(e) => {
-                const numValue = parseInt(e.target.value, 10);
-                if (!isNaN(numValue)) {
-                  const constrainedValue = Math.max(4, Math.min(100, numValue));
-                  setCanvasSize(width, constrainedValue);
-                }
-              }}
-              className="w-12 h-8 text-xs text-center border border-border rounded bg-background text-foreground [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              min="4"
-              max="100"
-            />
           </div>
         </div>
 
@@ -246,8 +246,6 @@ export const CanvasSettings: React.FC = () => {
               </Tooltip>
             </div>
           </div>
-
-          <Separator orientation="vertical" className="h-6" />
 
           {/* Typography Controls - Icon only */}
           <div className="relative" ref={typographyPickerRef}>
@@ -398,7 +396,7 @@ export const CanvasSettings: React.FC = () => {
               {/* Preset Colors */}
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-2 block">
-                  Presets
+                  Canvas color
                 </label>
                 <div className="grid grid-cols-5 gap-1">
                   {presetColors.map((color) => (
