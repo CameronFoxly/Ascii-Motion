@@ -5,7 +5,7 @@ import { usePasteMode } from '../hooks/usePasteMode';
 import { useFrameSynchronization } from '../hooks/useFrameSynchronization';
 import type { PasteModeState } from '../hooks/usePasteMode';
 import { calculateFontMetrics, calculateCellDimensions, DEFAULT_SPACING } from '../utils/fontMetrics';
-import type { FontMetrics, SpacingSettings } from '../utils/fontMetrics';
+import type { FontMetrics } from '../utils/fontMetrics';
 
 // Canvas-specific state that doesn't belong in global stores
 interface CanvasState {
@@ -156,7 +156,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   } = usePasteMode();
 
   // Frame synchronization for animation
-  const frameSyncState = useFrameSynchronization(moveState, setMoveState);
+  useFrameSynchronization(moveState, setMoveState);
 
   const contextValue: CanvasContextValue = {
     // Display state

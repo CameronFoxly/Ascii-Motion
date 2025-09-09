@@ -4,6 +4,102 @@ import { useToolStore } from '../stores/toolStore';
 import { useAnimationStore } from '../stores/animationStore';
 import { useCanvasContext } from '../contexts/CanvasContext';
 import { getToolForHotkey } from '../constants/hotkeys';
+import type { AnyHistoryAction, CanvasHistoryAction } from '../types';
+
+/**
+ * Helper function to process different types of history actions
+ */
+const processHistoryAction = (
+  action: AnyHistoryAction, 
+  isRedo: boolean,
+  canvasStore: any,
+  animationStore: any
+) => {
+  switch (action.type) {
+    case 'canvas_edit':
+      const canvasAction = action as CanvasHistoryAction;
+      canvasStore.setCanvasData(canvasAction.data.canvasData);
+      // Set current frame to match the frame this edit was made in
+      animationStore.setCurrentFrame(canvasAction.data.frameIndex);
+      break;
+      
+    case 'add_frame':
+      if (isRedo) {
+        // Redo: Re-add the frame
+        animationStore.addFrame(action.data.frameIndex, action.data.canvasData);
+      } else {
+        // Undo: Remove the frame that was added
+        animationStore.removeFrame(action.data.frameIndex);
+        animationStore.setCurrentFrame(action.data.previousCurrentFrame);
+      }
+      break;
+      
+    case 'duplicate_frame':
+      if (isRedo) {
+        // Redo: Re-duplicate the frame
+        animationStore.duplicateFrame(action.data.originalIndex);
+      } else {
+        // Undo: Remove the duplicated frame
+        animationStore.removeFrame(action.data.newIndex);
+        animationStore.setCurrentFrame(action.data.previousCurrentFrame);
+      }
+      break;
+      
+    case 'delete_frame':
+      if (isRedo) {
+        // Redo: Re-delete the frame
+        animationStore.removeFrame(action.data.frameIndex);
+      } else {
+        // Undo: Re-add the deleted frame
+        const deletedFrame = action.data.frame;
+        
+        // Add frame at the correct position
+        animationStore.addFrame(action.data.frameIndex, deletedFrame.data);
+        
+        // Update the frame properties to match the deleted frame
+        animationStore.updateFrameName(action.data.frameIndex, deletedFrame.name);
+        animationStore.updateFrameDuration(action.data.frameIndex, deletedFrame.duration);
+        
+        // Restore previous current frame
+        animationStore.setCurrentFrame(action.data.previousCurrentFrame);
+      }
+      break;
+      
+    case 'reorder_frames':
+      if (isRedo) {
+        // Redo: Re-perform the reorder
+        animationStore.reorderFrames(action.data.fromIndex, action.data.toIndex);
+      } else {
+        // Undo: Reverse the reorder
+        animationStore.reorderFrames(action.data.toIndex, action.data.fromIndex);
+        animationStore.setCurrentFrame(action.data.previousCurrentFrame);
+      }
+      break;
+      
+    case 'update_duration':
+      if (isRedo) {
+        // Redo: Apply new duration
+        animationStore.updateFrameDuration(action.data.frameIndex, action.data.newDuration);
+      } else {
+        // Undo: Restore old duration
+        animationStore.updateFrameDuration(action.data.frameIndex, action.data.oldDuration);
+      }
+      break;
+      
+    case 'update_name':
+      if (isRedo) {
+        // Redo: Apply new name
+        animationStore.updateFrameName(action.data.frameIndex, action.data.newName);
+      } else {
+        // Undo: Restore old name
+        animationStore.updateFrameName(action.data.frameIndex, action.data.oldName);
+      }
+      break;
+      
+    default:
+      console.warn('Unknown history action type:', (action as any).type);
+  }
+};
 
 /**
  * Custom hook for handling keyboard shortcuts
@@ -11,7 +107,12 @@ import { getToolForHotkey } from '../constants/hotkeys';
 export const useKeyboardShortcuts = () => {
   const { cells, setCanvasData } = useCanvasStore();
   const { startPasteMode, commitPaste, pasteMode } = useCanvasContext();
-  const { toggleOnionSkin } = useAnimationStore();
+  const { toggleOnionSkin, currentFrameIndex } = useAnimationStore();
+
+  // Helper function to handle different types of history actions
+  const handleHistoryAction = useCallback((action: AnyHistoryAction, isRedo: boolean) => {
+    processHistoryAction(action, isRedo, { setCanvasData }, useAnimationStore.getState());
+  }, [setCanvasData]);
   const { 
     selection, 
     lassoSelection,
@@ -27,9 +128,7 @@ export const useKeyboardShortcuts = () => {
     redo,
     canUndo,
     canRedo,
-    pushToHistory,
-    addToRedoStack,
-    addToUndoStack,
+    pushCanvasHistory,
     activeTool,
     setActiveTool,
     hasClipboard,
@@ -70,7 +169,7 @@ export const useKeyboardShortcuts = () => {
         event.preventDefault();
         
         // Save current state for undo
-        pushToHistory(new Map(cells));
+        pushCanvasHistory(new Map(cells), currentFrameIndex, 'Delete magic wand selection');
         
         // Clear all selected cells
         const newCells = new Map(cells);
@@ -88,7 +187,7 @@ export const useKeyboardShortcuts = () => {
         event.preventDefault();
         
         // Save current state for undo
-        pushToHistory(new Map(cells));
+        pushCanvasHistory(new Map(cells), currentFrameIndex, 'Delete lasso selection');
         
         // Clear all selected cells
         const newCells = new Map(cells);
@@ -106,7 +205,7 @@ export const useKeyboardShortcuts = () => {
         event.preventDefault();
         
         // Save current state for undo
-        pushToHistory(new Map(cells));
+        pushCanvasHistory(new Map(cells), currentFrameIndex, 'Delete rectangular selection');
         
         // Clear all cells in rectangular selection
         const newCells = new Map(cells);
@@ -170,7 +269,7 @@ export const useKeyboardShortcuts = () => {
           const pastedData = commitPaste();
           if (pastedData) {
             // Save current state for undo
-            pushToHistory(new Map(cells));
+            pushCanvasHistory(new Map(cells), currentFrameIndex, 'Paste lasso selection');
             
             // Merge pasted data with current canvas
             const newCells = new Map(cells);
@@ -239,31 +338,23 @@ export const useKeyboardShortcuts = () => {
         break;
         
       case 'z':
-        // Undo/Redo
+        // Undo/Redo with enhanced history support
         if (event.shiftKey) {
           // Shift+Cmd+Z = Redo
           if (canRedo()) {
             event.preventDefault();
-            // Capture current state for undo stack before applying redo
-            const currentCells = new Map(cells);
-            const redoData = redo();
-            if (redoData) {
-              // Add current state to undo stack
-              addToUndoStack(currentCells);
-              setCanvasData(redoData);
+            const redoAction = redo();
+            if (redoAction) {
+              handleHistoryAction(redoAction, true);
             }
           }
         } else {
           // Cmd+Z = Undo
           if (canUndo()) {
             event.preventDefault();
-            // Capture current state for redo stack before applying undo
-            const currentCells = new Map(cells);
-            const undoData = undo();
-            if (undoData) {
-              // Add current state to redo stack
-              addToRedoStack(currentCells);
-              setCanvasData(undoData);
+            const undoAction = undo();
+            if (undoAction) {
+              handleHistoryAction(undoAction, false);
             }
           }
         }
@@ -281,14 +372,13 @@ export const useKeyboardShortcuts = () => {
     clearSelection,
     clearLassoSelection,
     clearMagicWandSelection,
-    pushToHistory, 
+    pushCanvasHistory, 
     setCanvasData,
     undo,
     redo,
     canUndo,
     canRedo,
-    addToRedoStack,
-    addToUndoStack,
+    handleHistoryAction,
     startPasteMode,
     commitPaste,
     pasteMode,
@@ -297,7 +387,8 @@ export const useKeyboardShortcuts = () => {
     hasMagicWandClipboard,
     textToolState,
     setActiveTool,
-    toggleOnionSkin
+    toggleOnionSkin,
+    currentFrameIndex
   ]);
 
   useEffect(() => {
@@ -323,7 +414,7 @@ export const useKeyboardShortcuts = () => {
       if (pasteMode.isActive) {
         const pastedData = commitPaste();
         if (pastedData) {
-          pushToHistory(new Map(cells));
+          pushCanvasHistory(new Map(cells), currentFrameIndex, 'Paste selection');
           const newCells = new Map(cells);
           pastedData.forEach((cell, key) => {
             newCells.set(key, cell);

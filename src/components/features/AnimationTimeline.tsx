@@ -3,6 +3,7 @@ import { useAnimationStore } from '../../stores/animationStore';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useAnimationPlayback } from '../../hooks/useAnimationPlayback';
 import { useFrameNavigation } from '../../hooks/useFrameNavigation';
+import { useAnimationHistory } from '../../hooks/useAnimationHistory';
 import { FrameThumbnail } from './FrameThumbnail';
 import { PlaybackControls } from './PlaybackControls';
 import { FrameControls } from './FrameControls';
@@ -22,14 +23,18 @@ export const AnimationTimeline: React.FC = () => {
     isPlaying,
     looping,
     onionSkin,
+    setLooping,
+    setDraggingFrame
+  } = useAnimationStore();
+
+  // Use history-enabled animation actions
+  const {
     addFrame,
     removeFrame,
     duplicateFrame,
     updateFrameDuration,
-    reorderFrames,
-    setLooping,
-    setDraggingFrame
-  } = useAnimationStore();
+    reorderFrames
+  } = useAnimationHistory();
 
   const {
     startPlayback,

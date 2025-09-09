@@ -6,6 +6,9 @@ interface AnimationState extends Animation {
   // Drag state for frame reordering
   isDraggingFrame: boolean;
   
+  // Deletion state for frame removal
+  isDeletingFrame: boolean;
+  
   // Onion skin state
   onionSkin: {
     enabled: boolean;
@@ -14,8 +17,8 @@ interface AnimationState extends Animation {
     wasEnabledBeforePlayback: boolean; // To restore after pause
   };
   
-  // Actions
-  addFrame: (atIndex?: number) => void;
+  // Actions (enhanced with history support)
+  addFrame: (atIndex?: number, canvasData?: Map<string, Cell>) => void;
   removeFrame: (index: number) => void;
   duplicateFrame: (index: number) => void;
   setCurrentFrame: (index: number) => void;
@@ -25,6 +28,9 @@ interface AnimationState extends Animation {
   
   // Drag controls
   setDraggingFrame: (isDragging: boolean) => void;
+  
+  // Deletion controls  
+  setDeletingFrame: (isDeleting: boolean) => void;
   
   // Onion skin actions
   toggleOnionSkin: () => void;
@@ -73,6 +79,7 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   totalDuration: DEFAULT_FRAME_DURATION,
   looping: false,
   isDraggingFrame: false,
+  isDeletingFrame: false,
 
   // Onion skin initial state
   onionSkin: {
@@ -82,10 +89,16 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
     wasEnabledBeforePlayback: false,
   },
 
-  // Actions
-  addFrame: (atIndex?: number) => {
+  // Actions (return data for history recording)
+  addFrame: (atIndex?: number, canvasData?: Map<string, Cell>) => {
     set((state) => {
       const newFrame = createEmptyFrame();
+      
+      // If canvas data provided, use it, otherwise use empty frame
+      if (canvasData) {
+        newFrame.data = new Map(canvasData);
+      }
+      
       const insertIndex = atIndex !== undefined ? atIndex : state.frames.length;
       const newFrames = [...state.frames];
       newFrames.splice(insertIndex, 0, newFrame);
@@ -99,6 +112,7 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   },
 
   removeFrame: (index: number) => {
+    // Perform deletion in a single atomic operation with isDeletingFrame flag
     set((state) => {
       if (state.frames.length <= 1) return state; // Can't remove last frame
       
@@ -114,9 +128,15 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
       return {
         frames: newFrames,
         currentFrameIndex: newCurrentIndex,
-        totalDuration: get().calculateTotalDuration()
+        totalDuration: get().calculateTotalDuration(),
+        isDeletingFrame: true // Set flag during the same update to prevent frame sync
       };
     });
+    
+    // Reset the flag after a brief delay to re-enable frame synchronization
+    setTimeout(() => {
+      set({ isDeletingFrame: false });
+    }, 100);
   },
 
   duplicateFrame: (index: number) => {
@@ -228,9 +248,15 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
         ...state,
         frames: newFrames,
         currentFrameIndex: newCurrentIndex,
-        totalDuration: newFrames.reduce((total, frame) => total + frame.duration, 0)
+        totalDuration: newFrames.reduce((total, frame) => total + frame.duration, 0),
+        isDraggingFrame: true // Keep dragging flag during reorder to prevent frame sync
       };
     });
+    
+    // Reset the dragging flag after a brief delay to re-enable frame synchronization
+    setTimeout(() => {
+      set({ isDraggingFrame: false });
+    }, 100);
   },
 
   // Frame data management
@@ -292,6 +318,7 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   setLooping: (looping: boolean) => set({ looping }),
   setFrameRate: (frameRate: number) => set({ frameRate }),
   setDraggingFrame: (isDraggingFrame: boolean) => set({ isDraggingFrame }),
+  setDeletingFrame: (isDeletingFrame: boolean) => set({ isDeletingFrame }),
 
   // Navigation
   nextFrame: () => {

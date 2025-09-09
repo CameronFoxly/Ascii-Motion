@@ -162,3 +162,94 @@ export const isValidFrame = (frame: any): frame is Frame => {
          typeof frame.duration === 'number' &&
          frame.data instanceof Map;
 };
+
+// Enhanced History System Types
+export type HistoryActionType = 
+  | 'canvas_edit'      // Canvas cell modifications
+  | 'add_frame'        // Add new frame
+  | 'duplicate_frame'  // Duplicate existing frame
+  | 'delete_frame'     // Delete frame
+  | 'reorder_frames'   // Reorder frame positions
+  | 'update_duration'  // Change frame duration
+  | 'update_name';     // Change frame name
+
+export interface HistoryAction {
+  type: HistoryActionType;
+  timestamp: number;
+  description: string;
+}
+
+export interface CanvasHistoryAction extends HistoryAction {
+  type: 'canvas_edit';
+  data: {
+    canvasData: Map<string, Cell>;
+    frameIndex: number;
+  };
+}
+
+export interface AddFrameHistoryAction extends HistoryAction {
+  type: 'add_frame';
+  data: {
+    frameIndex: number;
+    frame: Frame;
+    canvasData: Map<string, Cell>; // Canvas state when frame was added
+    previousCurrentFrame: number;
+  };
+}
+
+export interface DuplicateFrameHistoryAction extends HistoryAction {
+  type: 'duplicate_frame';
+  data: {
+    originalIndex: number;
+    newIndex: number;
+    frame: Frame;
+    previousCurrentFrame: number;
+  };
+}
+
+export interface DeleteFrameHistoryAction extends HistoryAction {
+  type: 'delete_frame';
+  data: {
+    frameIndex: number;
+    frame: Frame;
+    previousCurrentFrame: number;
+    newCurrentFrame: number;
+  };
+}
+
+export interface ReorderFramesHistoryAction extends HistoryAction {
+  type: 'reorder_frames';
+  data: {
+    fromIndex: number;
+    toIndex: number;
+    previousCurrentFrame: number;
+    newCurrentFrame: number;
+  };
+}
+
+export interface UpdateDurationHistoryAction extends HistoryAction {
+  type: 'update_duration';
+  data: {
+    frameIndex: number;
+    oldDuration: number;
+    newDuration: number;
+  };
+}
+
+export interface UpdateNameHistoryAction extends HistoryAction {
+  type: 'update_name';
+  data: {
+    frameIndex: number;
+    oldName: string;
+    newName: string;
+  };
+}
+
+export type AnyHistoryAction = 
+  | CanvasHistoryAction
+  | AddFrameHistoryAction 
+  | DuplicateFrameHistoryAction
+  | DeleteFrameHistoryAction
+  | ReorderFramesHistoryAction
+  | UpdateDurationHistoryAction
+  | UpdateNameHistoryAction;

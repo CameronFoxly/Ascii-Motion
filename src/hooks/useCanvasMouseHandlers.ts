@@ -23,7 +23,7 @@ export interface MouseHandlers {
  * Routes mouse events to appropriate tool handlers
  */
 export const useCanvasMouseHandlers = (): MouseHandlers => {
-  const { activeTool, clearSelection, clearLassoSelection, clearMagicWandSelection, isPlaybackMode } = useToolStore();
+  const { activeTool, clearSelection, clearLassoSelection, isPlaybackMode } = useToolStore();
   const { canvasRef, spaceKeyDown, setIsDrawing, setMouseButtonDown, setHoveredCell, pasteMode, updatePastePosition, startPasteDrag, stopPasteDrag, cancelPasteMode, commitPaste } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
   const { width, height, cells, setCanvasData } = useCanvasStore();

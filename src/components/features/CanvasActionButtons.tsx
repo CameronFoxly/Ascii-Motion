@@ -10,7 +10,7 @@ import { useToolStore } from '@/stores/toolStore';
  * Moved from top toolbar to save space for canvas settings
  */
 export const CanvasActionButtons: React.FC = () => {
-  const { clearCanvas, cells } = useCanvasStore();
+  const { clearCanvas } = useCanvasStore();
   const { 
     selection, 
     lassoSelection, 
@@ -18,26 +18,14 @@ export const CanvasActionButtons: React.FC = () => {
     undo, 
     redo, 
     canUndo, 
-    canRedo, 
-    addToRedoStack, 
-    addToUndoStack 
+    canRedo
   } = useToolStore();
 
   const handleUndo = () => {
-    // Save current state to redo stack before undoing
-    const currentCells = new Map(cells);
-    addToRedoStack(currentCells);
-    
-    // Perform undo
     undo();
   };
 
   const handleRedo = () => {
-    // Save current state to undo stack before redoing
-    const currentCells = new Map(cells);
-    addToUndoStack(currentCells);
-    
-    // Perform redo
     redo();
   };
 

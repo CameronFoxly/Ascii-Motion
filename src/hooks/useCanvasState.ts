@@ -9,7 +9,7 @@ import { useToolStore } from '../stores/toolStore';
  */
 export const useCanvasState = () => {
   const canvasContext = useCanvasContext();
-  const { width, height, cells, setCanvasData, canvasBackgroundColor } = useCanvasStore();
+  const { width, height, cells, setCanvasData } = useCanvasStore();
   const { selection, lassoSelection, activeTool } = useToolStore();
 
   const {

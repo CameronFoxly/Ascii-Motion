@@ -307,6 +307,38 @@ const SELECTION_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; de
 - 🎯 **Maintainability**: Adding features won't create "god components"
 - 🎯 **UI Flexibility**: Context-based state allows for advanced tool interfaces
 
+## ✅ **Phase 2.1: Enhanced Animation Timeline with Undo/Redo** - ✅ **COMPLETED** (Sept 8, 2025)
+
+### **🎯 Animation Timeline Actions Now Support Undo/Redo**
+
+**Major Enhancement**: All animation timeline operations are now fully integrated with the undo/redo system:
+
+#### **✅ Implemented Features:**
+- **Add Frame**: Creates new frames with automatic history recording
+- **Duplicate Frame**: Copies frames with full state preservation and undo support
+- **Delete Frame**: Removes frames with restoration capability (framework ready)
+- **Reorder Frames**: Drag-and-drop with position tracking and history
+- **Update Frame Duration**: Timeline duration changes with history support
+- **Update Frame Name**: Frame renaming with undo/redo capability
+
+#### **✅ Enhanced Architecture:**
+- **Unified History System**: Single timeline for canvas and animation actions
+- **Action-Specific Metadata**: Precise state restoration for each operation type
+- **useAnimationHistory Hook**: Clean API for history-enabled animation operations
+- **Smart State Management**: Frame navigation updates correctly during undo/redo
+
+#### **✅ User Experience Improvements:**
+- **Professional Workflow**: Industry-standard undo/redo for animation operations
+- **Confidence in Experimentation**: Users can freely try frame operations
+- **No Data Loss**: Complete protection against accidental animation changes
+- **Mixed Operation Support**: Seamless undo across canvas and timeline actions
+
+#### **✅ Technical Implementation:**
+- **Enhanced Types**: Comprehensive action type definitions for all operations
+- **History Processing**: Automatic action recording and restoration logic
+- **Component Integration**: AnimationTimeline uses history-enabled functions
+- **Keyboard Shortcuts**: Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z work across all actions
+
 ## Next Steps
 
 1. **Phase 1.6: Enhanced Art Creation Tools** - ✅ **COMPLETE** (Sept 6, 2025)
@@ -543,6 +575,68 @@ interface OnionSkinState {
   nextColor: string;      // tint for next frames
 }
 ```
+
+## **🚨 CRITICAL: Canvas-Animation Synchronization Patterns**
+
+### **Frame Synchronization Race Conditions**
+The interaction between canvas state and animation frames is complex and requires careful handling to prevent data corruption during frame operations.
+
+#### **Problem Pattern: Automatic Frame Sync Interference**
+The `useFrameSynchronization` hook automatically saves canvas changes to the current frame and loads frame data when switching frames. However, this creates race conditions during frame manipulation operations:
+
+1. **Frame Deletion Issue**: When deleting frame N, the current frame index changes, triggering frame sync to save current canvas (containing deleted frame's content) to the new current frame
+2. **Frame Reordering Issue**: When moving frames, multiple frame index changes trigger multiple save/load operations with stale canvas data
+3. **Result**: Canvas content gets copied to wrong frames, corrupting the animation
+
+#### **Solution Pattern: Operation Flags**
+Prevent frame synchronization during critical frame operations using atomic state flags:
+
+```typescript
+// Animation Store: Add operation flags
+interface AnimationState {
+  isDraggingFrame: boolean;    // For reordering operations
+  isDeletingFrame: boolean;    // For deletion operations
+  // ... other state
+}
+
+// Frame Operations: Set flags during state updates
+removeFrame: (index: number) => {
+  set((state) => ({
+    frames: newFrames,
+    currentFrameIndex: newCurrentIndex,
+    isDeletingFrame: true // Prevent sync during this update
+  }));
+  
+  setTimeout(() => set({ isDeletingFrame: false }), 100); // Re-enable after operation
+}
+
+// Frame Sync: Check all operation flags
+if (!isPlaying && !isLoadingFrame && !isDraggingFrame && !isDeletingFrame) {
+  setFrameData(previousFrameIndex, currentCellsToSave); // Only save when safe
+}
+```
+
+#### **Critical Implementation Rules**
+
+1. **Atomic State Updates**: Set operation flags in the SAME state update as the frame manipulation
+2. **Comprehensive Guards**: Check ALL operation flags in frame synchronization logic
+3. **Timeout Reset**: Use setTimeout to reset flags after operations complete (100ms recommended)
+4. **Consistent Naming**: Use descriptive flag names (`isDeletingFrame`, `isDraggingFrame`, etc.)
+
+#### **Files Requiring Updates for New Frame Operations**
+When adding new frame manipulation features:
+
+1. **Animation Store** (`src/stores/animationStore.ts`): Add operation flag and set during state update
+2. **Frame Sync** (`src/hooks/useFrameSynchronization.ts`): Add flag to guard conditions
+3. **History Hook** (`src/hooks/useAnimationHistory.ts`): Ensure history operations use proper flags
+
+#### **Testing Frame Operations**
+Always test frame operations with this sequence:
+1. Create frames with distinct, identifiable content (e.g., "1", "2", "3", "4")
+2. Perform frame operation (delete, reorder, etc.)
+3. Verify frame content matches expected result
+4. Test undo/redo functionality
+5. Verify no canvas content duplication or corruption
 
 ### Next Phase: Onion Skinning Implementation
 

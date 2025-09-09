@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useCanvasContext, useCanvasDimensions } from '../contexts/CanvasContext';
 import { useCanvasState } from './useCanvasState';
 import { useCanvasStore } from '../stores/canvasStore';
+import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
 import type { Cell } from '../types';
 
@@ -26,12 +27,13 @@ export const useCanvasSelection = () => {
   } = useCanvasState();
   
   const { width, height, cells, getCell } = useCanvasStore();
+  const { currentFrameIndex } = useAnimationStore();
   const { 
     selection, 
     startSelection, 
     updateSelection, 
     clearSelection, 
-    pushToHistory 
+    pushCanvasHistory 
   } = useToolStore();
 
   // Convert mouse coordinates to grid coordinates
@@ -51,7 +53,7 @@ export const useCanvasSelection = () => {
     const { x, y } = getGridCoordinatesFromEvent(event);
     
     // Save current state for undo
-    pushToHistory(new Map(cells));
+    pushCanvasHistory(new Map(cells), currentFrameIndex, 'Selection action');
 
     // If there's an uncommitted move and clicking outside selection, commit it first
     if (moveState && selection.active && !isPointInEffectiveSelection(x, y)) {
@@ -124,7 +126,7 @@ export const useCanvasSelection = () => {
       }
     }
   }, [
-    getGridCoordinatesFromEvent, cells, pushToHistory, moveState, selection, 
+    getGridCoordinatesFromEvent, cells, pushCanvasHistory, currentFrameIndex, moveState, selection, 
     isPointInEffectiveSelection, commitMove, clearSelection, setJustCommittedMove,
     justCommittedMove, startSelection, setPendingSelectionStart, setMouseButtonDown,
     setMoveState, setSelectionMode, getCell, updateSelection, pendingSelectionStart

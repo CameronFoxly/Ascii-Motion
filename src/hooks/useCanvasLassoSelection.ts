@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useCanvasContext, useCanvasDimensions } from '../contexts/CanvasContext';
 import { useCanvasState } from './useCanvasState';
 import { useCanvasStore } from '../stores/canvasStore';
+import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
 import { getCellsInPolygon, smoothPolygonPath } from '../utils/polygon';
 import type { Cell } from '../types';
@@ -24,6 +25,7 @@ export const useCanvasLassoSelection = () => {
   } = useCanvasState();
   
   const { width, height, cells, getCell } = useCanvasStore();
+  const { currentFrameIndex } = useAnimationStore();
   const { 
     lassoSelection, 
     startLassoSelection,
@@ -31,7 +33,7 @@ export const useCanvasLassoSelection = () => {
     updateLassoSelectedCells,
     finalizeLassoSelection,
     clearLassoSelection,
-    pushToHistory 
+    pushCanvasHistory 
   } = useToolStore();
 
   // Convert mouse coordinates to grid coordinates
@@ -73,7 +75,7 @@ export const useCanvasLassoSelection = () => {
     const { x, y } = getGridCoordinatesFromEvent(event);
     
     // Save current state for undo
-    pushToHistory(new Map(cells));
+    pushCanvasHistory(new Map(cells), currentFrameIndex, 'Lasso selection action');
 
     // If there's an uncommitted move and clicking outside selection, commit it first
     if (moveState && lassoSelection.active && !isPointInLassoSelection(x, y)) {
@@ -134,7 +136,7 @@ export const useCanvasLassoSelection = () => {
       setSelectionMode('dragging');
     }
   }, [
-    getGridCoordinatesFromEvent, cells, pushToHistory, moveState, lassoSelection, 
+    getGridCoordinatesFromEvent, cells, pushCanvasHistory, currentFrameIndex, moveState, lassoSelection, 
     isPointInLassoSelection, commitMove, clearLassoSelection, setJustCommittedMove,
     justCommittedMove, startLassoSelection, addLassoPoint, setMouseButtonDown,
     setMoveState, setSelectionMode, getCell

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useToolStore } from '../stores/toolStore';
 import { useCanvasStore } from '../stores/canvasStore';
+import { useAnimationStore } from '../stores/animationStore';
 
 /**
  * Text Tool Hook - Handles text input functionality
@@ -15,8 +16,9 @@ import { useCanvasStore } from '../stores/canvasStore';
  * - Clipboard paste support with overwrite behavior
  */
 export const useTextTool = () => {
-  const { textToolState, startTyping, stopTyping, setCursorPosition, setCursorVisible, setTextBuffer, commitWord, pushToHistory } = useToolStore();
+  const { textToolState, startTyping, stopTyping, setCursorPosition, setCursorVisible, setTextBuffer, commitWord, pushCanvasHistory } = useToolStore();
   const { width, height, setCell, getCell, cells } = useCanvasStore();
+  const { currentFrameIndex } = useAnimationStore();
   const { selectedColor, selectedBgColor } = useToolStore();
   
   const blinkTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -62,10 +64,10 @@ export const useTextTool = () => {
   // Commit current word to undo stack
   const commitCurrentWord = useCallback(() => {
     if (textToolState.textBuffer.length > 0) {
-      pushToHistory(cells);
+      pushCanvasHistory(cells, currentFrameIndex);
       commitWord();
     }
-  }, [textToolState.textBuffer.length, pushToHistory, commitWord, cells]);
+  }, [textToolState.textBuffer.length, pushCanvasHistory, commitWord, cells, currentFrameIndex]);
 
   // Move cursor with boundary constraints
   const moveCursor = useCallback((deltaX: number, deltaY: number) => {
@@ -223,12 +225,12 @@ export const useTextTool = () => {
       }
 
       // Commit paste as single undo operation
-      pushToHistory(cells);
+      pushCanvasHistory(cells, currentFrameIndex);
 
     } catch (error) {
       console.error('Failed to read clipboard:', error);
     }
-  }, [textToolState.cursorPosition, textToolState.lineStartX, width, height, commitCurrentWord, setCell, selectedColor, selectedBgColor, setCursorPosition, resetCursorBlink, pushToHistory, cells]);
+  }, [textToolState.cursorPosition, textToolState.lineStartX, width, height, commitCurrentWord, setCell, selectedColor, selectedBgColor, setCursorPosition, resetCursorBlink, pushCanvasHistory, cells, currentFrameIndex]);
 
   // Click to place cursor
   const handleTextToolClick = useCallback((x: number, y: number) => {

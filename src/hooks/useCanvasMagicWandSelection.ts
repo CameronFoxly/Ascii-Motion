@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useCanvasContext, useCanvasDimensions } from '../contexts/CanvasContext';
 import { useCanvasState } from './useCanvasState';
 import { useCanvasStore } from '../stores/canvasStore';
+import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
 import type { Cell } from '../types';
 
@@ -22,13 +23,14 @@ export const useCanvasMagicWandSelection = () => {
     setJustCommittedMove,
   } = useCanvasState();
   
+  const { currentFrameIndex } = useAnimationStore();
   const { width, height, cells, getCell } = useCanvasStore();
   const { 
     magicWandSelection, 
     magicWandContiguous,
     startMagicWandSelection,
     clearMagicWandSelection,
-    pushToHistory 
+    pushCanvasHistory 
   } = useToolStore();
 
   // Convert mouse coordinates to grid coordinates
@@ -145,7 +147,7 @@ export const useCanvasMagicWandSelection = () => {
     const { x, y } = getGridCoordinatesFromEvent(event);
     
     // Save current state for undo
-    pushToHistory(new Map(cells));
+    pushCanvasHistory(new Map(cells), currentFrameIndex);
 
     // If there's an uncommitted move and clicking outside selection, commit it first
     if (moveState && magicWandSelection.active && !isPointInMagicWandSelection(x, y)) {
@@ -221,8 +223,9 @@ export const useCanvasMagicWandSelection = () => {
     setMouseButtonDown(true);
   }, [
     getGridCoordinatesFromEvent, 
-    pushToHistory, 
+    pushCanvasHistory, 
     cells, 
+    currentFrameIndex,
     moveState, 
     magicWandSelection, 
     isPointInMagicWandSelection,

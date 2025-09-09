@@ -1798,6 +1798,55 @@ const useFrameSynchronization = (moveState, setMoveState) => {
         // Save committed data, not original canvas data
         currentCellsToSave = newCells;
         setCanvasData(newCells);
+
+**🚨 CRITICAL: Frame Operation Race Condition Prevention (Updated Sept 8, 2025)**
+
+**Frame Synchronization Guards Pattern:**
+```typescript
+// ✅ MANDATORY: Use operation flags to prevent race conditions
+const useFrameSynchronization = () => {
+  const { isDeletingFrame, isDraggingFrame, isAddingFrame } = useAnimationStore();
+  
+  useEffect(() => {
+    // 🚨 GUARD CONDITION: Never save during frame operations
+    if (isDeletingFrame || isDraggingFrame || isAddingFrame) {
+      return; // Skip auto-save to prevent data corruption
+    }
+    
+    // Normal synchronization logic only when safe
+    if (shouldSave && frameChanged) {
+      saveCanvasToFrame();
+    }
+  }, [frameIndex, cells, isDeletingFrame, isDraggingFrame, isAddingFrame]);
+};
+
+// ✅ FRAME OPERATION PATTERN: Set flags during operations
+const deleteFrame = (index: number) => {
+  set({ isDeletingFrame: true });
+  
+  // Perform atomic frame deletion
+  set((state) => ({
+    frames: state.frames.filter((_, i) => i !== index),
+    currentFrameIndex: Math.min(state.currentFrameIndex, newLength - 1)
+  }));
+  
+  // Reset flag after operation completes
+  setTimeout(() => set({ isDeletingFrame: false }), 0);
+};
+```
+
+**⚠️ Race Condition Symptoms:**
+- Frame deletion shows wrong remaining frames ([1,2,3,4] → delete 3 → [1,2,3] instead of [1,2,4])
+- Canvas data from wrong frame appears after operations
+- Frame reordering corrupts animation sequence
+- Undo/redo restores incorrect frame data
+
+**🔧 Required Implementation Pattern:**
+1. **Add operation flags to store** (`isDeletingFrame`, `isDraggingFrame`, etc.)
+2. **Guard useFrameSynchronization** with flag checks
+3. **Set flags before operations**, reset after completion  
+4. **Use atomic state updates** for frame array modifications
+5. **Timeout-based flag resets** to handle async completion
         setMoveState(null);
       }
       
@@ -1943,18 +1992,23 @@ const useCanvasStore = create<CanvasState>((set) => ({
 
 **If any checkbox above is unchecked, your work is not finished!**
 
-## Current Architecture Status (Phase 1.5 Refactoring):
-🚨 **CRITICAL**: The canvas system has been refactored following a Context + Hooks pattern.
+## Current Architecture Status (Enhanced September 8, 2025):
+🚨 **LATEST**: Animation Timeline Undo/Redo Integration Complete
 
-**Always check DEVELOPMENT.md for current refactoring status before modifying canvas-related code.**
+**Major Enhancement**: All animation timeline operations now support comprehensive undo/redo functionality with unified history management.
 
-**Current State** (Updated Sept 5, 2025):
+**Current State** (Updated Sept 8, 2025):
+- ✅ **Enhanced History System**: Unified timeline for canvas and animation actions with frame operation synchronization
+- ✅ **Animation Undo/Redo**: Add frame, duplicate, delete, reorder, duration/name changes fully supported
+- ✅ **useAnimationHistory Hook**: Clean API for history-enabled animation operations  
+- ✅ **Frame Synchronization Guards**: Race condition prevention with operation flags (isDeletingFrame, isDraggingFrame)
+- ✅ **Professional Workflow**: Industry-standard undo/redo behavior across all operations without data corruption
 - ✅ Canvas Context & State extracted (Step 1 complete)  
 - ✅ Mouse Interaction Logic extracted to Hooks (Step 2 complete)
 - ✅ Rendering split into focused hook (Step 3 complete)
 - ✅ Tool-specific components (Step 4 complete)
 - ✅ Performance Optimizations - Memoization (Step 5.1 complete)
-- ✅ Enhanced Paste Functionality with Visual Preview (Sept 3, 2025)
+- ✅ **Enhanced Paste Functionality with Visual Preview** (Sept 3, 2025)
 - ✅ **Ellipse Tool Implementation** - Complete drag-based ellipse drawing tool (Sept 3, 2025)
 - ✅ **Shift Key Aspect Ratio Locking** - Rectangle and ellipse tools support Shift for squares/circles (Sept 3, 2025)
 - ✅ **Enhanced Pencil Tool** - Shift+click line drawing with Bresenham algorithm (Sept 3, 2025)

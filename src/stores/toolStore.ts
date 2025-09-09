@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Tool, ToolState, Selection, LassoSelection, MagicWandSelection, TextToolState } from '../types';
+import type { Tool, ToolState, Selection, LassoSelection, MagicWandSelection, TextToolState, AnyHistoryAction, CanvasHistoryAction } from '../types';
 import { DEFAULT_COLORS } from '../constants';
 
 interface ToolStoreState extends ToolState {
@@ -27,9 +27,9 @@ interface ToolStoreState extends ToolState {
   // Magic wand clipboard for copy/paste
   magicWandClipboard: Map<string, any> | null;
   
-  // History for undo/redo
-  undoStack: Map<string, any>[];
-  redoStack: Map<string, any>[];
+  // Enhanced history for undo/redo
+  historyStack: AnyHistoryAction[];
+  historyPosition: number; // Current position in history stack (-1 = no history)
   maxHistorySize: number;
   
   // Animation playback state
@@ -91,12 +91,11 @@ interface ToolStoreState extends ToolState {
   setLineStartX: (x: number) => void;
   commitWord: () => void;
   
-  // History actions
-  pushToHistory: (canvasData: Map<string, any>) => void;
-  undo: () => Map<string, any> | undefined;
-  redo: () => Map<string, any> | undefined;
-  addToRedoStack: (canvasData: Map<string, any>) => void;
-  addToUndoStack: (canvasData: Map<string, any>) => void;
+  // Enhanced history actions
+  pushToHistory: (action: AnyHistoryAction) => void;
+  pushCanvasHistory: (canvasData: Map<string, any>, frameIndex: number, description?: string) => void;
+  undo: () => AnyHistoryAction | undefined;
+  redo: () => AnyHistoryAction | undefined;
   clearHistory: () => void;
   canUndo: () => boolean;
   canRedo: () => boolean;
@@ -163,9 +162,9 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   // Magic wand clipboard state
   magicWandClipboard: null,
   
-  // History state
-  undoStack: [],
-  redoStack: [],
+  // Enhanced history for undo/redo
+  historyStack: [],
+  historyPosition: -1,
   maxHistorySize: 50,
 
   // Tool actions
@@ -455,88 +454,85 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     return get().magicWandClipboard !== null && get().magicWandClipboard!.size > 0;
   },
 
-  // History actions
-  pushToHistory: (canvasData: Map<string, any>) => {
+  // Enhanced history actions
+  pushToHistory: (action: AnyHistoryAction) => {
     set((state) => {
-      const newUndoStack = [...state.undoStack];
+      const newHistoryStack = [...state.historyStack];
       
-      // Add current state to undo stack
-      newUndoStack.push(new Map(canvasData));
+      // If we're not at the end of history, truncate everything after current position
+      if (state.historyPosition < newHistoryStack.length - 1) {
+        newHistoryStack.splice(state.historyPosition + 1);
+      }
+      
+      // Add new action to history
+      newHistoryStack.push(action);
       
       // Limit history size
-      if (newUndoStack.length > state.maxHistorySize) {
-        newUndoStack.shift();
+      if (newHistoryStack.length > state.maxHistorySize) {
+        newHistoryStack.shift();
       }
       
       return {
-        undoStack: newUndoStack,
-        redoStack: [] // Clear redo stack when new action is performed
+        historyStack: newHistoryStack,
+        historyPosition: newHistoryStack.length - 1
       };
     });
   },
 
+  pushCanvasHistory: (canvasData: Map<string, any>, frameIndex: number, description: string = 'Canvas edit') => {
+    const action: CanvasHistoryAction = {
+      type: 'canvas_edit',
+      timestamp: Date.now(),
+      description,
+      data: {
+        canvasData: new Map(canvasData),
+        frameIndex
+      }
+    };
+    get().pushToHistory(action);
+  },
+
   undo: () => {
-    const { undoStack } = get();
+    const { historyStack, historyPosition } = get();
     
-    if (undoStack.length === 0) return undefined;
+    if (historyPosition < 0) return undefined;
     
-    // Get the previous state (what we want to restore)
-    const previousState = undoStack[undoStack.length - 1];
-    const newUndoStack = undoStack.slice(0, -1);
-    
-    // Note: We need the current state to be passed from the caller
-    // The redo stack will be updated when setCanvasData is called
+    const action = historyStack[historyPosition];
     
     set({
-      undoStack: newUndoStack,
-      // Don't modify redoStack here - let the caller handle it
+      historyPosition: historyPosition - 1
     });
     
-    return previousState;
+    return action;
   },
 
   redo: () => {
-    const { redoStack } = get();
+    const { historyStack, historyPosition } = get();
     
-    if (redoStack.length === 0) return undefined;
+    if (historyPosition >= historyStack.length - 1) return undefined;
     
-    // Get the next state (what we want to restore)
-    const nextState = redoStack[redoStack.length - 1];
-    const newRedoStack = redoStack.slice(0, -1);
-    
-    // Note: We need the current state to be passed from the caller
-    // The undo stack will be updated when setCanvasData is called
+    const nextPosition = historyPosition + 1;
+    const action = historyStack[nextPosition];
     
     set({
-      redoStack: newRedoStack,
-      // Don't modify undoStack here - let the caller handle it
+      historyPosition: nextPosition
     });
     
-    return nextState;
-  },
-
-  // Helper function to update the opposite stack when undo/redo is performed
-  addToRedoStack: (canvasData: Map<string, any>) => {
-    set((state) => ({
-      redoStack: [...state.redoStack, new Map(canvasData)]
-    }));
-  },
-
-  addToUndoStack: (canvasData: Map<string, any>) => {
-    set((state) => ({
-      undoStack: [...state.undoStack, new Map(canvasData)]
-    }));
+    return action;
   },
 
   clearHistory: () => {
     set({
-      undoStack: [],
-      redoStack: []
+      historyStack: [],
+      historyPosition: -1
     });
   },
 
-  canUndo: () => get().undoStack.length > 0,
-  canRedo: () => get().redoStack.length > 0,
+  canUndo: () => get().historyPosition >= 0,
+  canRedo: () => {
+    const { historyStack, historyPosition } = get();
+    return historyPosition < historyStack.length - 1;
+  },
   
   // Text tool actions
   startTyping: (x: number, y: number) => {

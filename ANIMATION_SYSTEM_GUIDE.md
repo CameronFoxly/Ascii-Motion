@@ -1,6 +1,113 @@
 # Animation System Implementation Guide
 
-## Quick Reference for Onion Skinning Development
+## Enhanced Undo/Redo System (NEW - September 2025)
+
+### Animation Timeline Actions Now Support Undo/Redo ✅
+
+The animation system has been enhanced with comprehensive undo/redo support for all timeline actions:
+
+#### **Supported Undoable Actions:**
+- ✅ **Add Frame** - Create new frames with automatic history recording
+- ✅ **Duplicate Frame** - Copy existing frames with full undo support
+- ✅ **Delete Frame** - Remove frames with restoration capability
+- ✅ **Reorder Frames** - Drag-and-drop reordering with position tracking
+- ✅ **Update Frame Duration** - Change frame timing with history
+- ✅ **Update Frame Name** - Rename frames with undo support
+
+#### **Enhanced History Architecture:**
+
+**New History Types:**
+```typescript
+export type HistoryActionType = 
+  | 'canvas_edit'      // Canvas cell modifications
+  | 'add_frame'        // Add new frame
+  | 'duplicate_frame'  // Duplicate existing frame
+  | 'delete_frame'     // Delete frame
+  | 'reorder_frames'   // Reorder frame positions
+  | 'update_duration'  // Change frame duration
+  | 'update_name';     // Change frame name
+```
+
+**Unified History Management:**
+- Single history stack for both canvas and animation actions
+- Position-based navigation (no separate undo/redo stacks)
+- Action-specific metadata for precise restoration
+- Comprehensive frame state tracking
+
+#### **Developer Integration:**
+
+**useAnimationHistory Hook:**
+```typescript
+import { useAnimationHistory } from '../hooks/useAnimationHistory';
+
+// In components:
+const {
+  addFrame,        // History-enabled frame creation
+  duplicateFrame,  // History-enabled frame duplication
+  removeFrame,     // History-enabled frame deletion
+  reorderFrames,   // History-enabled frame reordering
+  updateFrameDuration, // History-enabled duration changes
+  updateFrameName     // History-enabled name changes
+} = useAnimationHistory();
+
+// Usage (automatic history recording):
+addFrame(currentFrameIndex + 1);           // Creates frame + history entry
+duplicateFrame(selectedFrameIndex);        // Duplicates frame + history entry
+updateFrameDuration(frameIndex, newDuration); // Updates duration + history entry
+```
+
+**Automatic History Processing:**
+- All animation actions automatically record to unified history
+- Undo/Redo operations restore full animation state
+- Frame navigation updates correctly on undo/redo
+- Canvas state syncs with frame changes during history navigation
+
+#### **User Experience Benefits:**
+
+1. **Complete Workflow Protection** - No accidental loss of animation work
+2. **Confidence in Experimentation** - Users can try frame operations freely
+3. **Professional Animation Tools** - Industry-standard undo/redo behavior
+4. **Mixed Operation Support** - Undo works across canvas and timeline actions
+5. **Granular History** - Each operation is separately undoable
+
+#### **Technical Implementation:**
+
+**History Action Processing:**
+```typescript
+const processHistoryAction = (action: AnyHistoryAction, isRedo: boolean) => {
+  switch (action.type) {
+    case 'add_frame':
+      if (isRedo) {
+        animationStore.addFrame(action.data.frameIndex, action.data.canvasData);
+      } else {
+        animationStore.removeFrame(action.data.frameIndex);
+        animationStore.setCurrentFrame(action.data.previousCurrentFrame);
+      }
+      break;
+    // ... other action types
+  }
+};
+```
+
+**Integration Points:**
+- `AnimationTimeline.tsx` - Uses `useAnimationHistory` hook
+- `FrameThumbnail.tsx` - Duration changes recorded automatically  
+- `FrameControls.tsx` - All frame operations history-enabled
+- `useKeyboardShortcuts.ts` - Enhanced undo/redo with action type support
+
+#### **Keyboard Shortcuts:**
+- **Cmd/Ctrl + Z** - Undo (works for both canvas and animation actions)
+- **Cmd/Ctrl + Shift + Z** - Redo (works for both canvas and animation actions)
+
+#### **Future Enhancements:**
+- Frame restoration from deletion (currently logged as TODO)
+- Canvas action history migration (in progress)
+- History visualization UI
+- Action grouping for complex operations
+
+This enhancement provides a solid foundation for professional animation workflows while maintaining the performance and reliability of the existing system.
+
+# Original Animation System Implementation Guide
 
 ### Core Data Access
 

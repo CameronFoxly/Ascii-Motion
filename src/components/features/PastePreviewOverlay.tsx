@@ -1,7 +1,6 @@
 import React from 'react';
 import { useCanvasContext } from '../../contexts/CanvasContext';
 import { useCanvasStore } from '../../stores/canvasStore';
-import { getFontString } from '../../utils/fontMetrics';
 
 /**
  * Component that renders paste preview overlay on the canvas

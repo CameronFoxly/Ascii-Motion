@@ -17,7 +17,12 @@ export const useFrameSynchronization = (
     baseOffset: { x: number; y: number };
     currentOffset: { x: number; y: number };
   } | null,
-  setMoveStateParam?: React.Dispatch<React.SetStateAction<typeof moveStateParam>>
+  setMoveStateParam?: React.Dispatch<React.SetStateAction<{ 
+    originalData: Map<string, Cell>;
+    startPos: { x: number; y: number };
+    baseOffset: { x: number; y: number };
+    currentOffset: { x: number; y: number };
+  } | null>>
 ) => {
   const { cells, setCanvasData, width, height } = useCanvasStore();
   const { 
@@ -26,7 +31,8 @@ export const useFrameSynchronization = (
     getFrameData, 
     getCurrentFrame,
     isPlaying,
-    isDraggingFrame
+    isDraggingFrame,
+    isDeletingFrame
   } = useAnimationStore();
   
   // Get selection state and clearing functions  
@@ -45,17 +51,17 @@ export const useFrameSynchronization = (
 
   // Auto-save current canvas to current frame whenever canvas changes
   const saveCurrentCanvasToFrame = useCallback(() => {
-    if (isLoadingFrameRef.current || isPlaying || isDraggingFrame) return; // Don't save during frame loading, playback, or dragging
+    if (isLoadingFrameRef.current || isPlaying || isDraggingFrame || isDeletingFrame) return; // Don't save during frame loading, playback, dragging, or deletion
     
     // Add small delay to prevent race conditions during frame reordering
     setTimeout(() => {
-      if (isLoadingFrameRef.current || isPlaying || isDraggingFrame) return;
+      if (isLoadingFrameRef.current || isPlaying || isDraggingFrame || isDeletingFrame) return;
       
       const currentCells = new Map(cells);
       setFrameData(currentFrameIndex, currentCells);
       lastCellsRef.current = currentCells;
     }, 50);
-  }, [cells, currentFrameIndex, setFrameData, isPlaying, isDraggingFrame]);
+  }, [cells, currentFrameIndex, setFrameData, isPlaying, isDraggingFrame, isDeletingFrame]);
 
   // Load frame data into canvas when frame changes
   const loadFrameToCanvas = useCallback((frameIndex: number) => {
@@ -132,7 +138,7 @@ export const useFrameSynchronization = (
       }
       
       // Save current canvas (with committed moves) to the frame we're leaving
-      if (!isPlaying && !isLoadingFrameRef.current && !isDraggingFrame) {
+      if (!isPlaying && !isLoadingFrameRef.current && !isDraggingFrame && !isDeletingFrame) {
         setFrameData(previousFrameIndex, currentCellsToSave);
       }
       
@@ -141,11 +147,11 @@ export const useFrameSynchronization = (
       
       lastFrameIndexRef.current = currentFrameIndex;
     }
-  }, [currentFrameIndex, cells, setFrameData, loadFrameToCanvas, isPlaying, isDraggingFrame, moveStateParam, setMoveStateParam, selection.active, lassoSelection.active, magicWandSelection.active, clearSelection, clearLassoSelection, clearMagicWandSelection]);
+  }, [currentFrameIndex, cells, setFrameData, loadFrameToCanvas, isPlaying, isDraggingFrame, isDeletingFrame, moveStateParam, setMoveStateParam, selection.active, lassoSelection.active, magicWandSelection.active, clearSelection, clearLassoSelection, clearMagicWandSelection]);
 
   // Auto-save canvas changes to current frame (debounced)
   useEffect(() => {
-    if (isLoadingFrameRef.current || isPlaying || isDraggingFrame) return;
+    if (isLoadingFrameRef.current || isPlaying || isDraggingFrame || isDeletingFrame) return;
     
     // Check if cells actually changed to avoid unnecessary saves
     const currentCellsString = JSON.stringify(Array.from(cells.entries()).sort());
@@ -161,7 +167,7 @@ export const useFrameSynchronization = (
       
       return () => clearTimeout(timeoutId);
     }
-  }, [cells, saveCurrentCanvasToFrame, isPlaying, isDraggingFrame]);
+  }, [cells, saveCurrentCanvasToFrame, isPlaying, isDraggingFrame, isDeletingFrame]);
 
   // Initialize first frame with current canvas data if empty
   useEffect(() => {

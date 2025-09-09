@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useCanvasContext, useCanvasDimensions } from '../contexts/CanvasContext';
 import { useCanvasStore } from '../stores/canvasStore';
+import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
 import { useDrawingTool } from './useDrawingTool';
 import { useCanvasState } from './useCanvasState';
@@ -13,12 +14,13 @@ export const useCanvasDragAndDrop = () => {
   const { canvasRef, isDrawing, setIsDrawing, setMouseButtonDown, shiftKeyDown } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
   const { width, height, cells } = useCanvasStore();
+  const { currentFrameIndex } = useAnimationStore();
   const { 
     selection,
     startSelection,
     updateSelection,
     clearSelection,
-    pushToHistory
+    pushCanvasHistory
   } = useToolStore();
   const { setSelectionMode } = useCanvasState();
   const { drawAtPosition, drawRectangle, drawEllipse, activeTool } = useDrawingTool();
@@ -66,11 +68,11 @@ export const useCanvasDragAndDrop = () => {
     const isShiftClick = shiftKeyDown;
     
     // Save current state for undo
-    pushToHistory(new Map(cells));
+    pushCanvasHistory(new Map(cells), currentFrameIndex);
     setMouseButtonDown(true);
     setIsDrawing(true);
     handleDrawing(x, y, isShiftClick, true); // Mark as first stroke
-  }, [getGridCoordinatesFromEvent, cells, pushToHistory, setMouseButtonDown, setIsDrawing, handleDrawing, shiftKeyDown]);
+  }, [getGridCoordinatesFromEvent, cells, pushCanvasHistory, currentFrameIndex, setMouseButtonDown, setIsDrawing, handleDrawing, shiftKeyDown]);
 
   // Handle drawing tool mouse move
   const handleDrawingMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -86,13 +88,13 @@ export const useCanvasDragAndDrop = () => {
     const { x, y } = getGridCoordinatesFromEvent(event);
     
     // Save current state for undo
-    pushToHistory(new Map(cells));
+    pushCanvasHistory(new Map(cells), currentFrameIndex);
     
     // Start selection for rectangle bounds
     startSelection(x, y);
     setSelectionMode('dragging');
     setMouseButtonDown(true);
-  }, [getGridCoordinatesFromEvent, cells, pushToHistory, startSelection, setSelectionMode, setMouseButtonDown]);
+  }, [getGridCoordinatesFromEvent, cells, pushCanvasHistory, currentFrameIndex, startSelection, setSelectionMode, setMouseButtonDown]);
 
   // Handle rectangle tool mouse move  
   const handleRectangleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -123,13 +125,13 @@ export const useCanvasDragAndDrop = () => {
     const { x, y } = getGridCoordinatesFromEvent(event);
     
     // Save current state for undo
-    pushToHistory(new Map(cells));
+    pushCanvasHistory(new Map(cells), currentFrameIndex);
     
     // Start selection for ellipse bounds
     startSelection(x, y);
     setSelectionMode('dragging');
     setMouseButtonDown(true);
-  }, [getGridCoordinatesFromEvent, cells, pushToHistory, startSelection, setSelectionMode, setMouseButtonDown]);
+  }, [getGridCoordinatesFromEvent, cells, pushCanvasHistory, currentFrameIndex, startSelection, setSelectionMode, setMouseButtonDown]);
 
   // Handle ellipse tool mouse move (same as rectangle with aspect ratio constraint)
   const handleEllipseMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
