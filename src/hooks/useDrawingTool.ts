@@ -70,25 +70,19 @@ export const useDrawingTool = () => {
     switch (activeTool) {
       case 'pencil': {
         if (isShiftClick && pencilLastPosition) {
-          // Draw line from last position to current position
+          // Shift+click: Draw line from last position to current position
           drawLine(pencilLastPosition.x, pencilLastPosition.y, x, y);
         } else {
-          // Check if we need to draw a connecting line for continuous drawing
-          if (!isFirstStroke && pencilLastPosition && 
-              (Math.abs(x - pencilLastPosition.x) > 1 || Math.abs(y - pencilLastPosition.y) > 1)) {
-            // Draw line to connect previous position to current position for smooth drawing
-            drawLine(pencilLastPosition.x, pencilLastPosition.y, x, y);
-          } else {
-            // Normal pencil drawing - draw single point
-            const newCell: Cell = {
-              char: selectedChar,
-              color: selectedColor,
-              bgColor: selectedBgColor
-            };
-            setCell(x, y, newCell);
-          }
+          // Normal pencil drawing - draw single point
+          const newCell: Cell = {
+            char: selectedChar,
+            color: selectedColor,
+            bgColor: selectedBgColor
+          };
+          setCell(x, y, newCell);
         }
-        // Update last position for next potential line
+        
+        // Update position for potential shift+click line drawing
         setPencilLastPosition({ x, y });
         break;
       }

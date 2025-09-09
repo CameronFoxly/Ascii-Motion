@@ -107,12 +107,45 @@ All new tools must follow the established 9-step pattern documented in COPILOT_I
 - **Follow shadcn styling** guidelines for UI components
 - **Include status messages** for user feedback
 
+#### **🚨 CRITICAL: Drawing Tool Development Patterns**
+When modifying drawing tools or mouse handlers, follow these architectural principles to prevent breaking shift+click and other discrete drawing behaviors:
+
+**State Management Rules:**
+- **Pencil position persists** across mouse up events for shift+click functionality
+- **Reset position only** when switching away from pencil tool
+- **Tool-specific cleanup** in mouse handlers (not blanket resets)
+
+**Behavioral Separation:**
+- **Gap-filling logic** → Only in mouse move handlers during drag operations
+- **Shift+click logic** → Only in mouse down handlers with shift detection  
+- **Never mix** these two drawing behaviors in the same handler
+
+**Critical Files & Responsibilities:**
+- `useCanvasDragAndDrop.ts` → Mouse move gap-filling during drag
+- `useDrawingTool.ts` → Shift+click line drawing between points
+- `useCanvasMouseHandlers.ts` → Tool-specific state cleanup
+- `toolStore.ts` → Pencil position persistence and tool switching
+
+**Testing Requirements for Drawing Changes:**
+- [ ] Normal single clicks place individual points
+- [ ] Drag drawing creates smooth lines without gaps
+- [ ] Shift+click draws lines between discrete points
+- [ ] Tool switching doesn't create unwanted connections
+- [ ] Canvas leave/enter doesn't break drawing state
+
+**⚠️ Common Mistakes That Break Drawing:**
+- Adding gap-filling to mouse down events
+- Resetting pencil position on every mouse up
+- Using isFirstStroke for both continuous and discrete drawing
+- Mixing drag behavior with click behavior in same handler
+
 #### **Benefits of Following Guidelines:**
 - ✅ Automatic hotkey integration and tooltip enhancement
 - ✅ Text input protection for your hotkey
 - ✅ Professional tool behavior matching industry standards
 - ✅ Consistent architectural patterns
 - ✅ Easy maintenance and future updates
+- ✅ **Reliable drawing functionality** that doesn't break with future changes
 
 ### **🚨 MANDATORY: Dropdown Menu Best Practices**
 When implementing dropdown menus or overlays in ASCII Motion, follow these patterns to prevent layering issues:

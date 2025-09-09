@@ -5,6 +5,7 @@ import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
 import { useDrawingTool } from './useDrawingTool';
 import { useCanvasState } from './useCanvasState';
+import type { Cell } from '../types';
 
 /**
  * Hook for handling drag and drop operations on the canvas
@@ -13,7 +14,7 @@ import { useCanvasState } from './useCanvasState';
 export const useCanvasDragAndDrop = () => {
   const { canvasRef, isDrawing, setIsDrawing, setMouseButtonDown, shiftKeyDown } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
-  const { width, height, cells } = useCanvasStore();
+  const { width, height, cells, setCell, clearCell } = useCanvasStore();
   const { currentFrameIndex } = useAnimationStore();
   const { 
     selection,
@@ -45,6 +46,53 @@ export const useCanvasDragAndDrop = () => {
     return { x: constrainedX, y: constrainedY };
   }, [shiftKeyDown]);
 
+  // Bresenham line algorithm for gap filling during drag operations
+  const getLinePoints = useCallback((x0: number, y0: number, x1: number, y1: number) => {
+    const points: { x: number; y: number }[] = [];
+    
+    const dx = Math.abs(x1 - x0);
+    const dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1;
+    const sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy;
+    
+    let x = x0;
+    let y = y0;
+    
+    while (true) {
+      points.push({ x, y });
+      
+      if (x === x1 && y === y1) break;
+      
+      const e2 = 2 * err;
+      if (e2 > -dy) {
+        err -= dy;
+        x += sx;
+      }
+      if (e2 < dx) {
+        err += dx;
+        y += sy;
+      }
+    }
+    
+    return points;
+  }, []);
+
+  // Draw a line between two points for gap filling
+  const drawLineForGapFilling = useCallback((x0: number, y0: number, x1: number, y1: number) => {
+    const { selectedChar, selectedColor, selectedBgColor } = useToolStore.getState();
+    const newCell: Cell = {
+      char: selectedChar,
+      color: selectedColor,
+      bgColor: selectedBgColor
+    };
+    
+    const points = getLinePoints(x0, y0, x1, y1);
+    points.forEach(({ x, y }) => {
+      setCell(x, y, newCell);
+    });
+  }, [getLinePoints, setCell]);
+
   // Convert mouse coordinates to grid coordinates
   const getGridCoordinatesFromEvent = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -71,7 +119,10 @@ export const useCanvasDragAndDrop = () => {
     pushCanvasHistory(new Map(cells), currentFrameIndex);
     setMouseButtonDown(true);
     setIsDrawing(true);
-    handleDrawing(x, y, isShiftClick, true); // Mark as first stroke
+    
+    // Always treat mouse down as first stroke - this prevents connecting separate clicks
+    // The gap-filling logic in mouse move will handle continuous drawing smoothness
+    handleDrawing(x, y, isShiftClick, true);
   }, [getGridCoordinatesFromEvent, cells, pushCanvasHistory, currentFrameIndex, setMouseButtonDown, setIsDrawing, handleDrawing, shiftKeyDown]);
 
   // Handle drawing tool mouse move
@@ -79,9 +130,32 @@ export const useCanvasDragAndDrop = () => {
     const { x, y } = getGridCoordinatesFromEvent(event);
     
     if (isDrawing && (activeTool === 'pencil' || activeTool === 'eraser')) {
-      handleDrawing(x, y, false, false); // Continuous stroke, not first
+      // For drag operations, we want gap-filling to ensure smooth lines
+      const { pencilLastPosition } = useToolStore.getState();
+      
+      if (pencilLastPosition && 
+          (Math.abs(x - pencilLastPosition.x) > 1 || Math.abs(y - pencilLastPosition.y) > 1)) {
+        // Large distance during drag - fill the gap with a line
+        if (activeTool === 'pencil') {
+          // Use gap-filling line drawing for pencil
+          drawLineForGapFilling(pencilLastPosition.x, pencilLastPosition.y, x, y);
+        } else if (activeTool === 'eraser') {
+          // For eraser, clear cells along the line
+          const points = getLinePoints(pencilLastPosition.x, pencilLastPosition.y, x, y);
+          points.forEach(({ x: px, y: py }: { x: number; y: number }) => {
+            clearCell(px, py);
+          });
+        }
+        
+        // Update position after gap-filling
+        const { setPencilLastPosition } = useToolStore.getState();
+        setPencilLastPosition({ x, y });
+      } else {
+        // Normal drag drawing - use regular drawing function
+        handleDrawing(x, y, false, false); // Continuous stroke, not first
+      }
     }
-  }, [getGridCoordinatesFromEvent, isDrawing, activeTool, handleDrawing]);
+  }, [getGridCoordinatesFromEvent, isDrawing, activeTool, handleDrawing, drawLineForGapFilling, getLinePoints, clearCell]);
 
   // Handle rectangle tool mouse down
   const handleRectangleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {

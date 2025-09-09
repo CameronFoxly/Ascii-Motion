@@ -264,9 +264,12 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
           setIsDrawing(false);
           setMouseButtonDown(false);
           
-          // Reset pencil position to prevent unwanted connecting lines on next stroke
-          const { setPencilLastPosition } = useToolStore.getState();
-          setPencilLastPosition(null);
+          // Reset pencil position only for non-pencil tools to prevent unwanted connecting lines
+          // Pencil position will be managed separately to support shift+click line drawing
+          if (activeTool !== 'pencil') {
+            const { setPencilLastPosition } = useToolStore.getState();
+            setPencilLastPosition(null);
+          }
           break;
       }
     }

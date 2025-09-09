@@ -1,27 +1,47 @@
-# Drawing Tool Gap-Filling Fix
+# Drawing Tool Architecture: Gap-Filling & Shift+Click Line Drawing
 
-## Problem Identified ❌
-Fast mouse movements with drawing tools (pencil/eraser) were creating gaps instead of continuous lines. This occurred because:
+## Problem History ❌
+1. **Original Issue**: Fast mouse movements created gaps in continuous drawing
+2. **Initial Fix**: Added gap-filling logic to all drawing operations  
+3. **Regression**: Gap-filling logic broke shift+click line drawing functionality
+4. **Root Cause**: Conflated continuous drawing (drag) with discrete drawing (shift+click)
 
-1. **Mouse events aren't frequent enough** for very fast movements
-2. **Drawing tools only placed single points** instead of interpolating between positions  
-3. **No line interpolation** between consecutive mouse move events
-4. **Performance optimizations** inadvertently highlighted this existing issue
+## Current Solution ✅
 
-## Solution Implemented ✅
+### **Separated Drawing Behaviors**
+Drawing functionality is now properly separated into two distinct modes:
 
-### **Line Interpolation System**
-Drawing tools now automatically draw connecting lines between mouse positions when the distance is greater than 1 cell.
+#### **1. Continuous Drawing (Mouse Drag)**
+- **Location**: `src/hooks/useCanvasDragAndDrop.ts` - `handleDrawingMouseMove`
+- **Trigger**: Mouse move events during active drawing (`isDrawing = true`)
+- **Behavior**: Automatic gap-filling with line interpolation
+- **Purpose**: Smooth lines during fast mouse movements
 
-#### **Enhanced Drawing Logic** (`src/hooks/useDrawingTool.ts`)
+#### **2. Discrete Drawing (Shift+Click Lines)**  
+- **Location**: `src/hooks/useDrawingTool.ts` - `drawAtPosition`
+- **Trigger**: Mouse down events with shift key held
+- **Behavior**: Direct line drawing between stored and current position
+- **Purpose**: Intentional straight line drawing between points
+
+### **Implementation Details**
+
+#### **Gap-Filling Logic** (`src/hooks/useCanvasDragAndDrop.ts`)
 ```typescript
-// Before: Only single point drawing
-setCell(x, y, newCell);
+// ONLY applies during mouse drag operations
+if (isDrawing && (activeTool === 'pencil' || activeTool === 'eraser')) {
+  if (pencilLastPosition && 
+      (Math.abs(x - pencilLastPosition.x) > 1 || Math.abs(y - pencilLastPosition.y) > 1)) {
+    // Fill gaps during continuous drawing
+    drawLineForGapFilling(pencilLastPosition.x, pencilLastPosition.y, x, y);
+  }
+}
+```
 
-// After: Intelligent line interpolation  
-if (!isFirstStroke && pencilLastPosition && 
-    (Math.abs(x - pencilLastPosition.x) > 1 || Math.abs(y - pencilLastPosition.y) > 1)) {
-  // Draw line to connect previous position to current position
+#### **Shift+Click Logic** (`src/hooks/useDrawingTool.ts`)
+```typescript
+// Simple, clean logic for discrete clicks
+if (isShiftClick && pencilLastPosition) {
+  // Draw line from last position to current position
   drawLine(pencilLastPosition.x, pencilLastPosition.y, x, y);
 } else {
   // Normal single point drawing
@@ -29,44 +49,66 @@ if (!isFirstStroke && pencilLastPosition &&
 }
 ```
 
-#### **Stroke State Tracking** (`src/hooks/useCanvasDragAndDrop.ts`)
-- **First stroke**: Initial mouse down - places single point
-- **Continuous strokes**: Mouse move events - draws connecting lines when needed
-- **Proper cleanup**: Resets position tracking on mouse up/leave
-
-#### **Eraser Enhancement**
-- **Same interpolation logic** applied to eraser tool
-- **Line-based erasing** for smooth, gap-free erasing
-- **Consistent behavior** with pencil tool
-
-### **State Management Improvements**
-
-#### **Position Tracking Reset** (`src/hooks/useCanvasMouseHandlers.ts`)
-```typescript
-// Reset pencil position on mouse up/leave to prevent unwanted connections
-const { setPencilLastPosition } = useToolStore.getState();
-setPencilLastPosition(null);
-```
-
 #### **Tool Switching Cleanup**
 - Position resets when switching tools
 - Prevents accidental line connections between different drawing sessions
 - Clean state for each new stroke
 
-## Technical Details
+### **State Management**
 
-### **Bresenham Line Algorithm**
-Uses the existing `getLinePoints()` function that implements Bresenham's line algorithm for smooth, pixel-perfect lines between any two points.
+#### **Position Tracking** (`src/stores/toolStore.ts`)
+```typescript
+// Pencil position persists across mouse up events for shift+click functionality
+pencilLastPosition: { x: number; y: number } | null
+```
 
-### **Distance Threshold**  
-- **Threshold**: 1 cell distance
-- **Logic**: If current position is more than 1 cell away from last position, draw connecting line
-- **Performance**: Minimal overhead, only calculates when needed
+#### **Reset Logic** (`src/hooks/useCanvasMouseHandlers.ts`)
+```typescript
+// Only reset pencil position for non-pencil tools
+if (activeTool !== 'pencil') {
+  const { setPencilLastPosition } = useToolStore.getState();
+  setPencilLastPosition(null);
+}
+```
 
-### **State Lifecycle**
-1. **Mouse Down**: Mark as first stroke, place initial point
-2. **Mouse Move**: Check distance, interpolate if needed  
-3. **Mouse Up/Leave**: Reset position tracking
+#### **Tool Switching Reset** (`src/stores/toolStore.ts`)
+```typescript
+// Reset pencil position when switching away from pencil tool
+if (tool !== 'pencil') {
+  get().setPencilLastPosition(null);
+}
+```
+
+## Key Architecture Principles
+
+### **🚨 Critical: Separation of Concerns**
+1. **Gap-filling**: Only in mouse move handlers during active drawing
+2. **Shift+click lines**: Only in mouse down handlers with shift detection
+3. **Never mix**: These two behaviors should remain completely separate
+
+### **🔧 State Management Rules**
+1. **Pencil position persists**: Across mouse up events for pencil tool only
+2. **Reset on tool switch**: Always clear when switching away from pencil
+3. **Reset on canvas leave**: Clear when mouse leaves canvas area
+
+### **⚠️ Common Pitfalls to Avoid**
+1. **Don't add gap-filling to mouse down events** - breaks shift+click
+2. **Don't reset pencil position on every mouse up** - breaks line drawing
+3. **Don't use isFirstStroke for both behaviors** - causes conflicts
+
+## Testing Checklist
+
+- [ ] **Normal drawing**: Single clicks place individual points
+- [ ] **Drag drawing**: Fast movements create smooth lines (no gaps)  
+- [ ] **Shift+click**: Lines drawn between discrete click points
+- [ ] **Tool switching**: No unwanted connections after switching tools
+- [ ] **Canvas leave/enter**: No unwanted connections after re-entering
+
+## Performance Impact
+
+- ✅ **Minimal overhead**: Gap-filling only during drag operations
+- ✅ **Clean separation**: No interference between drawing modes
+- ✅ **Professional feel**: Both continuous and discrete drawing work perfectly
 
 ## Expected Results ✅
 

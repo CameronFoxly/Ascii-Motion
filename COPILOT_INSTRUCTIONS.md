@@ -203,6 +203,35 @@ button { /* This overrides shadcn button styling */ }
 
 **📋 REMINDER: After implementing ANY new tool, update both COPILOT_INSTRUCTIONS.md and DEVELOPMENT.md per the protocol above.**
 
+## 🚨 **CRITICAL: Modifying Drawing Tools & Mouse Handlers**
+
+**⚠️ DANGER ZONE: Changes to these files can break shift+click line drawing and other core drawing functionality.**
+
+### **Before Modifying Drawing-Related Code:**
+
+**MANDATORY Reading**: See `DRAWING_GAP_FIX.md` for complete architecture details.
+
+**Files That Require Extreme Caution:**
+- `useCanvasDragAndDrop.ts` → Mouse move gap-filling during drag
+- `useDrawingTool.ts` → Shift+click line drawing between points  
+- `useCanvasMouseHandlers.ts` → Tool-specific state cleanup
+- `toolStore.ts` → Pencil position persistence and tool switching
+
+### **🔥 NON-NEGOTIABLE Rules for Drawing Changes:**
+
+1. **NEVER add gap-filling logic to mouse down handlers** → Breaks shift+click
+2. **NEVER reset pencil position on every mouse up** → Breaks line drawing
+3. **ALWAYS separate drag vs click behaviors** → Different handlers entirely
+4. **ALWAYS test all drawing modes** after changes → See testing checklist in DRAWING_GAP_FIX.md
+
+### **⚠️ Architectural Separation Requirements:**
+- **Gap-filling**: Only in `handleDrawingMouseMove` during active drawing
+- **Shift+click**: Only in `drawAtPosition` with shift detection
+- **State cleanup**: Tool-specific in mouse handlers (not blanket resets)
+- **Position persistence**: Pencil-specific in toolStore
+
+**💥 If you break shift+click functionality, you MUST fix it before proceeding with any other work.**
+
 ## Code Organization Principles
 
 ### 1. Component Architecture
