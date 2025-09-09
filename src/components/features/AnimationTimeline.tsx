@@ -241,7 +241,17 @@ export const AnimationTimeline: React.FC = () => {
       <CardContent className="space-y-2 p-2 pt-0 overflow-hidden">
         {/* Combined Controls Row */}
         <div className="flex items-center justify-between gap-2">
-          {/* Playback Controls - Left Side */}
+          {/* Frame Controls - Left Side */}
+          <FrameControls
+            canAddFrame={frames.length < MAX_LIMITS.FRAME_COUNT}
+            canDeleteFrame={frames.length > 1}
+            onAddFrame={handleAddFrame}
+            onDuplicateFrame={handleDuplicateFrame}
+            onDeleteFrame={handleDeleteFrame}
+            disabled={isPlaying}
+          />
+
+          {/* Playback Controls - Center */}
           <PlaybackControls
             isPlaying={isPlaying}
             canPlay={canPlay}
@@ -256,23 +266,8 @@ export const AnimationTimeline: React.FC = () => {
             isLooping={looping}
           />
 
-          {/* Onion Skin Controls - Center */}
+          {/* Onion Skin Controls - Right Side */}
           <OnionSkinControls />
-
-          {/* Frame Controls - Right Side */}
-          <div className="flex items-center gap-2">
-            <FrameControls
-              canAddFrame={frames.length < MAX_LIMITS.FRAME_COUNT}
-              canDeleteFrame={frames.length > 1}
-              onAddFrame={handleAddFrame}
-              onDuplicateFrame={handleDuplicateFrame}
-              onDeleteFrame={handleDeleteFrame}
-              disabled={isPlaying}
-            />
-            <div className="text-xs text-muted-foreground">
-              {frames.length}/{MAX_LIMITS.FRAME_COUNT}
-            </div>
-          </div>
         </div>
 
         {/* Frame Timeline */}
