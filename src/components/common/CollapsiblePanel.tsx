@@ -51,27 +51,18 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
 
   return (
     <div className={getPanelClasses()}>
-      {side === 'bottom' ? (
-        // Bottom panel: Use wrapper div for content-responsive height
-        <div className="overflow-y-auto max-h-80">
-          <div className="p-4">
-            {children}
-          </div>
-        </div>
-      ) : (
-        // Side panels: Keep existing structure
-        <div 
-          id={`panel-${side}`}
-          className={cn(
-            'h-full p-4 overflow-y-auto',
-            side === 'left' && 'scrollbar-left' // Put scrollbar on left side for left panel
-          )}
-          role="region"
-          aria-label={`${side} panel content`}
-        >
-          {children}
-        </div>
-      )}
+      <div 
+        id={`panel-${side}`}
+        className={cn(
+          'h-full',
+          side === 'bottom' ? 'px-4 pt-4 pb-2' : 'p-4 overflow-y-auto', // Bottom panel has different padding, side panels scroll
+          side === 'left' && 'scrollbar-left' // Put scrollbar on left side for left panel
+        )}
+        role="region"
+        aria-label={`${side} panel content`}
+      >
+        {children}
+      </div>
     </div>
   );
 };
