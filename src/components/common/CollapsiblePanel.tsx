@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { PANEL_ANIMATION } from '@/constants';
 
@@ -17,6 +17,34 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
   className,
   minWidth,
 }) => {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // For bottom panels, update CSS custom property with actual height
+  useEffect(() => {
+    if (side === 'bottom' && panelRef.current && isOpen) {
+      const updateHeight = () => {
+        const height = panelRef.current?.offsetHeight;
+        if (height) {
+          document.documentElement.style.setProperty('--bottom-panel-height', `${height}px`);
+        }
+      };
+
+      // Update height initially and on content changes
+      updateHeight();
+      
+      // Use ResizeObserver to watch for content changes
+      const resizeObserver = new ResizeObserver(updateHeight);
+      resizeObserver.observe(panelRef.current);
+
+      return () => {
+        resizeObserver.disconnect();
+      };
+    } else if (side === 'bottom' && !isOpen) {
+      // When closed, set a minimal height for the visible strip
+      document.documentElement.style.setProperty('--bottom-panel-height', '1.1875rem'); // 19px for toggle button
+    }
+  }, [side, isOpen]);
+
   const getPanelClasses = () => {
     const baseClasses = `relative border-border overflow-hidden ${PANEL_ANIMATION.TRANSITION}`;
     
@@ -41,6 +69,7 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
         return cn(
           baseClasses,
           'border-t bg-background',
+          // Remove fixed height, let content determine size
           isOpen ? 'translate-y-0' : 'translate-y-[calc(100%-1.1875rem)]', // Show 19px for toggle button (h-4 + spacing)
           className
         );
@@ -50,7 +79,7 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
   };
 
   return (
-    <div className={getPanelClasses()}>
+    <div ref={side === 'bottom' ? panelRef : undefined} className={getPanelClasses()}>
       <div 
         id={`panel-${side}`}
         className={cn(
