@@ -64,8 +64,9 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
     setHoveredCell(null); // Clear hover state when mouse leaves canvas
     
     // Reset pencil position to prevent unwanted connecting lines
-    const { setPencilLastPosition } = useToolStore.getState();
+    const { setPencilLastPosition, clearLinePreview } = useToolStore.getState();
     setPencilLastPosition(null);
+    clearLinePreview(); // Clear line preview when mouse leaves canvas
   }, [setIsDrawing, setMouseButtonDown, setHoveredCell]);
 
   // Route mouse down to appropriate tool handler based on effective tool

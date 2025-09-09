@@ -21,7 +21,10 @@ export const useCanvasDragAndDrop = () => {
     startSelection,
     updateSelection,
     clearSelection,
-    pushCanvasHistory
+    pushCanvasHistory,
+    pencilLastPosition,
+    setLinePreview,
+    clearLinePreview
   } = useToolStore();
   const { setSelectionMode } = useCanvasState();
   const { drawAtPosition, drawRectangle, drawEllipse, activeTool } = useDrawingTool();
@@ -155,7 +158,22 @@ export const useCanvasDragAndDrop = () => {
         handleDrawing(x, y, false, false); // Continuous stroke, not first
       }
     }
-  }, [getGridCoordinatesFromEvent, isDrawing, activeTool, handleDrawing, drawLineForGapFilling, getLinePoints, clearCell]);
+    
+    // Handle shift+click line preview for pencil tool
+    if (!isDrawing && activeTool === 'pencil' && shiftKeyDown) {
+      if (pencilLastPosition) {
+        // Generate preview line from last position to current position
+        const previewPoints = getLinePoints(pencilLastPosition.x, pencilLastPosition.y, x, y);
+        setLinePreview(previewPoints);
+      } else {
+        // No last position yet - just highlight the current cell
+        setLinePreview([{ x, y }]);
+      }
+    } else {
+      // Clear preview when conditions not met
+      clearLinePreview();
+    }
+  }, [getGridCoordinatesFromEvent, isDrawing, activeTool, shiftKeyDown, pencilLastPosition, handleDrawing, drawLineForGapFilling, getLinePoints, clearCell, setLinePreview, clearLinePreview]);
 
   // Handle rectangle tool mouse down
   const handleRectangleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {

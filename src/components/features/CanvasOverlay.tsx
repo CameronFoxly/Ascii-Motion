@@ -12,7 +12,7 @@ export const CanvasOverlay: React.FC = () => {
     getTotalOffset,
   } = useCanvasState();
 
-  const { selection, lassoSelection } = useToolStore();
+  const { selection, lassoSelection, linePreview } = useToolStore();
 
   // Render selection overlay
   const renderOverlay = useCallback(() => {
@@ -85,6 +85,24 @@ export const CanvasOverlay: React.FC = () => {
       ctx.setLineDash([]);
     }
 
+    // Draw shift+click line preview
+    if (linePreview.active && linePreview.points.length > 0) {
+      console.log('Rendering line preview:', linePreview.points.length, 'points, cellSize:', cellSize);
+      ctx.fillStyle = 'rgba(168, 85, 247, 0.1)'; // Same purple as lasso selection
+      
+      linePreview.points.forEach(({ x, y }, index) => {
+        if (index < 3) { // Log first few points for debugging
+          console.log(`Rendering point ${index}:`, { x, y }, 'at pixel:', x * cellSize, y * cellSize);
+        }
+        ctx.fillRect(
+          x * cellSize,
+          y * cellSize,
+          cellSize,
+          cellSize
+        );
+      });
+    }
+
     // Draw paste preview overlay
     if (pasteMode.isActive && pasteMode.preview) {
       const { position, data, bounds } = pasteMode.preview;
@@ -148,7 +166,7 @@ export const CanvasOverlay: React.FC = () => {
       });
       ctx.globalAlpha = 1.0;
     }
-  }, [selection, cellSize, moveState, getTotalOffset, canvasRef, pasteMode]);
+  }, [selection, lassoSelection, linePreview, cellSize, moveState, getTotalOffset, canvasRef, pasteMode]);
 
   // Re-render overlay when dependencies change
   useEffect(() => {

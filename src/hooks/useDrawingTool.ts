@@ -239,6 +239,7 @@ export const useDrawingTool = () => {
     drawRectangle,
     drawEllipse,
     getEllipsePoints, // Export for preview rendering
+    getLinePoints, // Export for line preview rendering
     activeTool
   };
 };

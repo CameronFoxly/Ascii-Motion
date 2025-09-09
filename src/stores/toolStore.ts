@@ -18,6 +18,12 @@ interface ToolStoreState extends ToolState {
   // Pencil tool state for line drawing
   pencilLastPosition: { x: number; y: number } | null;
   
+  // Shift+click line preview state
+  linePreview: {
+    active: boolean;
+    points: { x: number; y: number }[];
+  };
+  
   // Clipboard for copy/paste
   clipboard: Map<string, any> | null;
   
@@ -50,6 +56,8 @@ interface ToolStoreState extends ToolState {
   
   // Pencil tool actions
   setPencilLastPosition: (position: { x: number; y: number } | null) => void;
+  setLinePreview: (points: { x: number; y: number }[]) => void;
+  clearLinePreview: () => void;
   
   // Rectangular selection actions
   startSelection: (x: number, y: number) => void;
@@ -121,6 +129,12 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   // Pencil tool state
   pencilLastPosition: null,
   
+  // Shift+click line preview state
+  linePreview: {
+    active: false,
+    points: []
+  },
+  
   // Rectangular selection state
   selection: {
     start: { x: 0, y: 0 },
@@ -170,6 +184,8 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   // Tool actions
   setActiveTool: (tool: Tool) => {
     set({ activeTool: tool });
+    // Clear line preview when switching tools
+    get().clearLinePreview();
     // Clear selections when switching tools (except select/lasso/magicwand tools)
     if (tool !== 'select') {
       get().clearSelection();
@@ -210,6 +226,24 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   // Pencil tool actions
   setPencilLastPosition: (position: { x: number; y: number } | null) => {
     set({ pencilLastPosition: position });
+  },
+
+  setLinePreview: (points: { x: number; y: number }[]) => {
+    set({ 
+      linePreview: {
+        active: points.length > 0,
+        points
+      }
+    });
+  },
+
+  clearLinePreview: () => {
+    set({ 
+      linePreview: {
+        active: false,
+        points: []
+      }
+    });
   },
 
   // Selection actions

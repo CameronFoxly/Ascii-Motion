@@ -77,7 +77,7 @@ export const useCanvasRenderer = () => {
     getCell
   } = useCanvasStore();
 
-  const { activeTool, rectangleFilled, lassoSelection, magicWandSelection, textToolState } = useToolStore();
+  const { activeTool, rectangleFilled, lassoSelection, magicWandSelection, textToolState, linePreview } = useToolStore();
   const { getEllipsePoints } = useDrawingTool();
 
   // Use onion skin renderer for frame overlays
@@ -108,8 +108,9 @@ export const useCanvasRenderer = () => {
     rectangleFilled,
     lassoSelection,
     magicWandSelection,
-    textToolState
-  }), [activeTool, rectangleFilled, lassoSelection, magicWandSelection, textToolState]);
+    textToolState,
+    linePreview
+  }), [activeTool, rectangleFilled, lassoSelection, magicWandSelection, textToolState, linePreview]);
 
   // Memoize overlay state
   const overlayState = useMemo(() => ({
@@ -431,6 +432,23 @@ export const useCanvasRenderer = () => {
           }
         }
       }
+    }
+
+    // Draw shift+click line preview
+    if (toolState.linePreview.active && toolState.linePreview.points.length > 0) {
+      ctx.fillStyle = 'rgba(168, 85, 247, 0.2)'; // Same purple as lasso selection, doubled opacity
+      
+      toolState.linePreview.points.forEach(({ x, y }) => {
+        // Only draw if within canvas bounds
+        if (x >= 0 && y >= 0 && x < canvasConfig.width && y < canvasConfig.height) {
+          ctx.fillRect(
+            Math.round(x * canvasConfig.effectiveCellWidth + canvasConfig.panOffset.x),
+            Math.round(y * canvasConfig.effectiveCellHeight + canvasConfig.panOffset.y),
+            Math.round(canvasConfig.effectiveCellWidth),
+            Math.round(canvasConfig.effectiveCellHeight)
+          );
+        }
+      });
     }
 
     // Draw magic wand selection overlay
