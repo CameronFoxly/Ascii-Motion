@@ -60,15 +60,28 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                 {ansiColorsArray.map(({ name, color }) => (
                   <button
                     key={`bg-${name}`}
-                    className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 ${
+                    className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 relative ${
                       selectedBgColor === color 
                         ? 'border-primary ring-2 ring-primary/20' 
                         : 'border-border'
                     }`}
-                    style={{ backgroundColor: color }}
+                    style={{ 
+                      backgroundColor: color === 'transparent' ? '#ffffff' : color,
+                      backgroundImage: color === 'transparent' 
+                        ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)'
+                        : 'none',
+                      backgroundSize: color === 'transparent' ? '4px 4px' : 'auto',
+                      backgroundPosition: color === 'transparent' ? '0 0, 0 2px, 2px -2px, -2px 0px' : 'auto'
+                    }}
                     onClick={() => setSelectedBgColor(color)}
-                    title={`${name}: ${color}`}
-                  />
+                    title={color === 'transparent' ? 'Transparent background' : `${name}: ${color}`}
+                  >
+                    {color === 'transparent' && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-red-500 font-bold text-xs">∅</span>
+                      </div>
+                    )}
+                  </button>
                 ))}
               </div>
             </CardContent>

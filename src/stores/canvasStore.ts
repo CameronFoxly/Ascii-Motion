@@ -72,8 +72,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       const newCells = new Map(state.cells);
       const key = createCellKey(x, y);
       
-      // If setting an empty cell, remove it to save memory
-      if (cell.char === ' ' && cell.color === '#FFFFFF' && cell.bgColor === state.canvasBackgroundColor) {
+      // If setting an empty cell with transparent background, remove it to save memory
+      if (cell.char === ' ' && cell.color === '#FFFFFF' && cell.bgColor === 'transparent') {
         newCells.delete(key);
       } else {
         newCells.set(key, { ...cell });
@@ -84,16 +84,16 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   getCell: (x: number, y: number) => {
-    const { cells, canvasBackgroundColor } = get();
+    const { cells } = get();
     const cell = cells.get(createCellKey(x, y));
     if (cell) {
       return cell;
     }
-    // Return empty cell with current canvas background color
+    // Return empty cell with transparent background
     return {
       char: ' ',
       color: '#FFFFFF',
-      bgColor: canvasBackgroundColor
+      bgColor: 'transparent'
     };
   },
 

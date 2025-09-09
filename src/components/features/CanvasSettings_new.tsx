@@ -93,7 +93,7 @@ export const CanvasSettings: React.FC = () => {
   };
 
   const presetColors = [
-    '#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF',
+    '#000000', 'transparent', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF',
     '#FFFF00', '#FF00FF', '#00FFFF', '#808080', '#800000',
     '#008000', '#000080', '#808000', '#800080', '#008080'
   ];
@@ -149,13 +149,24 @@ export const CanvasSettings: React.FC = () => {
                     setShowColorPicker(!showColorPicker);
                     setShowTypographyPicker(false);
                   }}
-                  className="h-6 w-6 p-0"
-                  style={{ backgroundColor: canvasBackgroundColor }}
+                  className="h-6 w-6 p-0 relative"
+                  style={{ 
+                    backgroundColor: canvasBackgroundColor === 'transparent' ? '#ffffff' : canvasBackgroundColor,
+                    backgroundImage: canvasBackgroundColor === 'transparent' 
+                      ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)'
+                      : 'none',
+                    backgroundSize: canvasBackgroundColor === 'transparent' ? '3px 3px' : 'auto',
+                    backgroundPosition: canvasBackgroundColor === 'transparent' ? '0 0, 0 1.5px, 1.5px -1.5px, -1.5px 0px' : 'auto'
+                  }}
                   aria-label="Canvas background color"
                   aria-expanded={showColorPicker}
                   aria-controls="color-dropdown"
                 >
-                  <Palette className="w-3 h-3" style={{ color: canvasBackgroundColor === '#FFFFFF' ? '#000000' : '#FFFFFF' }} />
+                  {canvasBackgroundColor === 'transparent' ? (
+                    <span className="text-red-500 font-bold text-xs">∅</span>
+                  ) : (
+                    <Palette className="w-3 h-3" style={{ color: canvasBackgroundColor === '#FFFFFF' ? '#000000' : '#FFFFFF' }} />
+                  )}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -324,10 +335,23 @@ export const CanvasSettings: React.FC = () => {
                     <button
                       key={color}
                       onClick={() => handleColorChange(color)}
-                      className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform"
-                      style={{ backgroundColor: color }}
-                      title={color}
-                    />
+                      className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform relative"
+                      style={{ 
+                        backgroundColor: color === 'transparent' ? '#ffffff' : color,
+                        backgroundImage: color === 'transparent' 
+                          ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)'
+                          : 'none',
+                        backgroundSize: color === 'transparent' ? '3px 3px' : 'auto',
+                        backgroundPosition: color === 'transparent' ? '0 0, 0 1.5px, 1.5px -1.5px, -1.5px 0px' : 'auto'
+                      }}
+                      title={color === 'transparent' ? 'Transparent background' : color}
+                    >
+                      {color === 'transparent' && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-red-500 font-bold text-xs">∅</span>
+                        </div>
+                      )}
+                    </button>
                   ))}
                 </div>
               </div>

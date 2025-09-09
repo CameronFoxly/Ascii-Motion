@@ -4,6 +4,9 @@
  */
 
 export const ANSI_COLORS = {
+  // Transparent/empty background
+  transparent: 'transparent',
+  
   // Standard colors (0-7)
   black: '#000000',
   red: '#cd0000',
