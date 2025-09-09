@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import type { Frame } from '../../types';
 import { X, Copy } from 'lucide-react';
+import { useCanvasStore } from '../../stores/canvasStore';
 
 interface FrameThumbnailProps {
   frame: Frame;
@@ -47,6 +48,9 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
   const [durationInput, setDurationInput] = useState(frame.duration.toString());
   const [isEditingDuration, setIsEditingDuration] = useState(false);
   
+  // Get canvas background color from store
+  const { canvasBackgroundColor } = useCanvasStore();
+  
   // Update local input when frame duration changes externally
   React.useEffect(() => {
     if (!isEditingDuration) {
@@ -72,8 +76,8 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
     const cellWidth = Math.max(1, scaleX);
     const cellHeight = Math.max(1, scaleY);
 
-    // Clear canvas with dark background
-    ctx.fillStyle = '#1a1a1a';
+    // Use canvas background color instead of hardcoded color
+    ctx.fillStyle = canvasBackgroundColor || '#1a1a1a';
     ctx.fillRect(0, 0, thumbnailWidth, thumbnailHeight);
 
     // If frame is empty, show a subtle grid pattern
@@ -120,7 +124,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
     }
 
     return canvas.toDataURL();
-  }, [frame.data, canvasWidth, canvasHeight]);
+  }, [frame.data, canvasWidth, canvasHeight, canvasBackgroundColor]);
 
   // Handle duration input change (allow free typing)
   const handleDurationInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
