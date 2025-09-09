@@ -41,9 +41,9 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
   const getTogglePosition = () => {
     switch (side) {
       case 'left':
-        return isOpen ? 'absolute -right-2 top-4 z-50' : 'absolute left-2 top-4 z-50';
+        return isOpen ? 'absolute right-0 top-1/2 transform -translate-y-1/2 z-50' : 'absolute left-1 top-1/2 transform -translate-y-1/2 z-50';
       case 'right':
-        return isOpen ? 'absolute -left-2 top-4 z-50' : 'absolute right-2 top-4 z-50';
+        return isOpen ? 'absolute left-0 top-1/2 transform -translate-y-1/2 z-50' : 'absolute right-1 top-1/2 transform -translate-y-1/2 z-50';
       case 'bottom':
         return isOpen ? 'absolute top-0 left-1/2 transform -translate-x-1/2 z-50' : 'absolute top-1 left-1/2 transform -translate-x-1/2 z-50';
       default:
@@ -59,14 +59,14 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
         return cn(
           baseClasses,
           'border-r overflow-y-auto overflow-x-hidden left-panel-scroll',
-          isOpen ? minWidth || 'w-44' : 'w-8',
+          isOpen ? minWidth || 'w-44' : 'w-6', // Match timeline's collapsed height
           className
         );
       case 'right':
         return cn(
           baseClasses,
           'border-l overflow-y-auto overflow-x-hidden',
-          isOpen ? minWidth || 'w-72' : 'w-8',
+          isOpen ? minWidth || 'w-72' : 'w-6', // Match timeline's collapsed height
           className
         );
       case 'bottom':
@@ -88,11 +88,10 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
         size="sm"
         onClick={onToggle}
         className={cn(
-          // Increased touch target size for mobile accessibility
+          // Skinny and tall for side panels, short and wide for bottom panel
           side === 'bottom' 
             ? 'h-4 w-12 p-0 bg-background border shadow-sm hover:bg-accent touch-manipulation' 
-            : 'h-8 w-8 p-0 bg-background border shadow-sm hover:bg-accent touch-manipulation',
-          side !== 'bottom' && 'sm:h-6 sm:w-6', // Smaller on desktop for side panels
+            : 'h-12 w-4 p-0 bg-background border shadow-sm hover:bg-accent touch-manipulation',
           getTogglePosition()
         )}
         title={`${isOpen ? 'Collapse' : 'Expand'} panel`}
