@@ -45,7 +45,7 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
       case 'right':
         return isOpen ? 'absolute -left-3 top-4 z-10' : 'absolute right-1 top-4 z-10';
       case 'bottom':
-        return isOpen ? 'absolute top-0 left-1/2 transform -translate-x-1/2 z-10' : 'absolute bottom-1 left-4 z-10';
+        return isOpen ? 'absolute top-0 left-1/2 transform -translate-x-1/2 z-10' : 'absolute top-1 left-1/2 transform -translate-x-1/2 z-10';
       default:
         return '';
     }
@@ -73,7 +73,7 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
         return cn(
           baseClasses,
           'border-t',
-          isOpen ? minHeight || 'h-auto' : 'h-8',
+          isOpen ? minHeight || 'h-auto' : 'h-6',
           className
         );
       default:
@@ -89,7 +89,7 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
         onClick={onToggle}
         className={cn(
           // Increased touch target size for mobile accessibility
-          side === 'bottom' && isOpen 
+          side === 'bottom' 
             ? 'h-4 w-12 p-0 bg-background border shadow-sm hover:bg-accent touch-manipulation' 
             : 'h-8 w-8 p-0 bg-background border shadow-sm hover:bg-accent touch-manipulation',
           side !== 'bottom' && 'sm:h-6 sm:w-6', // Smaller on desktop for side panels
