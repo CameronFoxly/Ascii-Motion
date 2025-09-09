@@ -49,7 +49,7 @@ export const OnionSkinControls: React.FC = () => {
 
   return (
     <TooltipProvider>
-      <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg border">
+      <div className="flex items-center gap-2 p-2 bg-card/50 rounded-lg border-border/50 border">
         {/* Previous frames input with steppers */}
         <div className="flex items-center gap-1">
           <div className="flex flex-col">

@@ -161,10 +161,10 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
   // Calculate onion skin border styling
   const getOnionSkinBorderStyle = () => {
     if (isOnionSkinPrevious) {
-      return 'ring-2 ring-blue-500 border-blue-500 bg-blue-50/30';
+      return 'border-blue-500/60 bg-blue-50/20';
     }
     if (isOnionSkinNext) {
-      return 'ring-2 ring-red-500 border-red-500 bg-red-50/30';
+      return 'border-red-500/60 bg-red-50/20';
     }
     return '';
   };
@@ -172,9 +172,9 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
   return (
     <Card
       className={`
-        relative flex-shrink-0 w-44 h-28 p-2 cursor-pointer transition-all select-none
+        relative flex-shrink-0 w-36 h-36 max-w-36 max-h-36 p-2 cursor-pointer transition-all select-none overflow-hidden
         ${isSelected 
-          ? 'ring-2 ring-primary border-primary bg-primary/5' 
+          ? 'border-white bg-white/5' 
           : isOnionSkinPrevious || isOnionSkinNext
             ? getOnionSkinBorderStyle()
             : 'border-border hover:border-primary/50'
@@ -192,7 +192,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
       }}
     >
       {/* Frame number and controls */}
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-1">
           <Badge variant="outline" className="text-xs px-1 py-0">
             {frameIndex + 1}
@@ -275,11 +275,6 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
         />
         <span className="text-xs text-muted-foreground">ms</span>
       </div>
-
-      {/* Selection indicator */}
-      {isSelected && (
-        <div className="absolute inset-0 pointer-events-none border-2 border-primary rounded-md" />
-      )}
     </Card>
   );
 };

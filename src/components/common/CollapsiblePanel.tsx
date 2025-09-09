@@ -24,13 +24,15 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
   minHeight,
 }) => {
   const getToggleIcon = () => {
+    const iconSize = side === 'bottom' && isOpen ? "h-2.5 w-2.5" : "h-3 w-3";
+    
     switch (side) {
       case 'left':
-        return isOpen ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />;
+        return isOpen ? <ChevronLeft className={iconSize} /> : <ChevronRight className={iconSize} />;
       case 'right':
-        return isOpen ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />;
+        return isOpen ? <ChevronRight className={iconSize} /> : <ChevronLeft className={iconSize} />;
       case 'bottom':
-        return isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />;
+        return isOpen ? <ChevronDown className={iconSize} /> : <ChevronUp className={iconSize} />;
       default:
         return null;
     }
@@ -43,7 +45,7 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
       case 'right':
         return isOpen ? 'absolute -left-3 top-4 z-10' : 'absolute right-1 top-4 z-10';
       case 'bottom':
-        return isOpen ? 'absolute -top-3 left-4 z-10' : 'absolute bottom-1 left-4 z-10';
+        return isOpen ? 'absolute top-0 left-1/2 transform -translate-x-1/2 z-10' : 'absolute bottom-1 left-4 z-10';
       default:
         return '';
     }
@@ -87,8 +89,10 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
         onClick={onToggle}
         className={cn(
           // Increased touch target size for mobile accessibility
-          'h-8 w-8 p-0 bg-background border shadow-sm hover:bg-accent touch-manipulation',
-          'sm:h-6 sm:w-6', // Smaller on desktop
+          side === 'bottom' && isOpen 
+            ? 'h-4 w-12 p-0 bg-background border shadow-sm hover:bg-accent touch-manipulation' 
+            : 'h-8 w-8 p-0 bg-background border shadow-sm hover:bg-accent touch-manipulation',
+          side !== 'bottom' && 'sm:h-6 sm:w-6', // Smaller on desktop for side panels
           getTogglePosition()
         )}
         title={`${isOpen ? 'Collapse' : 'Expand'} panel`}
@@ -106,7 +110,7 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
               id={`panel-${side}`}
               className={cn(
                 side === 'bottom' ? '' : 'h-full',
-                side === 'bottom' ? 'p-3' : 'p-4'
+                side === 'bottom' ? 'p-2' : 'p-4'
               )}
               role="region"
               aria-label={`${side} panel content`}

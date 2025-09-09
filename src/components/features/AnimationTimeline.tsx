@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useAnimationStore } from '../../stores/animationStore';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useAnimationPlayback } from '../../hooks/useAnimationPlayback';
@@ -48,8 +48,6 @@ export const AnimationTimeline: React.FC = () => {
     navigateNext,
     navigatePrevious
   } = useFrameNavigation();
-
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Drag and drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -155,13 +153,6 @@ export const AnimationTimeline: React.FC = () => {
   const handleAddFrame = useCallback(() => {
     if (frames.length < MAX_LIMITS.FRAME_COUNT) {
       addFrame(currentFrameIndex + 1);
-      // Scroll to new frame
-      setTimeout(() => {
-        scrollAreaRef.current?.scrollTo({
-          left: scrollAreaRef.current.scrollLeft + 180, // Approximate frame width
-          behavior: 'smooth'
-        });
-      }, 100);
     }
   }, [addFrame, frames.length, currentFrameIndex]);
 
@@ -237,8 +228,8 @@ export const AnimationTimeline: React.FC = () => {
   const totalDuration = frames.reduce((total, frame) => total + frame.duration, 0);
 
   return (
-    <Card className="">
-      <CardHeader className="pb-2 py-2">
+    <Card className="border-border/50">
+      <CardHeader className="py-2 px-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium">Animation Timeline</CardTitle>
           <div className="text-xs text-muted-foreground">
@@ -247,9 +238,9 @@ export const AnimationTimeline: React.FC = () => {
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3 p-3">
+      <CardContent className="space-y-2 p-2 pt-0 overflow-hidden">
         {/* Combined Controls Row */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           {/* Playback Controls - Left Side */}
           <PlaybackControls
             isPlaying={isPlaying}
@@ -269,7 +260,7 @@ export const AnimationTimeline: React.FC = () => {
           <OnionSkinControls />
 
           {/* Frame Controls - Right Side */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <FrameControls
               canAddFrame={frames.length < MAX_LIMITS.FRAME_COUNT}
               canDeleteFrame={frames.length > 1}
@@ -287,9 +278,9 @@ export const AnimationTimeline: React.FC = () => {
         {/* Frame Timeline */}
         <div className="space-y-1">
           <h4 className="text-xs font-medium text-muted-foreground">Frames</h4>
-          <div className="w-full overflow-x-auto" ref={scrollAreaRef}>
+          <div className="w-full overflow-x-auto">
             <div 
-              className="flex gap-2 pb-1" 
+              className="flex gap-1" 
               style={{ 
                 minWidth: 'max-content',
                 userSelect: 'none', // Prevent text selection
@@ -300,7 +291,7 @@ export const AnimationTimeline: React.FC = () => {
                 <React.Fragment key={frame.id}>
                   {/* Drop indicator line */}
                   {dragOverIndex === index && draggedIndex !== null && draggedIndex !== index && (
-                    <div className="w-1 bg-white rounded-full shadow-lg flex-shrink-0 self-stretch" />
+                    <div className="w-0.5 bg-border border-border/50 rounded-full flex-shrink-0 self-stretch" />
                   )}
                   
                   <FrameThumbnail
@@ -328,7 +319,7 @@ export const AnimationTimeline: React.FC = () => {
                   
                   {/* Drop indicator at the end */}
                   {index === frames.length - 1 && dragOverIndex === frames.length && draggedIndex !== null && (
-                    <div className="w-1 bg-white rounded-full shadow-lg flex-shrink-0 self-stretch" />
+                    <div className="w-0.5 bg-border border-border/50 rounded-full flex-shrink-0 self-stretch" />
                   )}
                 </React.Fragment>
               ))}

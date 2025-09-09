@@ -40,11 +40,7 @@ export const PerformanceOverlay: React.FC = () => {
   }, [isVisible]);
 
   if (!isVisible) {
-    return (
-      <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-2 py-1 rounded text-xs opacity-50">
-        Press Ctrl+Shift+P for perf stats
-      </div>
-    );
+    return null;
   }
 
   const getEfficiencyColor = (efficiency: string) => {
