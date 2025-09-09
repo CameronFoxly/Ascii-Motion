@@ -3,21 +3,19 @@ import { cn } from '@/lib/utils';
 import { PANEL_ANIMATION } from '@/constants';
 
 interface CollapsiblePanelProps {
-  children: React.ReactNode;
   isOpen: boolean;
   side: 'left' | 'right' | 'bottom';
+  children: React.ReactNode;
   className?: string;
   minWidth?: string;
-  minHeight?: string;
 }
 
 export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
-  children,
   isOpen,
   side,
-  className = '',
+  children,
+  className,
   minWidth,
-  minHeight,
 }) => {
   const getPanelClasses = () => {
     const baseClasses = `relative border-border overflow-hidden ${PANEL_ANIMATION.TRANSITION}`;
@@ -43,8 +41,7 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
         return cn(
           baseClasses,
           'border-t bg-background',
-          minHeight || 'h-80', // Even taller to fit all timeline content (320px)
-          isOpen ? 'translate-y-0' : 'translate-y-[calc(100%-1rem)]', // Leave 16px visible when collapsed
+          isOpen ? 'translate-y-0' : 'translate-y-[calc(100%-1.1875rem)]', // Show 19px for toggle button (h-4 + spacing)
           className
         );
       default:
@@ -54,18 +51,27 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
 
   return (
     <div className={getPanelClasses()}>
-      <div 
-        id={`panel-${side}`}
-        className={cn(
-          'h-full',
-          side === 'bottom' ? 'pt-4 px-4 pb-2' : 'p-4 overflow-y-auto', // Only side panels have scrolling
-          side === 'left' && 'scrollbar-left' // Put scrollbar on left side for left panel
-        )}
-        role="region"
-        aria-label={`${side} panel content`}
-      >
-        {children}
-      </div>
+      {side === 'bottom' ? (
+        // Bottom panel: Use wrapper div for content-responsive height
+        <div className="overflow-y-auto max-h-80">
+          <div className="p-4">
+            {children}
+          </div>
+        </div>
+      ) : (
+        // Side panels: Keep existing structure
+        <div 
+          id={`panel-${side}`}
+          className={cn(
+            'h-full p-4 overflow-y-auto',
+            side === 'left' && 'scrollbar-left' // Put scrollbar on left side for left panel
+          )}
+          role="region"
+          aria-label={`${side} panel content`}
+        >
+          {children}
+        </div>
+      )}
     </div>
   );
 };
