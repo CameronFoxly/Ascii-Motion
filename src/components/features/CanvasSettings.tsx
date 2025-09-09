@@ -245,33 +245,33 @@ export const CanvasSettings: React.FC = () => {
                 </TooltipContent>
               </Tooltip>
             </div>
-          </div>
 
-          {/* Typography Controls - Icon only */}
-          <div className="relative" ref={typographyPickerRef}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const position = calculatePosition(typographyPickerRef.current);
-                    setDropdownPosition(position);
-                    setShowTypographyPicker(!showTypographyPicker);
-                    setShowColorPicker(false);
-                  }}
-                  className="h-6 w-6 p-0"
-                  aria-label="Typography settings"
-                  aria-expanded={showTypographyPicker}
-                  aria-controls="typography-dropdown"
-                >
-                  <Type className="w-3 h-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">Typography settings</p>
-              </TooltipContent>
-            </Tooltip>
+            {/* Typography Controls */}
+            <div className="relative" ref={typographyPickerRef}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const position = calculatePosition(typographyPickerRef.current);
+                      setDropdownPosition(position);
+                      setShowTypographyPicker(!showTypographyPicker);
+                      setShowColorPicker(false);
+                    }}
+                    className="h-6 w-6 p-0"
+                    aria-label="Typography settings"
+                    aria-expanded={showTypographyPicker}
+                    aria-controls="typography-dropdown"
+                  >
+                    <Type className="w-3 h-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Typography settings</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </div>
 
           <Separator orientation="vertical" className="h-6" />
