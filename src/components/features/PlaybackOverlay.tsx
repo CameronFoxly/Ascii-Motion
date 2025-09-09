@@ -33,17 +33,15 @@ export const PlaybackOverlay: React.FC<PlaybackOverlayProps> = ({ isVisible }) =
     navigatePrevious
   } = useFrameNavigation();
 
+  if (!isVisible) return null;
+
   return (
     <div 
       className={`
         absolute bottom-12 left-1/2 transform -translate-x-1/2 
-        transition-all ease-out z-10
+        transition-all duration-300 ease-in-out z-10
         ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0 pointer-events-none'}
       `}
-      style={{
-        transitionDuration: '300ms',
-        transitionTimingFunction: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)' // ease-out curve
-      }}
     >
       <div className="bg-background/95 backdrop-blur-md border border-border/50 rounded-lg shadow-lg p-1">
         <PlaybackControls

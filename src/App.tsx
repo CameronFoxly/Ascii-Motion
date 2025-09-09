@@ -153,7 +153,7 @@ function App() {
               )}
             >
               {/* Canvas Settings Header */}
-              <div className="flex-shrink-0 border-b border-border/50 bg-background/95 backdrop-blur">
+              <div className="flex-shrink-0 border-b border-border/50 bg-background/95 backdrop-blur" style={{ overflow: 'visible', position: 'relative', zIndex: 1000 }}>
                 <div className="px-3 py-2 flex justify-center items-center">
                   <CanvasSettings />
                 </div>

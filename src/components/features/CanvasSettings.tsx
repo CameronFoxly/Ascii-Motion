@@ -86,6 +86,17 @@ export const CanvasSettings: React.FC = () => {
     }
   }, [showColorPicker, showTypographyPicker]);
 
+  // Reset dropdown states when layout might be changing (e.g., window resize)
+  useEffect(() => {
+    const handleLayoutChange = () => {
+      setShowColorPicker(false);
+      setShowTypographyPicker(false);
+    };
+
+    window.addEventListener('resize', handleLayoutChange);
+    return () => window.removeEventListener('resize', handleLayoutChange);
+  }, []);
+
   const handleColorChange = (color: string) => {
     setTempColor(color);
     setCanvasBackgroundColor(color);
@@ -279,7 +290,7 @@ export const CanvasSettings: React.FC = () => {
           {/* Zoom Controls - kept exactly as is */}
           <ZoomControls />
         </div>        {/* Typography Picker Dropdown - Portal rendered for proper layering */}
-        {showTypographyPicker && createPortal(
+        {showTypographyPicker && dropdownPosition.top > 0 && createPortal(
           <div 
             id="typography-dropdown"
             className="fixed z-[99999] p-3 bg-popover border border-border rounded-md shadow-lg"
@@ -378,7 +389,7 @@ export const CanvasSettings: React.FC = () => {
         )}
 
         {/* Background Color Picker Dropdown - Portal rendered for proper layering */}
-        {showColorPicker && createPortal(
+        {showColorPicker && dropdownPosition.top > 0 && createPortal(
           <div 
             id="color-dropdown"
             className="fixed z-[99999] p-3 bg-popover border border-border rounded-md shadow-lg"
