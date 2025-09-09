@@ -272,7 +272,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
           onBlur={handleDurationBlur}
           onKeyDown={handleDurationKeyDown}
           onClick={(e) => e.stopPropagation()}
-          className="flex-1 text-xs px-1 py-0.5 border rounded w-12 bg-background"
+          className="flex-1 text-xs px-1 py-0.5 border border-border rounded w-12 bg-background"
           min="50"
           max="10000"
           step="10"

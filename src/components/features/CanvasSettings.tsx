@@ -6,7 +6,6 @@ import { Separator } from '@/components/ui/separator';
 import { Grid3X3, Palette, Type } from 'lucide-react';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useCanvasContext } from '@/contexts/CanvasContext';
-import { CanvasSizePicker } from './CanvasSizePicker';
 import { ZoomControls } from './ZoomControls';
 
 export const CanvasSettings: React.FC = () => {
@@ -100,72 +99,157 @@ export const CanvasSettings: React.FC = () => {
 
   return (
     <TooltipProvider>
-      <div className="flex items-center gap-3">
-        {/* Canvas Size Picker */}
-        <CanvasSizePicker
-          width={width}
-          height={height}
-          onSizeChange={setCanvasSize}
-        />
-
-        <Separator orientation="vertical" className="h-6" />
-
-        {/* Display Controls */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between w-full gap-3">
+        {/* Left Section - Canvas Size Controls */}
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-muted-foreground">Display:</span>
+          <span className="text-sm font-medium text-muted-foreground">Canvas size:</span>
           
-          {/* Grid Toggle */}
-          <Tooltip>
-            <TooltipTrigger asChild>
+          {/* Width controls with stacked plus/minus */}
+          <div className="flex items-center gap-1">
+            <div className="flex flex-col">
               <Button
-                variant={showGrid ? "default" : "outline"}
                 size="sm"
-                onClick={toggleGrid}
-                className="h-6 w-6 p-0"
+                variant="ghost"
+                onClick={() => {
+                  const newWidth = Math.max(4, Math.min(200, width + 1));
+                  setCanvasSize(newWidth, height);
+                }}
+                disabled={width >= 200}
+                className="h-3 w-6 p-0 text-xs leading-none"
               >
-                <Grid3X3 className="w-3 h-3" />
+                +
               </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">{showGrid ? "Hide grid" : "Show grid"}</p>
-            </TooltipContent>
-          </Tooltip>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  const newWidth = Math.max(4, Math.min(200, width - 1));
+                  setCanvasSize(newWidth, height);
+                }}
+                disabled={width <= 4}
+                className="h-3 w-6 p-0 text-xs leading-none"
+              >
+                -
+              </Button>
+            </div>
+            <input
+              type="number"
+              value={width}
+              onChange={(e) => {
+                const numValue = parseInt(e.target.value, 10);
+                if (!isNaN(numValue)) {
+                  const constrainedValue = Math.max(4, Math.min(200, numValue));
+                  setCanvasSize(constrainedValue, height);
+                }
+              }}
+              className="w-12 h-8 text-xs text-center border border-border rounded bg-background text-foreground [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              min="4"
+              max="200"
+            />
+          </div>
 
-          {/* Background Color Picker */}
-          <div className="relative" ref={colorPickerRef}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const position = calculatePosition(colorPickerRef.current);
-                    setDropdownPosition(position);
-                    setShowColorPicker(!showColorPicker);
-                    setShowTypographyPicker(false);
-                  }}
-                  className="h-6 w-6 p-0"
-                  style={{ backgroundColor: canvasBackgroundColor }}
-                  aria-label="Canvas background color"
-                  aria-expanded={showColorPicker}
-                  aria-controls="color-dropdown"
-                >
-                  <Palette className="w-3 h-3" style={{ color: canvasBackgroundColor === '#FFFFFF' ? '#000000' : '#FFFFFF' }} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">Canvas background color</p>
-              </TooltipContent>
-            </Tooltip>
+          <span className="text-xs text-muted-foreground">×</span>
+
+          {/* Height controls with stacked plus/minus */}
+          <div className="flex items-center gap-1">
+            <div className="flex flex-col">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  const newHeight = Math.max(4, Math.min(100, height + 1));
+                  setCanvasSize(width, newHeight);
+                }}
+                disabled={height >= 100}
+                className="h-3 w-6 p-0 text-xs leading-none"
+              >
+                +
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  const newHeight = Math.max(4, Math.min(100, height - 1));
+                  setCanvasSize(width, newHeight);
+                }}
+                disabled={height <= 4}
+                className="h-3 w-6 p-0 text-xs leading-none"
+              >
+                -
+              </Button>
+            </div>
+            <input
+              type="number"
+              value={height}
+              onChange={(e) => {
+                const numValue = parseInt(e.target.value, 10);
+                if (!isNaN(numValue)) {
+                  const constrainedValue = Math.max(4, Math.min(100, numValue));
+                  setCanvasSize(width, constrainedValue);
+                }
+              }}
+              className="w-12 h-8 text-xs text-center border border-border rounded bg-background text-foreground [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              min="4"
+              max="100"
+            />
           </div>
         </div>
 
-        <Separator orientation="vertical" className="h-6" />
+        {/* Right Section - Display, Text, and Zoom Controls */}
+        <div className="flex items-center gap-3">
+          {/* Display Controls */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground">Display:</span>
+            
+            {/* Grid Toggle */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={showGrid ? "default" : "outline"}
+                  size="sm"
+                  onClick={toggleGrid}
+                  className="h-6 w-6 p-0"
+                >
+                  <Grid3X3 className="w-3 h-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">{showGrid ? "Hide grid" : "Show grid"}</p>
+              </TooltipContent>
+            </Tooltip>
 
-        {/* Typography Controls */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-muted-foreground">Text:</span>
-          
+            {/* Background Color Picker */}
+            <div className="relative" ref={colorPickerRef}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const position = calculatePosition(colorPickerRef.current);
+                      setDropdownPosition(position);
+                      setShowColorPicker(!showColorPicker);
+                      setShowTypographyPicker(false);
+                    }}
+                    className="h-6 w-6 p-0"
+                    style={{ backgroundColor: canvasBackgroundColor }}
+                    aria-label="Canvas background color"
+                    aria-expanded={showColorPicker}
+                    aria-controls="color-dropdown"
+                  >
+                    <Palette className="w-3 h-3" style={{ color: canvasBackgroundColor === '#FFFFFF' ? '#000000' : '#FFFFFF' }} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Canvas background color</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </div>
+
+          <Separator orientation="vertical" className="h-6" />
+
+          {/* Typography Controls - Icon only */}
           <div className="relative" ref={typographyPickerRef}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -178,13 +262,12 @@ export const CanvasSettings: React.FC = () => {
                     setShowTypographyPicker(!showTypographyPicker);
                     setShowColorPicker(false);
                   }}
-                  className="h-6 px-2 gap-1"
+                  className="h-6 w-6 p-0"
                   aria-label="Typography settings"
                   aria-expanded={showTypographyPicker}
                   aria-controls="typography-dropdown"
                 >
                   <Type className="w-3 h-3" />
-                  <span className="text-xs">Font</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -192,14 +275,12 @@ export const CanvasSettings: React.FC = () => {
               </TooltipContent>
             </Tooltip>
           </div>
-        </div>
 
-        <Separator orientation="vertical" className="h-6" />
+          <Separator orientation="vertical" className="h-6" />
 
-        {/* Zoom Controls - moved to the end */}
-        <ZoomControls />
-
-        {/* Typography Picker Dropdown - Portal rendered for proper layering */}
+          {/* Zoom Controls - kept exactly as is */}
+          <ZoomControls />
+        </div>        {/* Typography Picker Dropdown - Portal rendered for proper layering */}
         {showTypographyPicker && createPortal(
           <div 
             id="typography-dropdown"

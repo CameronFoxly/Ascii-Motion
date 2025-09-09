@@ -32,7 +32,7 @@ function App() {
           <div className="px-4 py-2">
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-lg font-bold text-foreground">ASCII Motion</h1>
+                <h1 className="text-lg font-bold font-mono text-foreground">ASCII Motion</h1>
                 <p className="text-xs text-muted-foreground">Create and animate ASCII art</p>
               </div>
               <ThemeToggle />

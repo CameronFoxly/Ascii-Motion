@@ -171,12 +171,12 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       {/* Tool Manager - handles tool-specific behavior */}
       <ToolManager />
       
-      <div className={`canvas-wrapper border-2 rounded-lg overflow-auto flex-1 ${
+      <div className={`canvas-wrapper border rounded-lg overflow-auto flex-1 ${
         isPlaying 
-          ? 'border-green-500 shadow-lg shadow-green-500/25' 
+          ? 'border-white border-2' 
           : isPlaybackMode 
-            ? 'border-orange-500 shadow-lg shadow-orange-500/25'
-            : 'border-gray-300'
+            ? 'border-orange-500 border-2'
+            : 'border-border border'
       }`}>
         <canvas
           ref={canvasRef}
