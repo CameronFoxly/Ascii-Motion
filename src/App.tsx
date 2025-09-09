@@ -47,7 +47,7 @@ function App() {
             isOpen={layout.leftPanelOpen}
             onToggle={toggleLeftPanel}
             side="left"
-            minWidth="w-44"
+            minWidth="w-40"
             className="row-span-2"
           >
             <div className="space-y-3">

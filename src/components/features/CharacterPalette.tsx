@@ -2,14 +2,13 @@ import React, { useState } from 'react';
 import { useToolStore } from '../../stores/toolStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CHARACTER_CATEGORIES } from '../../constants';
 import { 
   Type, 
   Hash, 
   Grid3X3, 
-  TrendingUp, 
+  Square, 
   Navigation, 
   Triangle, 
   Sparkles,
@@ -25,7 +24,7 @@ const CATEGORY_ICONS = {
   "Punctuation": Minus,
   "Math/Symbols": Hash,
   "Lines/Borders": Grid3X3,
-  "Blocks/Shading": TrendingUp,
+  "Blocks/Shading": Square,
   "Arrows": Navigation,
   "Geometric": Triangle,
   "Special": Sparkles
@@ -41,9 +40,6 @@ export const CharacterPalette: React.FC<CharacterPaletteProps> = ({ className = 
     <div className={`space-y-2 ${className}`}>
       <div className="flex justify-between items-center">
         <h3 className="text-sm font-semibold">Characters</h3>
-        <Badge variant="outline" className="text-xs h-4">
-          {Object.values(CHARACTER_CATEGORIES).flat().length}
-        </Badge>
       </div>
       
       <Tabs value={activeCategory} onValueChange={setActiveCategory} className="w-full">
@@ -82,14 +78,14 @@ export const CharacterPalette: React.FC<CharacterPaletteProps> = ({ className = 
         {categoryEntries.map(([categoryName, characters]) => (
           <TabsContent key={categoryName} value={categoryName} className="mt-2">
             <Card className="bg-card border border-border/50">
-              <CardContent className="p-2">
-                <div className="grid grid-cols-8 gap-0.5">
+              <CardContent className="p-3">
+                <div className="grid grid-cols-4 gap-1 w-full">
                   {characters.map((char) => (
                     <Button
                       key={char}
                       variant={selectedChar === char ? 'default' : 'outline'}
                       size="sm"
-                      className="w-6 h-6 p-0 font-mono text-xs"
+                      className="w-full aspect-square p-0 font-mono text-xs flex items-center justify-center min-w-0"
                       onClick={() => setSelectedChar(char)}
                       title={`Character: ${char} (${char.charCodeAt(0)})`}
                     >

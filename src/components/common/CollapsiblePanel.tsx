@@ -41,11 +41,11 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
   const getTogglePosition = () => {
     switch (side) {
       case 'left':
-        return isOpen ? 'absolute -right-3 top-4 z-10' : 'absolute left-1 top-4 z-10';
+        return isOpen ? 'absolute -right-2 top-4 z-50' : 'absolute left-2 top-4 z-50';
       case 'right':
-        return isOpen ? 'absolute -left-3 top-4 z-10' : 'absolute right-1 top-4 z-10';
+        return isOpen ? 'absolute -left-2 top-4 z-50' : 'absolute right-2 top-4 z-50';
       case 'bottom':
-        return isOpen ? 'absolute top-0 left-1/2 transform -translate-x-1/2 z-10' : 'absolute top-1 left-1/2 transform -translate-x-1/2 z-10';
+        return isOpen ? 'absolute top-0 left-1/2 transform -translate-x-1/2 z-50' : 'absolute top-1 left-1/2 transform -translate-x-1/2 z-50';
       default:
         return '';
     }
@@ -58,8 +58,8 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
       case 'left':
         return cn(
           baseClasses,
-          'border-r overflow-y-auto overflow-x-hidden',
-          isOpen ? minWidth || 'w-80' : 'w-8',
+          'border-r overflow-y-auto overflow-x-hidden left-panel-scroll',
+          isOpen ? minWidth || 'w-44' : 'w-8',
           className
         );
       case 'right':

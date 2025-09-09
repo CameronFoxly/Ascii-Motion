@@ -100,11 +100,11 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
         </div>
         
         <Card className="border-border/50">
-          <CardContent className="p-2">
+          <CardContent className="p-3">
             {/* Drawing Tools Section */}
-            <div className="space-y-1">
+            <div className="space-y-2">
               <h4 className="text-xs font-medium text-muted-foreground">Drawing</h4>
-              <div className="flex flex-wrap gap-1" role="toolbar" aria-label="Drawing tools">
+              <div className="grid grid-cols-3 gap-1" role="toolbar" aria-label="Drawing tools">
                 {DRAWING_TOOLS.map((tool) => (
                   <ToolButton key={tool.id} tool={tool} />
                 ))}
@@ -112,9 +112,9 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
             </div>
 
             {/* Selection Tools Section */}
-            <div className="space-y-1 mt-2">
+            <div className="space-y-2 mt-3">
               <h4 className="text-xs font-medium text-muted-foreground">Selection</h4>
-              <div className="flex flex-wrap gap-1" role="toolbar" aria-label="Selection tools">
+              <div className="grid grid-cols-3 gap-1" role="toolbar" aria-label="Selection tools">
                 {SELECTION_TOOLS.map((tool) => (
                   <ToolButton key={tool.id} tool={tool} />
                 ))}
@@ -122,9 +122,9 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
             </div>
 
             {/* Utility Tools Section */}
-            <div className="space-y-1 mt-2">
+            <div className="space-y-2 mt-3">
               <h4 className="text-xs font-medium text-muted-foreground">Utility</h4>
-              <div className="flex flex-wrap gap-1" role="toolbar" aria-label="Utility tools">
+              <div className="grid grid-cols-2 gap-1" role="toolbar" aria-label="Utility tools">
                 {UTILITY_TOOLS.map((tool) => (
                   <ToolButton key={tool.id} tool={tool} />
                 ))}
