@@ -34,7 +34,7 @@ export const TextToolStatus: React.FC = () => {
 
   if (!isTyping) {
     return (
-      <span className="text-blue-600">
+      <span className="text-muted-foreground">
         Text: Click to place cursor and start typing
       </span>
     );
@@ -42,14 +42,14 @@ export const TextToolStatus: React.FC = () => {
 
   if (cursorPosition) {
     return (
-      <span className="text-blue-600">
+      <span className="text-muted-foreground">
         Text: Typing at ({cursorPosition.x}, {cursorPosition.y}) • Arrows to move • Enter for new line • Escape to finish
       </span>
     );
   }
 
   return (
-    <span className="text-blue-600">
+    <span className="text-muted-foreground">
       Text: Ready to type
     </span>
   );

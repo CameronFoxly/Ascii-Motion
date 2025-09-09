@@ -26,10 +26,10 @@ export const ToolStatusManager: React.FC = () => {
   if (spaceKeyDown) {
     return (
       <div className="flex items-center gap-2 text-xs">
-        <span className="text-blue-600 font-medium">
+        <span className="text-muted-foreground font-medium">
           🖐️ Hand Tool (Space Override)
         </span>
-        <span className="text-green-600">
+        <span className="text-muted-foreground">
           Click and drag to pan canvas - Release Space to return to {activeTool}
         </span>
       </div>
@@ -61,7 +61,7 @@ export const ToolStatusManager: React.FC = () => {
       case 'text':
         return <TextToolStatus />;
       default:
-        return <span className="text-gray-500">No tool selected</span>;
+        return <span className="text-muted-foreground">No tool selected</span>;
     }
   })();
 

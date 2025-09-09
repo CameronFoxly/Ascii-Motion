@@ -31,7 +31,7 @@ export const SelectionToolStatus: React.FC = () => {
   const { moveState } = useCanvasState();
 
   if (!selection.active) {
-    return <span className="text-gray-500">Click and drag to select an area</span>;
+    return <span className="text-muted-foreground">Click and drag to select an area</span>;
   }
 
   const width = Math.abs(selection.end.x - selection.start.x) + 1;
@@ -39,14 +39,14 @@ export const SelectionToolStatus: React.FC = () => {
 
   if (moveState) {
     return (
-      <span className="text-blue-600">
+      <span className="text-muted-foreground">
         Moving selection ({width} × {height}) - Click to place, Escape to cancel
       </span>
     );
   }
 
   return (
-    <span className="text-green-600">
+    <span className="text-muted-foreground">
       Selected: {width} × {height} area - Click inside to move, outside to deselect
     </span>
   );

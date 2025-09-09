@@ -22,7 +22,7 @@ export const HandToolStatus: React.FC = () => {
   const { panOffset } = useCanvasContext();
 
   return (
-    <span className="text-green-600">
+    <span className="text-muted-foreground">
       Hand: Click and drag to pan canvas (offset: {Math.round(panOffset.x)}, {Math.round(panOffset.y)}) - Hold Space for temporary access
     </span>
   );

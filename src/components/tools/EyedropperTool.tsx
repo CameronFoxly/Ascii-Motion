@@ -19,8 +19,8 @@ export const EyedropperTool: React.FC = () => {
  */
 export const EyedropperToolStatus: React.FC = () => {
   return (
-    <span className="text-orange-600">
-      Eyedropper: Click on any character to pick its style (character, color, background)
+    <span className="text-muted-foreground">
+      Eyedropper: Click on any character to sample its color and character
     </span>
   );
 };

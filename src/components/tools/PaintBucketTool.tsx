@@ -24,9 +24,9 @@ export const PaintBucketToolStatus: React.FC = () => {
   const fillMode = paintBucketContiguous ? 'connected areas' : 'all matching cells';
 
   return (
-    <span className="text-purple-600">
-      Fill: "{selectedChar}" with color {selectedColor}
-      {selectedBgColor !== '#FFFFFF' && ` on ${selectedBgColor}`} - Click to flood fill {fillMode}
+    <span className="text-muted-foreground">
+      Paint Bucket: Click to fill {fillMode} with "{selectedChar}" and color {selectedColor}
+      {selectedBgColor !== '#FFFFFF' && ` on ${selectedBgColor}`}
     </span>
   );
 };

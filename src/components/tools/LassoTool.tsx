@@ -37,7 +37,7 @@ export const LassoToolStatus: React.FC = () => {
   if (lassoSelection.isDrawing) {
     const pathLength = lassoSelection.path.length;
     return (
-      <span className="text-blue-600">
+      <span className="text-muted-foreground">
         Drawing lasso path ({pathLength} points) - Release to complete selection
       </span>
     );
@@ -47,14 +47,14 @@ export const LassoToolStatus: React.FC = () => {
 
   if (moveState) {
     return (
-      <span className="text-blue-600">
+      <span className="text-muted-foreground">
         Moving lasso selection ({selectedCount} cells) - Click to place, Escape to cancel
       </span>
     );
   }
 
   return (
-    <span className="text-green-600">
+    <span className="text-muted-foreground">
       Lasso selected: {selectedCount} cells - Click inside to move, outside to deselect
     </span>
   );

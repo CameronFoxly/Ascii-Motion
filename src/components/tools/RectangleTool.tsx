@@ -22,7 +22,7 @@ export const RectangleToolStatus: React.FC = () => {
   const { selectedChar, selectedColor, selectedBgColor, rectangleFilled } = useToolStore();
 
   return (
-    <span className="text-indigo-600">
+    <span className="text-muted-foreground">
       Rectangle ({rectangleFilled ? 'filled' : 'hollow'}): "{selectedChar}" with color {selectedColor}
       {selectedBgColor !== '#FFFFFF' && ` on ${selectedBgColor}`} - Drag to draw, hold Shift for square
     </span>

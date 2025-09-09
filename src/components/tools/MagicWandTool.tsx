@@ -45,14 +45,14 @@ export const MagicWandToolStatus: React.FC = () => {
 
   if (moveState) {
     return (
-      <span className="text-blue-600">
+      <span className="text-muted-foreground">
         Moving {selectedCount} {modeText} {cellsText} - Click to place, Escape to cancel
       </span>
     );
   }
 
   return (
-    <span className="text-green-600">
+    <span className="text-muted-foreground">
       Selected: {selectedCount} {modeText} {cellsText} - Click inside to move, outside to deselect
     </span>
   );

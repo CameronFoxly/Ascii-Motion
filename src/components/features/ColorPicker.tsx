@@ -21,12 +21,12 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
       {/* Color picker tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 h-6">
-          <TabsTrigger value="text" className="text-xs h-5">
-            <Type className="w-3 h-3 mr-1" />
+          <TabsTrigger value="text" className="text-xs h-5 flex items-center justify-center gap-1">
+            <Type className="w-3 h-3" />
             Text
           </TabsTrigger>
-          <TabsTrigger value="bg" className="text-xs h-5">
-            <Palette className="w-3 h-3 mr-1" />
+          <TabsTrigger value="bg" className="text-xs h-5 flex items-center justify-center gap-1">
+            <Palette className="w-3 h-3" />
             BG
           </TabsTrigger>
         </TabsList>

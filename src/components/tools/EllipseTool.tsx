@@ -22,7 +22,7 @@ export const EllipseToolStatus: React.FC = () => {
   const { selectedChar, selectedColor, selectedBgColor, rectangleFilled } = useToolStore();
 
   return (
-    <span className="text-purple-600">
+    <span className="text-muted-foreground">
       Ellipse ({rectangleFilled ? 'filled' : 'hollow'}): "{selectedChar}" with color {selectedColor}
       {selectedBgColor !== '#FFFFFF' && ` on ${selectedBgColor}`} - Drag to draw, hold Shift for circle
     </span>

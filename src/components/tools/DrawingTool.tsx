@@ -23,7 +23,7 @@ export const DrawingToolStatus: React.FC = () => {
 
   if (activeTool === 'pencil') {
     return (
-      <span className="text-blue-600">
+      <span className="text-muted-foreground">
         Pencil: "{selectedChar}" with color {selectedColor}
         {selectedBgColor !== '#FFFFFF' && ` on ${selectedBgColor}`} - Click to draw, hold Shift+click for lines
       </span>
@@ -32,7 +32,7 @@ export const DrawingToolStatus: React.FC = () => {
 
   if (activeTool === 'eraser') {
     return (
-      <span className="text-red-500">
+      <span className="text-muted-foreground">
         Eraser: Click to remove characters
       </span>
     );
