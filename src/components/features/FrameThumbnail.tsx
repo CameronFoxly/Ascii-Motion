@@ -155,10 +155,14 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
     }
   };
 
-  // Handle Enter key to commit changes
+  // Handle Enter and Tab keys to commit changes
   const handleDurationKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      event.currentTarget.blur(); // Trigger blur event
+    if (event.key === 'Enter' || event.key === 'Tab') {
+      // For Tab, we let the default behavior happen but ensure blur occurs first
+      if (event.key === 'Enter') {
+        event.preventDefault(); // Prevent form submission
+      }
+      event.currentTarget.blur(); // Trigger blur event to commit changes
     }
   };
 
@@ -222,6 +226,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
             size="sm"
             variant="ghost"
             className="h-5 w-5 p-0"
+            tabIndex={-1} // Remove from tab order - tab should skip to next frame's duration input
             onClick={(e) => {
               e.stopPropagation();
               onDuplicate();
@@ -234,6 +239,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
             size="sm"
             variant="ghost"
             className="h-5 w-5 p-0 text-destructive hover:text-destructive"
+            tabIndex={-1} // Remove from tab order - tab should skip to next frame's duration input
             onClick={(e) => {
               e.stopPropagation();
               onDelete();
@@ -272,6 +278,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
           onBlur={handleDurationBlur}
           onKeyDown={handleDurationKeyDown}
           onClick={(e) => e.stopPropagation()}
+          tabIndex={frameIndex + 1} // Sequential tab order: frame 0 = tabIndex 1, frame 1 = tabIndex 2, etc.
           className="flex-1 text-xs px-1 py-0.5 border border-border rounded w-12 bg-background"
           min="50"
           max="10000"
