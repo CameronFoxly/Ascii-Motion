@@ -17,6 +17,8 @@ import {
   Wand2,
   ChevronDown
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import type { Tool } from '../../types';
 import { getToolTooltipText } from '../../constants/hotkeys';
 
@@ -67,9 +69,17 @@ const UTILITY_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; desc
 
 export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
   const { activeTool, setActiveTool, rectangleFilled, setRectangleFilled, paintBucketContiguous, setPaintBucketContiguous, magicWandContiguous, setMagicWandContiguous } = useToolStore();
-  const [showOptions, setShowOptions] = React.useState(false);
+  const [showOptions, setShowOptions] = React.useState(true);
+  const [showTools, setShowTools] = React.useState(true);
 
   const hasOptions = ['rectangle', 'ellipse', 'paintbucket', 'magicwand'].includes(activeTool);
+
+  // Get the current tool's icon
+  const getCurrentToolIcon = () => {
+    const allTools = [...DRAWING_TOOLS, ...SELECTION_TOOLS, ...UTILITY_TOOLS];
+    const currentTool = allTools.find(tool => tool.id === activeTool);
+    return currentTool?.icon || null;
+  };
 
   const ToolButton: React.FC<{ tool: { id: Tool; name: string; icon: React.ReactNode; description: string } }> = ({ tool }) => (
     <Tooltip key={tool.id}>
@@ -95,102 +105,115 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
   return (
     <TooltipProvider>
       <div className={`space-y-1 ${className}`}>
-        <div className="flex justify-between items-center">
-          <h3 className="text-sm font-semibold">Tools</h3>
-        </div>
-        
-        <Card className="border-border/50">
-          <CardContent className="p-3">
-            {/* Drawing Tools Section */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-medium text-muted-foreground">Drawing</h4>
-              <div className="grid grid-cols-3 gap-1" role="toolbar" aria-label="Drawing tools">
-                {DRAWING_TOOLS.map((tool) => (
-                  <ToolButton key={tool.id} tool={tool} />
-                ))}
-              </div>
-            </div>
+        <Collapsible open={showTools} onOpenChange={setShowTools}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="w-full h-6 text-xs justify-between p-1">
+              Tools
+              <ChevronDown className="h-3 w-3" />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="collapsible-content">
+            <Card className="border-border/50 mt-1">
+              <CardContent className="p-3">
+                {/* Drawing Tools Section */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-medium text-muted-foreground">Drawing</h4>
+                  <div className="grid grid-cols-3 gap-1" role="toolbar" aria-label="Drawing tools">
+                    {DRAWING_TOOLS.map((tool) => (
+                      <ToolButton key={tool.id} tool={tool} />
+                    ))}
+                  </div>
+                </div>
 
-            {/* Selection Tools Section */}
-            <div className="space-y-2 mt-3">
-              <h4 className="text-xs font-medium text-muted-foreground">Selection</h4>
-              <div className="grid grid-cols-3 gap-1" role="toolbar" aria-label="Selection tools">
-                {SELECTION_TOOLS.map((tool) => (
-                  <ToolButton key={tool.id} tool={tool} />
-                ))}
-              </div>
-            </div>
+                {/* Selection Tools Section */}
+                <div className="space-y-2 mt-3">
+                  <h4 className="text-xs font-medium text-muted-foreground">Selection</h4>
+                  <div className="grid grid-cols-3 gap-1" role="toolbar" aria-label="Selection tools">
+                    {SELECTION_TOOLS.map((tool) => (
+                      <ToolButton key={tool.id} tool={tool} />
+                    ))}
+                  </div>
+                </div>
 
-            {/* Utility Tools Section */}
-            <div className="space-y-2 mt-3">
-              <h4 className="text-xs font-medium text-muted-foreground">Utility</h4>
-              <div className="grid grid-cols-2 gap-1" role="toolbar" aria-label="Utility tools">
-                {UTILITY_TOOLS.map((tool) => (
-                  <ToolButton key={tool.id} tool={tool} />
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                {/* Utility Tools Section */}
+                <div className="space-y-2 mt-3">
+                  <h4 className="text-xs font-medium text-muted-foreground">Utility</h4>
+                  <div className="grid grid-cols-2 gap-1" role="toolbar" aria-label="Utility tools">
+                    {UTILITY_TOOLS.map((tool) => (
+                      <ToolButton key={tool.id} tool={tool} />
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Tool Options */}
         {hasOptions && (
           <Collapsible open={showOptions} onOpenChange={setShowOptions}>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" className="w-full h-6 text-xs justify-between p-1">
-                Options
+                <div className="flex items-center gap-1">
+                  {getCurrentToolIcon()}
+                  <span>Tool Options</span>
+                </div>
                 <ChevronDown className="h-3 w-3" />
               </Button>
             </CollapsibleTrigger>
-            <CollapsibleContent>
+            <CollapsibleContent className="collapsible-content">
               <Card className="bg-card/50 border-border/50 mt-1">
-                <CardContent className="p-2">
+                <CardContent className="p-2 space-y-2">
                   {activeTool === 'rectangle' && (
-                    <label className="flex items-center gap-2 text-xs cursor-pointer">
-                      <input
-                        type="checkbox"
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="filled-rectangle" className="text-xs cursor-pointer">
+                        Filled rectangle
+                      </Label>
+                      <Switch
+                        id="filled-rectangle"
                         checked={rectangleFilled}
-                        onChange={(e) => setRectangleFilled(e.target.checked)}
-                        className="rounded"
+                        onCheckedChange={setRectangleFilled}
                       />
-                      Filled rectangle
-                    </label>
+                    </div>
                   )}
                   
                   {activeTool === 'ellipse' && (
-                    <label className="flex items-center gap-2 text-xs cursor-pointer">
-                      <input
-                        type="checkbox"
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="filled-ellipse" className="text-xs cursor-pointer">
+                        Filled ellipse
+                      </Label>
+                      <Switch
+                        id="filled-ellipse"
                         checked={rectangleFilled}
-                        onChange={(e) => setRectangleFilled(e.target.checked)}
-                        className="rounded"
+                        onCheckedChange={setRectangleFilled}
                       />
-                      Filled ellipse
-                    </label>
+                    </div>
                   )}
                   
                   {activeTool === 'paintbucket' && (
-                    <label className="flex items-center gap-2 text-xs cursor-pointer">
-                      <input
-                        type="checkbox"
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="contiguous-fill" className="text-xs cursor-pointer">
+                        Contiguous fill only
+                      </Label>
+                      <Switch
+                        id="contiguous-fill"
                         checked={paintBucketContiguous}
-                        onChange={(e) => setPaintBucketContiguous(e.target.checked)}
-                        className="rounded"
+                        onCheckedChange={setPaintBucketContiguous}
                       />
-                      Contiguous fill only
-                    </label>
+                    </div>
                   )}
                   
                   {activeTool === 'magicwand' && (
-                    <label className="flex items-center gap-2 text-xs cursor-pointer">
-                      <input
-                        type="checkbox"
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="contiguous-selection" className="text-xs cursor-pointer">
+                        Contiguous selection only
+                      </Label>
+                      <Switch
+                        id="contiguous-selection"
                         checked={magicWandContiguous}
-                        onChange={(e) => setMagicWandContiguous(e.target.checked)}
-                        className="rounded"
+                        onCheckedChange={setMagicWandContiguous}
                       />
-                      Contiguous selection only
-                    </label>
+                    </div>
                   )}
                 </CardContent>
               </Card>

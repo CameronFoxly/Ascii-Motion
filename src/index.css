@@ -131,3 +131,81 @@
 .scrollbar-left > * {
   direction: ltr;
 }
+
+/* Collapsible animations */
+@layer components {
+  .collapsible-content {
+    overflow: hidden;
+    transition: all 200ms ease-out;
+  }
+  
+  .collapsible-content[data-state="closed"] {
+    animation: collapsible-up 200ms ease-out;
+  }
+  
+  .collapsible-content[data-state="open"] {
+    animation: collapsible-down 200ms ease-out;
+  }
+
+  /* Collapsible content that expands upward */
+  .collapsible-content-up {
+    overflow: hidden;
+    transition: all 200ms ease-out;
+  }
+  
+  .collapsible-content-up[data-state="closed"] {
+    animation: collapsible-up-reverse 200ms ease-out;
+  }
+  
+  .collapsible-content-up[data-state="open"] {
+    animation: collapsible-down-reverse 200ms ease-out;
+  }
+}
+
+@keyframes collapsible-down {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes collapsible-up {
+  from {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes collapsible-down-reverse {
+  from {
+    height: 0;
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes collapsible-up-reverse {
+  from {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    height: 0;
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}

@@ -1,5 +1,8 @@
 import './App.css'
 import { Separator } from '@/components/ui/separator'
+import { Button } from '@/components/ui/button'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { ChevronDown } from 'lucide-react'
 import { CanvasWithShortcuts } from './components/features/CanvasWithShortcuts'
 import { CanvasProvider } from './contexts/CanvasContext'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -17,9 +20,11 @@ import { cn } from '@/lib/utils'
 import { PerformanceOverlay } from './components/common/PerformanceOverlay'
 import { StatusPanel } from './components/features/StatusPanel'
 import { useLayoutState } from './hooks/useLayoutState'
+import React from 'react'
 
 function App() {
   const { layout, toggleLeftPanel, toggleRightPanel, toggleBottomPanel, toggleFullscreen } = useLayoutState()
+  const [showColors, setShowColors] = React.useState(true)
 
   return (
     <ThemeProvider>
@@ -50,10 +55,16 @@ function App() {
                 side="left"
                 minWidth="w-44"
               >
-                <div className="space-y-3">
-                  <ToolPalette />
-                  <Separator />
-                  <StatusPanel />
+                <div className="h-full flex flex-col">
+                  {/* Tools at the top */}
+                  <div className="flex-1">
+                    <ToolPalette />
+                  </div>
+                  
+                  {/* Status panel anchored to bottom */}
+                  <div className="flex-shrink-0">
+                    <StatusPanel />
+                  </div>
                 </div>
               </CollapsiblePanel>
               
@@ -86,10 +97,17 @@ function App() {
                   <Separator />
                   
                   {/* Color Picker */}
-                  <div>
-                    <h3 className="text-sm font-semibold mb-2">Colors</h3>
-                    <ColorPicker />
-                  </div>
+                  <Collapsible open={showColors} onOpenChange={setShowColors}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" className="w-full h-6 text-xs justify-between p-1">
+                        Colors
+                        <ChevronDown className="h-3 w-3" />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="collapsible-content">
+                      <ColorPicker />
+                    </CollapsibleContent>
+                  </Collapsible>
                 </div>
               </CollapsiblePanel>
               
