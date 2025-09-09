@@ -43,7 +43,7 @@ function App() {
             {/* Left Panel - matches canvas height */}
             <div className={cn(
               "absolute top-0 left-0 z-10 transition-all duration-300 ease-out",
-              layout.bottomPanelOpen ? "bottom-52" : "bottom-0"
+              layout.bottomPanelOpen ? "bottom-80" : "bottom-4" // Account for new panel height (h-80 = 20rem) and visible strip
             )}>
               <CollapsiblePanel
                 isOpen={layout.leftPanelOpen}
@@ -73,7 +73,7 @@ function App() {
             {/* Right Panel - matches canvas height */}
             <div className={cn(
               "absolute top-0 right-0 z-10 transition-all duration-300 ease-out",
-              layout.bottomPanelOpen ? "bottom-52" : "bottom-0"
+              layout.bottomPanelOpen ? "bottom-80" : "bottom-4" // Account for new panel height (h-80 = 20rem) and visible strip
             )}>
               <CollapsiblePanel
                 isOpen={layout.rightPanelOpen}
@@ -111,22 +111,19 @@ function App() {
               <CollapsiblePanel
                 isOpen={layout.bottomPanelOpen}
                 side="bottom"
-                minHeight="h-52"
+                minHeight="h-80"
               >
+                {/* Bottom Panel Toggle Button - moves with the panel */}
+                <div className="absolute left-1/2 -translate-x-1/2 -top-0.5 z-20">
+                  <PanelToggleButton
+                    isOpen={layout.bottomPanelOpen}
+                    onToggle={toggleBottomPanel}
+                    side="bottom"
+                  />
+                </div>
+                
                 <AnimationTimeline />
               </CollapsiblePanel>
-              
-              {/* Bottom Panel Toggle Button - positioned to stay visible */}
-              <div className={cn(
-                "absolute left-1/2 -translate-x-1/2 z-20 transition-all duration-300 ease-out",
-                layout.bottomPanelOpen ? "bottom-52" : "bottom-0"
-              )}>
-                <PanelToggleButton
-                  isOpen={layout.bottomPanelOpen}
-                  onToggle={toggleBottomPanel}
-                  side="bottom"
-                />
-              </div>
             </div>
 
             {/* Center Canvas Area - positioned to account for panel space */}
@@ -135,7 +132,7 @@ function App() {
                 "absolute inset-0 flex flex-col transition-all duration-300 ease-out",
                 layout.leftPanelOpen && "left-44",
                 layout.rightPanelOpen && "right-72", 
-                layout.bottomPanelOpen && "bottom-52"
+                layout.bottomPanelOpen ? "bottom-80" : "bottom-4" // Account for new panel height (h-80) and visible strip
               )}
             >
               {/* Canvas Settings Header */}

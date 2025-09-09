@@ -43,8 +43,8 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
         return cn(
           baseClasses,
           'border-t bg-background',
-          minHeight || 'h-52',
-          isOpen ? 'translate-y-0' : 'translate-y-full',
+          minHeight || 'h-80', // Even taller to fit all timeline content (320px)
+          isOpen ? 'translate-y-0' : 'translate-y-[calc(100%-1rem)]', // Leave 16px visible when collapsed
           className
         );
       default:
@@ -57,8 +57,8 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
       <div 
         id={`panel-${side}`}
         className={cn(
-          'h-full overflow-y-auto',
-          side === 'bottom' ? 'pt-4 px-4 pb-2' : 'p-4', // Match canvas padding for bottom panel
+          'h-full',
+          side === 'bottom' ? 'pt-4 px-4 pb-2' : 'p-4 overflow-y-auto', // Only side panels have scrolling
           side === 'left' && 'scrollbar-left' // Put scrollbar on left side for left panel
         )}
         role="region"
