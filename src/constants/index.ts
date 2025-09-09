@@ -6,6 +6,13 @@ export * from './hotkeys';
 // Re-export onion skin constants
 export * from './onionSkin';
 
+// Panel animation constants
+export const PANEL_ANIMATION = {
+  DURATION: 'duration-300',
+  EASING: 'ease-out',
+  TRANSITION: 'transition-transform duration-300 ease-out'
+} as const;
+
 export const CHARACTER_CATEGORIES = {
   "Basic Text": [
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 

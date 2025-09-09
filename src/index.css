@@ -122,3 +122,12 @@
     -ms-interpolation-mode: nearest-neighbor;
   }
 }
+
+/* Custom scrollbar positioning for left panel */
+.scrollbar-left {
+  direction: rtl;
+}
+
+.scrollbar-left > * {
+  direction: ltr;
+}

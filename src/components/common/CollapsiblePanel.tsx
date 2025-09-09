@@ -1,13 +1,10 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PANEL_ANIMATION } from '@/constants';
 
 interface CollapsiblePanelProps {
   children: React.ReactNode;
   isOpen: boolean;
-  onToggle: () => void;
   side: 'left' | 'right' | 'bottom';
   className?: string;
   minWidth?: string;
@@ -17,63 +14,37 @@ interface CollapsiblePanelProps {
 export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
   children,
   isOpen,
-  onToggle,
   side,
   className = '',
   minWidth,
   minHeight,
 }) => {
-  const getToggleIcon = () => {
-    const iconSize = side === 'bottom' && isOpen ? "h-2.5 w-2.5" : "h-3 w-3";
-    
-    switch (side) {
-      case 'left':
-        return isOpen ? <ChevronLeft className={iconSize} /> : <ChevronRight className={iconSize} />;
-      case 'right':
-        return isOpen ? <ChevronRight className={iconSize} /> : <ChevronLeft className={iconSize} />;
-      case 'bottom':
-        return isOpen ? <ChevronDown className={iconSize} /> : <ChevronUp className={iconSize} />;
-      default:
-        return null;
-    }
-  };
-
-  const getTogglePosition = () => {
-    switch (side) {
-      case 'left':
-        return isOpen ? 'absolute right-0 top-1/2 transform -translate-y-1/2 z-50' : 'absolute left-1 top-1/2 transform -translate-y-1/2 z-50';
-      case 'right':
-        return isOpen ? 'absolute left-0 top-1/2 transform -translate-y-1/2 z-50' : 'absolute right-1 top-1/2 transform -translate-y-1/2 z-50';
-      case 'bottom':
-        return isOpen ? 'absolute top-0 left-1/2 transform -translate-x-1/2 z-50' : 'absolute top-1 left-1/2 transform -translate-x-1/2 z-50';
-      default:
-        return '';
-    }
-  };
-
   const getPanelClasses = () => {
-    const baseClasses = 'relative border-border bg-muted/20 transition-all duration-200 ease-in-out';
+    const baseClasses = `relative border-border overflow-hidden ${PANEL_ANIMATION.TRANSITION}`;
     
     switch (side) {
       case 'left':
         return cn(
           baseClasses,
-          'border-r overflow-y-auto overflow-x-hidden left-panel-scroll',
-          isOpen ? minWidth || 'w-44' : 'w-6', // Match timeline's collapsed height
+          'border-r bg-muted/20 h-full',
+          minWidth || 'w-44',
+          isOpen ? 'translate-x-0' : '-translate-x-full',
           className
         );
       case 'right':
         return cn(
           baseClasses,
-          'border-l overflow-y-auto overflow-x-hidden',
-          isOpen ? minWidth || 'w-72' : 'w-6', // Match timeline's collapsed height
+          'border-l bg-muted/20 h-full',
+          minWidth || 'w-72',
+          isOpen ? 'translate-x-0' : 'translate-x-full',
           className
         );
       case 'bottom':
         return cn(
           baseClasses,
-          'border-t',
-          isOpen ? minHeight || 'h-auto' : 'h-6',
+          'border-t bg-background',
+          minHeight || 'h-52',
+          isOpen ? 'translate-y-0' : 'translate-y-full',
           className
         );
       default:
@@ -83,42 +54,18 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
 
   return (
     <div className={getPanelClasses()}>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onToggle}
+      <div 
+        id={`panel-${side}`}
         className={cn(
-          // Skinny and tall for side panels, short and wide for bottom panel
-          side === 'bottom' 
-            ? 'h-4 w-12 p-0 bg-background border shadow-sm hover:bg-accent touch-manipulation' 
-            : 'h-12 w-4 p-0 bg-background border shadow-sm hover:bg-accent touch-manipulation',
-          getTogglePosition()
+          'h-full overflow-y-auto',
+          side === 'bottom' ? 'pt-4 px-4 pb-2' : 'p-4', // Match canvas padding for bottom panel
+          side === 'left' && 'scrollbar-left' // Put scrollbar on left side for left panel
         )}
-        title={`${isOpen ? 'Collapse' : 'Expand'} panel`}
-        aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${side} panel`}
-        aria-expanded={isOpen}
-        aria-controls={`panel-${side}`}
+        role="region"
+        aria-label={`${side} panel content`}
       >
-        {getToggleIcon()}
-      </Button>
-      
-      {isOpen && (
-        <Collapsible open={isOpen}>
-          <CollapsibleContent className={side === 'bottom' ? '' : 'h-full'}>
-            <div 
-              id={`panel-${side}`}
-              className={cn(
-                side === 'bottom' ? '' : 'h-full',
-                side === 'bottom' ? 'p-2' : 'p-4'
-              )}
-              role="region"
-              aria-label={`${side} panel content`}
-            >
-              {children}
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-      )}
+        {children}
+      </div>
     </div>
   );
 };

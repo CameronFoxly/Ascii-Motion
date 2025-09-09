@@ -5,17 +5,21 @@ import { CanvasProvider } from './contexts/CanvasContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { ThemeToggle } from './components/common/ThemeToggle'
 import { CollapsiblePanel } from './components/common/CollapsiblePanel'
+import { PanelToggleButton } from './components/common/PanelToggleButton'
 import { ToolPalette } from './components/features/ToolPalette'
 import { CharacterPalette } from './components/features/CharacterPalette'
 import { ColorPicker } from './components/features/ColorPicker'
 import { CanvasSettings } from './components/features/CanvasSettings'
 import { AnimationTimeline } from './components/features/AnimationTimeline'
+import { PlaybackOverlay } from './components/features/PlaybackOverlay'
+import { FullscreenToggle } from './components/features/FullscreenToggle'
+import { cn } from '@/lib/utils'
 import { PerformanceOverlay } from './components/common/PerformanceOverlay'
 import { StatusPanel } from './components/features/StatusPanel'
 import { useLayoutState } from './hooks/useLayoutState'
 
 function App() {
-  const { layout, toggleLeftPanel, toggleRightPanel, toggleBottomPanel } = useLayoutState()
+  const { layout, toggleLeftPanel, toggleRightPanel, toggleBottomPanel, toggleFullscreen } = useLayoutState()
 
   return (
     <ThemeProvider>
@@ -35,69 +39,130 @@ function App() {
 
         {/* Main Content Grid */}
         <CanvasProvider>
-          <div className="grid grid-cols-[auto_1fr_auto] grid-rows-[1fr_auto] overflow-hidden">
-          {/* Left Panel - Tools */}
-          <CollapsiblePanel
-            isOpen={layout.leftPanelOpen}
-            onToggle={toggleLeftPanel}
-            side="left"
-            minWidth="w-40"
-            className="row-span-2"
-          >
-            <div className="space-y-3">
-              <ToolPalette />
-              <Separator />
-              <CharacterPalette />
-            </div>
-          </CollapsiblePanel>
-
-          {/* Center Canvas Area */}
-          <div className="overflow-hidden flex flex-col min-h-0">
-            {/* Canvas Settings Header */}
-            <div className="flex-shrink-0 border-b border-border/50 bg-background/95 backdrop-blur">
-              <div className="px-3 py-2 flex justify-center items-center">
-                <CanvasSettings />
-              </div>
-            </div>
-            
-            {/* Canvas Container - fills remaining space */}
-            <div className="flex-1 overflow-auto min-h-0 bg-muted/10 relative">
-              <div className="absolute inset-0 p-4">
-                <CanvasWithShortcuts className="w-full h-full" />
-              </div>
-            </div>
-          </div>
-
-          {/* Right Panel - Status & Colors */}
-          <CollapsiblePanel
-            isOpen={layout.rightPanelOpen}
-            onToggle={toggleRightPanel}
-            side="right"
-            minWidth="w-60"
-            className="row-span-2"
-          >
-            <div className="space-y-3">
-              <StatusPanel />
+          <div className="relative flex-1 overflow-hidden">
+            {/* Left Panel - matches canvas height */}
+            <div className={cn(
+              "absolute top-0 left-0 z-10 transition-all duration-300 ease-out",
+              layout.bottomPanelOpen ? "bottom-52" : "bottom-0"
+            )}>
+              <CollapsiblePanel
+                isOpen={layout.leftPanelOpen}
+                side="left"
+                minWidth="w-44"
+              >
+                <div className="space-y-3">
+                  <ToolPalette />
+                  <Separator />
+                  <CharacterPalette />
+                </div>
+              </CollapsiblePanel>
               
-              <Separator />
-              
-              {/* Color Picker */}
-              <div>
-                <h3 className="text-sm font-semibold mb-2">Colors</h3>
-                <ColorPicker />
+              {/* Left Panel Toggle Button - centered on canvas area */}
+              <div className={cn(
+                "absolute top-1/2 -translate-y-1/2 z-20 transition-all duration-300 ease-out",
+                layout.leftPanelOpen ? "left-44" : "left-0"
+              )}>
+                <PanelToggleButton
+                  isOpen={layout.leftPanelOpen}
+                  onToggle={toggleLeftPanel}
+                  side="left"
+                />
               </div>
             </div>
-          </CollapsiblePanel>
 
-          {/* Bottom Panel - Animation Timeline */}
-          <CollapsiblePanel
-            isOpen={layout.bottomPanelOpen}
-            onToggle={toggleBottomPanel}
-            side="bottom"
-            className="col-span-3"
-          >
-            <AnimationTimeline />
-          </CollapsiblePanel>
+            {/* Right Panel - matches canvas height */}
+            <div className={cn(
+              "absolute top-0 right-0 z-10 transition-all duration-300 ease-out",
+              layout.bottomPanelOpen ? "bottom-52" : "bottom-0"
+            )}>
+              <CollapsiblePanel
+                isOpen={layout.rightPanelOpen}
+                side="right"
+                minWidth="w-72"
+              >
+                <div className="space-y-3">
+                  <StatusPanel />
+                  
+                  <Separator />
+                  
+                  {/* Color Picker */}
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2">Colors</h3>
+                    <ColorPicker />
+                  </div>
+                </div>
+              </CollapsiblePanel>
+              
+              {/* Right Panel Toggle Button - centered on canvas area */}
+              <div className={cn(
+                "absolute top-1/2 -translate-y-1/2 z-20 transition-all duration-300 ease-out",
+                layout.rightPanelOpen ? "right-72" : "right-0"
+              )}>
+                <PanelToggleButton
+                  isOpen={layout.rightPanelOpen}
+                  onToggle={toggleRightPanel}
+                  side="right"
+                />
+              </div>
+            </div>
+
+            {/* Bottom Panel */}
+            <div className="absolute bottom-0 left-0 right-0 z-10">
+              <CollapsiblePanel
+                isOpen={layout.bottomPanelOpen}
+                side="bottom"
+                minHeight="h-52"
+              >
+                <AnimationTimeline />
+              </CollapsiblePanel>
+              
+              {/* Bottom Panel Toggle Button - positioned to stay visible */}
+              <div className={cn(
+                "absolute left-1/2 -translate-x-1/2 z-20 transition-all duration-300 ease-out",
+                layout.bottomPanelOpen ? "bottom-52" : "bottom-0"
+              )}>
+                <PanelToggleButton
+                  isOpen={layout.bottomPanelOpen}
+                  onToggle={toggleBottomPanel}
+                  side="bottom"
+                />
+              </div>
+            </div>
+
+            {/* Center Canvas Area - positioned to account for panel space */}
+            <div 
+              className={cn(
+                "absolute inset-0 flex flex-col transition-all duration-300 ease-out",
+                layout.leftPanelOpen && "left-44",
+                layout.rightPanelOpen && "right-72", 
+                layout.bottomPanelOpen && "bottom-52"
+              )}
+            >
+              {/* Canvas Settings Header */}
+              <div className="flex-shrink-0 border-b border-border/50 bg-background/95 backdrop-blur">
+                <div className="px-3 py-2 flex justify-center items-center">
+                  <CanvasSettings />
+                </div>
+              </div>
+              
+              {/* Canvas Container - fills remaining space */}
+              <div className="flex-1 overflow-auto min-h-0 bg-muted/10 relative">
+                <div className="absolute inset-0 pt-4 px-4 pb-0">
+                  <div className="w-full h-full relative">
+                    <CanvasWithShortcuts className="w-full h-full" />
+                    
+                    {/* Playback Overlay - shows when timeline is collapsed */}
+                    <PlaybackOverlay isVisible={!layout.bottomPanelOpen} />
+                    
+                    {/* Fullscreen Toggle - always visible */}
+                    <FullscreenToggle 
+                      isFullscreen={layout.isFullscreen}
+                      onToggle={toggleFullscreen}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </CanvasProvider>
         

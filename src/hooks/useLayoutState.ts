@@ -4,6 +4,7 @@ interface LayoutState {
   leftPanelOpen: boolean;
   rightPanelOpen: boolean;
   bottomPanelOpen: boolean;
+  isFullscreen: boolean;
 }
 
 interface UserPreferences {
@@ -12,10 +13,17 @@ interface UserPreferences {
   bottomPanelPreferred: boolean;
 }
 
+interface FullscreenState {
+  wasLeftPanelOpen: boolean;
+  wasRightPanelOpen: boolean;
+  wasBottomPanelOpen: boolean;
+}
+
 const DEFAULT_LAYOUT: LayoutState = {
   leftPanelOpen: true,
   rightPanelOpen: true,
   bottomPanelOpen: true,
+  isFullscreen: false,
 };
 
 const DEFAULT_PREFERENCES: UserPreferences = {
@@ -32,6 +40,11 @@ const COMPACT_BREAKPOINT = 1200;
 export const useLayoutState = () => {
   const [layout, setLayout] = useState<LayoutState>(DEFAULT_LAYOUT);
   const [userPreferences, setUserPreferences] = useState<UserPreferences>(DEFAULT_PREFERENCES);
+  const [fullscreenState, setFullscreenState] = useState<FullscreenState>({
+    wasLeftPanelOpen: true,
+    wasRightPanelOpen: true,
+    wasBottomPanelOpen: true,
+  });
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   const [isCompact, setIsCompact] = useState(false);
@@ -111,6 +124,35 @@ export const useLayoutState = () => {
     });
   };
 
+  const toggleFullscreen = () => {
+    setLayout(prev => {
+      if (prev.isFullscreen) {
+        // Exit fullscreen: restore previous panel states
+        return {
+          ...prev,
+          isFullscreen: false,
+          leftPanelOpen: fullscreenState.wasLeftPanelOpen,
+          rightPanelOpen: fullscreenState.wasRightPanelOpen,
+          bottomPanelOpen: fullscreenState.wasBottomPanelOpen,
+        };
+      } else {
+        // Enter fullscreen: save current states and close all panels
+        setFullscreenState({
+          wasLeftPanelOpen: prev.leftPanelOpen,
+          wasRightPanelOpen: prev.rightPanelOpen,
+          wasBottomPanelOpen: prev.bottomPanelOpen,
+        });
+        return {
+          ...prev,
+          isFullscreen: true,
+          leftPanelOpen: false,
+          rightPanelOpen: false,
+          bottomPanelOpen: false,
+        };
+      }
+    });
+  };
+
   return {
     layout,
     isMobile,
@@ -119,5 +161,6 @@ export const useLayoutState = () => {
     toggleLeftPanel,
     toggleRightPanel,
     toggleBottomPanel,
+    toggleFullscreen,
   };
 };
