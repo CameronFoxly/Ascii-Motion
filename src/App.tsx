@@ -53,7 +53,7 @@ function App() {
                 <div className="space-y-3">
                   <ToolPalette />
                   <Separator />
-                  <CharacterPalette />
+                  <StatusPanel />
                 </div>
               </CollapsiblePanel>
               
@@ -78,10 +78,10 @@ function App() {
               <CollapsiblePanel
                 isOpen={layout.rightPanelOpen}
                 side="right"
-                minWidth="w-72"
+                minWidth="w-56"
               >
                 <div className="space-y-3">
-                  <StatusPanel />
+                  <CharacterPalette />
                   
                   <Separator />
                   
@@ -96,7 +96,7 @@ function App() {
               {/* Right Panel Toggle Button - centered on canvas area */}
               <div className={cn(
                 "absolute top-1/2 -translate-y-1/2 z-20 transition-all duration-300 ease-out",
-                layout.rightPanelOpen ? "right-72" : "right-0"
+                layout.rightPanelOpen ? "right-56" : "right-0"
               )}>
                 <PanelToggleButton
                   isOpen={layout.rightPanelOpen}
@@ -130,7 +130,7 @@ function App() {
               className={cn(
                 "absolute inset-0 flex flex-col transition-all duration-300 ease-out",
                 layout.leftPanelOpen && "left-44",
-                layout.rightPanelOpen && "right-72", 
+                layout.rightPanelOpen && "right-56", 
                 layout.bottomPanelOpen ? "bottom-[var(--bottom-panel-height,20rem)]" : "bottom-4" // Use dynamic height or fallback
               )}
             >

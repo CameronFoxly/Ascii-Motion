@@ -34,11 +34,11 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
         <TabsContent value="text" className="mt-2">
           <Card className="bg-card/50 border-border/50">
             <CardContent className="p-2">
-              <div className="grid grid-cols-4 gap-1">
+              <div className="grid grid-cols-6 gap-0.5">
                 {ansiColorsArray.map(({ name, color }) => (
                   <button
                     key={`text-${name}`}
-                    className={`w-8 h-6 rounded border-2 transition-all hover:scale-105 ${
+                    className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 ${
                       selectedColor === color 
                         ? 'border-primary ring-2 ring-primary/20' 
                         : 'border-border'
@@ -56,11 +56,11 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
         <TabsContent value="bg" className="mt-2">
           <Card className="bg-card/50 border-border/50">
             <CardContent className="p-2">
-              <div className="grid grid-cols-4 gap-1">
+              <div className="grid grid-cols-6 gap-0.5">
                 {ansiColorsArray.map(({ name, color }) => (
                   <button
                     key={`bg-${name}`}
-                    className={`w-8 h-6 rounded border-2 transition-all hover:scale-105 ${
+                    className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 ${
                       selectedBgColor === color 
                         ? 'border-primary ring-2 ring-primary/20' 
                         : 'border-border'

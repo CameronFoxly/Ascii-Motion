@@ -50,26 +50,26 @@ export const CharacterPalette: React.FC<CharacterPaletteProps> = ({ className = 
               <TabsTrigger 
                 key={categoryName} 
                 value={categoryName}
-                className="flex items-center justify-center p-1 h-6 text-xs"
+                className="flex items-center justify-center p-0.5 h-5 text-xs"
                 title={categoryName}
               >
-                <IconComponent className="w-3 h-3" />
+                <IconComponent className="w-2.5 h-2.5" />
               </TabsTrigger>
             );
           })}
         </TabsList>
         
-        <TabsList className="grid w-full grid-cols-4 h-auto p-0.5 gap-0.5 mt-1">
+        <TabsList className="grid w-full grid-cols-4 h-auto p-0.5 gap-0.5 mt-0.5">
           {categoryEntries.slice(4).map(([categoryName]) => {
             const IconComponent = CATEGORY_ICONS[categoryName as keyof typeof CATEGORY_ICONS];
             return (
               <TabsTrigger 
                 key={categoryName} 
                 value={categoryName}
-                className="flex items-center justify-center p-1 h-6 text-xs"
+                className="flex items-center justify-center p-0.5 h-5 text-xs"
                 title={categoryName}
               >
-                <IconComponent className="w-3 h-3" />
+                <IconComponent className="w-2.5 h-2.5" />
               </TabsTrigger>
             );
           })}
@@ -78,18 +78,21 @@ export const CharacterPalette: React.FC<CharacterPaletteProps> = ({ className = 
         {categoryEntries.map(([categoryName, characters]) => (
           <TabsContent key={categoryName} value={categoryName} className="mt-2">
             <Card className="bg-card border border-border/50">
-              <CardContent className="p-3">
-                <div className="grid grid-cols-4 gap-1 w-full">
+              <CardContent className="p-2">
+                <div 
+                  className="grid grid-cols-6 gap-0.5 w-full overflow-y-auto"
+                  style={{ maxHeight: '120px' }} // Approximately 5 rows: 5 * (button height + gap)
+                >
                   {characters.map((char) => (
                     <Button
                       key={char}
                       variant={selectedChar === char ? 'default' : 'outline'}
                       size="sm"
-                      className="w-full aspect-square p-0 font-mono text-xs flex items-center justify-center min-w-0"
+                      className="w-full aspect-square p-0 font-mono text-xs flex items-center justify-center min-w-0 flex-shrink-0 h-6"
                       onClick={() => setSelectedChar(char)}
                       title={`Character: ${char} (${char.charCodeAt(0)})`}
                     >
-                      <span className="leading-none">{char}</span>
+                      <span className="leading-none text-xs">{char}</span>
                     </Button>
                   ))}
                 </div>
