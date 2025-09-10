@@ -552,8 +552,8 @@ export const useCanvasRenderer = () => {
 
     // Draw hover cell outline (subtle outline for current cell under cursor)
     if (hoveredCell && hoveredCell.x >= 0 && hoveredCell.x < width && hoveredCell.y >= 0 && hoveredCell.y < height) {
-      ctx.strokeStyle = 'rgba(59, 130, 246, 0.2)'; // Subtle blue outline
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)'; // 50% opacity blue outline for screenshots
+      ctx.lineWidth = 2;
       ctx.setLineDash([]);
       ctx.strokeRect(
         Math.round(hoveredCell.x * effectiveCellWidth + panOffset.x),

@@ -70,13 +70,13 @@ export const useToolBehavior = () => {
       case 'lasso':
         return 'cursor-crosshair';
       case 'magicwand':
-        return 'cursor-crosshair';
+        return 'cursor-magicwand'; // Custom magic wand cursor
       case 'pencil':
-        return 'cursor-crosshair';
+        return 'cursor-pen'; // Custom pen cursor
       case 'eraser':
-        return 'cursor-crosshair';
+        return 'cursor-eraser'; // Custom eraser cursor
       case 'paintbucket':
-        return 'cursor-crosshair';
+        return 'cursor-paintbucket'; // Custom paint bucket cursor
       case 'rectangle':
         return 'cursor-crosshair';
       case 'ellipse':
