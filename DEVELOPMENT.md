@@ -313,6 +313,7 @@ const SELECTION_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; de
 - [x] **Enhanced Pencil Tool** - Shift+click line drawing functionality (Sept 3, 2025)
 - [x] **Zoom and Navigation System** - Complete zoom/pan controls with space key override (Sept 4, 2025)
 - [x] Keyboard shortcuts (Cmd/Ctrl+C, Cmd/Ctrl+V, Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Space for hand tool with text tool protection)
+- [x] **Arrow Key Selection Movement** ✅ **COMPLETE** - All selection tools support arrow key movement for precise positioning (Sept 10, 2025)
 
 ## 🔄 **Phase 1.5 COMPLETE - Enhanced Toolset Next**
 
@@ -376,6 +377,7 @@ const SELECTION_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; de
 
 1. **Phase 1.6: Enhanced Art Creation Tools** - ✅ **COMPLETE** (Sept 6, 2025)
    - ✅ **Advanced Selection Tools**: Lasso selection, magic wand with contiguous/non-contiguous modes
+   - ✅ **Arrow Key Movement**: All selection tools support arrow key movement for precise positioning ✅ **COMPLETE** (Sept 10, 2025)
    - ✅ **Text Input System**: Type tool with cursor rendering and keyboard shortcut protection
    - ✅ **Enhanced Fill Tool**: Paint bucket with contiguous/non-contiguous toggle
    - ✅ **Universal Tool Hotkeys**: Complete hotkey system for all tools with centralized configuration (Sept 5, 2025)
@@ -1333,6 +1335,48 @@ These patterns are now incorporated into the codebase and should be followed for
 **Goal**: Improve maintainability, performance, and testability before adding animation features
 
 ### 🏗️ **Architectural Decisions Made**
+
+#### **Arrow Key Movement for Selection Tools (September 10, 2025)**
+**Decision**: Implement keyboard-initiated move mode with seamless mouse interaction for all selection tools  
+**Problem**: Professional graphics software supports arrow key movement for selections, but this required complex state coordination  
+**Solution**: Arrow key detection in `CanvasGrid.tsx` with tool-specific movement handlers and adjusted mouse interaction logic  
+**Files**: `src/components/features/CanvasGrid.tsx`, `src/hooks/useCanvasSelection.ts`, `src/hooks/useCanvasLassoSelection.ts`, `src/hooks/useCanvasMagicWandSelection.ts`  
+**Key Fixes**:
+- **Stale Closure Fix**: Added selection state variables to useEffect dependencies to prevent event handlers from using outdated state
+- **Mouse Movement Fix**: Added `mouseButtonDown` condition to mouse move handlers to prevent arrow-initiated moves from jumping to mouse position
+- **Click Position Fix**: Adjusted `startPos` calculation when clicking on existing moveState to account for `currentOffset` from arrow keys
+**Pattern**: 
+```typescript
+// Arrow key detection and routing
+if ((event.key === 'ArrowUp' || event.key === 'ArrowDown' || 
+     event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+  if ((activeTool === 'select' && selection.active) || 
+      (activeTool === 'lasso' && lassoSelection.active) ||
+      (activeTool === 'magicwand' && magicWandSelection.active)) {
+    event.preventDefault();
+    const arrowOffset = {
+      x: event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0,
+      y: event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0
+    };
+    handleArrowKeyMovement(arrowOffset);
+  }
+}
+
+// Fixed mouse move handler pattern
+if (selectionMode === 'moving' && moveState && mouseButtonDown) {
+  // Only update during mouse-initiated moves
+}
+
+// Fixed click on existing moveState pattern  
+if (moveState) {
+  const adjustedStartPos = {
+    x: x - moveState.currentOffset.x,
+    y: y - moveState.currentOffset.y
+  };
+  setMoveState({ ...moveState, startPos: adjustedStartPos });
+}
+```
+**Lesson**: When implementing keyboard shortcuts for complex UI state, ensure event handlers have access to current state via proper dependency arrays, and coordinate mouse/keyboard interactions carefully to prevent conflicting behaviors
 
 #### **Frame Synchronization Move Commit Pattern**
 **Decision**: Move operations are committed to the original frame before clearing state during frame navigation  

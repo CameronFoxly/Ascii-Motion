@@ -1410,6 +1410,7 @@ if (textToolState.isTyping && textToolState.cursorVisible && textToolState.curso
 - **Cmd/Ctrl+V**: Paste from appropriate clipboard (priority: magic wand → lasso → rectangular)
 - **Escape**: Cancel/clear selection (handled by individual tools when active)
 - **Enter**: Commit move operation (handled by individual tools when active)
+- **Arrow Keys**: Move selection one cell in arrow direction (enters move mode if not already active)
 
 **Step 1: Add to CanvasGrid Escape/Enter Handlers**
 ```typescript
@@ -1457,6 +1458,58 @@ if (magicWandSelection.active) {         // HIGHEST PRIORITY
   // Clear rectangular selected cells and clear selection
 }
 ```
+
+**Step 3: Add Arrow Key Movement Handlers to CanvasGrid**
+```typescript
+// In src/components/features/CanvasGrid.tsx
+if ((event.key === 'ArrowUp' || event.key === 'ArrowDown' || 
+     event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+  // Only handle arrow keys when a selection tool is active and has an active selection
+  if ((activeTool === 'select' && selection.active) || 
+      (activeTool === 'lasso' && lassoSelection.active) ||
+      (activeTool === 'magicwand' && magicWandSelection.active)) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Calculate arrow direction offset
+    const arrowOffset = {
+      x: event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0,
+      y: event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0
+    };
+    
+    // Call the arrow movement handler
+    handleArrowKeyMovement(arrowOffset);
+  }
+}
+
+// Arrow movement handler implementation
+const handleArrowKeyMovement = (arrowOffset: { x: number; y: number }) => {
+  // Determine which selection is active and handle accordingly
+  if (activeTool === 'select' && selection.active) {
+    handleRectangularSelectionArrowMovement(arrowOffset);
+  } else if (activeTool === 'lasso' && lassoSelection.active) {
+    handleLassoSelectionArrowMovement(arrowOffset);
+  } else if (activeTool === 'magicwand' && magicWandSelection.active) {
+    handleMagicWandSelectionArrowMovement(arrowOffset);
+  }
+};
+```
+
+**Arrow Key Movement Architecture Benefits:**
+- **✅ COMPLETE**: All selection tools support arrow key movement with identical behavior
+- **✅ COMPLETE**: Arrow keys automatically enter move mode if not already active
+- **✅ COMPLETE**: Multiple arrow presses accumulate offset for precise positioning
+- **✅ COMPLETE**: Selection remains active during movement until committed/cancelled
+- **✅ COMPLETE**: Professional workflow that matches industry-standard selection tool behavior
+- **✅ COMPLETE**: Seamless mouse interaction - no jumping when clicking after arrow-initiated moves
+
+#### **🎯 Arrow Key Implementation Status (September 10, 2025):**
+- **✅ COMPLETE**: Rectangular selection tool arrow key movement
+- **✅ COMPLETE**: Lasso selection tool arrow key movement  
+- **✅ COMPLETE**: Magic wand selection tool arrow key movement
+- **✅ COMPLETE**: Fixed stale closure bug in keyboard event handlers
+- **✅ COMPLETE**: Fixed mouse movement interference during arrow-initiated move mode
+- **✅ COMPLETE**: Fixed first-click position jumping after arrow key movement
 
 #### **✅ Why This Matters (Magic Wand Bug Discovery - Sept 5, 2025):**
 - **Missing keyboard integration** led to Escape/Enter not working for move operations
@@ -2021,12 +2074,16 @@ const useCanvasStore = create<CanvasState>((set) => ({
 
 **If any checkbox above is unchecked, your work is not finished!**
 
-## Current Architecture Status (Enhanced September 8, 2025):
-🚨 **LATEST**: Animation Timeline Undo/Redo Integration Complete
+## Current Architecture Status (Enhanced September 10, 2025):
+🚨 **LATEST**: Arrow Key Movement for All Selection Tools Complete
 
-**Major Enhancement**: All animation timeline operations now support comprehensive undo/redo functionality with unified history management.
+**Major Enhancement**: All selection tools now support professional arrow key movement with seamless mouse interaction and precise positioning control.
 
-**Current State** (Updated Sept 8, 2025):
+**Current State** (Updated Sept 10, 2025):
+- ✅ **Arrow Key Movement**: All selection tools (rectangular, lasso, magic wand) support arrow key movement
+- ✅ **Move Mode Integration**: Arrow keys automatically enter move mode without requiring mouse click first  
+- ✅ **Seamless Mouse Interaction**: Fixed position jumping when clicking after arrow-initiated movement
+- ✅ **Professional UX**: Industry-standard keyboard navigation matching professional graphics software
 - ✅ **Enhanced History System**: Unified timeline for canvas and animation actions with frame operation synchronization
 - ✅ **Animation Undo/Redo**: Add frame, duplicate, delete, reorder, duration/name changes fully supported
 - ✅ **useAnimationHistory Hook**: Clean API for history-enabled animation operations  

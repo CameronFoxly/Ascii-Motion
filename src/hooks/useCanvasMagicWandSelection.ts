@@ -184,23 +184,37 @@ export const useCanvasMagicWandSelection = () => {
       // Start move mode
       setSelectionMode('moving');
       
-      // Store only the selected cells, not all cells
-      const originalData = new Map<string, Cell>();
-      magicWandSelection.selectedCells.forEach((cellKey) => {
-        const [cx, cy] = cellKey.split(',').map(Number);
-        const cell = getCell(cx, cy);
-        // Only store non-empty cells
-        if (cell && !isCellEmpty(cell)) {
-          originalData.set(cellKey, cell);
-        }
-      });
-      
-      setMoveState({
-        originalData,
-        startPos: { x, y },
-        baseOffset: { x: 0, y: 0 },
-        currentOffset: { x: 0, y: 0 }
-      });
+      if (moveState) {
+        // Already have a moveState (continuing from arrow key movement)
+        // Adjust startPos to account for existing currentOffset so position doesn't jump
+        const adjustedStartPos = {
+          x: x - moveState.currentOffset.x,
+          y: y - moveState.currentOffset.y
+        };
+        setMoveState({
+          ...moveState,
+          startPos: adjustedStartPos
+        });
+      } else {
+        // First time moving - create new moveState
+        // Store only the selected cells, not all cells
+        const originalData = new Map<string, Cell>();
+        magicWandSelection.selectedCells.forEach((cellKey) => {
+          const [cx, cy] = cellKey.split(',').map(Number);
+          const cell = getCell(cx, cy);
+          // Only store non-empty cells
+          if (cell && !isCellEmpty(cell)) {
+            originalData.set(cellKey, cell);
+          }
+        });
+        
+        setMoveState({
+          originalData,
+          startPos: { x, y },
+          baseOffset: { x: 0, y: 0 },
+          currentOffset: { x: 0, y: 0 }
+        });
+      }
       setMouseButtonDown(true);
       return;
     }
@@ -244,12 +258,11 @@ export const useCanvasMagicWandSelection = () => {
 
   // Handle mouse move during magic wand selection
   const handleMagicWandMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!mouseButtonDown || !magicWandSelection.active) return;
-
     const { x, y } = getGridCoordinatesFromEvent(event);
 
-    // Handle move mode
-    if (selectionMode === 'moving' && moveState) {
+    // Handle move mode - only update position if mouse button is down (mouse-initiated move)
+    // This prevents arrow key-initiated moves from jumping to follow mouse movement
+    if (selectionMode === 'moving' && moveState && mouseButtonDown) {
       const newOffset = {
         x: x - moveState.startPos.x,
         y: y - moveState.startPos.y

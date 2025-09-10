@@ -72,10 +72,15 @@ export const useCanvasSelection = () => {
       // Click inside existing selection - enter move mode
       setJustCommittedMove(false);
       if (moveState) {
-        // Already have a moveState (continuing from preview) - just update start position
+        // Already have a moveState (continuing from arrow key movement) 
+        // Adjust startPos to account for existing currentOffset so position doesn't jump
+        const adjustedStartPos = {
+          x: x - moveState.currentOffset.x,
+          y: y - moveState.currentOffset.y
+        };
         setMoveState({
           ...moveState,
-          startPos: { x, y }
+          startPos: adjustedStartPos
         });
       } else {
         // First time moving - create new moveState
@@ -136,8 +141,9 @@ export const useCanvasSelection = () => {
   const handleSelectionMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const { x, y } = getGridCoordinatesFromEvent(event);
 
-    if (selectionMode === 'moving' && moveState) {
-      // Calculate current drag offset from the start position
+    if (selectionMode === 'moving' && moveState && mouseButtonDown) {
+      // Only update move position if mouse button is down (mouse-initiated move)
+      // This prevents arrow key-initiated moves from jumping to follow mouse movement
       const currentDragOffset = {
         x: x - moveState.startPos.x,
         y: y - moveState.startPos.y

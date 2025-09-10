@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useToolStore } from '../../stores/toolStore';
+import { useCanvasStore } from '../../stores/canvasStore';
 import { useAnimationStore } from '../../stores/animationStore';
 import { useCanvasContext } from '../../contexts/CanvasContext';
 import { useCanvasState } from '../../hooks/useCanvasState';
@@ -37,6 +38,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     setSelectionMode,
     setMoveState,
     setPendingSelectionStart,
+    setJustCommittedMove,
   } = useCanvasState();
 
   // Use our new mouse handlers
@@ -59,6 +61,162 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     clearLassoSelection, 
     clearMagicWandSelection 
   } = useToolStore();
+
+  // Handle arrow key movement for selections
+  const handleArrowKeyMovement = (arrowOffset: { x: number; y: number }) => {
+    // Determine which selection is active and handle accordingly
+    if (activeTool === 'select' && selection.active) {
+      handleRectangularSelectionArrowMovement(arrowOffset);
+    } else if (activeTool === 'lasso' && lassoSelection.active) {
+      handleLassoSelectionArrowMovement(arrowOffset);
+    } else if (activeTool === 'magicwand' && magicWandSelection.active) {
+      handleMagicWandSelectionArrowMovement(arrowOffset);
+    }
+  };
+
+  // Handle arrow movement for rectangular selection
+  const handleRectangularSelectionArrowMovement = (arrowOffset: { x: number; y: number }) => {
+    if (!selection.active) return;
+
+    // Ensure we're not blocked by justCommittedMove state
+    setJustCommittedMove(false);
+
+    if (moveState) {
+      // Already in move mode - update the current offset
+      setMoveState({
+        ...moveState,
+        currentOffset: {
+          x: moveState.currentOffset.x + arrowOffset.x,
+          y: moveState.currentOffset.y + arrowOffset.y
+        }
+      });
+    } else {
+      // Enter move mode for the first time
+      const { getCell } = useCanvasStore.getState();
+      const startX = Math.min(selection.start.x, selection.end.x);
+      const endX = Math.max(selection.start.x, selection.end.x);
+      const startY = Math.min(selection.start.y, selection.end.y);
+      const endY = Math.max(selection.start.y, selection.end.y);
+      
+      // Store only the non-empty cells from the selection
+      const originalData = new Map();
+      for (let cy = startY; cy <= endY; cy++) {
+        for (let cx = startX; cx <= endX; cx++) {
+          const cell = getCell(cx, cy);
+          // Only store non-empty cells (not spaces or empty cells)
+          if (cell && cell.char !== ' ') {
+            originalData.set(`${cx},${cy}`, cell);
+          }
+        }
+      }
+      
+      setMoveState({
+        originalData,
+        startPos: { x: startX, y: startY }, // Use selection start as reference point
+        baseOffset: { x: 0, y: 0 },
+        currentOffset: arrowOffset // Start with the arrow offset
+      });
+      setSelectionMode('moving');
+    }
+  };
+
+  // Handle arrow movement for lasso selection
+  const handleLassoSelectionArrowMovement = (arrowOffset: { x: number; y: number }) => {
+    if (!lassoSelection.active) return;
+
+    // Ensure we're not blocked by justCommittedMove state
+    setJustCommittedMove(false);
+
+    if (moveState) {
+      // Already in move mode - update the current offset
+      setMoveState({
+        ...moveState,
+        currentOffset: {
+          x: moveState.currentOffset.x + arrowOffset.x,
+          y: moveState.currentOffset.y + arrowOffset.y
+        }
+      });
+    } else {
+      // Enter move mode for the first time
+      const { getCell } = useCanvasStore.getState();
+      
+      // Store only the non-empty cells from the lasso selection
+      const originalData = new Map();
+      lassoSelection.selectedCells.forEach((cellKey) => {
+        const [cx, cy] = cellKey.split(',').map(Number);
+        const cell = getCell(cx, cy);
+        // Only store non-empty cells (not spaces or empty cells)
+        if (cell && cell.char !== ' ') {
+          originalData.set(cellKey, cell);
+        }
+      });
+      
+      // Use center of selection as reference point
+      const cellCoords = Array.from(lassoSelection.selectedCells).map(key => {
+        const [x, y] = key.split(',').map(Number);
+        return { x, y };
+      });
+      const centerX = Math.floor(cellCoords.reduce((sum, c) => sum + c.x, 0) / cellCoords.length);
+      const centerY = Math.floor(cellCoords.reduce((sum, c) => sum + c.y, 0) / cellCoords.length);
+      
+      setMoveState({
+        originalData,
+        startPos: { x: centerX, y: centerY }, // Use selection center as reference point
+        baseOffset: { x: 0, y: 0 },
+        currentOffset: arrowOffset // Start with the arrow offset
+      });
+      setSelectionMode('moving');
+    }
+  };
+
+  // Handle arrow movement for magic wand selection
+  const handleMagicWandSelectionArrowMovement = (arrowOffset: { x: number; y: number }) => {
+    if (!magicWandSelection.active) return;
+
+    // Ensure we're not blocked by justCommittedMove state
+    setJustCommittedMove(false);
+
+    if (moveState) {
+      // Already in move mode - update the current offset
+      setMoveState({
+        ...moveState,
+        currentOffset: {
+          x: moveState.currentOffset.x + arrowOffset.x,
+          y: moveState.currentOffset.y + arrowOffset.y
+        }
+      });
+    } else {
+      // Enter move mode for the first time
+      const { getCell } = useCanvasStore.getState();
+      
+      // Store only the non-empty cells from the magic wand selection
+      const originalData = new Map();
+      magicWandSelection.selectedCells.forEach((cellKey) => {
+        const [cx, cy] = cellKey.split(',').map(Number);
+        const cell = getCell(cx, cy);
+        // Only store non-empty cells (not spaces or empty cells)
+        if (cell && cell.char !== ' ') {
+          originalData.set(cellKey, cell);
+        }
+      });
+      
+      // Use center of selection as reference point
+      const cellCoords = Array.from(magicWandSelection.selectedCells).map(key => {
+        const [x, y] = key.split(',').map(Number);
+        return { x, y };
+      });
+      const centerX = Math.floor(cellCoords.reduce((sum, c) => sum + c.x, 0) / cellCoords.length);
+      const centerY = Math.floor(cellCoords.reduce((sum, c) => sum + c.y, 0) / cellCoords.length);
+      
+      setMoveState({
+        originalData,
+        startPos: { x: centerX, y: centerY }, // Use selection center as reference point
+        baseOffset: { x: 0, y: 0 },
+        currentOffset: arrowOffset // Start with the arrow offset
+      });
+      setSelectionMode('moving');
+    }
+  };
 
   // Handle keyboard events for Escape and Shift keys
   useEffect(() => {
@@ -116,6 +274,26 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
           clearMagicWandSelection();
         }
       }
+      
+      // Handle arrow keys for selection movement
+      if ((event.key === 'ArrowUp' || event.key === 'ArrowDown' || event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+        // Only handle arrow keys when a selection tool is active and has an active selection
+        if ((activeTool === 'select' && selection.active) || 
+            (activeTool === 'lasso' && lassoSelection.active) ||
+            (activeTool === 'magicwand' && magicWandSelection.active)) {
+          event.preventDefault();
+          event.stopPropagation();
+          
+          // Calculate arrow direction offset
+          const arrowOffset = {
+            x: event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0,
+            y: event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0
+          };
+          
+          // Call the new arrow movement handler
+          handleArrowKeyMovement(arrowOffset);
+        }
+      }
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
@@ -140,7 +318,20 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
     };
-  }, [moveState, activeTool, commitMove, cancelMove]);
+  }, [
+    moveState, 
+    activeTool, 
+    commitMove, 
+    cancelMove, 
+    selection.active,
+    lassoSelection.active, 
+    magicWandSelection.active,
+    handleArrowKeyMovement,
+    clearSelection,
+    clearLassoSelection,
+    clearMagicWandSelection,
+    textToolState.isTyping
+  ]);
 
   // Reset selection mode when tool changes
   useEffect(() => {
