@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Copy, Clipboard, Undo2, Redo2, Trash2 } from 'lucide-react';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useToolStore } from '@/stores/toolStore';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 /**
  * Canvas Action Buttons Component
@@ -13,13 +14,15 @@ export const CanvasActionButtons: React.FC = () => {
   const { clearCanvas } = useCanvasStore();
   const { 
     selection, 
-    lassoSelection, 
-    hasClipboard, 
+    lassoSelection,
+    magicWandSelection,
+    hasClipboard,
     undo, 
     redo, 
     canUndo, 
     canRedo
   } = useToolStore();
+  const { copySelection: handleCopyFromKeyboard, pasteSelection: handlePasteFromKeyboard } = useKeyboardShortcuts();
 
   const handleUndo = () => {
     undo();
@@ -30,11 +33,13 @@ export const CanvasActionButtons: React.FC = () => {
   };
 
   const handleCopySelection = () => {
-    // Copy selection logic would go here
+    // Use the keyboard shortcut handler which includes both internal and OS clipboard copy
+    handleCopyFromKeyboard();
   };
 
   const handlePasteSelection = () => {
-    // Paste selection logic would go here
+    // Use the keyboard shortcut handler for consistency
+    handlePasteFromKeyboard();
   };
 
   return (
@@ -43,7 +48,7 @@ export const CanvasActionButtons: React.FC = () => {
         variant="outline" 
         size="sm" 
         onClick={handleCopySelection}
-        disabled={!selection?.active && !lassoSelection?.active}
+        disabled={!selection?.active && !lassoSelection?.active && !magicWandSelection?.active}
         title="Copy selection (Cmd/Ctrl+C)"
         className="h-6 px-2 text-xs flex items-center gap-1"
       >

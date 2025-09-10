@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import type { Tool, ToolState, Selection, LassoSelection, MagicWandSelection, TextToolState, AnyHistoryAction, CanvasHistoryAction } from '../types';
 import { DEFAULT_COLORS } from '../constants';
+import { 
+  rectangularSelectionToText, 
+  lassoSelectionToText, 
+  magicWandSelectionToText, 
+  writeToOSClipboard 
+} from '../utils/clipboardUtils';
 
 interface ToolStoreState extends ToolState {
   // Rectangular selection state
@@ -426,6 +432,14 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     }
 
     set({ clipboard: copiedData });
+    
+    // Also copy to OS clipboard as text
+    const textForClipboard = rectangularSelectionToText(canvasData, selection);
+    if (textForClipboard.trim() !== '') {
+      writeToOSClipboard(textForClipboard).catch(error => {
+        console.warn('Failed to copy to OS clipboard:', error);
+      });
+    }
   },
 
   pasteSelection: (x: number, y: number) => {
@@ -478,6 +492,14 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     });
 
     set({ lassoClipboard: copiedData });
+    
+    // Also copy to OS clipboard as text
+    const textForClipboard = lassoSelectionToText(canvasData, lassoSelection.selectedCells);
+    if (textForClipboard.trim() !== '') {
+      writeToOSClipboard(textForClipboard).catch(error => {
+        console.warn('Failed to copy lasso selection to OS clipboard:', error);
+      });
+    }
   },
 
   pasteLassoSelection: (offsetX: number, offsetY: number) => {
@@ -518,6 +540,14 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     }
     
     set({ magicWandClipboard: copiedData });
+    
+    // Also copy to OS clipboard as text
+    const textForClipboard = magicWandSelectionToText(canvasData, magicWandSelection.selectedCells);
+    if (textForClipboard.trim() !== '') {
+      writeToOSClipboard(textForClipboard).catch(error => {
+        console.warn('Failed to copy magic wand selection to OS clipboard:', error);
+      });
+    }
   },
 
   pasteMagicWandSelection: (offsetX: number, offsetY: number) => {

@@ -2060,6 +2060,74 @@ src/utils/
 
 ---
 
+## ✅ **OS Clipboard Integration** - ✅ **COMPLETED** (September 10, 2025)
+
+### **Feature Overview**
+Enhanced copy functionality to support both internal clipboard AND OS system clipboard simultaneously. Users can now copy ASCII art selections and paste them directly into external text editors, terminals, and other applications.
+
+### **Key Features**
+- **Transparent Integration**: `Cmd/Ctrl+C` copies to both internal and OS clipboard
+- **All Selection Types**: Works with rectangular, lasso, and magic wand selections
+- **Smart Text Formatting**: 
+  - Empty cells become spaces only when to the left of characters
+  - Trailing spaces automatically cropped from each line
+  - Leading spaces preserved for proper character positioning
+  - Each row becomes a separate text line
+- **Cross-Platform**: Uses modern Clipboard API with graceful fallback
+- **Preserved Functionality**: All existing copy/paste behavior unchanged
+
+### **Implementation Details**
+- **New Utility**: `src/utils/clipboardUtils.ts` - Text conversion and OS clipboard functions
+- **Enhanced Store Methods**: Updated all copy functions in `toolStore.ts` to include OS clipboard
+- **Selection Format Conversion**:
+  - Rectangular selections → Direct text grid
+  - Lasso/Magic Wand selections → Bounding box with spaces for unselected areas
+- **Error Handling**: Graceful fallback if Clipboard API unavailable
+
+### **Technical Architecture**
+```typescript
+// Text conversion utility
+export const selectionToText = (cellsData, minX, maxX, minY, maxY) => {
+  // Convert cell grid to text with smart spacing
+};
+
+// OS clipboard integration  
+export const writeToOSClipboard = async (text: string) => {
+  // Use Clipboard API with fallback
+};
+
+// Enhanced store methods
+copySelection: (canvasData) => {
+  // Internal clipboard (unchanged)
+  set({ clipboard: copiedData });
+  
+  // NEW: OS clipboard integration
+  const textForClipboard = rectangularSelectionToText(canvasData, selection);
+  writeToOSClipboard(textForClipboard);
+}
+```
+
+### **User Benefits**
+- **Workflow Integration**: Copy ASCII art directly to external applications
+- **Professional Output**: Clean text format suitable for documentation, code comments, terminal output
+- **Cross-Application**: Works with VS Code, TextEdit, terminal, documentation tools, etc.
+- **Seamless Experience**: No additional steps required - standard copy behavior enhanced
+
+### **Testing Verified**
+- ✅ All three selection types export correctly
+- ✅ Text formatting preserves character positioning
+- ✅ Leading spaces maintained, trailing spaces cropped
+- ✅ Multi-line content with proper line breaks
+- ✅ Cross-browser compatibility (Chrome, Firefox, Safari)
+- ✅ No impact on existing internal copy/paste functionality
+
+### **Files Modified**
+- `src/utils/clipboardUtils.ts` - NEW: OS clipboard integration utilities
+- `src/stores/toolStore.ts` - Enhanced copy functions with dual clipboard support
+- `src/components/features/CanvasActionButtons.tsx` - Updated handlers for consistency
+
+---
+
 ### **🎯 PREVIOUS IMPLEMENTATIONS:**
 
 2. **Phase 3: Export Functions** - Future development
