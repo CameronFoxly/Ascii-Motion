@@ -1,20 +1,23 @@
 import { useTheme } from '@/contexts/ThemeContext'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Sun, Moon } from 'lucide-react'
 
 export function ThemeToggle() {
   const { theme, toggleTheme } = useTheme()
 
   return (
-    <div className="flex items-center space-x-2">
-      <Label htmlFor="theme-toggle" className="text-sm font-medium">
-        Dark mode
-      </Label>
-      <Switch
-        id="theme-toggle"
-        checked={theme === 'dark'}
-        onCheckedChange={toggleTheme}
-      />
-    </div>
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={toggleTheme}
+      className="h-8 w-8 p-0"
+      title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+    >
+      {theme === 'dark' ? (
+        <Sun className="h-4 w-4" />
+      ) : (
+        <Moon className="h-4 w-4" />
+      )}
+    </Button>
   )
 }
