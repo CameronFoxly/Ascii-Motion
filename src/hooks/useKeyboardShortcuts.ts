@@ -105,7 +105,7 @@ const processHistoryAction = (
  * Custom hook for handling keyboard shortcuts
  */
 export const useKeyboardShortcuts = () => {
-  const { cells, setCanvasData } = useCanvasStore();
+  const { cells, setCanvasData, width, height } = useCanvasStore();
   const { startPasteMode, commitPaste, pasteMode } = useCanvasContext();
   const { toggleOnionSkin, currentFrameIndex } = useAnimationStore();
 
@@ -124,6 +124,8 @@ export const useKeyboardShortcuts = () => {
     clearSelection,
     clearLassoSelection,
     clearMagicWandSelection,
+    startSelection,
+    updateSelection,
     undo,
     redo,
     canUndo,
@@ -246,6 +248,26 @@ export const useKeyboardShortcuts = () => {
     if (!isModifierPressed) return;
 
     switch (event.key.toLowerCase()) {
+      case 'a':
+        // Select All - activate selection tool and select entire canvas
+        event.preventDefault();
+        
+        // Switch to selection tool if not already active
+        if (activeTool !== 'select') {
+          setActiveTool('select');
+        }
+        
+        // Clear any existing selections
+        clearSelection();
+        clearLassoSelection();
+        clearMagicWandSelection();
+        
+        // Create a selection that covers the entire canvas
+        // Canvas coordinates go from 0,0 to width-1,height-1
+        startSelection(0, 0);
+        updateSelection(width - 1, height - 1);
+        break;
+        
       case 'c':
         // Copy selection (prioritize magic wand, then lasso, then rectangular)
         if (magicWandSelection.active) {
@@ -362,6 +384,8 @@ export const useKeyboardShortcuts = () => {
     }
   }, [
     cells, 
+    width,
+    height,
     selection, 
     lassoSelection,
     magicWandSelection,
@@ -372,6 +396,8 @@ export const useKeyboardShortcuts = () => {
     clearSelection,
     clearLassoSelection,
     clearMagicWandSelection,
+    startSelection,
+    updateSelection,
     pushCanvasHistory, 
     setCanvasData,
     undo,

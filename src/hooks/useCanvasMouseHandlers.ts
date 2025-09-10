@@ -215,7 +215,7 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
   }, [isPlaybackMode, effectiveTool, pasteMode, getGridCoordinatesFromEvent, setHoveredCell, updatePastePosition, selectionHandlers, lassoSelectionHandlers, dragAndDropHandlers]);
 
   // Route mouse up to appropriate tool handler
-  const handleMouseUp = useCallback((event?: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleMouseUp = useCallback((_event?: React.MouseEvent<HTMLCanvasElement>) => {
     // Block mouse interactions during playback
     if (isPlaybackMode) {
       return;
