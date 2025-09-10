@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useToolStore } from '../stores/toolStore';
 import { useCanvasContext } from '../contexts/CanvasContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useCanvasState } from './useCanvasState';
 import { useMemoizedGrid } from './useMemoizedGrid';
 import { useDrawingTool } from './useDrawingTool';
@@ -59,6 +60,7 @@ const setupHighDPICanvas = (
  */
 export const useCanvasRenderer = () => {
   const { canvasRef, pasteMode, panOffset, hoveredCell, fontMetrics } = useCanvasContext();
+  const { theme } = useTheme();
   const {
     effectiveCellWidth,
     effectiveCellHeight,
@@ -129,14 +131,14 @@ export const useCanvasRenderer = () => {
     
     return {
       font: scaledFontString,
-      gridLineColor: calculateAdaptiveGridColor(canvasBackgroundColor),
+      gridLineColor: calculateAdaptiveGridColor(canvasBackgroundColor, theme),
       gridLineWidth: 1, // Use 1 pixel for crisp grid lines
       textAlign: 'center' as CanvasTextAlign,
       textBaseline: 'middle' as CanvasTextBaseline,
       defaultTextColor: '#FFFFFF',
       defaultBgColor: '#000000'
     };
-  }, [fontMetrics, zoom, canvasBackgroundColor]);
+  }, [fontMetrics, zoom, canvasBackgroundColor, theme]);
 
     // Optimized drawCell function with pixel-aligned rendering (but no coordinate changes)
   const drawCell = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, cell: Cell) => {
@@ -208,8 +210,14 @@ export const useCanvasRenderer = () => {
     measureCanvasRender();
 
     // Clear canvas and fill with background color
-    ctx.fillStyle = canvasConfig.canvasBackgroundColor;
-    ctx.fillRect(0, 0, canvasConfig.canvasWidth, canvasConfig.canvasHeight);
+    if (canvasConfig.canvasBackgroundColor === 'transparent') {
+      // For transparent backgrounds, clear the canvas completely
+      ctx.clearRect(0, 0, canvasConfig.canvasWidth, canvasConfig.canvasHeight);
+    } else {
+      // For solid backgrounds, fill with the background color
+      ctx.fillStyle = canvasConfig.canvasBackgroundColor;
+      ctx.fillRect(0, 0, canvasConfig.canvasWidth, canvasConfig.canvasHeight);
+    }
 
     // Render grid background layer first (behind content)
     drawGridBackground(ctx);

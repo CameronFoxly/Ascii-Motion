@@ -32,10 +32,14 @@ const getLuminance = (r: number, g: number, b: number): number => {
  * Calculate optimal grid color with opacity based on background color
  * Returns a color that provides good contrast while maintaining visual harmony
  */
-export const calculateGridColor = (backgroundColor: string): string => {
-  // Handle transparent/default cases
+export const calculateGridColor = (backgroundColor: string, theme: 'light' | 'dark' = 'dark'): string => {
+  // Handle transparent/default cases with theme awareness
   if (backgroundColor === 'transparent' || !backgroundColor) {
-    return 'rgba(0, 0, 0, 0.1)'; // Very subtle black for transparent backgrounds
+    if (theme === 'dark') {
+      return 'rgba(255, 255, 255, 0.1)'; // Very subtle light for transparent backgrounds in dark mode
+    } else {
+      return 'rgba(0, 0, 0, 0.1)'; // Very subtle dark for transparent backgrounds in light mode
+    }
   }
 
   const rgb = hexToRgb(backgroundColor);
@@ -69,10 +73,18 @@ export const calculateGridColor = (backgroundColor: string): string => {
 /**
  * Calculate contrast-aware grid color that adapts to any background
  * Provides better visibility on colored backgrounds than fixed colors
+ * 
+ * EDGE CASE FIX: Transparent backgrounds now adapt to theme (light/dark mode)
+ * for proper visibility in both light and dark themes
  */
-export const calculateAdaptiveGridColor = (backgroundColor: string): string => {
+export const calculateAdaptiveGridColor = (backgroundColor: string, theme: 'light' | 'dark' = 'dark'): string => {
   if (backgroundColor === 'transparent' || !backgroundColor) {
-    return 'rgba(0, 0, 0, 0.08)';
+    // Adapt grid color to theme for transparent backgrounds
+    if (theme === 'dark') {
+      return 'rgba(255, 255, 255, 0.2)'; // Light grid on dark theme
+    } else {
+      return 'rgba(0, 0, 0, 0.2)'; // Dark grid on light theme
+    }
   }
 
   const rgb = hexToRgb(backgroundColor);

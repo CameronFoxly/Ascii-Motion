@@ -1785,20 +1785,20 @@ import { calculateAdaptiveGridColor } from '../utils/gridColor';
 // Grid color automatically adapts to background for optimal visibility
 const drawingStyles = useMemo(() => ({
   font: scaledFontString,
-  gridLineColor: calculateAdaptiveGridColor(canvasBackgroundColor), // Dynamic calculation
+  gridLineColor: calculateAdaptiveGridColor(canvasBackgroundColor, theme), // Theme-aware calculation
   gridLineWidth: 1,
   textAlign: 'center' as CanvasTextAlign,
   textBaseline: 'middle' as CanvasTextBaseline,
   defaultTextColor: '#FFFFFF',
   defaultBgColor: '#000000'
-}), [fontMetrics, zoom, canvasBackgroundColor]);
+}), [fontMetrics, zoom, canvasBackgroundColor, theme]);
 
 // Grid color utility provides luminance-based contrast calculation:
 // - Pure black/white: Full opacity for crisp appearance
+// - Transparent backgrounds: Theme-aware colors (white lines in dark mode, black in light)
 // - Colored backgrounds: 0.12-0.25 opacity range based on saturation
 // - Light backgrounds: Dark grid lines with adaptive opacity  
 // - Dark backgrounds: Light grid lines with adaptive opacity
-// - Transparent: Very subtle dark grid (0.08 opacity)
 ```
 
 ### 6. Event Handling Patterns
@@ -2332,6 +2332,7 @@ calculateAdaptiveGridColor(backgroundColor: string): string
 // Examples:
 calculateAdaptiveGridColor('#000000') // → '#333333' (full opacity dark gray)
 calculateAdaptiveGridColor('#ffffff') // → '#E5E7EB' (full opacity light gray)  
+calculateAdaptiveGridColor('transparent') // → 'rgba(0, 0, 0, 0.2)' (visible on transparent backgrounds)
 calculateAdaptiveGridColor('#ff0000') // → 'rgba(255, 255, 255, 0.18)' (adaptive opacity)
 calculateAdaptiveGridColor('#800080') // → 'rgba(255, 255, 255, 0.15)' (adaptive opacity)
 ```

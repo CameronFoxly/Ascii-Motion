@@ -8,6 +8,7 @@ import { calculateAdaptiveGridColor } from './gridColor';
 const testColors = [
   '#000000',   // Pure black
   '#ffffff',   // Pure white  
+  'transparent', // Transparent (EDGE CASE)
   '#ff0000',   // Red
   '#00ff00',   // Green
   '#0000ff',   // Blue
@@ -18,7 +19,6 @@ const testColors = [
   '#400080',   // Dark purple
   '#ffa500',   // Orange
   '#8b4513',   // Brown
-  'transparent', // Transparent
 ];
 
 console.log('Grid Color Test Results:');

@@ -374,7 +374,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       }`}>
         <canvas
           ref={canvasRef}
-          className={`canvas-grid ${getToolCursor(effectiveTool)}`}
+          className={`canvas-grid border border-border ${getToolCursor(effectiveTool)}`}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
