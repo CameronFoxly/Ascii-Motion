@@ -5,7 +5,6 @@ import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
 import { useDrawingTool } from './useDrawingTool';
 import { useCanvasState } from './useCanvasState';
-import type { Cell } from '../types';
 
 /**
  * Hook for handling drag and drop operations on the canvas
@@ -14,7 +13,7 @@ import type { Cell } from '../types';
 export const useCanvasDragAndDrop = () => {
   const { canvasRef, isDrawing, setIsDrawing, setMouseButtonDown, shiftKeyDown } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
-  const { width, height, cells, setCell, clearCell } = useCanvasStore();
+  const { width, height, cells, clearCell } = useCanvasStore();
   const { currentFrameIndex } = useAnimationStore();
   const { 
     selection,
@@ -27,7 +26,7 @@ export const useCanvasDragAndDrop = () => {
     clearLinePreview
   } = useToolStore();
   const { setSelectionMode } = useCanvasState();
-  const { drawAtPosition, drawRectangle, drawEllipse, activeTool } = useDrawingTool();
+  const { drawAtPosition, drawRectangle, drawEllipse, drawLine, activeTool } = useDrawingTool();
 
   // Helper function to apply aspect ratio constraints when shift is held
   const constrainToAspectRatio = useCallback((x: number, y: number, startX: number, startY: number) => {
@@ -81,21 +80,6 @@ export const useCanvasDragAndDrop = () => {
     return points;
   }, []);
 
-  // Draw a line between two points for gap filling
-  const drawLineForGapFilling = useCallback((x0: number, y0: number, x1: number, y1: number) => {
-    const { selectedChar, selectedColor, selectedBgColor } = useToolStore.getState();
-    const newCell: Cell = {
-      char: selectedChar,
-      color: selectedColor,
-      bgColor: selectedBgColor
-    };
-    
-    const points = getLinePoints(x0, y0, x1, y1);
-    points.forEach(({ x, y }) => {
-      setCell(x, y, newCell);
-    });
-  }, [getLinePoints, setCell]);
-
   // Convert mouse coordinates to grid coordinates
   const getGridCoordinatesFromEvent = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -140,8 +124,8 @@ export const useCanvasDragAndDrop = () => {
           (Math.abs(x - pencilLastPosition.x) > 1 || Math.abs(y - pencilLastPosition.y) > 1)) {
         // Large distance during drag - fill the gap with a line
         if (activeTool === 'pencil') {
-          // Use gap-filling line drawing for pencil
-          drawLineForGapFilling(pencilLastPosition.x, pencilLastPosition.y, x, y);
+          // Use gap-filling line drawing for pencil with proper toggle respect
+          drawLine(pencilLastPosition.x, pencilLastPosition.y, x, y);
         } else if (activeTool === 'eraser') {
           // For eraser, clear cells along the line
           const points = getLinePoints(pencilLastPosition.x, pencilLastPosition.y, x, y);
@@ -173,7 +157,7 @@ export const useCanvasDragAndDrop = () => {
       // Clear preview when conditions not met
       clearLinePreview();
     }
-  }, [getGridCoordinatesFromEvent, isDrawing, activeTool, shiftKeyDown, pencilLastPosition, handleDrawing, drawLineForGapFilling, getLinePoints, clearCell, setLinePreview, clearLinePreview]);
+  }, [getGridCoordinatesFromEvent, isDrawing, activeTool, shiftKeyDown, pencilLastPosition, handleDrawing, drawLine, getLinePoints, clearCell, setLinePreview, clearLinePreview]);
 
   // Handle rectangle tool mouse down
   const handleRectangleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {

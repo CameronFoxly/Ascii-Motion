@@ -51,6 +51,24 @@ interface ToolStoreState extends ToolState {
   setPaintBucketContiguous: (contiguous: boolean) => void;
   setMagicWandContiguous: (contiguous: boolean) => void;
   
+  // Tool behavior toggles
+  toolAffectsChar: boolean;
+  toolAffectsColor: boolean;
+  toolAffectsBgColor: boolean;
+  
+  // Eyedropper behavior toggles
+  eyedropperPicksChar: boolean;
+  eyedropperPicksColor: boolean;
+  eyedropperPicksBgColor: boolean;
+  
+  // Actions for toggles
+  setToolAffectsChar: (enabled: boolean) => void;
+  setToolAffectsColor: (enabled: boolean) => void;
+  setToolAffectsBgColor: (enabled: boolean) => void;
+  setEyedropperPicksChar: (enabled: boolean) => void;
+  setEyedropperPicksColor: (enabled: boolean) => void;
+  setEyedropperPicksBgColor: (enabled: boolean) => void;
+  
   // Eyedropper functionality
   pickFromCell: (char: string, color: string, bgColor: string) => void;
   
@@ -122,6 +140,16 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   rectangleFilled: false,
   paintBucketContiguous: true, // Default to contiguous fill
   magicWandContiguous: true, // Default to contiguous selection
+  
+  // Tool behavior toggles - all enabled by default
+  toolAffectsChar: true,
+  toolAffectsColor: true,
+  toolAffectsBgColor: true,
+  
+  // Eyedropper behavior toggles - all enabled by default
+  eyedropperPicksChar: true,
+  eyedropperPicksColor: true,
+  eyedropperPicksBgColor: true,
   
   // Animation playback state
   isPlaybackMode: false,
@@ -214,13 +242,35 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   setPaintBucketContiguous: (contiguous: boolean) => set({ paintBucketContiguous: contiguous }),
   setMagicWandContiguous: (contiguous: boolean) => set({ magicWandContiguous: contiguous }),
 
+  // Tool behavior toggle actions
+  setToolAffectsChar: (enabled: boolean) => set({ toolAffectsChar: enabled }),
+  setToolAffectsColor: (enabled: boolean) => set({ toolAffectsColor: enabled }),
+  setToolAffectsBgColor: (enabled: boolean) => set({ toolAffectsBgColor: enabled }),
+  
+  // Eyedropper behavior toggle actions
+  setEyedropperPicksChar: (enabled: boolean) => set({ eyedropperPicksChar: enabled }),
+  setEyedropperPicksColor: (enabled: boolean) => set({ eyedropperPicksColor: enabled }),
+  setEyedropperPicksBgColor: (enabled: boolean) => set({ eyedropperPicksBgColor: enabled }),
+
   // Eyedropper functionality
   pickFromCell: (char: string, color: string, bgColor: string) => {
-    set({ 
-      selectedChar: char,
-      selectedColor: color,
-      selectedBgColor: bgColor
-    });
+    const { eyedropperPicksChar, eyedropperPicksColor, eyedropperPicksBgColor } = get();
+    
+    const updates: Partial<ToolStoreState> = {};
+    
+    if (eyedropperPicksChar) {
+      updates.selectedChar = char;
+    }
+    if (eyedropperPicksColor) {
+      updates.selectedColor = color;
+    }
+    if (eyedropperPicksBgColor) {
+      updates.selectedBgColor = bgColor;
+    }
+    
+    if (Object.keys(updates).length > 0) {
+      set(updates);
+    }
   },
 
   // Pencil tool actions

@@ -68,11 +68,11 @@ const UTILITY_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; desc
 ];
 
 export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
-  const { activeTool, setActiveTool, rectangleFilled, setRectangleFilled, paintBucketContiguous, setPaintBucketContiguous, magicWandContiguous, setMagicWandContiguous } = useToolStore();
+  const { activeTool, setActiveTool, rectangleFilled, setRectangleFilled, paintBucketContiguous, setPaintBucketContiguous, magicWandContiguous, setMagicWandContiguous, toolAffectsChar, toolAffectsColor, toolAffectsBgColor, eyedropperPicksChar, eyedropperPicksColor, eyedropperPicksBgColor, setToolAffectsChar, setToolAffectsColor, setToolAffectsBgColor, setEyedropperPicksChar, setEyedropperPicksColor, setEyedropperPicksBgColor } = useToolStore();
   const [showOptions, setShowOptions] = React.useState(true);
   const [showTools, setShowTools] = React.useState(true);
 
-  const hasOptions = ['rectangle', 'ellipse', 'paintbucket', 'magicwand'].includes(activeTool);
+  const hasOptions = ['rectangle', 'ellipse', 'paintbucket', 'magicwand', 'pencil', 'eraser', 'text', 'eyedropper'].includes(activeTool);
 
   // Get the current tool's icon
   const getCurrentToolIcon = () => {
@@ -214,6 +214,83 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                         onCheckedChange={setMagicWandContiguous}
                       />
                     </div>
+                  )}
+                  
+                  {/* Tool behavior toggles for drawing tools */}
+                  {(['pencil', 'eraser', 'paintbucket', 'rectangle', 'ellipse', 'text'] as Tool[]).includes(activeTool) && (
+                    <>
+                      <div className="border-t border-border/30 my-2"></div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="affects-char" className="text-xs cursor-pointer">
+                            Affect character
+                          </Label>
+                          <Switch
+                            id="affects-char"
+                            checked={toolAffectsChar}
+                            onCheckedChange={setToolAffectsChar}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="affects-color" className="text-xs cursor-pointer">
+                            Affect text color
+                          </Label>
+                          <Switch
+                            id="affects-color"
+                            checked={toolAffectsColor}
+                            onCheckedChange={setToolAffectsColor}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="affects-bg-color" className="text-xs cursor-pointer">
+                            Affect background color
+                          </Label>
+                          <Switch
+                            id="affects-bg-color"
+                            checked={toolAffectsBgColor}
+                            onCheckedChange={setToolAffectsBgColor}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  
+                  {/* Eyedropper behavior toggles */}
+                  {activeTool === 'eyedropper' && (
+                    <>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="picks-char" className="text-xs cursor-pointer">
+                            Pick character
+                          </Label>
+                          <Switch
+                            id="picks-char"
+                            checked={eyedropperPicksChar}
+                            onCheckedChange={setEyedropperPicksChar}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="picks-color" className="text-xs cursor-pointer">
+                            Pick text color
+                          </Label>
+                          <Switch
+                            id="picks-color"
+                            checked={eyedropperPicksColor}
+                            onCheckedChange={setEyedropperPicksColor}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="picks-bg-color" className="text-xs cursor-pointer">
+                            Pick background color
+                          </Label>
+                          <Switch
+                            id="picks-bg-color"
+                            checked={eyedropperPicksBgColor}
+                            onCheckedChange={setEyedropperPicksBgColor}
+                          />
+                        </div>
+                      </div>
+                    </>
                   )}
                 </CardContent>
               </Card>

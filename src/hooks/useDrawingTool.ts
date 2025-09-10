@@ -17,8 +17,22 @@ export const useDrawingTool = () => {
     paintBucketContiguous,
     pickFromCell,
     pencilLastPosition,
-    setPencilLastPosition
+    setPencilLastPosition,
+    toolAffectsChar,
+    toolAffectsColor,
+    toolAffectsBgColor
   } = useToolStore();
+
+  // Helper function to create a cell respecting the tool toggles
+  const createCellWithToggles = useCallback((x: number, y: number): Cell => {
+    const existingCell = getCell(x, y);
+    
+    return {
+      char: toolAffectsChar ? selectedChar : (existingCell?.char || ' '),
+      color: toolAffectsColor ? selectedColor : (existingCell?.color || '#FFFFFF'),
+      bgColor: toolAffectsBgColor ? selectedBgColor : (existingCell?.bgColor || 'transparent')
+    };
+  }, [toolAffectsChar, toolAffectsColor, toolAffectsBgColor, selectedChar, selectedColor, selectedBgColor, getCell]);
 
   // Bresenham line algorithm for drawing lines between two points
   const getLinePoints = useCallback((x0: number, y0: number, x1: number, y1: number) => {
@@ -54,17 +68,12 @@ export const useDrawingTool = () => {
 
   // Draw a line between two points using the line algorithm
   const drawLine = useCallback((x0: number, y0: number, x1: number, y1: number) => {
-    const newCell: Cell = {
-      char: selectedChar,
-      color: selectedColor,
-      bgColor: selectedBgColor
-    };
-    
     const points = getLinePoints(x0, y0, x1, y1);
     points.forEach(({ x, y }) => {
+      const newCell = createCellWithToggles(x, y);
       setCell(x, y, newCell);
     });
-  }, [selectedChar, selectedColor, selectedBgColor, getLinePoints, setCell]);
+  }, [getLinePoints, setCell, createCellWithToggles]);
 
   const drawAtPosition = useCallback((x: number, y: number, isShiftClick = false, isFirstStroke = false) => {
     switch (activeTool) {
@@ -74,11 +83,7 @@ export const useDrawingTool = () => {
           drawLine(pencilLastPosition.x, pencilLastPosition.y, x, y);
         } else {
           // Normal pencil drawing - draw single point
-          const newCell: Cell = {
-            char: selectedChar,
-            color: selectedColor,
-            bgColor: selectedBgColor
-          };
+          const newCell = createCellWithToggles(x, y);
           setCell(x, y, newCell);
         }
         
@@ -110,20 +115,13 @@ export const useDrawingTool = () => {
         break;
       }
       case 'paintbucket': {
-        const newCell: Cell = {
-          char: selectedChar,
-          color: selectedColor,
-          bgColor: selectedBgColor
-        };
+        const newCell = createCellWithToggles(x, y);
         fillArea(x, y, newCell, paintBucketContiguous);
         break;
       }
     }
   }, [
     activeTool, 
-    selectedChar, 
-    selectedColor, 
-    selectedBgColor, 
     paintBucketContiguous,
     setCell, 
     clearCell, 
@@ -132,7 +130,8 @@ export const useDrawingTool = () => {
     pickFromCell,
     pencilLastPosition,
     setPencilLastPosition,
-    drawLine
+    drawLine,
+    createCellWithToggles
   ]);
 
   const drawRectangle = useCallback((startX: number, startY: number, endX: number, endY: number) => {
@@ -141,26 +140,22 @@ export const useDrawingTool = () => {
     const minY = Math.min(startY, endY);
     const maxY = Math.max(startY, endY);
 
-    const newCell: Cell = {
-      char: selectedChar,
-      color: selectedColor,
-      bgColor: selectedBgColor
-    };
-
     for (let y = minY; y <= maxY; y++) {
       for (let x = minX; x <= maxX; x++) {
         // For hollow rectangles, only draw border
         if (!rectangleFilled) {
           if (x === minX || x === maxX || y === minY || y === maxY) {
+            const newCell = createCellWithToggles(x, y);
             setCell(x, y, newCell);
           }
         } else {
           // For filled rectangles, draw all cells
+          const newCell = createCellWithToggles(x, y);
           setCell(x, y, newCell);
         }
       }
     }
-  }, [selectedChar, selectedColor, selectedBgColor, rectangleFilled, setCell]);
+  }, [rectangleFilled, setCell, createCellWithToggles]);
 
   // Helper function to get ellipse points using a simpler approach
   const getEllipsePoints = useCallback((centerX: number, centerY: number, radiusX: number, radiusY: number, filled: boolean = false) => {
@@ -218,26 +213,22 @@ export const useDrawingTool = () => {
     const radiusX = Math.abs(endX - startX) / 2;
     const radiusY = Math.abs(endY - startY) / 2;
 
-    const newCell: Cell = {
-      char: selectedChar,
-      color: selectedColor,
-      bgColor: selectedBgColor
-    };
-
     const points = getEllipsePoints(centerX, centerY, radiusX, radiusY, rectangleFilled);
     
     // Draw all the ellipse points
     points.forEach(({ x, y }) => {
       if (x >= 0 && y >= 0) { // Basic bounds checking
+        const newCell = createCellWithToggles(x, y);
         setCell(x, y, newCell);
       }
     });
-  }, [selectedChar, selectedColor, selectedBgColor, rectangleFilled, setCell, getEllipsePoints]);
+  }, [rectangleFilled, setCell, getEllipsePoints, createCellWithToggles]);
 
   return {
     drawAtPosition,
     drawRectangle,
     drawEllipse,
+    drawLine, // Export for gap-filling in drag operations
     getEllipsePoints, // Export for preview rendering
     getLinePoints, // Export for line preview rendering
     activeTool
