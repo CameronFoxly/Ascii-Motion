@@ -46,7 +46,7 @@ export const PerformanceOverlay: React.FC = () => {
   const getEfficiencyColor = (efficiency: string) => {
     switch (efficiency) {
       case 'Excellent': return 'text-green-400';
-      case 'Good': return 'text-blue-400';
+      case 'Good': return 'text-purple-400';
       case 'Fair': return 'text-yellow-400';
       case 'Poor': return 'text-red-400';
       default: return 'text-gray-400';
@@ -56,7 +56,7 @@ export const PerformanceOverlay: React.FC = () => {
   return (
     <div className="fixed top-4 right-4 bg-gray-900 text-white p-4 rounded-lg shadow-lg text-sm font-mono z-50">
       <div className="flex justify-between items-center mb-2">
-        <h3 className="font-bold text-blue-400">Performance Monitor</h3>
+        <h3 className="font-bold text-purple-400">Performance Monitor</h3>
         <button 
           onClick={() => setIsVisible(false)}
           className="text-gray-400 hover:text-white text-lg leading-none"
@@ -109,7 +109,7 @@ export const PerformanceOverlay: React.FC = () => {
       <div className="mt-2 flex gap-2">
         <button 
           onClick={() => performanceMonitor.clear()}
-          className="px-2 py-1 bg-blue-600 hover:bg-blue-500 rounded text-xs"
+          className="px-2 py-1 bg-purple-600 hover:bg-purple-500 rounded text-xs"
         >
           Clear
         </button>

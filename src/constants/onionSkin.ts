@@ -5,10 +5,10 @@
  * Centralized to make style changes easy
  */
 export const ONION_SKIN_COLORS = {
-  // Previous frames (blue tint)
+  // Previous frames (purple tint)
   PREVIOUS: {
-    hex: '#3B82F6',      // Blue-500
-    rgb: [59, 130, 246],  // RGB values for opacity calculations
+    hex: '#A855F7',      // Purple-500
+    rgb: [168, 85, 247],  // RGB values for opacity calculations
   },
   
   // Next frames (red tint)

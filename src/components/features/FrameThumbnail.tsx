@@ -169,7 +169,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
   // Calculate onion skin border styling
   const getOnionSkinBorderStyle = () => {
     if (isOnionSkinPrevious) {
-      return 'border-blue-500/60 bg-blue-50/20';
+      return 'border-purple-500/60 bg-purple-50/20';
     }
     if (isOnionSkinNext) {
       return 'border-red-500/60 bg-red-50/20';
@@ -212,7 +212,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
               variant="outline" 
               className={`text-xs px-1 py-0 ${
                 isOnionSkinPrevious 
-                  ? 'border-blue-500 text-blue-600' 
+                  ? 'border-purple-500 text-purple-600' 
                   : 'border-red-500 text-red-600'
               }`}
             >
