@@ -15,7 +15,8 @@ import {
   Lasso,
   Type,
   Wand2,
-  ChevronDown
+  ChevronDown,
+  Palette
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -167,7 +168,7 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                   {activeTool === 'rectangle' && (
                     <div className="flex items-center justify-between">
                       <Label htmlFor="filled-rectangle" className="text-xs cursor-pointer">
-                        Filled rectangle
+                        Filled
                       </Label>
                       <Switch
                         id="filled-rectangle"
@@ -180,7 +181,7 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                   {activeTool === 'ellipse' && (
                     <div className="flex items-center justify-between">
                       <Label htmlFor="filled-ellipse" className="text-xs cursor-pointer">
-                        Filled ellipse
+                        Filled
                       </Label>
                       <Switch
                         id="filled-ellipse"
@@ -193,7 +194,7 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                   {activeTool === 'paintbucket' && (
                     <div className="flex items-center justify-between">
                       <Label htmlFor="contiguous-fill" className="text-xs cursor-pointer">
-                        Contiguous fill only
+                        Contiguous
                       </Label>
                       <Switch
                         id="contiguous-fill"
@@ -206,7 +207,7 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                   {activeTool === 'magicwand' && (
                     <div className="flex items-center justify-between">
                       <Label htmlFor="contiguous-selection" className="text-xs cursor-pointer">
-                        Contiguous selection only
+                        Contiguous
                       </Label>
                       <Switch
                         id="contiguous-selection"
@@ -221,35 +222,53 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                     <>
                       <div className="border-t border-border/30 my-2"></div>
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="affects-char" className="text-xs cursor-pointer">
-                            Affect character
-                          </Label>
-                          <Switch
-                            id="affects-char"
-                            checked={toolAffectsChar}
-                            onCheckedChange={setToolAffectsChar}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="affects-color" className="text-xs cursor-pointer">
-                            Affect text color
-                          </Label>
-                          <Switch
-                            id="affects-color"
-                            checked={toolAffectsColor}
-                            onCheckedChange={setToolAffectsColor}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="affects-bg-color" className="text-xs cursor-pointer">
-                            Affect background color
-                          </Label>
-                          <Switch
-                            id="affects-bg-color"
-                            checked={toolAffectsBgColor}
-                            onCheckedChange={setToolAffectsBgColor}
-                          />
+                        <div className="text-xs text-muted-foreground">Affects:</div>
+                        <div className="flex gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={toolAffectsChar ? "default" : "outline"}
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => setToolAffectsChar(!toolAffectsChar)}
+                              >
+                                <Type className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Affect character</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={toolAffectsColor ? "default" : "outline"}
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => setToolAffectsColor(!toolAffectsColor)}
+                              >
+                                <Palette className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Affect text color</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={toolAffectsBgColor ? "default" : "outline"}
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => setToolAffectsBgColor(!toolAffectsBgColor)}
+                              >
+                                <Square className="h-3 w-3 fill-current" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Affect background color</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </div>
                     </>
@@ -259,35 +278,53 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                   {activeTool === 'eyedropper' && (
                     <>
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="picks-char" className="text-xs cursor-pointer">
-                            Pick character
-                          </Label>
-                          <Switch
-                            id="picks-char"
-                            checked={eyedropperPicksChar}
-                            onCheckedChange={setEyedropperPicksChar}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="picks-color" className="text-xs cursor-pointer">
-                            Pick text color
-                          </Label>
-                          <Switch
-                            id="picks-color"
-                            checked={eyedropperPicksColor}
-                            onCheckedChange={setEyedropperPicksColor}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="picks-bg-color" className="text-xs cursor-pointer">
-                            Pick background color
-                          </Label>
-                          <Switch
-                            id="picks-bg-color"
-                            checked={eyedropperPicksBgColor}
-                            onCheckedChange={setEyedropperPicksBgColor}
-                          />
+                        <div className="text-xs text-muted-foreground">Picks:</div>
+                        <div className="flex gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={eyedropperPicksChar ? "default" : "outline"}
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => setEyedropperPicksChar(!eyedropperPicksChar)}
+                              >
+                                <Type className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Pick character</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={eyedropperPicksColor ? "default" : "outline"}
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => setEyedropperPicksColor(!eyedropperPicksColor)}
+                              >
+                                <Palette className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Pick text color</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={eyedropperPicksBgColor ? "default" : "outline"}
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => setEyedropperPicksBgColor(!eyedropperPicksBgColor)}
+                              >
+                                <Square className="h-3 w-3 fill-current" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Pick background color</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </div>
                     </>
