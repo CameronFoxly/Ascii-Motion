@@ -90,8 +90,9 @@ export const useDrawingTool = () => {
     });
   }, [getLinePoints, setCell, createCellWithToggles]);
 
-  const drawAtPosition = useCallback((x: number, y: number, isShiftClick = false, isFirstStroke = false) => {
-    switch (activeTool) {
+  const drawAtPosition = useCallback((x: number, y: number, isShiftClick = false, isFirstStroke = false, toolOverride?: string) => {
+    const toolToUse = toolOverride || activeTool;
+    switch (toolToUse) {
       case 'pencil': {
         if (isShiftClick && pencilLastPosition) {
           // Shift+click: Draw line from last position to current position

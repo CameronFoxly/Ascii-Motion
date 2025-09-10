@@ -12,7 +12,6 @@ import {
   Pipette, 
   Square,
   Circle,
-  Hand,
   Lasso,
   Type,
   Wand2,
@@ -59,7 +58,6 @@ const SELECTION_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; de
   { id: 'select', name: 'Select', icon: <DashedRectangleIcon className="w-3 h-3" />, description: 'Select rectangular areas' },
   { id: 'lasso', name: 'Lasso', icon: <Lasso className="w-3 h-3" />, description: 'Freeform selection tool' },
   { id: 'magicwand', name: 'Magic Wand', icon: <Wand2 className="w-3 h-3" />, description: 'Select matching cells' },
-  { id: 'hand', name: 'Hand', icon: <Hand className="w-3 h-3" />, description: 'Pan canvas view' },
 ];
 
 // Separate utility tool

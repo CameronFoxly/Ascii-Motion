@@ -1,5 +1,6 @@
 import React from 'react';
 import { useToolStore } from '../../stores/toolStore';
+import { useCanvasContext } from '../../contexts/CanvasContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -11,7 +12,6 @@ import {
   Pipette, 
   Square,
   Circle,
-  Hand,
   Lasso,
   Type,
   Wand2,
@@ -65,20 +65,25 @@ const SELECTION_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; de
 
 const UTILITY_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; description: string }> = [
   { id: 'eyedropper', name: 'Eyedropper', icon: <Pipette className="w-3 h-3" />, description: 'Pick character/color' },
-  { id: 'hand', name: 'Hand', icon: <Hand className="w-3 h-3" />, description: 'Pan canvas view' },
 ];
 
 export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
   const { activeTool, setActiveTool, rectangleFilled, setRectangleFilled, paintBucketContiguous, setPaintBucketContiguous, magicWandContiguous, setMagicWandContiguous, toolAffectsChar, toolAffectsColor, toolAffectsBgColor, eyedropperPicksChar, eyedropperPicksColor, eyedropperPicksBgColor, setToolAffectsChar, setToolAffectsColor, setToolAffectsBgColor, setEyedropperPicksChar, setEyedropperPicksColor, setEyedropperPicksBgColor } = useToolStore();
+  const { altKeyDown } = useCanvasContext();
   const [showOptions, setShowOptions] = React.useState(true);
   const [showTools, setShowTools] = React.useState(true);
 
-  const hasOptions = ['rectangle', 'ellipse', 'paintbucket', 'magicwand', 'pencil', 'eraser', 'text', 'eyedropper'].includes(activeTool);
+  // Calculate effective tool (Alt key overrides with eyedropper for drawing tools)
+  const drawingTools = ['pencil', 'eraser', 'paintbucket', 'rectangle', 'ellipse'] as const;
+  const shouldAllowEyedropperOverride = drawingTools.includes(activeTool as any);
+  const effectiveTool = (altKeyDown && shouldAllowEyedropperOverride) ? 'eyedropper' : activeTool;
+
+  const hasOptions = ['rectangle', 'ellipse', 'paintbucket', 'magicwand', 'pencil', 'eraser', 'text', 'eyedropper'].includes(effectiveTool);
 
   // Get the current tool's icon
   const getCurrentToolIcon = () => {
     const allTools = [...DRAWING_TOOLS, ...SELECTION_TOOLS, ...UTILITY_TOOLS];
-    const currentTool = allTools.find(tool => tool.id === activeTool);
+    const currentTool = allTools.find(tool => tool.id === effectiveTool);
     return currentTool?.icon || null;
   };
 
@@ -86,12 +91,12 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
     <Tooltip key={tool.id}>
       <TooltipTrigger asChild>
         <Button
-          variant={activeTool === tool.id ? 'default' : 'outline'}
+          variant={effectiveTool === tool.id ? 'default' : 'outline'}
           size="sm"
           className="h-8 w-8 p-0 touch-manipulation"
           onClick={() => setActiveTool(tool.id)}
           aria-label={`${tool.name} tool - ${tool.description}`}
-          aria-pressed={activeTool === tool.id}
+          aria-pressed={effectiveTool === tool.id}
           title={`${tool.name} - ${tool.description}`}
         >
           {tool.icon}
@@ -165,7 +170,7 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
             <CollapsibleContent className="collapsible-content">
               <Card className="bg-card/50 border-border/50 mt-1">
                 <CardContent className="p-2 space-y-2">
-                  {activeTool === 'rectangle' && (
+                  {effectiveTool === 'rectangle' && (
                     <div className="flex items-center justify-between">
                       <Label htmlFor="filled-rectangle" className="text-xs cursor-pointer">
                         Filled
@@ -178,7 +183,7 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                     </div>
                   )}
                   
-                  {activeTool === 'ellipse' && (
+                  {effectiveTool === 'ellipse' && (
                     <div className="flex items-center justify-between">
                       <Label htmlFor="filled-ellipse" className="text-xs cursor-pointer">
                         Filled
@@ -191,7 +196,7 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                     </div>
                   )}
                   
-                  {activeTool === 'paintbucket' && (
+                  {effectiveTool === 'paintbucket' && (
                     <div className="flex items-center justify-between">
                       <Label htmlFor="contiguous-fill" className="text-xs cursor-pointer">
                         Contiguous
@@ -204,7 +209,7 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                     </div>
                   )}
                   
-                  {activeTool === 'magicwand' && (
+                  {effectiveTool === 'magicwand' && (
                     <div className="flex items-center justify-between">
                       <Label htmlFor="contiguous-selection" className="text-xs cursor-pointer">
                         Contiguous
@@ -218,7 +223,7 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                   )}
                   
                   {/* Tool behavior toggles for drawing tools */}
-                  {(['pencil', 'paintbucket'] as Tool[]).includes(activeTool) && (
+                  {(['pencil', 'paintbucket'] as Tool[]).includes(effectiveTool) && (
                     <>
                       <div className="border-t border-border/30 my-2"></div>
                       <div className="space-y-2">
@@ -275,7 +280,7 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                   )}
                   
                   {/* Eyedropper behavior toggles */}
-                  {activeTool === 'eyedropper' && (
+                  {effectiveTool === 'eyedropper' && (
                     <>
                       <div className="space-y-2">
                         <div className="text-xs text-muted-foreground">Picks:</div>

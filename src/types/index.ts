@@ -65,7 +65,6 @@ export type Tool =
   | 'rectangle' 
   | 'ellipse'
   | 'eyedropper'
-  | 'hand'
   | 'line'
   | 'text'
   | 'brush';

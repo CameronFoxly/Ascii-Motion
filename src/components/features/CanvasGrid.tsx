@@ -17,7 +17,7 @@ interface CanvasGridProps {
 
 export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   // Use our new context and state management
-  const { canvasRef, setMouseButtonDown, setShiftKeyDown, setSpaceKeyDown, spaceKeyDown } = useCanvasContext();
+  const { canvasRef, setMouseButtonDown, setShiftKeyDown, setAltKeyDown, altKeyDown } = useCanvasContext();
   
   // Get active tool and tool behavior
   const { activeTool, textToolState, isPlaybackMode } = useToolStore();
@@ -27,8 +27,11 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   // Track previous tool for cleanup on tool changes
   const prevToolRef = useRef(activeTool);
   
-  // Calculate effective tool (space key overrides with hand tool)
-  const effectiveTool = spaceKeyDown ? 'hand' : activeTool;
+  // Calculate effective tool (Alt key overrides with eyedropper for drawing tools)
+  const drawingTools = ['pencil', 'eraser', 'paintbucket', 'rectangle', 'ellipse'] as const;
+  const shouldAllowEyedropperOverride = drawingTools.includes(activeTool as any);
+  
+  const effectiveTool = (altKeyDown && shouldAllowEyedropperOverride) ? 'eyedropper' : activeTool;
   
   // Canvas dimensions hooks already provide computed values
   const {
@@ -226,11 +229,11 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
         setShiftKeyDown(true);
       }
       
-      // Handle Space key for temporary hand tool
-      // Don't override space key if text tool is actively typing
-      if ((event.key === ' ' || event.code === 'Space') && !textToolState.isTyping) {
-        event.preventDefault(); // Prevent page scrolling
-        setSpaceKeyDown(true);
+      // Handle Alt key for temporary eyedropper tool (only for drawing tools)
+      // Don't override Alt key if text tool is actively typing
+      if (event.key === 'Alt' && shouldAllowEyedropperOverride) {
+        event.preventDefault(); // Prevent browser menu activation
+        setAltKeyDown(true);
       }
       
       // Handle Escape key for canceling moves and clearing selections
@@ -305,10 +308,9 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
         clearLinePreview();
       }
       
-      // Handle Space key release
-      // Only handle space release if we were handling space press (text tool not typing)
-      if ((event.key === ' ' || event.code === 'Space') && !textToolState.isTyping) {
-        setSpaceKeyDown(false);
+      // Handle Alt key release
+      if (event.key === 'Alt') {
+        setAltKeyDown(false);
       }
     };
 
@@ -330,7 +332,8 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     clearSelection,
     clearLassoSelection,
     clearMagicWandSelection,
-    textToolState.isTyping
+    textToolState.isTyping,
+    shouldAllowEyedropperOverride
   ]);
 
   // Reset selection mode when tool changes

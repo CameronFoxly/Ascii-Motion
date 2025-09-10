@@ -10,7 +10,6 @@ import {
   RectangleToolStatus,
   EllipseToolStatus,
   EyedropperToolStatus,
-  HandToolStatus,
   TextToolStatus,
 } from '../tools';
 
@@ -20,25 +19,16 @@ import {
  */
 export const ToolStatusManager: React.FC = () => {
   const { activeTool } = useToolStore();
-  const { spaceKeyDown } = useCanvasContext();
+  const { altKeyDown } = useCanvasContext();
 
-  // If space key is down, show hand tool status regardless of active tool
-  if (spaceKeyDown) {
-    return (
-      <div className="flex items-center gap-2 text-xs">
-        <span className="text-muted-foreground font-medium">
-          🖐️ Hand Tool (Space Override)
-        </span>
-        <span className="text-muted-foreground">
-          Click and drag to pan canvas - Release Space to return to {activeTool}
-        </span>
-      </div>
-    );
-  }
+  // Calculate effective tool (Alt key overrides with eyedropper for drawing tools)
+  const drawingTools = ['pencil', 'eraser', 'paintbucket', 'rectangle', 'ellipse'] as const;
+  const shouldAllowEyedropperOverride = drawingTools.includes(activeTool as any);
+  const effectiveTool = (altKeyDown && shouldAllowEyedropperOverride) ? 'eyedropper' : activeTool;
 
   // Render the appropriate tool status component with smaller text
   const statusContent = (() => {
-    switch (activeTool) {
+    switch (effectiveTool) {
       case 'select':
         return <SelectionToolStatus />;
       case 'lasso':
@@ -56,8 +46,6 @@ export const ToolStatusManager: React.FC = () => {
         return <EllipseToolStatus />;
       case 'eyedropper':
         return <EyedropperToolStatus />;
-      case 'hand':
-        return <HandToolStatus />;
       case 'text':
         return <TextToolStatus />;
       default:

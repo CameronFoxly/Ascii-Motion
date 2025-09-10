@@ -28,8 +28,7 @@ interface CanvasState {
   isDrawing: boolean;
   mouseButtonDown: boolean;
   shiftKeyDown: boolean;
-  spaceKeyDown: boolean;
-  handDragging: boolean;
+  altKeyDown: boolean;  // For temporary eyedropper activation
   
   // Selection state
   selectionMode: 'none' | 'dragging' | 'moving';
@@ -66,8 +65,7 @@ interface CanvasActions {
   setIsDrawing: (drawing: boolean) => void;
   setMouseButtonDown: (down: boolean) => void;
   setShiftKeyDown: (down: boolean) => void;
-  setSpaceKeyDown: (down: boolean) => void;
-  setHandDragging: (dragging: boolean) => void;
+  setAltKeyDown: (down: boolean) => void;
   
   // Selection actions
   setSelectionMode: (mode: CanvasState['selectionMode']) => void;
@@ -130,8 +128,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   const [isDrawing, setIsDrawing] = useState(false);
   const [mouseButtonDown, setMouseButtonDown] = useState(false);
   const [shiftKeyDown, setShiftKeyDown] = useState(false);
-  const [spaceKeyDown, setSpaceKeyDown] = useState(false);
-  const [handDragging, setHandDragging] = useState(false);
+  const [altKeyDown, setAltKeyDown] = useState(false);
   
   // Selection state
   const [selectionMode, setSelectionMode] = useState<CanvasState['selectionMode']>('none');
@@ -176,8 +173,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     isDrawing,
     mouseButtonDown,
     shiftKeyDown,
-    spaceKeyDown,
-    handDragging,
+    altKeyDown,
     selectionMode,
     pendingSelectionStart,
     justCommittedMove,
@@ -199,8 +195,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     setIsDrawing,
     setMouseButtonDown,
     setShiftKeyDown,
-    setSpaceKeyDown,
-    setHandDragging,
+    setAltKeyDown,
     setSelectionMode,
     setPendingSelectionStart,
     setJustCommittedMove,

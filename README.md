@@ -73,13 +73,13 @@ npm run build
 - [x] Type definitions and constants
 - [x] UI components and styling (Tailwind CSS + shadcn/ui)
 - [x] Canvas grid component with full rendering
-- [x] Complete drawing tool suite (pencil, eraser, paint bucket, rectangle, ellipse, selection, eyedropper, hand tool)
-- [x] Zoom and navigation system (25%-400% zoom, pan controls, space key override)
+- [x] Complete drawing tool suite (pencil, eraser, paint bucket, rectangle, ellipse, selection, eyedropper)
+- [x] Zoom and navigation system (25%-400% zoom, pan controls)
 - [x] Character palette interface
 - [x] Color picker
 - [x] Selection and advanced editing (copy/paste with visual preview)
 - [x] Undo/redo functionality
-- [x] Keyboard shortcuts (Cmd/Ctrl+C, V, Z, Shift+Z, Space for hand tool)
+- [x] Keyboard shortcuts (Cmd/Ctrl+C, V, Z, Shift+Z, Alt for temporary eyedropper)
 - [x] **High-DPI canvas rendering** - Crisp text quality on all displays
 - [x] **Performance optimizations** - 60fps rendering with batched updates
 - [x] **Gap-free drawing tools** - Smooth line interpolation for professional drawing

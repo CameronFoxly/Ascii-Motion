@@ -6,7 +6,6 @@ import { useCanvasSelection } from './useCanvasSelection';
 import { useCanvasLassoSelection } from './useCanvasLassoSelection';
 import { useCanvasMagicWandSelection } from './useCanvasMagicWandSelection';
 import { useCanvasDragAndDrop } from './useCanvasDragAndDrop';
-import { useHandTool } from './useHandTool';
 import { useTextTool } from './useTextTool';
 import { useCanvasState } from './useCanvasState';
 
@@ -24,7 +23,7 @@ export interface MouseHandlers {
  */
 export const useCanvasMouseHandlers = (): MouseHandlers => {
   const { activeTool, clearSelection, clearLassoSelection, isPlaybackMode } = useToolStore();
-  const { canvasRef, spaceKeyDown, setIsDrawing, setMouseButtonDown, setHoveredCell, pasteMode, updatePastePosition, startPasteDrag, stopPasteDrag, cancelPasteMode, commitPaste } = useCanvasContext();
+  const { canvasRef, altKeyDown, setIsDrawing, setMouseButtonDown, setHoveredCell, pasteMode, updatePastePosition, startPasteDrag, stopPasteDrag, cancelPasteMode, commitPaste } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
   const { width, height, cells, setCanvasData } = useCanvasStore();
   const { moveState, commitMove, isPointInEffectiveSelection, selectionMode } = useCanvasState();
@@ -34,11 +33,12 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
   const lassoSelectionHandlers = useCanvasLassoSelection();
   const magicWandSelectionHandlers = useCanvasMagicWandSelection();
   const dragAndDropHandlers = useCanvasDragAndDrop();
-  const handToolHandlers = useHandTool();
   const textToolHandlers = useTextTool();
 
-  // Determine effective tool (space key overrides with hand tool)
-  const effectiveTool = spaceKeyDown ? 'hand' : activeTool;
+  // Determine effective tool (Alt key overrides with eyedropper for drawing tools)
+  const drawingTools = ['pencil', 'eraser', 'paintbucket', 'rectangle', 'ellipse'] as const;
+  const shouldAllowEyedropperOverride = drawingTools.includes(activeTool as any);
+  const effectiveTool = (altKeyDown && shouldAllowEyedropperOverride) ? 'eyedropper' : activeTool;
 
   // Utility to get grid coordinates from mouse event
   const getGridCoordinatesFromEvent = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -143,9 +143,6 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
 
     // Normal tool handling when not in paste mode
     switch (effectiveTool) {
-      case 'hand':
-        handToolHandlers.handleHandMouseDown(event);
-        break;
       case 'select':
         selectionHandlers.handleSelectionMouseDown(event);
         break;
@@ -167,10 +164,10 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
         break;
       default:
         // For basic drawing tools (pencil, eraser, eyedropper, paintbucket)
-        dragAndDropHandlers.handleDrawingMouseDown(event);
+        dragAndDropHandlers.handleDrawingMouseDown(event, effectiveTool);
         break;
     }
-  }, [isPlaybackMode, effectiveTool, activeTool, pasteMode, moveState, getGridCoordinatesFromEvent, startPasteDrag, cancelPasteMode, commitPaste, cells, setCanvasData, isPointInEffectiveSelection, commitMove, clearSelection, clearLassoSelection, handToolHandlers, selectionHandlers, lassoSelectionHandlers, dragAndDropHandlers]);
+  }, [isPlaybackMode, effectiveTool, activeTool, pasteMode, moveState, getGridCoordinatesFromEvent, startPasteDrag, cancelPasteMode, commitPaste, cells, setCanvasData, isPointInEffectiveSelection, commitMove, clearSelection, clearLassoSelection, selectionHandlers, lassoSelectionHandlers, dragAndDropHandlers]);
 
   // Route mouse move to appropriate tool handler
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -179,14 +176,9 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
       return;
     }
 
-    // Update hovered cell for all tools except hand tool
-    if (effectiveTool !== 'hand') {
-      const { x, y } = getGridCoordinatesFromEvent(event);
-      setHoveredCell({ x, y });
-    } else {
-      // Clear hover when using hand tool
-      setHoveredCell(null);
-    }
+    // Update hovered cell for all tools
+    const { x, y } = getGridCoordinatesFromEvent(event);
+    setHoveredCell({ x, y });
 
     // Handle paste mode interactions first
     if (pasteMode.isActive) {
@@ -200,9 +192,6 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
 
     // Normal tool handling when not in paste mode
     switch (effectiveTool) {
-      case 'hand':
-        handToolHandlers.handleHandMouseMove(event);
-        break;
       case 'select':
         selectionHandlers.handleSelectionMouseMove(event);
         break;
@@ -223,7 +212,7 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
         dragAndDropHandlers.handleDrawingMouseMove(event);
         break;
     }
-  }, [isPlaybackMode, effectiveTool, pasteMode, getGridCoordinatesFromEvent, setHoveredCell, updatePastePosition, handToolHandlers, selectionHandlers, lassoSelectionHandlers, dragAndDropHandlers]);
+  }, [isPlaybackMode, effectiveTool, pasteMode, getGridCoordinatesFromEvent, setHoveredCell, updatePastePosition, selectionHandlers, lassoSelectionHandlers, dragAndDropHandlers]);
 
   // Route mouse up to appropriate tool handler
   const handleMouseUp = useCallback((event?: React.MouseEvent<HTMLCanvasElement>) => {
@@ -239,21 +228,16 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
     }
 
     // Normal tool handling when not in paste mode
-    if (effectiveTool === 'hand' && event) {
-      // Hand tool uses effectiveTool to handle space key override
-      handToolHandlers.handleHandMouseUp();
-    } else {
-      // Other tools use activeTool for proper cleanup
-      switch (activeTool) {
-        case 'select':
-          selectionHandlers.handleSelectionMouseUp();
-          break;
-        case 'lasso':
-          lassoSelectionHandlers.handleLassoMouseUp();
-          break;
-        case 'magicwand':
-          magicWandSelectionHandlers.handleMagicWandMouseUp();
-          break;
+    switch (activeTool) {
+      case 'select':
+        selectionHandlers.handleSelectionMouseUp();
+        break;
+      case 'lasso':
+        lassoSelectionHandlers.handleLassoMouseUp();
+        break;
+      case 'magicwand':
+        magicWandSelectionHandlers.handleMagicWandMouseUp();
+        break;
         case 'rectangle':
           dragAndDropHandlers.handleRectangleMouseUp();
           break;
@@ -272,15 +256,14 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
             setPencilLastPosition(null);
           }
           break;
-      }
     }
-  }, [isPlaybackMode, effectiveTool, activeTool, pasteMode, stopPasteDrag, handToolHandlers, selectionHandlers, lassoSelectionHandlers, dragAndDropHandlers, setIsDrawing, setMouseButtonDown]);
+  }, [isPlaybackMode, effectiveTool, activeTool, pasteMode, stopPasteDrag, selectionHandlers, lassoSelectionHandlers, dragAndDropHandlers, setIsDrawing, setMouseButtonDown]);
 
   return {
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
-    handleMouseLeave,
     handleContextMenu,
+    handleMouseLeave,
   };
 };

@@ -93,12 +93,12 @@ export const useCanvasDragAndDrop = () => {
   }, [getGridCoordinates, width, height, canvasRef]);
 
   // Handle drawing operations
-  const handleDrawing = useCallback((x: number, y: number, isShiftClick = false, isFirstStroke = false) => {
-    drawAtPosition(x, y, isShiftClick, isFirstStroke);
+  const handleDrawing = useCallback((x: number, y: number, isShiftClick = false, isFirstStroke = false, toolOverride?: string) => {
+    drawAtPosition(x, y, isShiftClick, isFirstStroke, toolOverride);
   }, [drawAtPosition]);
 
   // Handle drawing tool mouse down
-  const handleDrawingMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleDrawingMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>, toolOverride?: string) => {
     const { x, y } = getGridCoordinatesFromEvent(event);
     const isShiftClick = shiftKeyDown;
     
@@ -109,8 +109,8 @@ export const useCanvasDragAndDrop = () => {
     
     // Always treat mouse down as first stroke - this prevents connecting separate clicks
     // The gap-filling logic in mouse move will handle continuous drawing smoothness
-    handleDrawing(x, y, isShiftClick, true);
-  }, [getGridCoordinatesFromEvent, cells, pushCanvasHistory, currentFrameIndex, setMouseButtonDown, setIsDrawing, handleDrawing, shiftKeyDown]);
+    drawAtPosition(x, y, isShiftClick, true, toolOverride);
+  }, [getGridCoordinatesFromEvent, cells, pushCanvasHistory, currentFrameIndex, setMouseButtonDown, setIsDrawing, drawAtPosition, shiftKeyDown]);
 
   // Handle drawing tool mouse move
   const handleDrawingMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {

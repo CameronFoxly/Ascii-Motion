@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 import { useToolStore } from '../stores/toolStore';
-import { useCanvasContext } from '../contexts/CanvasContext';
 import type { Tool } from '../types';
 
 /**
@@ -8,7 +7,6 @@ import type { Tool } from '../types';
  */
 export const useToolBehavior = () => {
   const { activeTool, setActiveTool } = useToolStore();
-  const { handDragging } = useCanvasContext();
 
   // Get the appropriate tool component for the active tool
   const getActiveToolComponent = useCallback(() => {
@@ -30,8 +28,6 @@ export const useToolBehavior = () => {
         return 'EllipseTool';
       case 'eyedropper':
         return 'EyedropperTool';
-      case 'hand':
-        return 'HandTool';
       case 'text':
         return 'TextTool';
       default:
@@ -59,8 +55,6 @@ export const useToolBehavior = () => {
         return 'EllipseToolStatus';
       case 'eyedropper':
         return 'EyedropperToolStatus';
-      case 'hand':
-        return 'HandToolStatus';
       case 'text':
         return 'TextToolStatus';
       default:
@@ -88,15 +82,13 @@ export const useToolBehavior = () => {
       case 'ellipse':
         return 'cursor-crosshair';
       case 'eyedropper':
-        return 'cursor-crosshair';
-      case 'hand':
-        return handDragging ? 'cursor-grabbing' : 'cursor-grab';
+        return 'cursor-eyedropper'; // Custom eyedropper icon cursor
       case 'text':
         return 'cursor-text';
       default:
         return 'cursor-default';
     }
-  }, [handDragging]);
+  }, []);
 
   // Get tool display name
   const getToolDisplayName = useCallback((tool: Tool) => {
@@ -119,8 +111,6 @@ export const useToolBehavior = () => {
         return 'Ellipse';
       case 'eyedropper':
         return 'Eyedropper';
-      case 'hand':
-        return 'Hand';
       case 'text':
         return 'Text';
       default:
@@ -130,7 +120,7 @@ export const useToolBehavior = () => {
 
   // Check if tool requires continuous interaction (click and drag)
   const isInteractiveTool = useCallback((tool: Tool) => {
-    return ['select', 'lasso', 'magicwand', 'rectangle', 'ellipse', 'hand', 'text'].includes(tool);
+    return ['select', 'lasso', 'magicwand', 'rectangle', 'ellipse', 'text'].includes(tool);
   }, []);
 
   // Check if tool is a drawing tool (modifies canvas on click)

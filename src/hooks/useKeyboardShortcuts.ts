@@ -233,7 +233,7 @@ export const useKeyboardShortcuts = () => {
     // Only process if no modifier keys are pressed and key is a valid tool hotkey
     if (!event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
       const targetTool = getToolForHotkey(event.key);
-      if (targetTool && targetTool !== 'hand') { // Hand tool handled separately via space key
+      if (targetTool) {
         event.preventDefault();
         setActiveTool(targetTool);
         return;

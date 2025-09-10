@@ -17,7 +17,7 @@ export interface ToolHotkey {
  * 
  * Usage:
  * - Single key press switches to tool (respects text input protection)
- * - Space key temporarily activates hand tool (existing behavior)
+ * - Alt key temporarily activates eyedropper tool for drawing tools  
  * - Easy to update and maintain hotkeys in one place
  */
 export const TOOL_HOTKEYS: ToolHotkey[] = [
@@ -27,11 +27,10 @@ export const TOOL_HOTKEYS: ToolHotkey[] = [
   { tool: 'select', key: 'm', displayName: 'M', description: 'Rectangular selection hotkey' },
   { tool: 'lasso', key: 'l', displayName: 'L', description: 'Lasso selection hotkey' },
   { tool: 'magicwand', key: 'w', displayName: 'W', description: 'Magic wand selection hotkey' },
-  { tool: 'eyedropper', key: 'i', displayName: 'I', description: 'Eyedropper tool hotkey' },
+  { tool: 'eyedropper', key: 'i', displayName: 'I', description: 'Eyedropper tool hotkey (Alt for temporary)' },
   { tool: 'rectangle', key: 'r', displayName: 'R', description: 'Rectangle drawing hotkey' },
   { tool: 'ellipse', key: 'o', displayName: 'O', description: 'Ellipse drawing hotkey' },
   { tool: 'text', key: 't', displayName: 'T', description: 'Text tool hotkey' },
-  { tool: 'hand', key: ' ', displayName: 'Space', description: 'Hand tool (temporary while held)' },
 ];
 
 /**
