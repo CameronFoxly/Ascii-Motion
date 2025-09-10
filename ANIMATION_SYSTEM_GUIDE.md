@@ -98,6 +98,9 @@ const processHistoryAction = (action: AnyHistoryAction, isRedo: boolean) => {
 #### **Keyboard Shortcuts:**
 - **Cmd/Ctrl + Z** - Undo (works for both canvas and animation actions)
 - **Cmd/Ctrl + Shift + Z** - Redo (works for both canvas and animation actions)
+- **Ctrl + N** - New frame (inserts after current frame)
+- **Ctrl + D** - Duplicate current frame
+- **Ctrl + Delete/Backspace** - Delete current frame (only if more than one frame exists)
 
 #### **Future Enhancements:**
 - Frame restoration from deletion (currently logged as TODO)

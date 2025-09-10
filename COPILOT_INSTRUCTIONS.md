@@ -518,6 +518,120 @@ export const useKeyboardShortcuts = () => {
   }
 };
 
+// ✅ Frame Control Hotkeys Pattern (Sept 10, 2025)
+// Animation frame manipulation with modifier key combinations
+export const FRAME_HOTKEYS: FrameHotkey[] = [
+  { 
+    key: 'n', 
+    displayName: 'Ctrl+N', 
+    description: 'New frame hotkey',
+    requiresModifier: true
+  },
+  { 
+    key: 'd', 
+    displayName: 'Ctrl+D', 
+    description: 'Duplicate frame hotkey',
+    requiresModifier: true
+  },
+  { 
+    key: 'Delete', 
+    displayName: 'Ctrl+Delete/Backspace', 
+    description: 'Delete frame hotkey',
+    requiresModifier: true
+  },
+];
+
+// Frame control keyboard shortcuts in useKeyboardShortcuts.ts:
+// IMPORTANT: Use history-enabled actions for consistency with UI buttons
+const { addFrame, duplicateFrame, removeFrame } = useAnimationHistory();
+
+const isModifierPressed = event.metaKey || event.ctrlKey;
+if (!isModifierPressed) return;
+
+switch (event.key.toLowerCase()) {
+  case 'n':
+    // Ctrl+N = New frame
+    event.preventDefault();
+    addFrame(currentFrameIndex + 1);
+    break;
+    
+  case 'd':
+    // Ctrl+D = Duplicate current frame
+    event.preventDefault();
+    duplicateFrame(currentFrameIndex);
+    break;
+    
+  case 'delete':
+  case 'backspace':
+    // Ctrl+Delete or Ctrl+Backspace = Delete current frame (only if more than one frame exists)
+    if (frames.length > 1) {
+      event.preventDefault();
+      removeFrame(currentFrameIndex);
+    }
+    break;
+}
+
+// ✅ CRITICAL: Hotkey Implementation Best Practices (Sept 10, 2025)
+// **ALWAYS follow these patterns when adding new hotkeys to prevent bypassing established logic**
+
+/**
+ * HOTKEY IMPLEMENTATION CHECKLIST:
+ * 
+ * 1. **Use the Same Actions as UI Components**
+ *    ❌ DON'T: Import raw store methods like useAnimationStore().addFrame
+ *    ✅ DO: Import history-enabled methods like useAnimationHistory().addFrame
+ *    
+ *    Example:
+ *    // ❌ Wrong - bypasses history system
+ *    const { addFrame } = useAnimationStore();
+ *    
+ *    // ✅ Correct - uses same logic as UI buttons
+ *    const { addFrame } = useAnimationHistory();
+ * 
+ * 2. **Match UI Button Behavior Exactly**
+ *    - If a UI button shows undo/redo integration, hotkeys must too
+ *    - If a UI button has validation logic, hotkeys must use same validation
+ *    - If a UI button updates multiple state pieces, hotkeys must too
+ * 
+ * 3. **Key Case Sensitivity**
+ *    - Switch statement uses event.key.toLowerCase()
+ *    - All cases must be lowercase: 'delete', 'backspace', not 'Delete', 'Backspace'
+ * 
+ * 4. **Modifier Key Detection**
+ *    - Account for both Mac (metaKey) and PC (ctrlKey): event.metaKey || event.ctrlKey
+ *    - Check for conflicts with existing selection clearing logic
+ * 
+ * 5. **Event Prevention**
+ *    - Always call event.preventDefault() to prevent browser defaults
+ *    - Do this AFTER validation checks (e.g., frames.length > 1)
+ * 
+ * 6. **Testing Verification**
+ *    - Test that hotkeys integrate with undo/redo system
+ *    - Test that hotkeys produce identical results to UI buttons
+ *    - Test edge cases (e.g., deleting last frame should be prevented)
+ */
+
+// Example of correct hotkey implementation pattern:
+const useCorrectHotkeyPattern = () => {
+  // ✅ Use the same hooks as UI components
+  const { someAction } = useHistoryEnabledHook(); // NOT raw store
+  
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    const isModifierPressed = event.metaKey || event.ctrlKey;
+    if (!isModifierPressed) return;
+    
+    switch (event.key.toLowerCase()) { // ✅ toLowerCase() for consistency
+      case 'somekey':
+        // ✅ Same validation as UI button
+        if (canPerformAction()) {
+          event.preventDefault(); // ✅ Prevent browser default
+          someAction(); // ✅ Same method as UI button
+        }
+        break;
+    }
+  }, [someAction, canPerformAction]);
+};
+
 // ✅ Tool Tooltip Enhancement Pattern - ToolPalette.tsx
 import { getToolTooltipText } from '../../constants/hotkeys';
 

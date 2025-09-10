@@ -92,7 +92,7 @@ npm run build
 - [x] Frame thumbnails with visual indicators
 - [x] Onion skinning with performance caching
 - [x] Animation state management and synchronization
-- [x] Keyboard shortcuts (Shift+O for onion skinning)
+- [x] Keyboard shortcuts (Shift+O for onion skinning, Ctrl+N for new frame, Ctrl+D for duplicate frame, Ctrl+Delete/Backspace for delete frame)
 
 ### 📅 Phase 3: Export System (Planned)
 - [ ] Text file export

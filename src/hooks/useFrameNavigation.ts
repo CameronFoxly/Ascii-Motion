@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
 
@@ -41,40 +41,6 @@ export const useFrameNavigation = () => {
       previousFrame();
     }
   }, [isPlaying, isPlaybackMode, previousFrame]);
-
-  // Keyboard shortcut handler
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Don't handle shortcuts if text tool is active and typing
-      if (textToolState.isTyping) return;
-      
-      // Don't handle shortcuts during playback
-      if (isPlaying || isPlaybackMode) return;
-
-      // Don't handle if user is typing in an input/textarea
-      const target = event.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true') {
-        return;
-      }
-
-      switch (event.key) {
-        case ',':
-          event.preventDefault();
-          navigatePrevious();
-          break;
-        case '.':
-          event.preventDefault();
-          navigateNext();
-          break;
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [textToolState.isTyping, isPlaying, isPlaybackMode, navigateNext, navigatePrevious]);
 
   return {
     navigateToFrame,

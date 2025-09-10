@@ -41,7 +41,7 @@ export const FrameControls: React.FC<FrameControlsProps> = ({
               New Frame
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Add new frame</TooltipContent>
+          <TooltipContent>Add new frame (Ctrl+N)</TooltipContent>
         </Tooltip>
 
         {/* Duplicate current frame */}
@@ -58,7 +58,7 @@ export const FrameControls: React.FC<FrameControlsProps> = ({
               Duplicate
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Duplicate current frame</TooltipContent>
+          <TooltipContent>Duplicate current frame (Ctrl+D)</TooltipContent>
         </Tooltip>
 
         {/* Delete current frame */}
@@ -75,7 +75,7 @@ export const FrameControls: React.FC<FrameControlsProps> = ({
               Delete
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Delete current frame</TooltipContent>
+          <TooltipContent>Delete current frame (Ctrl+Delete or Ctrl+Backspace)</TooltipContent>
         </Tooltip>
       </div>
     </TooltipProvider>
