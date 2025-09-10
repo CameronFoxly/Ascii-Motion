@@ -13,6 +13,7 @@ import {
 } from '../utils/canvasTextRendering';
 import { scheduleCanvasRender } from '../utils/renderScheduler';
 import { markFullRedraw } from '../utils/dirtyTracker';
+import { calculateAdaptiveGridColor } from '../utils/gridColor';
 import type { Cell } from '../types';
 
 /**
@@ -128,7 +129,7 @@ export const useCanvasRenderer = () => {
     
     return {
       font: scaledFontString,
-      gridLineColor: canvasBackgroundColor === '#000000' ? '#333333' : '#E5E7EB',
+      gridLineColor: calculateAdaptiveGridColor(canvasBackgroundColor),
       gridLineWidth: 1, // Use 1 pixel for crisp grid lines
       textAlign: 'center' as CanvasTextAlign,
       textBaseline: 'middle' as CanvasTextBaseline,

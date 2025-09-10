@@ -1,0 +1,109 @@
+/**
+ * Grid color utilities for dynamic opacity based on background color
+ */
+
+/**
+ * Convert hex color to RGB values
+ */
+const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+};
+
+/**
+ * Calculate the luminance of a color (brightness)
+ */
+const getLuminance = (r: number, g: number, b: number): number => {
+  // Convert RGB to linear RGB
+  const [rs, gs, bs] = [r, g, b].map(c => {
+    c = c / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  
+  // Calculate luminance
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+};
+
+/**
+ * Calculate optimal grid color with opacity based on background color
+ * Returns a color that provides good contrast while maintaining visual harmony
+ */
+export const calculateGridColor = (backgroundColor: string): string => {
+  // Handle transparent/default cases
+  if (backgroundColor === 'transparent' || !backgroundColor) {
+    return 'rgba(0, 0, 0, 0.1)'; // Very subtle black for transparent backgrounds
+  }
+
+  const rgb = hexToRgb(backgroundColor);
+  if (!rgb) {
+    // Fallback for invalid colors
+    return 'rgba(0, 0, 0, 0.1)';
+  }
+
+  const { r, g, b } = rgb;
+  const luminance = getLuminance(r, g, b);
+
+  // Special handling for pure black and white for optimal appearance
+  if (backgroundColor === '#000000' || backgroundColor === '#000') {
+    return 'rgba(51, 51, 51, 1)'; // #333333 with full opacity
+  }
+  
+  if (backgroundColor === '#ffffff' || backgroundColor === '#fff') {
+    return 'rgba(229, 231, 235, 1)'; // #E5E7EB with full opacity
+  }
+
+  // For other colors, calculate optimal grid color based on luminance
+  if (luminance > 0.5) {
+    // Light background - use dark grid with reduced opacity
+    return 'rgba(0, 0, 0, 0.15)';
+  } else {
+    // Dark background - use light grid with reduced opacity
+    return 'rgba(255, 255, 255, 0.15)';
+  }
+};
+
+/**
+ * Calculate contrast-aware grid color that adapts to any background
+ * Provides better visibility on colored backgrounds than fixed colors
+ */
+export const calculateAdaptiveGridColor = (backgroundColor: string): string => {
+  if (backgroundColor === 'transparent' || !backgroundColor) {
+    return 'rgba(0, 0, 0, 0.08)';
+  }
+
+  const rgb = hexToRgb(backgroundColor);
+  if (!rgb) {
+    return 'rgba(0, 0, 0, 0.08)';
+  }
+
+  const { r, g, b } = rgb;
+  const luminance = getLuminance(r, g, b);
+
+  // Pure black and white get special treatment for crispness
+  if (backgroundColor === '#000000' || backgroundColor === '#000') {
+    return '#333333'; // Solid dark gray
+  }
+  
+  if (backgroundColor === '#ffffff' || backgroundColor === '#fff') {
+    return '#E5E7EB'; // Solid light gray
+  }
+
+  // For colored backgrounds, use adaptive opacity
+  // Higher contrast colors get more opacity, muted colors get less
+  const saturation = Math.max(Math.abs(r - 128), Math.abs(g - 128), Math.abs(b - 128)) / 128;
+  const baseOpacity = 0.12; // Base opacity for subtle grid
+  const saturationBoost = saturation * 0.08; // Boost opacity for high-saturation colors
+  const finalOpacity = Math.min(baseOpacity + saturationBoost, 0.25); // Cap at 25%
+
+  if (luminance > 0.5) {
+    // Light background - use dark grid
+    return `rgba(0, 0, 0, ${finalOpacity})`;
+  } else {
+    // Dark background - use light grid
+    return `rgba(255, 255, 255, ${finalOpacity})`;
+  }
+};

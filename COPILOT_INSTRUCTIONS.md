@@ -563,6 +563,7 @@ src/
 ├── types/
 ├── utils/
 │   ├── performance.ts                 # Performance measurement tools (NEW)
+│   ├── gridColor.ts                   # Adaptive grid color calculation (NEW)
 │   └── ...
 ├── constants/
 │   ├── hotkeys.ts                     # Tool hotkey configuration and utilities (NEW)
@@ -1618,12 +1619,12 @@ const useCanvasRenderer = () => {
   // Memoized font and style calculations (eliminates 1,920 repeated calculations)
   const drawingStyles = useMemo(() => ({
     font: `${cellSize - 2}px 'Courier New', monospace`,
-    gridLineColor: '#E5E7EB',
+    gridLineColor: calculateAdaptiveGridColor(canvasBackgroundColor), // ✅ NEW: Adaptive grid opacity
     textAlign: 'center' as CanvasTextAlign,
     textBaseline: 'middle' as CanvasTextBaseline,
     defaultTextColor: '#000000',
     defaultBgColor: '#FFFFFF'
-  }), [cellSize]);
+  }), [cellSize, canvasBackgroundColor]); // ✅ NEW: Added canvasBackgroundColor dependency
 
   // Use grid-level memoization for change detection
   const { selectionData } = useMemoizedGrid(moveState, getTotalOffset);
@@ -1774,6 +1775,30 @@ const CellRenderer = React.memo(({ x, y, cell, cellSize }: CellProps) => {
 
 // ✅ Grid-level memoization for change detection
 const { gridData, selectionData } = useMemoizedGrid(moveState, getTotalOffset);
+```
+
+**✅ Grid Color Optimization (IMPLEMENTED):**
+```typescript
+// ✅ Step 5.2: Adaptive grid color with dynamic opacity - COMPLETED
+import { calculateAdaptiveGridColor } from '../utils/gridColor';
+
+// Grid color automatically adapts to background for optimal visibility
+const drawingStyles = useMemo(() => ({
+  font: scaledFontString,
+  gridLineColor: calculateAdaptiveGridColor(canvasBackgroundColor), // Dynamic calculation
+  gridLineWidth: 1,
+  textAlign: 'center' as CanvasTextAlign,
+  textBaseline: 'middle' as CanvasTextBaseline,
+  defaultTextColor: '#FFFFFF',
+  defaultBgColor: '#000000'
+}), [fontMetrics, zoom, canvasBackgroundColor]);
+
+// Grid color utility provides luminance-based contrast calculation:
+// - Pure black/white: Full opacity for crisp appearance
+// - Colored backgrounds: 0.12-0.25 opacity range based on saturation
+// - Light backgrounds: Dark grid lines with adaptive opacity  
+// - Dark backgrounds: Light grid lines with adaptive opacity
+// - Transparent: Very subtle dark grid (0.08 opacity)
 ```
 
 ### 6. Event Handling Patterns
@@ -2276,8 +2301,9 @@ for (let y = 0; y < height; y++) {
 
 **Core Typography Implementation**:
 - **Font Metrics System**: `src/utils/fontMetrics.ts` - Calculates monospace aspect ratio, character/line spacing
+- **Grid Color System**: `src/utils/gridColor.ts` - Adaptive grid opacity based on background color luminance
 - **Context Integration**: Enhanced `CanvasContext` with typography state (characterSpacing, lineSpacing, fontMetrics)
-- **Renderer Updates**: `useCanvasRenderer` now uses rectangular cells with zoom-scaled fonts
+- **Renderer Updates**: `useCanvasRenderer` now uses rectangular cells with zoom-scaled fonts and adaptive grid colors
 - **Coordinate System**: All tools updated to use `cellWidth` × `cellHeight` instead of square `cellSize`
 
 **Typography Controls**:
@@ -2290,6 +2316,24 @@ fontMetrics: {                 // Computed automatically
   fontFamily: 'Courier New',   // Monospace font
   aspectRatio: 0.6            // Character width/height ratio
 }
+```
+
+**Grid Color System**:
+```typescript
+// Adaptive grid color calculation in utils/gridColor.ts
+calculateAdaptiveGridColor(backgroundColor: string): string
+
+// Color calculation algorithm:
+// 1. Parse hex color to RGB and calculate luminance
+// 2. Determine grid line color (dark/light) based on background luminance  
+// 3. Adjust opacity based on color saturation for optimal visibility
+// 4. Special handling for pure black/white (full opacity for crispness)
+
+// Examples:
+calculateAdaptiveGridColor('#000000') // → '#333333' (full opacity dark gray)
+calculateAdaptiveGridColor('#ffffff') // → '#E5E7EB' (full opacity light gray)  
+calculateAdaptiveGridColor('#ff0000') // → 'rgba(255, 255, 255, 0.18)' (adaptive opacity)
+calculateAdaptiveGridColor('#800080') // → 'rgba(255, 255, 255, 0.15)' (adaptive opacity)
 ```
 
 **UI Layout Reorganization**:
@@ -2306,8 +2350,9 @@ fontMetrics: {                 // Computed automatically
 
 **Files Modified**:
 - `src/utils/fontMetrics.ts` - NEW: Font metrics calculation utilities
+- `src/utils/gridColor.ts` - NEW: Adaptive grid color calculation utilities
 - `src/contexts/CanvasContext.tsx` - Added typography state and computed cell dimensions
-- `src/hooks/useCanvasRenderer.ts` - Updated for rectangular cells and zoom-scaled fonts
+- `src/hooks/useCanvasRenderer.ts` - Updated for rectangular cells, zoom-scaled fonts, and adaptive grid colors
 - `src/components/features/CanvasSettings.tsx` - Added typography controls dropdown
 - `src/components/features/CanvasActionButtons.tsx` - NEW: Relocated action buttons
 - `src/components/features/CanvasGrid.tsx` - Updated layout to include action buttons
@@ -2316,6 +2361,8 @@ fontMetrics: {                 // Computed automatically
 **User Experience Benefits**:
 - **Realistic ASCII Art**: Character aspect ratio matches terminal/editor rendering
 - **Customizable Spacing**: Fine-tune character tracking and line spacing for different art styles
+- **Adaptive Grid Visibility**: Grid automatically adjusts opacity for optimal visibility on any background color
+- **Reduced Visual Noise**: Grid provides guidance without overwhelming content on colored backgrounds
 - **Professional Layout**: Clean, uncluttered interface with logical control grouping
 - **Preserved Functionality**: All tools work correctly with rectangular cell system
 
