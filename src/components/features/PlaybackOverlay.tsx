@@ -38,26 +38,25 @@ export const PlaybackOverlay: React.FC<PlaybackOverlayProps> = ({ isVisible }) =
   return (
     <div 
       className={`
-        absolute bottom-12 left-1/2 transform -translate-x-1/2 
+        absolute bottom-16 left-1/2 transform -translate-x-1/2 
         transition-all duration-300 ease-in-out z-10
+        bg-background/95 backdrop-blur-md border border-border/50 rounded-lg shadow-lg p-1
         ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0 pointer-events-none'}
       `}
     >
-      <div className="bg-background/95 backdrop-blur-md border border-border/50 rounded-lg shadow-lg p-1">
-        <PlaybackControls
-          isPlaying={isPlaying}
-          canPlay={canPlay}
-          currentFrame={currentFrameIndex}
-          totalFrames={frames.length}
-          onPlay={startPlayback}
-          onPause={pausePlayback}
-          onStop={stopPlayback}
-          onPrevious={navigatePrevious}
-          onNext={navigateNext}
-          onToggleLoop={() => setLooping(!looping)}
-          isLooping={looping}
-        />
-      </div>
+      <PlaybackControls
+        isPlaying={isPlaying}
+        canPlay={canPlay}
+        currentFrame={currentFrameIndex}
+        totalFrames={frames.length}
+        onPlay={startPlayback}
+        onPause={pausePlayback}
+        onStop={stopPlayback}
+        onPrevious={navigatePrevious}
+        onNext={navigateNext}
+        onToggleLoop={() => setLooping(!looping)}
+        isLooping={looping}
+      />
     </div>
   );
 };

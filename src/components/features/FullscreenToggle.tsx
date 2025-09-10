@@ -18,7 +18,7 @@ export const FullscreenToggle: React.FC<FullscreenToggleProps> = ({
 }) => {
   return (
     <TooltipProvider>
-      <div className="absolute bottom-12 right-6 z-10">
+      <div className="absolute bottom-16 right-6 z-10">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
