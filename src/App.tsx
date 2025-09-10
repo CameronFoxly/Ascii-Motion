@@ -34,8 +34,12 @@ function App() {
           <div className="px-4 py-2">
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-lg font-bold font-mono text-purple-500">ASCII Motion</h1>
-                <p className="text-xs text-muted-foreground">Create and animate ASCII art</p>
+                <pre className="font-mono text-[6px] leading-[1.1] select-none tracking-tighter">
+                  <div className="text-purple-300">----▗▄▖  ▗▄▄▖ ▗▄▄▖▗▄▄▄▖▗▄▄▄▖    ▗▖  ▗▖ ▗▄▖▗▄▄▄▖▗▄▄▄▖ ▗▄▖ ▗▖  ▗▖</div>
+                  <div className="text-purple-400"> --▐▌ ▐▌▐▌   ▐▌     █    █      ▐▛▚▞▜▌▐▌ ▐▌ █    █  ▐▌ ▐▌▐▛▚▖▐▌</div>
+                  <div className="text-purple-500">  -▐▛▀▜▌ ▝▀▚▖▐▌     █    █      ▐▌  ▐▌▐▌ ▐▌ █    █  ▐▌ ▐▌▐▌ ▝▜▌</div>
+                  <div className="text-purple-700">  -▐▌ ▐▌▗▄▄▞▘▝▚▄▄▖▗▄█▄▖▗▄█▄▖    ▐▌  ▐▌▝▚▄▞▘ █  ▗▄█▄▖▝▚▄▞▘▐▌  ▐▌</div>
+                </pre>
               </div>
               <ThemeToggle />
             </div>
