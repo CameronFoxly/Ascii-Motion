@@ -15,6 +15,9 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
 
   // Convert ANSI_COLORS object to array for easier mapping
   const ansiColorsArray = Object.entries(ANSI_COLORS).map(([name, color]) => ({ name, color }));
+  
+  // For text colors, exclude transparent option
+  const textColorsArray = ansiColorsArray.filter(({ name }) => name !== 'transparent');
 
   return (
     <div className={`space-y-2 ${className}`}>      
@@ -35,7 +38,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
           <Card className="bg-card/50 border-border/50">
             <CardContent className="p-2">
               <div className="grid grid-cols-6 gap-0.5">
-                {ansiColorsArray.map(({ name, color }) => (
+                {textColorsArray.map(({ name, color }) => (
                   <button
                     key={`text-${name}`}
                     className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 ${

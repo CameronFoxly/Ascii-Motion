@@ -26,13 +26,28 @@ export const useDrawingTool = () => {
   // Helper function to create a cell respecting the tool toggles
   const createCellWithToggles = useCallback((x: number, y: number): Cell => {
     const existingCell = getCell(x, y);
+    const newChar = toolAffectsChar ? selectedChar : (existingCell?.char || ' ');
+    
+    // Only apply color data if the cell will have a character (not just a space)
+    const willHaveChar = newChar !== ' ';
+    const hasExistingChar = existingCell?.char && existingCell.char !== ' ';
+    const shouldApplyColors = willHaveChar || hasExistingChar;
     
     return {
-      char: toolAffectsChar ? selectedChar : (existingCell?.char || ' '),
-      color: toolAffectsColor ? selectedColor : (existingCell?.color || '#FFFFFF'),
-      bgColor: toolAffectsBgColor ? selectedBgColor : (existingCell?.bgColor || 'transparent')
+      char: newChar,
+      color: (toolAffectsColor && shouldApplyColors) ? selectedColor : (existingCell?.color || '#FFFFFF'),
+      bgColor: (toolAffectsBgColor && shouldApplyColors) ? selectedBgColor : (existingCell?.bgColor || 'transparent')
     };
   }, [toolAffectsChar, toolAffectsColor, toolAffectsBgColor, selectedChar, selectedColor, selectedBgColor, getCell]);
+
+  // Helper function to create a cell with all attributes (for shape tools)
+  const createCellWithAllAttributes = useCallback((): Cell => {
+    return {
+      char: selectedChar,
+      color: selectedColor,
+      bgColor: selectedBgColor
+    };
+  }, [selectedChar, selectedColor, selectedBgColor]);
 
   // Bresenham line algorithm for drawing lines between two points
   const getLinePoints = useCallback((x0: number, y0: number, x1: number, y1: number) => {
@@ -145,17 +160,17 @@ export const useDrawingTool = () => {
         // For hollow rectangles, only draw border
         if (!rectangleFilled) {
           if (x === minX || x === maxX || y === minY || y === maxY) {
-            const newCell = createCellWithToggles(x, y);
+            const newCell = createCellWithAllAttributes();
             setCell(x, y, newCell);
           }
         } else {
           // For filled rectangles, draw all cells
-          const newCell = createCellWithToggles(x, y);
+          const newCell = createCellWithAllAttributes();
           setCell(x, y, newCell);
         }
       }
     }
-  }, [rectangleFilled, setCell, createCellWithToggles]);
+  }, [rectangleFilled, setCell, createCellWithAllAttributes]);
 
   // Helper function to get ellipse points using a simpler approach
   const getEllipsePoints = useCallback((centerX: number, centerY: number, radiusX: number, radiusY: number, filled: boolean = false) => {
@@ -218,11 +233,11 @@ export const useDrawingTool = () => {
     // Draw all the ellipse points
     points.forEach(({ x, y }) => {
       if (x >= 0 && y >= 0) { // Basic bounds checking
-        const newCell = createCellWithToggles(x, y);
+        const newCell = createCellWithAllAttributes();
         setCell(x, y, newCell);
       }
     });
-  }, [rectangleFilled, setCell, getEllipsePoints, createCellWithToggles]);
+  }, [rectangleFilled, setCell, getEllipsePoints, createCellWithAllAttributes]);
 
   return {
     drawAtPosition,

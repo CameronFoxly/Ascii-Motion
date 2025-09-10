@@ -19,21 +19,22 @@ export const useTextTool = () => {
   const { textToolState, startTyping, stopTyping, setCursorPosition, setCursorVisible, setTextBuffer, commitWord, pushCanvasHistory } = useToolStore();
   const { width, height, setCell, getCell, cells } = useCanvasStore();
   const { currentFrameIndex } = useAnimationStore();
-  const { selectedColor, selectedBgColor, toolAffectsChar, toolAffectsColor, toolAffectsBgColor } = useToolStore();
+  const { selectedColor, selectedBgColor } = useToolStore();
   
   const blinkTimerRef = useRef<NodeJS.Timeout | null>(null);
   const wordBoundaryChars = useRef(new Set([' ', '\t', '\n', '.', ',', ';', ':', '!', '?', '"', "'", '(', ')', '[', ']', '{', '}', '<', '>', '/', '\\', '|', '@', '#', '$', '%', '^', '&', '*', '+', '=', '-', '_', '~', '`']));
 
-  // Helper function to create a cell respecting the tool toggles for text tool
-  const createTextCellWithToggles = useCallback((x: number, y: number, newChar: string): { char: string, color: string, bgColor: string } => {
-    const existingCell = getCell(x, y);
+  // Helper function to create a cell with all attributes for text tool
+  const createTextCellWithAllAttributes = useCallback((newChar: string): { char: string, color: string, bgColor: string } => {
+    // Only apply color data if the character is not just a space
+    const shouldApplyColors = newChar !== ' ';
     
     return {
-      char: toolAffectsChar ? newChar : (existingCell?.char || ' '),
-      color: toolAffectsColor ? selectedColor : (existingCell?.color || '#FFFFFF'),
-      bgColor: toolAffectsBgColor ? selectedBgColor : (existingCell?.bgColor || 'transparent')
+      char: newChar,
+      color: shouldApplyColors ? selectedColor : '#FFFFFF',
+      bgColor: shouldApplyColors ? selectedBgColor : 'transparent'
     };
-  }, [toolAffectsChar, toolAffectsColor, toolAffectsBgColor, selectedColor, selectedBgColor, getCell]);
+  }, [selectedColor, selectedBgColor]);
 
   // Cursor blink animation
   useEffect(() => {
@@ -113,7 +114,7 @@ export const useTextTool = () => {
     }
 
     // Insert character using selected colors
-    const newCell = createTextCellWithToggles(x, y, char);
+    const newCell = createTextCellWithAllAttributes(char);
     setCell(x, y, newCell);
 
     // Add to text buffer for undo batching
@@ -126,7 +127,7 @@ export const useTextTool = () => {
       resetCursorBlink();
     }
     // If at right edge, don't move cursor (content extends beyond canvas)
-  }, [textToolState.cursorPosition, textToolState.textBuffer, isWordBoundary, commitCurrentWord, setCell, setTextBuffer, width, setCursorPosition, resetCursorBlink, createTextCellWithToggles]);
+  }, [textToolState.cursorPosition, textToolState.textBuffer, isWordBoundary, commitCurrentWord, setCell, setTextBuffer, width, setCursorPosition, resetCursorBlink, createTextCellWithAllAttributes]);
 
   // Handle Enter key - move to next line at line start
   const handleEnter = useCallback(() => {
@@ -172,7 +173,7 @@ export const useTextTool = () => {
     }
 
     // Clear the cell
-    const newCell = createTextCellWithToggles(targetX, targetY, ' ');
+    const newCell = createTextCellWithAllAttributes(' ');
     setCell(targetX, targetY, newCell);
 
     // Move cursor to deleted position
@@ -182,7 +183,7 @@ export const useTextTool = () => {
     // Update text buffer (remove last character)
     const newBuffer = textToolState.textBuffer.slice(0, -1);
     setTextBuffer(newBuffer);
-  }, [textToolState.cursorPosition, textToolState.textBuffer, getCell, isWordBoundary, commitCurrentWord, setCell, setCursorPosition, resetCursorBlink, setTextBuffer, createTextCellWithToggles]);
+  }, [textToolState.cursorPosition, textToolState.textBuffer, getCell, isWordBoundary, commitCurrentWord, setCell, setCursorPosition, resetCursorBlink, setTextBuffer, createTextCellWithAllAttributes]);
 
   // Handle clipboard paste
   const handlePaste = useCallback(async () => {
@@ -211,7 +212,7 @@ export const useTextTool = () => {
         } else {
           // Insert character if within bounds
           if (currentX < width && currentY < height) {
-            const newCell = createTextCellWithToggles(currentX, currentY, char);
+            const newCell = createTextCellWithAllAttributes(char);
             setCell(currentX, currentY, newCell);
             currentX++;
           }
@@ -232,7 +233,7 @@ export const useTextTool = () => {
     } catch (error) {
       console.error('Failed to read clipboard:', error);
     }
-  }, [textToolState.cursorPosition, textToolState.lineStartX, width, height, commitCurrentWord, setCell, setCursorPosition, resetCursorBlink, pushCanvasHistory, cells, currentFrameIndex, createTextCellWithToggles]);
+  }, [textToolState.cursorPosition, textToolState.lineStartX, width, height, commitCurrentWord, setCell, setCursorPosition, resetCursorBlink, pushCanvasHistory, cells, currentFrameIndex, createTextCellWithAllAttributes]);
 
   // Click to place cursor
   const handleTextToolClick = useCallback((x: number, y: number) => {

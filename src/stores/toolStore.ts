@@ -258,13 +258,17 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     
     const updates: Partial<ToolStoreState> = {};
     
+    // Only pick character if toggle is enabled
     if (eyedropperPicksChar) {
       updates.selectedChar = char;
     }
-    if (eyedropperPicksColor) {
+    
+    // Only pick color data if the cell has a character (not just a space) and toggle is enabled
+    const hasChar = char !== ' ';
+    if (eyedropperPicksColor && hasChar) {
       updates.selectedColor = color;
     }
-    if (eyedropperPicksBgColor) {
+    if (eyedropperPicksBgColor && hasChar) {
       updates.selectedBgColor = bgColor;
     }
     

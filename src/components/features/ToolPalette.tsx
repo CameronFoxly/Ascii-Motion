@@ -217,7 +217,7 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                   )}
                   
                   {/* Tool behavior toggles for drawing tools */}
-                  {(['pencil', 'eraser', 'paintbucket', 'rectangle', 'ellipse', 'text'] as Tool[]).includes(activeTool) && (
+                  {(['pencil', 'paintbucket'] as Tool[]).includes(activeTool) && (
                     <>
                       <div className="border-t border-border/30 my-2"></div>
                       <div className="space-y-2">
