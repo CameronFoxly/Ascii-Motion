@@ -119,7 +119,6 @@ export const CanvasSettings: React.FC = () => {
       clearTimeout(colorPickerTimeoutRef.current);
     }
     setShowColorPicker(true);
-    setColorPickerAnimating(true);
     setColorPickerAnimationClass('dropdown-enter');
   };
 
@@ -129,9 +128,8 @@ export const CanvasSettings: React.FC = () => {
     setColorPickerAnimationClass('dropdown-exit');
     colorPickerTimeoutRef.current = setTimeout(() => {
       setShowColorPicker(false);
-      setColorPickerAnimating(false);
       setColorPickerAnimationClass('');
-    }, 200); // Match animation duration
+    }, 100); // Match faster exit animation duration
   };
 
   // Animated show/hide functions for typography picker
@@ -140,7 +138,6 @@ export const CanvasSettings: React.FC = () => {
       clearTimeout(typographyPickerTimeoutRef.current);
     }
     setShowTypographyPicker(true);
-    setTypographyPickerAnimating(true);
     setTypographyPickerAnimationClass('dropdown-enter');
   };
 
@@ -150,9 +147,8 @@ export const CanvasSettings: React.FC = () => {
     setTypographyPickerAnimationClass('dropdown-exit');
     typographyPickerTimeoutRef.current = setTimeout(() => {
       setShowTypographyPicker(false);
-      setTypographyPickerAnimating(false);
       setTypographyPickerAnimationClass('');
-    }, 200); // Match animation duration
+    }, 100); // Match faster exit animation duration
   };
 
   const handleColorChange = (color: string) => {

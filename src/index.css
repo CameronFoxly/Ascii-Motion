@@ -132,7 +132,7 @@
   direction: ltr;
 }
 
-/* Collapsible animations */
+/* Collapsible animations - faster exit, standard entrance */
 @layer components {
   .collapsible-content {
     overflow: hidden;
@@ -140,7 +140,7 @@
   }
   
   .collapsible-content[data-state="closed"] {
-    animation: collapsible-up 200ms ease-out;
+    animation: collapsible-up 100ms ease-out;
   }
   
   .collapsible-content[data-state="open"] {
@@ -154,7 +154,7 @@
   }
   
   .collapsible-content-up[data-state="closed"] {
-    animation: collapsible-up-reverse 200ms ease-out;
+    animation: collapsible-up-reverse 100ms ease-out;
   }
   
   .collapsible-content-up[data-state="open"] {
@@ -210,7 +210,7 @@
   }
 }
 
-/* Dropdown menu animations - matching collapsible panel timing */
+/* Dropdown menu animations - faster exit, standard entrance */
 @keyframes dropdown-fade-in {
   from {
     opacity: 0;
@@ -238,7 +238,7 @@
 }
 
 .dropdown-exit {
-  animation: dropdown-fade-out 200ms ease-out;
+  animation: dropdown-fade-out 100ms ease-out;
 }
 
 /* Custom eyedropper cursor */
