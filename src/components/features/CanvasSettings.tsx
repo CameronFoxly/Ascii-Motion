@@ -30,10 +30,14 @@ export const CanvasSettings: React.FC = () => {
 
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showTypographyPicker, setShowTypographyPicker] = useState(false);
+  const [colorPickerAnimationClass, setColorPickerAnimationClass] = useState('');
+  const [typographyPickerAnimationClass, setTypographyPickerAnimationClass] = useState('');
   const [tempColor, setTempColor] = useState(canvasBackgroundColor);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const colorPickerRef = useRef<HTMLDivElement>(null);
   const typographyPickerRef = useRef<HTMLDivElement>(null);
+  const colorPickerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typographyPickerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Calculate dropdown position
   const calculatePosition = (buttonRef: HTMLDivElement | null) => {
@@ -64,7 +68,7 @@ export const CanvasSettings: React.FC = () => {
         // Also check if click is not on the portal dropdown
         const colorDropdown = document.getElementById('color-dropdown');
         if (!colorDropdown || !colorDropdown.contains(target)) {
-          setShowColorPicker(false);
+          closeColorPicker();
         }
       }
       
@@ -75,7 +79,7 @@ export const CanvasSettings: React.FC = () => {
         // Also check if click is not on the portal dropdown
         const typographyDropdown = document.getElementById('typography-dropdown');
         if (!typographyDropdown || !typographyDropdown.contains(target)) {
-          setShowTypographyPicker(false);
+          closeTypographyPicker();
         }
       }
     };
@@ -89,13 +93,67 @@ export const CanvasSettings: React.FC = () => {
   // Reset dropdown states when layout might be changing (e.g., window resize)
   useEffect(() => {
     const handleLayoutChange = () => {
-      setShowColorPicker(false);
-      setShowTypographyPicker(false);
+      closeColorPicker();
+      closeTypographyPicker();
     };
 
     window.addEventListener('resize', handleLayoutChange);
     return () => window.removeEventListener('resize', handleLayoutChange);
   }, []);
+
+  // Clean up timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (colorPickerTimeoutRef.current) {
+        clearTimeout(colorPickerTimeoutRef.current);
+      }
+      if (typographyPickerTimeoutRef.current) {
+        clearTimeout(typographyPickerTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Animated show/hide functions for color picker
+  const showColorPickerAnimated = () => {
+    if (colorPickerTimeoutRef.current) {
+      clearTimeout(colorPickerTimeoutRef.current);
+    }
+    setShowColorPicker(true);
+    setColorPickerAnimating(true);
+    setColorPickerAnimationClass('dropdown-enter');
+  };
+
+  const closeColorPicker = () => {
+    if (!showColorPicker) return;
+    
+    setColorPickerAnimationClass('dropdown-exit');
+    colorPickerTimeoutRef.current = setTimeout(() => {
+      setShowColorPicker(false);
+      setColorPickerAnimating(false);
+      setColorPickerAnimationClass('');
+    }, 200); // Match animation duration
+  };
+
+  // Animated show/hide functions for typography picker
+  const showTypographyPickerAnimated = () => {
+    if (typographyPickerTimeoutRef.current) {
+      clearTimeout(typographyPickerTimeoutRef.current);
+    }
+    setShowTypographyPicker(true);
+    setTypographyPickerAnimating(true);
+    setTypographyPickerAnimationClass('dropdown-enter');
+  };
+
+  const closeTypographyPicker = () => {
+    if (!showTypographyPicker) return;
+    
+    setTypographyPickerAnimationClass('dropdown-exit');
+    typographyPickerTimeoutRef.current = setTimeout(() => {
+      setShowTypographyPicker(false);
+      setTypographyPickerAnimating(false);
+      setTypographyPickerAnimationClass('');
+    }, 200); // Match animation duration
+  };
 
   const handleColorChange = (color: string) => {
     setTempColor(color);
@@ -237,10 +295,14 @@ export const CanvasSettings: React.FC = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      const position = calculatePosition(colorPickerRef.current);
-                      setDropdownPosition(position);
-                      setShowColorPicker(!showColorPicker);
-                      setShowTypographyPicker(false);
+                      if (showColorPicker) {
+                        closeColorPicker();
+                      } else {
+                        const position = calculatePosition(colorPickerRef.current);
+                        setDropdownPosition(position);
+                        closeTypographyPicker(); // Close other dropdown first
+                        showColorPickerAnimated();
+                      }
                     }}
                     className="h-6 w-6 p-0 relative"
                     style={{ 
@@ -276,10 +338,14 @@ export const CanvasSettings: React.FC = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      const position = calculatePosition(typographyPickerRef.current);
-                      setDropdownPosition(position);
-                      setShowTypographyPicker(!showTypographyPicker);
-                      setShowColorPicker(false);
+                      if (showTypographyPicker) {
+                        closeTypographyPicker();
+                      } else {
+                        const position = calculatePosition(typographyPickerRef.current);
+                        setDropdownPosition(position);
+                        closeColorPicker(); // Close other dropdown first
+                        showTypographyPickerAnimated();
+                      }
                     }}
                     className="h-6 w-6 p-0"
                     aria-label="Typography settings"
@@ -304,7 +370,7 @@ export const CanvasSettings: React.FC = () => {
         {showTypographyPicker && dropdownPosition.top > 0 && createPortal(
           <div 
             id="typography-dropdown"
-            className="fixed z-[99999] p-3 bg-popover border border-border rounded-md shadow-lg"
+            className={`fixed z-[99999] p-3 bg-popover border border-border rounded-md shadow-lg ${typographyPickerAnimationClass}`}
             style={{
               top: `${dropdownPosition.top}px`,
               left: `${dropdownPosition.left}px`,
@@ -403,7 +469,7 @@ export const CanvasSettings: React.FC = () => {
         {showColorPicker && dropdownPosition.top > 0 && createPortal(
           <div 
             id="color-dropdown"
-            className="fixed z-[99999] p-3 bg-popover border border-border rounded-md shadow-lg"
+            className={`fixed z-[99999] p-3 bg-popover border border-border rounded-md shadow-lg ${colorPickerAnimationClass}`}
             style={{
               top: `${dropdownPosition.top}px`,
               left: `${dropdownPosition.left}px`,
