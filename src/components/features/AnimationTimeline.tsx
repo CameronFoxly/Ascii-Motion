@@ -74,11 +74,26 @@ export const AnimationTimeline: React.FC = () => {
     const x = event.clientX;
     const centerX = rect.left + rect.width / 2;
     
+    let targetIndex: number;
+    
     // If dragging to the right half, show indicator after this frame
     if (x > centerX) {
-      setDragOverIndex(index + 1);
+      targetIndex = index + 1;
     } else {
-      setDragOverIndex(index);
+      targetIndex = index;
+    }
+    
+    // Don't show drop indicator if it would result in no actual reordering
+    if (
+      (draggedIndex < index && targetIndex === draggedIndex + 1) || // Moving right: skip position immediately after original
+      (draggedIndex > index && targetIndex === draggedIndex)        // Moving left: skip original position
+    ) {
+      return;
+    }
+    
+    // Only update if the target index is actually different
+    if (targetIndex !== dragOverIndex) {
+      setDragOverIndex(targetIndex);
     }
   }, [draggedIndex]);
 
@@ -86,20 +101,27 @@ export const AnimationTimeline: React.FC = () => {
   const handleDragEnter = useCallback((event: React.DragEvent, index: number) => {
     event.preventDefault();
     if (draggedIndex !== null && draggedIndex !== index) {
-      setDragOverIndex(index);
+      // Clear any existing drag over index first
+      setDragOverIndex(null);
+      
+      let targetIndex = index;
+      
+      // Don't show drop indicator if it would result in no actual reordering
+      if (
+        (draggedIndex < index && targetIndex === draggedIndex + 1) || // Moving right: skip position immediately after original
+        (draggedIndex > index && targetIndex === draggedIndex)        // Moving left: skip original position
+      ) {
+        return;
+      }
+      
+      setDragOverIndex(targetIndex);
     }
   }, [draggedIndex]);
 
-  // Handle drag leave
+  // Handle drag leave - simplified to do nothing, let dragEnter handle clearing
   const handleDragLeave = useCallback((event: React.DragEvent) => {
-    // Only clear if we're leaving the container, not just moving between frames
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = event.clientX;
-    const y = event.clientY;
-    
-    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
-      setDragOverIndex(null);
-    }
+    event.preventDefault();
+    // Don't clear dragOverIndex here - let dragEnter handle it
   }, []);
 
   // Handle drop
@@ -286,7 +308,9 @@ export const AnimationTimeline: React.FC = () => {
                 <React.Fragment key={frame.id}>
                   {/* Drop indicator line */}
                   {dragOverIndex === index && draggedIndex !== null && draggedIndex !== index && (
-                    <div className="w-0.5 bg-border border-border/50 rounded-full flex-shrink-0 self-stretch" />
+                    <div className="flex items-center justify-center mx-2 flex-shrink-0 self-stretch transition-all duration-150 ease-out">
+                      <div className="w-1 bg-primary shadow-lg rounded-full flex-shrink-0 self-stretch animate-pulse" />
+                    </div>
                   )}
                   
                   <FrameThumbnail
@@ -314,7 +338,9 @@ export const AnimationTimeline: React.FC = () => {
                   
                   {/* Drop indicator at the end */}
                   {index === frames.length - 1 && dragOverIndex === frames.length && draggedIndex !== null && (
-                    <div className="w-0.5 bg-border border-border/50 rounded-full flex-shrink-0 self-stretch" />
+                    <div className="flex items-center justify-center mx-2 flex-shrink-0 self-stretch transition-all duration-150 ease-out">
+                      <div className="w-1 bg-primary shadow-lg rounded-full flex-shrink-0 self-stretch animate-pulse" />
+                    </div>
                   )}
                 </React.Fragment>
               ))}

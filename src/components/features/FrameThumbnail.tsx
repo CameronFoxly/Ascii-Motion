@@ -180,7 +180,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
   return (
     <Card
       className={`
-        relative flex-shrink-0 w-36 h-36 max-w-36 max-h-36 p-2 cursor-pointer transition-all select-none overflow-hidden
+        relative flex-shrink-0 w-36 h-36 max-w-36 max-h-36 p-2 cursor-pointer transition-all duration-150 ease-out select-none overflow-hidden
         ${isSelected 
           ? 'border-white bg-white/5' 
           : isOnionSkinPrevious || isOnionSkinNext
