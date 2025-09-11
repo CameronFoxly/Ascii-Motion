@@ -308,8 +308,21 @@ export const AnimationTimeline: React.FC = () => {
                 <React.Fragment key={frame.id}>
                   {/* Drop indicator line */}
                   {dragOverIndex === index && draggedIndex !== null && draggedIndex !== index && (
-                    <div className="flex items-center justify-center mx-2 flex-shrink-0 self-stretch transition-all duration-150 ease-out">
-                      <div className="w-1 bg-primary shadow-lg rounded-full flex-shrink-0 self-stretch animate-pulse" />
+                    <div 
+                      key={`drop-indicator-${index}`}
+                      className="flex items-center justify-center mx-2 flex-shrink-0 self-stretch transition-all duration-150 ease-out animate-in fade-in slide-in-from-left-1"
+                      style={{
+                        animationDuration: '150ms',
+                        animationFillMode: 'both'
+                      }}
+                    >
+                      <div 
+                        className="bg-primary shadow-lg rounded-full flex-shrink-0 self-stretch animate-pulse transition-all duration-150 ease-out"
+                        style={{
+                          width: '4px',
+                          animation: 'expand-width 150ms ease-out forwards, pulse 2s infinite'
+                        }}
+                      />
                     </div>
                   )}
                   
@@ -338,8 +351,21 @@ export const AnimationTimeline: React.FC = () => {
                   
                   {/* Drop indicator at the end */}
                   {index === frames.length - 1 && dragOverIndex === frames.length && draggedIndex !== null && (
-                    <div className="flex items-center justify-center mx-2 flex-shrink-0 self-stretch transition-all duration-150 ease-out">
-                      <div className="w-1 bg-primary shadow-lg rounded-full flex-shrink-0 self-stretch animate-pulse" />
+                    <div 
+                      key={`drop-indicator-end`}
+                      className="flex items-center justify-center mx-2 flex-shrink-0 self-stretch transition-all duration-150 ease-out animate-in fade-in slide-in-from-right-1"
+                      style={{
+                        animationDuration: '150ms',
+                        animationFillMode: 'both'
+                      }}
+                    >
+                      <div 
+                        className="bg-primary shadow-lg rounded-full flex-shrink-0 self-stretch animate-pulse transition-all duration-150 ease-out"
+                        style={{
+                          width: '4px',
+                          animation: 'expand-width 150ms ease-out forwards, pulse 2s infinite'
+                        }}
+                      />
                     </div>
                   )}
                 </React.Fragment>
