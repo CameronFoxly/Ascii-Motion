@@ -101,7 +101,7 @@ interface CanvasProviderProps {
 
 export const CanvasProvider: React.FC<CanvasProviderProps> = ({ 
   children, 
-  initialCellSize = 16 
+  initialCellSize = 18 
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   

@@ -363,7 +363,7 @@ export const CanvasSettings: React.FC = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setFontSize(16);
+                    setFontSize(18);
                     setCharacterSpacing(1.0);
                     setLineSpacing(1.0);
                   }}
