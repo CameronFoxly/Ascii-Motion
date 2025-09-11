@@ -11,7 +11,7 @@ import type { FontMetrics } from '../utils/fontMetrics';
 interface CanvasState {
   // Canvas display settings
   cellSize: number; // Base font size for character height
-  zoom: number; // 0.25 to 4.0 (25% to 400%)
+  zoom: number; // 0.2 to 4.0 (20% to 400% in 20% increments)
   panOffset: { x: number; y: number };
   
   // Typography settings

@@ -67,6 +67,13 @@ export const isToolHotkey = (key: string): boolean => {
 };
 
 /**
+ * Check if a key is a zoom hotkey
+ */
+export const isZoomHotkey = (key: string): boolean => {
+  return key === '+' || key === '=' || key === '-';
+};
+
+/**
  * Get formatted tooltip text including hotkey
  */
 export const getToolTooltipText = (tool: Tool, baseDescription: string): string => {

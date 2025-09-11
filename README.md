@@ -8,7 +8,7 @@ A modern web application for creating and animating ASCII art with professional 
 ## 🎨 Features
 
 - **Grid-based ASCII Art Editor** - Intuitive character-by-character editing with crisp text rendering
-- **Zoom & Navigation** - Zoom controls (25%-400%) with pan and reset functionality
+- **Zoom & Navigation** - Zoom controls (20%-400%) with pan and reset functionality, hotkeys + and - for zoom
 - **Professional Animation Timeline** - Individual frame durations, no duplicate frames needed
 - **Onion Skinning** - See previous/next frames with blue/red tinting for smooth animation workflow
 - **Comprehensive Tool Set** - Pencil, eraser, paintbucket, selection, rectangle, ellipse, eyedropper, hand tool
@@ -74,12 +74,12 @@ npm run build
 - [x] UI components and styling (Tailwind CSS + shadcn/ui)
 - [x] Canvas grid component with full rendering
 - [x] Complete drawing tool suite (pencil, eraser, paint bucket, rectangle, ellipse, selection, eyedropper)
-- [x] Zoom and navigation system (25%-400% zoom, pan controls)
+- [x] Zoom and navigation system (20%-400% zoom, pan controls, +/- hotkeys)
 - [x] Character palette interface
 - [x] Color picker
 - [x] Selection and advanced editing (copy/paste with visual preview)
 - [x] Undo/redo functionality
-- [x] Keyboard shortcuts (Cmd/Ctrl+C, V, Z, Shift+Z, Alt for temporary eyedropper)
+- [x] Keyboard shortcuts (Cmd/Ctrl+C, V, Z, Shift+Z, Alt for temporary eyedropper, +/- for zoom)
 - [x] **High-DPI canvas rendering** - Crisp text quality on all displays
 - [x] **Performance optimizations** - 60fps rendering with batched updates
 - [x] **Gap-free drawing tools** - Smooth line interpolation for professional drawing

@@ -4,6 +4,7 @@ import { useToolStore } from '../stores/toolStore';
 import { useAnimationStore } from '../stores/animationStore';
 import { useCanvasContext } from '../contexts/CanvasContext';
 import { getToolForHotkey } from '../constants/hotkeys';
+import { useZoomControls } from '../components/features/ZoomControls';
 import type { AnyHistoryAction, CanvasHistoryAction } from '../types';
 
 /**
@@ -108,6 +109,7 @@ export const useKeyboardShortcuts = () => {
   const { cells, setCanvasData, width, height } = useCanvasStore();
   const { startPasteMode, commitPaste, pasteMode } = useCanvasContext();
   const { toggleOnionSkin, currentFrameIndex } = useAnimationStore();
+  const { zoomIn, zoomOut } = useZoomControls();
 
   // Helper function to handle different types of history actions
   const handleHistoryAction = useCallback((action: AnyHistoryAction, isRedo: boolean) => {
@@ -234,6 +236,18 @@ export const useKeyboardShortcuts = () => {
     // Handle tool hotkeys (single key presses for tool switching)
     // Only process if no modifier keys are pressed and key is a valid tool hotkey
     if (!event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
+      // Handle zoom hotkeys
+      if (event.key === '+' || event.key === '=') {
+        event.preventDefault();
+        zoomIn();
+        return;
+      }
+      if (event.key === '-') {
+        event.preventDefault();
+        zoomOut();
+        return;
+      }
+      
       const targetTool = getToolForHotkey(event.key);
       if (targetTool) {
         event.preventDefault();
@@ -414,7 +428,9 @@ export const useKeyboardShortcuts = () => {
     textToolState,
     setActiveTool,
     toggleOnionSkin,
-    currentFrameIndex
+    currentFrameIndex,
+    zoomIn,
+    zoomOut
   ]);
 
   useEffect(() => {

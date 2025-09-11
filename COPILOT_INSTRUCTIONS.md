@@ -435,6 +435,13 @@ export const TOOL_HOTKEYS: ToolHotkey[] = [
   // Add new tools here with unique hotkeys
 ];
 
+// ✅ Zoom Hotkey System Pattern (Sept 10, 2025)
+// Canvas zoom controls with keyboard shortcuts for 20% increments
+// - Plus (+) or equals (=): Zoom in (20% increments: 100% → 120% → 140% etc)
+// - Minus (-): Zoom out (20% increments: 140% → 120% → 100% etc)
+// - Range: 20% to 400% zoom level
+// - Integrated with ZoomControls component via useZoomControls hook
+
 // ✅ Typography System Requirements (Sept 6, 2025)
 // MANDATORY: All new tools and features must respect typography settings
 
