@@ -9,6 +9,9 @@ interface AnimationState extends Animation {
   // Deletion state for frame removal
   isDeletingFrame: boolean;
   
+  // Timeline zoom state
+  timelineZoom: number; // 0.5 to 1.0 (50% to 100%)
+  
   // Onion skin state
   onionSkin: {
     enabled: boolean;
@@ -31,6 +34,9 @@ interface AnimationState extends Animation {
   
   // Deletion controls  
   setDeletingFrame: (isDeleting: boolean) => void;
+  
+  // Timeline zoom actions
+  setTimelineZoom: (zoom: number) => void;
   
   // Onion skin actions
   toggleOnionSkin: () => void;
@@ -80,6 +86,9 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   looping: false,
   isDraggingFrame: false,
   isDeletingFrame: false,
+  
+  // Timeline zoom initial state (always reset to 100% on load)
+  timelineZoom: 1.0,
 
   // Onion skin initial state
   onionSkin: {
@@ -319,6 +328,12 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   setFrameRate: (frameRate: number) => set({ frameRate }),
   setDraggingFrame: (isDraggingFrame: boolean) => set({ isDraggingFrame }),
   setDeletingFrame: (isDeletingFrame: boolean) => set({ isDeletingFrame }),
+  
+  // Timeline zoom control (60% to 100% range)
+  setTimelineZoom: (zoom: number) => {
+    const clampedZoom = Math.max(0.60, Math.min(1.0, zoom));
+    set({ timelineZoom: clampedZoom });
+  },
 
   // Navigation
   nextFrame: () => {

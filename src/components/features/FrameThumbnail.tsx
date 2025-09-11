@@ -12,6 +12,7 @@ interface FrameThumbnailProps {
   isSelected: boolean;
   canvasWidth: number;
   canvasHeight: number;
+  scaleZoom?: number; // Timeline zoom scaling (0.5 to 1.0)
   onSelect: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
@@ -34,6 +35,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
   isSelected,
   canvasWidth,
   canvasHeight,
+  scaleZoom = 1.0,
   onSelect,
   onDuplicate,
   onDelete,
@@ -51,6 +53,36 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
   // Get canvas background color from store
   const { canvasBackgroundColor } = useCanvasStore();
   
+  // Calculate scaled dimensions based on timeline zoom
+  const baseCardSize = 144; // w-36 = 144px
+  const scaledCardSize = Math.round(baseCardSize * scaleZoom);
+  
+
+  
+  // Scale thumbnail proportionally but ensure it fits in the card
+  const baseThumbnailWidth = 120;
+  const baseThumbnailHeight = 60;
+  const maxThumbnailWidth = scaledCardSize - 16; // account for padding
+  
+  // Scale thumbnail to fit within the available space
+  let scaledThumbnailWidth = Math.round(baseThumbnailWidth * scaleZoom);
+  let scaledThumbnailHeight = Math.round(baseThumbnailHeight * scaleZoom);
+  
+  // Ensure thumbnail fits within the card
+  if (scaledThumbnailWidth > maxThumbnailWidth) {
+    const scale = maxThumbnailWidth / scaledThumbnailWidth;
+    scaledThumbnailWidth = maxThumbnailWidth;
+    scaledThumbnailHeight = Math.round(scaledThumbnailHeight * scale);
+  }
+  
+  // Ensure minimum thumbnail size for readability
+  if (scaledThumbnailHeight < 30) {
+    scaledThumbnailHeight = 30; 
+    scaledThumbnailWidth = Math.round(scaledThumbnailHeight * (baseThumbnailWidth / baseThumbnailHeight));
+  }
+  
+
+  
   // Update local input when frame duration changes externally
   React.useEffect(() => {
     if (!isEditingDuration) {
@@ -64,9 +96,9 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
-    // Set thumbnail dimensions (keep it small but readable)
-    const thumbnailWidth = 120;
-    const thumbnailHeight = 60;
+    // Set thumbnail dimensions (scaled based on timeline zoom)
+    const thumbnailWidth = scaledThumbnailWidth;
+    const thumbnailHeight = scaledThumbnailHeight;
     canvas.width = thumbnailWidth;
     canvas.height = thumbnailHeight;
 
@@ -124,7 +156,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
     }
 
     return canvas.toDataURL();
-  }, [frame.data, canvasWidth, canvasHeight, canvasBackgroundColor]);
+  }, [frame.data, canvasWidth, canvasHeight, canvasBackgroundColor, scaledThumbnailWidth, scaledThumbnailHeight]);
 
   // Handle duration input change (allow free typing)
   const handleDurationInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -180,7 +212,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
   return (
     <Card
       className={`
-        relative flex-shrink-0 w-36 h-36 max-w-36 max-h-36 p-2 cursor-pointer transition-all duration-150 ease-out select-none overflow-hidden
+        relative flex-shrink-0 cursor-pointer transition-all duration-150 ease-out select-none overflow-hidden flex flex-col
         ${isSelected 
           ? 'border-white bg-white/5' 
           : isOnionSkinPrevious || isOnionSkinNext
@@ -192,6 +224,11 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
       onClick={onSelect}
       {...dragHandleProps}
       style={{
+        width: `${scaledCardSize}px`,
+        height: `${scaledCardSize}px`,
+        maxWidth: `${scaledCardSize}px`,
+        maxHeight: `${scaledCardSize}px`,
+        padding: '8px', // Fixed padding
         userSelect: 'none',
         WebkitUserSelect: 'none',
         MozUserSelect: 'none',
@@ -199,8 +236,8 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
         ...dragHandleProps?.style
       }}
     >
-      {/* Frame number and controls */}
-      <div className="flex items-center justify-between mb-1.5">
+      {/* Frame number and controls - pinned to top */}
+      <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
         <div className="flex items-center gap-1">
           <Badge variant="outline" className="text-xs px-1 py-0">
             {frameIndex + 1}
@@ -250,8 +287,8 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
         </div>
       </div>
 
-      {/* Frame preview */}
-      <div className="flex-1 mb-1 overflow-hidden">
+      {/* Frame preview - flexible space between header and duration */}
+      <div className="flex-1 mb-1 overflow-hidden min-h-0">
         <div className="bg-muted/30 p-1 rounded border h-full flex items-center justify-center">
           {thumbnailCanvas ? (
             <img 
@@ -268,8 +305,8 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
         </div>
       </div>
 
-      {/* Duration control */}
-      <div className="flex items-center gap-1">
+      {/* Duration control - pinned to bottom with fixed height */}
+      <div className="flex items-center gap-1 flex-shrink-0" style={{ height: '24px' }}>
         <input
           type="number"
           value={durationInput}

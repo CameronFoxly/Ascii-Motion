@@ -8,6 +8,7 @@ import { FrameThumbnail } from './FrameThumbnail';
 import { PlaybackControls } from './PlaybackControls';
 import { FrameControls } from './FrameControls';
 import { OnionSkinControls } from './OnionSkinControls';
+import { TimelineZoomControl } from './TimelineZoomControl';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { MAX_LIMITS } from '../../constants';
 
@@ -23,6 +24,7 @@ export const AnimationTimeline: React.FC = () => {
     isPlaying,
     looping,
     onionSkin,
+    timelineZoom,
     setLooping,
     setDraggingFrame
   } = useAnimationStore();
@@ -294,7 +296,10 @@ export const AnimationTimeline: React.FC = () => {
 
         {/* Frame Timeline */}
         <div className="space-y-1">
-          <h4 className="text-xs font-medium text-muted-foreground">Frames</h4>
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-medium text-muted-foreground">Frames</h4>
+            <TimelineZoomControl />
+          </div>
           <div className="w-full overflow-x-auto">
             <div 
               className="flex gap-1" 
@@ -332,6 +337,7 @@ export const AnimationTimeline: React.FC = () => {
                     isSelected={index === currentFrameIndex}
                     canvasWidth={canvasWidth}
                     canvasHeight={canvasHeight}
+                    scaleZoom={timelineZoom}
                     onSelect={() => handleFrameSelect(index)}
                     onDuplicate={() => handleFrameDuplicate(index)}
                     onDelete={() => handleFrameDelete(index)}
