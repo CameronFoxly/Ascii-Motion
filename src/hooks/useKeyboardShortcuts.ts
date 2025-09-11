@@ -2,8 +2,6 @@ import { useEffect, useCallback } from 'react';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useToolStore } from '../stores/toolStore';
 import { useAnimationStore } from '../stores/animationStore';
-import { useAnimationHistory } from './useAnimationHistory';
-import { useFrameNavigation } from './useFrameNavigation';
 import { useCanvasContext } from '../contexts/CanvasContext';
 import { getToolForHotkey } from '../constants/hotkeys';
 import type { AnyHistoryAction, CanvasHistoryAction } from '../types';
@@ -109,24 +107,7 @@ const processHistoryAction = (
 export const useKeyboardShortcuts = () => {
   const { cells, setCanvasData, width, height } = useCanvasStore();
   const { startPasteMode, commitPaste, pasteMode } = useCanvasContext();
-  const { 
-    toggleOnionSkin, 
-    currentFrameIndex, 
-    frames 
-  } = useAnimationStore();
-  
-  // Use history-enabled animation actions (same as the UI buttons)
-  const {
-    addFrame,
-    duplicateFrame,
-    removeFrame
-  } = useAnimationHistory();
-  
-  // Use frame navigation (same as the UI buttons)
-  const {
-    navigateNext,
-    navigatePrevious
-  } = useFrameNavigation();
+  const { toggleOnionSkin, currentFrameIndex } = useAnimationStore();
 
   // Helper function to handle different types of history actions
   const handleHistoryAction = useCallback((action: AnyHistoryAction, isRedo: boolean) => {
@@ -184,7 +165,7 @@ export const useKeyboardShortcuts = () => {
     }
 
     // Handle Delete/Backspace key (without modifier) - Clear selected cells
-    if ((event.key === 'Delete' || event.key === 'Backspace') && !event.metaKey && !event.ctrlKey) {
+    if (event.key === 'Delete' || event.key === 'Backspace') {
       // Check if any selection is active and clear the selected cells
       if (magicWandSelection.active && magicWandSelection.selectedCells.size > 0) {
         event.preventDefault();
@@ -246,20 +227,6 @@ export const useKeyboardShortcuts = () => {
         
         // Clear the selection after deleting content
         clearSelection();
-        return;
-      }
-    }
-
-    // Handle frame navigation (comma/period for previous/next frame)
-    // Only process if no modifier keys are pressed
-    if (!event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
-      if (event.key === ',' || event.key === '.') {
-        event.preventDefault();
-        if (event.key === ',') {
-          navigatePrevious();
-        } else {
-          navigateNext();
-        }
         return;
       }
     }
@@ -414,28 +381,6 @@ export const useKeyboardShortcuts = () => {
           }
         }
         break;
-        
-      case 'n':
-        // Ctrl+N = New frame
-        event.preventDefault();
-        addFrame(currentFrameIndex + 1);
-        break;
-        
-      case 'd':
-        // Ctrl+D = Duplicate current frame
-        event.preventDefault();
-        duplicateFrame(currentFrameIndex);
-        break;
-        
-      case 'delete':
-      case 'backspace':
-        // Ctrl+Delete or Ctrl+Backspace = Delete current frame (only if more than one frame exists)
-        // Support both Delete key (near numpad) and Backspace key (above Enter)
-        if (frames.length > 1) {
-          event.preventDefault();
-          removeFrame(currentFrameIndex);
-        }
-        break;
     }
   }, [
     cells, 
@@ -469,13 +414,7 @@ export const useKeyboardShortcuts = () => {
     textToolState,
     setActiveTool,
     toggleOnionSkin,
-    currentFrameIndex,
-    addFrame,
-    duplicateFrame,
-    removeFrame,
-    frames,
-    navigateNext,
-    navigatePrevious
+    currentFrameIndex
   ]);
 
   useEffect(() => {

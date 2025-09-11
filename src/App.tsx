@@ -52,7 +52,8 @@ function App() {
             {/* Left Panel - matches canvas height */}
             <div className={cn(
               "absolute top-0 left-0 z-10 transition-all duration-300 ease-out",
-              layout.bottomPanelOpen ? "bottom-[var(--bottom-panel-height,20rem)]" : "bottom-4" // Use dynamic height or fallback
+              layout.bottomPanelOpen ? "bottom-[var(--bottom-panel-height,20rem)]" : "bottom-4", // Use dynamic height or fallback
+              !layout.leftPanelOpen && "pointer-events-none" // Allow mouse events to pass through when collapsed
             )}>
               <CollapsiblePanel
                 isOpen={layout.leftPanelOpen}
@@ -74,7 +75,7 @@ function App() {
               
               {/* Left Panel Toggle Button - centered on canvas area */}
               <div className={cn(
-                "absolute top-1/2 -translate-y-1/2 z-20 transition-all duration-300 ease-out",
+                "absolute top-1/2 -translate-y-1/2 z-20 transition-all duration-300 ease-out pointer-events-auto",
                 layout.leftPanelOpen ? "left-44" : "left-0"
               )}>
                 <PanelToggleButton
@@ -88,7 +89,8 @@ function App() {
             {/* Right Panel - matches canvas height */}
             <div className={cn(
               "absolute top-0 right-0 z-10 transition-all duration-300 ease-out",
-              layout.bottomPanelOpen ? "bottom-[var(--bottom-panel-height,20rem)]" : "bottom-4" // Use dynamic height or fallback
+              layout.bottomPanelOpen ? "bottom-[var(--bottom-panel-height,20rem)]" : "bottom-4", // Use dynamic height or fallback
+              !layout.rightPanelOpen && "pointer-events-none" // Allow mouse events to pass through when collapsed
             )}>
               <CollapsiblePanel
                 isOpen={layout.rightPanelOpen}
@@ -117,7 +119,7 @@ function App() {
               
               {/* Right Panel Toggle Button - centered on canvas area */}
               <div className={cn(
-                "absolute top-1/2 -translate-y-1/2 z-20 transition-all duration-300 ease-out",
+                "absolute top-1/2 -translate-y-1/2 z-20 transition-all duration-300 ease-out pointer-events-auto",
                 layout.rightPanelOpen ? "right-56" : "right-0"
               )}>
                 <PanelToggleButton
@@ -129,13 +131,16 @@ function App() {
             </div>
 
             {/* Bottom Panel */}
-            <div className="absolute bottom-0 left-0 right-0 z-10">
+            <div className={cn(
+              "absolute bottom-0 left-0 right-0 z-10",
+              !layout.bottomPanelOpen && "pointer-events-none" // Allow mouse events to pass through when collapsed
+            )}>
               <CollapsiblePanel
                 isOpen={layout.bottomPanelOpen}
                 side="bottom"
               >
                 {/* Bottom Panel Toggle Button - moves with the panel */}
-                <div className="absolute left-1/2 -translate-x-1/2 -top-0.5 z-20">
+                <div className="absolute left-1/2 -translate-x-1/2 -top-0.5 z-20 pointer-events-auto">
                   <PanelToggleButton
                     isOpen={layout.bottomPanelOpen}
                     onToggle={toggleBottomPanel}

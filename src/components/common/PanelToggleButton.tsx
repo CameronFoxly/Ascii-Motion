@@ -31,7 +31,7 @@ export const PanelToggleButton: React.FC<PanelToggleButtonProps> = ({
   };
 
   const getButtonClasses = () => {
-    const baseClasses = `bg-background border shadow-sm hover:bg-accent touch-manipulation ${PANEL_ANIMATION.TRANSITION}`;
+    const baseClasses = `bg-background border shadow-sm hover:bg-accent touch-manipulation pointer-events-auto ${PANEL_ANIMATION.TRANSITION}`;
     
     switch (side) {
       case 'left':

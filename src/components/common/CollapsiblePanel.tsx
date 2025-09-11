@@ -55,6 +55,7 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
           'border-r bg-muted/20 h-full',
           minWidth || 'w-44',
           isOpen ? 'translate-x-0' : '-translate-x-full',
+          isOpen && 'pointer-events-auto', // Ensure panel content can receive events when open
           className
         );
       case 'right':
@@ -63,6 +64,7 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
           'border-l bg-muted/20 h-full',
           minWidth || 'w-72',
           isOpen ? 'translate-x-0' : 'translate-x-full',
+          isOpen && 'pointer-events-auto', // Ensure panel content can receive events when open
           className
         );
       case 'bottom':
@@ -71,6 +73,7 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
           'border-t bg-background',
           // Remove fixed height, let content determine size
           isOpen ? 'translate-y-0' : 'translate-y-[calc(100%-1.1875rem)]', // Show 19px for toggle button (h-4 + spacing)
+          isOpen && 'pointer-events-auto', // Ensure panel content can receive events when open
           className
         );
       default:
