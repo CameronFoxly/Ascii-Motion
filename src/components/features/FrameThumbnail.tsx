@@ -257,11 +257,11 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
             <img 
               src={thumbnailCanvas} 
               alt={`Frame ${frameIndex} preview`}
-              className="max-w-full max-h-full object-contain rounded-sm"
+              className="max-w-full max-h-full object-contain rounded-sm pointer-events-none"
               style={{ imageRendering: 'pixelated' }}
             />
           ) : (
-            <div className="text-muted-foreground italic text-center text-xs">
+            <div className="text-muted-foreground italic text-center text-xs pointer-events-none">
               Empty
             </div>
           )}
