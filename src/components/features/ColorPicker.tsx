@@ -21,7 +21,6 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
   const { selectedColor, selectedBgColor, setSelectedColor, setSelectedBgColor } = useToolStore();
   const { 
     palettes,
-    customPalettes,
     activePaletteId,
     selectedColorId,
     getActivePalette,
@@ -35,7 +34,8 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
     moveColorLeft,
     moveColorRight,
     initialize,
-    addRecentColor
+    addRecentColor,
+    clearStorage
   } = usePaletteStore();
 
   const [activeTab, setActiveTab] = useState("text");
@@ -46,12 +46,12 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
 
-  // Initialize palette store on mount
+  // Initialize palette store on mount (ensure default palettes are loaded)
   useEffect(() => {
-    if (palettes.length === 0 && customPalettes.length === 0) {
+    if (palettes.length === 0) {
       initialize();
     }
-  }, [palettes.length, customPalettes.length, initialize]);
+  }, [palettes.length, initialize]);
 
   // Get active palette and colors
   const activePalette = getActivePalette();
@@ -91,7 +91,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
 
   // Handle drag start
   const handleDragStart = (e: React.DragEvent, colorId: string) => {
-    if (!activePalette?.isCustom) {
+    if (!activePalette) {
       e.preventDefault();
       return;
     }
@@ -101,7 +101,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
 
   // Handle drag over
   const handleDragOver = (e: React.DragEvent, targetColorId?: string) => {
-    if (!activePalette?.isCustom || !draggedColorId) return;
+    if (!activePalette || !draggedColorId) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     
@@ -120,7 +120,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
   // Handle drop
   const handleDrop = (e: React.DragEvent, targetColorId: string) => {
     e.preventDefault();
-    if (!activePalette?.isCustom || !draggedColorId || draggedColorId === targetColorId) {
+    if (!activePalette || !draggedColorId || draggedColorId === targetColorId) {
       setDraggedColorId(null);
       setDropIndicatorIndex(null);
       return;
@@ -293,7 +293,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                     )}
                     
                     <button
-                      draggable={activePalette?.isCustom}
+                      draggable={!!activePalette}
                       className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 relative ${
                         draggedColorId === color.id ? 'opacity-50 scale-95' : ''
                       } ${
@@ -302,9 +302,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                           : isColorSelected(color.value, false)
                           ? 'border-primary ring-1 ring-primary/20' 
                           : 'border-border'
-                      } ${
-                        activePalette?.isCustom ? 'cursor-move' : 'cursor-pointer'
-                      }`}
+                      } cursor-move`}
                       style={{ backgroundColor: color.value }}
                       onClick={() => {
                         // Single click sets drawing color and selects for editing
@@ -349,7 +347,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                       )}
                       
                       <button
-                        draggable={activePalette?.isCustom}
+                        draggable={!!activePalette}
                         className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 relative ${
                           draggedColorId === color.id ? 'opacity-50 scale-95' : ''
                         } ${
@@ -358,9 +356,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                             : isColorSelected(color.value, true)
                             ? 'border-primary ring-1 ring-primary/20' 
                             : 'border-border'
-                        } ${
-                          activePalette?.isCustom ? 'cursor-move' : 'cursor-pointer'
-                        }`}
+                        } cursor-move`}
                         style={{ 
                           backgroundColor: isTransparent ? '#ffffff' : color.value,
                           backgroundImage: isTransparent 
@@ -417,13 +413,13 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                   variant="outline"
                   className="h-6 w-6 p-0"
                   onClick={() => selectedColorId && moveColorLeft(activePaletteId, selectedColorId)}
-                  disabled={!selectedColorId || !activePalette?.isCustom}
+                  disabled={!selectedColorId}
                 >
                   <ChevronLeft className="h-3 w-3" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{!activePalette?.isCustom ? 'Cannot reorder preset palette' : 'Move color left'}</p>
+                <p>Move color left{!activePalette?.isCustom ? ' (will create custom copy)' : ''}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -436,20 +432,20 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                   variant="outline"
                   className="h-6 w-6 p-0"
                   onClick={() => selectedColorId && moveColorRight(activePaletteId, selectedColorId)}
-                  disabled={!selectedColorId || !activePalette?.isCustom}
+                  disabled={!selectedColorId}
                 >
                   <ChevronRight className="h-3 w-3" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{!activePalette?.isCustom ? 'Cannot reorder preset palette' : 'Move color right'}</p>
+                <p>Move color right{!activePalette?.isCustom ? ' (will create custom copy)' : ''}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
 
-        {/* Add/Remove buttons (only for custom palettes) */}
-        {activePalette?.isCustom && (
+        {/* Add/Remove buttons (available for all palettes - auto-creates custom copy) */}
+        {activePalette && (
           <div className="flex gap-0.5">
             <TooltipProvider>
               <Tooltip>
@@ -464,7 +460,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Add color</p>
+                  <p>Add color{!activePalette?.isCustom ? ' (will create custom copy)' : ''}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -483,15 +479,15 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Remove color</p>
+                  <p>Remove color{!activePalette?.isCustom ? ' (will create custom copy)' : ''}</p>
                 </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
         )}
 
-        {/* Spacer when not custom palette */}
-        {!activePalette?.isCustom && <div className="flex-1" />}
+        {/* Spacer when no palette */}
+        {!activePalette && <div className="flex-1" />}
 
         {/* Import/Export buttons (always visible) */}
         <div className="flex gap-0.5">
@@ -527,6 +523,29 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
               </TooltipTrigger>
               <TooltipContent>
                 <p>Export palette</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          {/* Temporary debug reset button */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="h-6 w-6 p-0"
+                  onClick={() => {
+                    if (confirm('Reset all palettes to default? This will clear custom palettes and reload the page.')) {
+                      clearStorage();
+                    }
+                  }}
+                >
+                  <span className="text-xs">R</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Reset palettes (Debug)</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

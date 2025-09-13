@@ -43,11 +43,14 @@ interface PaletteStore {
 
   // Color management
   addColor: (paletteId: string, color: string, name?: string) => string;
-  removeColor: (paletteId: string, colorId: string) => boolean;
-  updateColor: (paletteId: string, colorId: string, color: string, name?: string) => boolean;
-  reorderColors: (paletteId: string, fromIndex: number, toIndex: number) => boolean;
-  moveColorLeft: (paletteId: string, colorId: string) => boolean;
-  moveColorRight: (paletteId: string, colorId: string) => boolean;
+  removeColor: (paletteId: string, colorId: string) => void;
+  updateColor: (paletteId: string, colorId: string, color: string, name?: string) => void;
+  reorderColors: (paletteId: string, fromIndex: number, toIndex: number) => void;
+  moveColorLeft: (paletteId: string, colorId: string) => void;
+  moveColorRight: (paletteId: string, colorId: string) => void;
+  
+  // Palette management
+  createCustomCopy: (paletteId: string) => string | null;
 
   // Selection management
   setSelectedColor: (colorId: string | null) => void;
@@ -72,6 +75,7 @@ interface PaletteStore {
   // Initialization
   initialize: () => void;
   reset: () => void;
+  clearStorage: () => void;
 }
 
 const initialColorPickerState: ColorPickerState = {
@@ -93,7 +97,7 @@ export const usePaletteStore = create<PaletteStore>()(
   persist(
     (set, get) => ({
       // Initial state
-      palettes: [],
+      palettes: DEFAULT_PALETTES, // Always start with default palettes
       customPalettes: [],
       activePaletteId: DEFAULT_ACTIVE_PALETTE_ID,
       selectedColorId: null,
@@ -200,14 +204,66 @@ export const usePaletteStore = create<PaletteStore>()(
         return true;
       },
 
+      // Palette management
+      createCustomCopy: (paletteId: string) => {
+        const { palettes, customPalettes } = get();
+        const allPalettes = [...palettes, ...customPalettes];
+        const sourcePalette = allPalettes.find(p => p.id === paletteId);
+        
+        if (!sourcePalette) return null;
+
+        // Generate unique name
+        const baseName = `${sourcePalette.name} (Custom)`;
+        let customName = baseName;
+        let counter = 1;
+        
+        while (allPalettes.some(p => p.name === customName)) {
+          customName = `${baseName} ${counter}`;
+          counter++;
+        }
+
+        // Create custom copy
+        const newPaletteId = generatePaletteId();
+        const newPalette: ColorPalette = {
+          id: newPaletteId,
+          name: customName,
+          colors: sourcePalette.colors.map(color => ({
+            ...color,
+            id: generateColorId() // Generate new IDs for colors
+          })),
+          isCustom: true,
+          isPreset: false
+        };
+
+        set(state => ({
+          customPalettes: [...state.customPalettes, newPalette],
+          activePaletteId: newPaletteId // Switch to the new custom palette
+        }));
+
+        return newPaletteId;
+      },
+
       // Color management
       addColor: (paletteId: string, color: string, name?: string) => {
+        const { palettes, createCustomCopy } = get();
+        
+        // Check if this is a preset palette
+        const isPresetPalette = palettes.some(p => p.id === paletteId);
+        let targetPaletteId = paletteId;
+        
+        if (isPresetPalette) {
+          // Create custom copy first
+          const newPaletteId = createCustomCopy(paletteId);
+          if (!newPaletteId) return '';
+          targetPaletteId = newPaletteId;
+        }
+
         const colorId = generateColorId();
         const newColor: PaletteColor = { id: colorId, value: color, name };
 
         set(state => ({
           customPalettes: state.customPalettes.map(palette =>
-            palette.id === paletteId 
+            palette.id === targetPaletteId 
               ? { ...palette, colors: [...palette.colors, newColor] }
               : palette
           )
@@ -217,9 +273,22 @@ export const usePaletteStore = create<PaletteStore>()(
       },
 
       removeColor: (paletteId: string, colorId: string) => {
+        const { palettes, createCustomCopy } = get();
+        
+        // Check if this is a preset palette
+        const isPresetPalette = palettes.some(p => p.id === paletteId);
+        let targetPaletteId = paletteId;
+        
+        if (isPresetPalette) {
+          // Create custom copy first
+          const newPaletteId = createCustomCopy(paletteId);
+          if (!newPaletteId) return;
+          targetPaletteId = newPaletteId;
+        }
+
         set(state => {
           const updatedCustomPalettes = state.customPalettes.map(palette => {
-            if (palette.id === paletteId) {
+            if (palette.id === targetPaletteId) {
               const updatedColors = palette.colors.filter(color => color.id !== colorId);
               // Don't allow removing the last color
               if (updatedColors.length === 0) return palette;
@@ -233,31 +302,80 @@ export const usePaletteStore = create<PaletteStore>()(
             selectedColorId: state.selectedColorId === colorId ? null : state.selectedColorId
           };
         });
-
-        return true;
       },
 
       updateColor: (paletteId: string, colorId: string, color: string, name?: string) => {
-        set(state => ({
-          customPalettes: state.customPalettes.map(palette =>
-            palette.id === paletteId 
-              ? {
-                  ...palette,
-                  colors: palette.colors.map(c =>
-                    c.id === colorId ? { ...c, value: color, name } : c
-                  )
-                }
-              : palette
-          )
-        }));
+        const { palettes, createCustomCopy } = get();
+        
+        // Check if this is a preset palette
+        const isPresetPalette = palettes.some(p => p.id === paletteId);
+        
+        if (isPresetPalette) {
+          // Create custom copy and update the color in the new palette
+          const newPaletteId = createCustomCopy(paletteId);
+          if (!newPaletteId) return false;
+          
+          // Find the corresponding color in the new custom palette
+          const { customPalettes } = get();
+          const newPalette = customPalettes.find(p => p.id === newPaletteId);
+          if (!newPalette) return false;
+          
+          // Find color by value since IDs changed
+          const originalColor = palettes.find(p => p.id === paletteId)?.colors.find(c => c.id === colorId);
+          if (!originalColor) return false;
+          
+          const newColorId = newPalette.colors.find(c => c.value === originalColor.value)?.id;
+          if (!newColorId) return false;
+          
+          // Update the color in the new custom palette
+          set(state => ({
+            customPalettes: state.customPalettes.map(palette =>
+              palette.id === newPaletteId 
+                ? {
+                    ...palette,
+                    colors: palette.colors.map(c =>
+                      c.id === newColorId ? { ...c, value: color, name } : c
+                    )
+                  }
+                : palette
+            )
+          }));
+        } else {
+          // Update custom palette directly
+          set(state => ({
+            customPalettes: state.customPalettes.map(palette =>
+              palette.id === paletteId 
+                ? {
+                    ...palette,
+                    colors: palette.colors.map(c =>
+                      c.id === colorId ? { ...c, value: color, name } : c
+                    )
+                  }
+                : palette
+            )
+          }));
+        }
 
         return true;
       },
 
       reorderColors: (paletteId: string, fromIndex: number, toIndex: number) => {
+        const { palettes, createCustomCopy } = get();
+        
+        // Check if this is a preset palette
+        const isPresetPalette = palettes.some(p => p.id === paletteId);
+        let targetPaletteId = paletteId;
+        
+        if (isPresetPalette) {
+          // Create custom copy first
+          const newPaletteId = createCustomCopy(paletteId);
+          if (!newPaletteId) return;
+          targetPaletteId = newPaletteId;
+        }
+
         set(state => ({
           customPalettes: state.customPalettes.map(palette => {
-            if (palette.id === paletteId) {
+            if (palette.id === targetPaletteId) {
               const colors = [...palette.colors];
               const [movedColor] = colors.splice(fromIndex, 1);
               colors.splice(toIndex, 0, movedColor);
@@ -266,28 +384,26 @@ export const usePaletteStore = create<PaletteStore>()(
             return palette;
           })
         }));
-
-        return true;
       },
 
       moveColorLeft: (paletteId: string, colorId: string) => {
         const palette = get().getAllPalettes().find(p => p.id === paletteId);
-        if (!palette) return false;
+        if (!palette) return;
 
         const colorIndex = palette.colors.findIndex(c => c.id === colorId);
-        if (colorIndex <= 0) return false;
+        if (colorIndex <= 0) return;
 
-        return get().reorderColors(paletteId, colorIndex, colorIndex - 1);
+        get().reorderColors(paletteId, colorIndex, colorIndex - 1);
       },
 
       moveColorRight: (paletteId: string, colorId: string) => {
         const palette = get().getAllPalettes().find(p => p.id === paletteId);
-        if (!palette) return false;
+        if (!palette) return;
 
         const colorIndex = palette.colors.findIndex(c => c.id === colorId);
-        if (colorIndex === -1 || colorIndex >= palette.colors.length - 1) return false;
+        if (colorIndex === -1 || colorIndex >= palette.colors.length - 1) return;
 
-        return get().reorderColors(paletteId, colorIndex, colorIndex + 1);
+        get().reorderColors(paletteId, colorIndex, colorIndex + 1);
       },
 
       // Selection management
@@ -416,6 +532,14 @@ export const usePaletteStore = create<PaletteStore>()(
           isImportDialogOpen: false,
           isExportDialogOpen: false
         });
+      },
+
+      // Debug function to clear localStorage
+      clearStorage: () => {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('ascii-motion-palette-store');
+          window.location.reload();
+        }
       }
     }),
     {
