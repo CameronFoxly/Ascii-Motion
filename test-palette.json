@@ -1,0 +1,24 @@
+{
+  "name": "Test Palette",
+  "description": "A sample palette for testing import functionality",
+  "version": "1.0.0",
+  "colors": [
+    "#FF0000",
+    "#00FF00", 
+    "#0000FF",
+    "#FFFF00",
+    "#FF00FF",
+    "#00FFFF",
+    "#FFFFFF",
+    "#000000",
+    "#808080",
+    "#FFA500",
+    "#800080",
+    "#008000"
+  ],
+  "metadata": {
+    "created": "2024-01-01T00:00:00.000Z",
+    "author": "Test User",
+    "tags": ["test", "sample", "import"]
+  }
+}

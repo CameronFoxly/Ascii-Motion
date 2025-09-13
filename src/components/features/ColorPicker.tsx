@@ -9,6 +9,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Palette, Type, Settings, Plus, Trash2, ChevronLeft, ChevronRight, Upload, Download } from 'lucide-react';
 import { ForegroundBackgroundSelector } from './ForegroundBackgroundSelector';
 import { ColorPickerOverlay } from './ColorPickerOverlay';
+import { ImportPaletteDialog } from './ImportPaletteDialog';
+import { ExportPaletteDialog } from './ExportPaletteDialog';
 import { ANSI_COLORS } from '../../constants/colors';
 
 interface ColorPickerProps {
@@ -29,18 +31,20 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
     setSelectedColor: setSelectedColorId,
     addColor,
     removeColor,
+    updateColor,
     moveColorLeft,
     moveColorRight,
-    setImportDialogOpen,
-    setExportDialogOpen,
     initialize,
     addRecentColor
   } = usePaletteStore();
 
   const [activeTab, setActiveTab] = useState("text");
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
-  const [colorPickerMode, setColorPickerMode] = useState<'foreground' | 'background'>('foreground');
+  const [colorPickerMode, setColorPickerMode] = useState<'foreground' | 'background' | 'palette'>('foreground');
   const [colorPickerInitialColor, setColorPickerInitialColor] = useState('#000000');
+  const [editingColorId, setEditingColorId] = useState<string | null>(null);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
 
   // Initialize palette store on mount
   useEffect(() => {
@@ -78,9 +82,14 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
 
   // Handle double-click to edit color
   const handleColorDoubleClick = (color: string, isBackground = false) => {
-    setColorPickerInitialColor(color);
-    setColorPickerMode(isBackground ? 'background' : 'foreground');
-    setIsColorPickerOpen(true);
+    // Find the color being edited in the palette
+    const colorObj = activeColors.find(c => c.value === color);
+    if (colorObj) {
+      setEditingColorId(colorObj.id);
+      setColorPickerMode('palette');
+      setColorPickerInitialColor(color);
+      setIsColorPickerOpen(true);
+    }
   };
 
   // Handle opening color picker from foreground/background selector
@@ -92,9 +101,15 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
 
   // Handle color picker selection
   const handleColorPickerSelect = (newColor: string) => {
-    if (colorPickerMode === 'foreground') {
+    if (colorPickerMode === 'palette' && editingColorId) {
+      // Update the color in the palette
+      updateColor(activePaletteId, editingColorId, newColor);
+      // Clear editing state
+      setEditingColorId(null);
+      setColorPickerMode('foreground');
+    } else if (colorPickerMode === 'foreground') {
       setSelectedColor(newColor);
-    } else {
+    } else if (colorPickerMode === 'background') {
       setSelectedBgColor(newColor);
     }
   };
@@ -230,131 +245,135 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
       </Tabs>
 
       {/* Color management buttons */}
-      {activePalette?.isCustom && (
-        <div className="flex items-center justify-between gap-1">
-          {/* Reorder buttons */}
-          <div className="flex gap-0.5">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 w-6 p-0"
-                    onClick={() => selectedColorId && moveColorLeft(activePaletteId, selectedColorId)}
-                    disabled={!selectedColorId}
-                  >
-                    <ChevronLeft className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Move color left</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 w-6 p-0"
-                    onClick={() => selectedColorId && moveColorRight(activePaletteId, selectedColorId)}
-                    disabled={!selectedColorId}
-                  >
-                    <ChevronRight className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Move color right</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+      <div className="flex items-center justify-between gap-1">
+        {/* Custom palette editing buttons (only for custom palettes) */}
+        {activePalette?.isCustom && (
+          <>
+            {/* Reorder buttons */}
+            <div className="flex gap-0.5">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 w-6 p-0"
+                      onClick={() => selectedColorId && moveColorLeft(activePaletteId, selectedColorId)}
+                      disabled={!selectedColorId}
+                    >
+                      <ChevronLeft className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Move color left</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
-          {/* Add/Remove buttons */}
-          <div className="flex gap-0.5">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 w-6 p-0"
-                    onClick={() => addColor(activePaletteId, '#808080')}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Add color</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 w-6 p-0"
+                      onClick={() => selectedColorId && moveColorRight(activePaletteId, selectedColorId)}
+                      disabled={!selectedColorId}
+                    >
+                      <ChevronRight className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Move color right</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
 
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 w-6 p-0"
-                    onClick={() => selectedColorId && removeColor(activePaletteId, selectedColorId)}
-                    disabled={!selectedColorId || activeColors.length <= 1}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Remove color</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+            {/* Add/Remove buttons */}
+            <div className="flex gap-0.5">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 w-6 p-0"
+                      onClick={() => addColor(activePaletteId, '#808080')}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Add color</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
-          {/* Import/Export buttons */}
-          <div className="flex gap-0.5">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 w-6 p-0"
-                    onClick={() => setImportDialogOpen(true)}
-                  >
-                    <Upload className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Import palette</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 w-6 p-0"
+                      onClick={() => selectedColorId && removeColor(activePaletteId, selectedColorId)}
+                      disabled={!selectedColorId || activeColors.length <= 1}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Remove color</p>
+                  </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+          </>
+        )}
 
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 w-6 p-0"
-                    onClick={() => setExportDialogOpen(true)}
-                  >
-                    <Download className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Export palette</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+        {/* Spacer when not custom palette */}
+        {!activePalette?.isCustom && <div className="flex-1" />}
+
+        {/* Import/Export buttons (always visible) */}
+        <div className="flex gap-0.5">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 w-6 p-0"
+                  onClick={() => setIsImportDialogOpen(true)}
+                >
+                  <Upload className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Import palette</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 w-6 p-0"
+                  onClick={() => setIsExportDialogOpen(true)}
+                >
+                  <Download className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Export palette</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
-      )}
-
-      {/* Status text */}
+      </div>      {/* Status text */}
       {activePalette && (
         <div className="text-xs text-muted-foreground text-center">
           {activePalette.name} • {activeColors.length} colors
@@ -369,10 +388,32 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
       {/* Color Picker Modal */}
       <ColorPickerOverlay
         isOpen={isColorPickerOpen}
-        onOpenChange={setIsColorPickerOpen}
+        onOpenChange={(open) => {
+          setIsColorPickerOpen(open);
+          // Reset editing state when closing
+          if (!open && colorPickerMode === 'palette') {
+            setEditingColorId(null);
+            setColorPickerMode('foreground');
+          }
+        }}
         onColorSelect={handleColorPickerSelect}
         initialColor={colorPickerInitialColor}
-        title={`Edit ${colorPickerMode === 'foreground' ? 'Foreground' : 'Background'} Color`}
+        title={
+          colorPickerMode === 'palette' 
+            ? 'Edit Palette Color' 
+            : `Edit ${colorPickerMode === 'foreground' ? 'Foreground' : 'Background'} Color`
+        }
+      />
+
+      {/* Import/Export Dialogs */}
+      <ImportPaletteDialog
+        isOpen={isImportDialogOpen}
+        onOpenChange={setIsImportDialogOpen}
+      />
+      
+      <ExportPaletteDialog
+        isOpen={isExportDialogOpen}
+        onOpenChange={setIsExportDialogOpen}
       />
     </div>
   );
