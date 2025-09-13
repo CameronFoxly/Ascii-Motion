@@ -4,7 +4,7 @@ import { usePaletteStore } from '../../stores/paletteStore';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Palette, Type, Settings, Plus, Trash2, ChevronLeft, ChevronRight, Upload, Download } from 'lucide-react';
 import { ForegroundBackgroundSelector } from './ForegroundBackgroundSelector';
@@ -27,6 +27,8 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
     getActivePalette,
     getActiveColors,
     getAllPalettes,
+    getCustomPalettes,
+    getPresetPalettes,
     setActivePalette,
     setSelectedColor: setSelectedColorId,
     addColor,
@@ -62,6 +64,8 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
   const activePalette = getActivePalette();
   const activeColors = getActiveColors();
   const allPalettes = getAllPalettes();
+  const customPalettes = getCustomPalettes();
+  const presetPalettes = getPresetPalettes();
 
   // Filter colors for foreground (no transparent) and background (include transparent)
   const foregroundColors = activeColors.filter(color => color.value !== 'transparent' && color.value !== ANSI_COLORS.transparent);
@@ -281,14 +285,20 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
             <SelectValue placeholder="Select palette" />
           </SelectTrigger>
           <SelectContent>
-            {allPalettes.map((palette) => (
+            {/* Custom Palettes */}
+            {customPalettes.map((palette) => (
               <SelectItem key={palette.id} value={palette.id} className="text-xs">
-                <div className="flex items-center gap-2">
-                  <span>{palette.name}</span>
-                  {palette.isCustom && (
-                    <span className="text-xs text-muted-foreground">(Custom)</span>
-                  )}
-                </div>
+                <span>{palette.name}</span>
+              </SelectItem>
+            ))}
+            
+            {/* Separator (only show if there are custom palettes) */}
+            {customPalettes.length > 0 && <SelectSeparator />}
+            
+            {/* Preset Palettes */}
+            {presetPalettes.map((palette) => (
+              <SelectItem key={palette.id} value={palette.id} className="text-xs">
+                <span>{palette.name}</span>
               </SelectItem>
             ))}
           </SelectContent>
