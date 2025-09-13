@@ -156,7 +156,9 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
         {/* Tool Options */}
         {hasOptions && (
           <div>
-            <Separator />
+            <div className="relative -mx-4 h-px">
+              <Separator className="absolute inset-0" />
+            </div>
             <Collapsible open={showOptions} onOpenChange={setShowOptions}>
             <CollapsibleHeader isOpen={showOptions}>
               <div className="flex items-center gap-1">

@@ -231,7 +231,9 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
         </CollapsibleContent>
       </Collapsible>
 
-      <Separator className="-mx-4" />
+      <div className="relative -mx-4 h-px">
+        <Separator className="absolute inset-0" />
+      </div>
 
       {/* Palette Section */}
       <Collapsible open={isPaletteSectionOpen} onOpenChange={setIsPaletteSectionOpen}>

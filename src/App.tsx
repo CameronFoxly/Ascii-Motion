@@ -61,7 +61,9 @@ function App() {
                     <ToolPalette />
                   </div>
                   
-                  <Separator />
+                  <div className="relative -mx-4 h-px">
+                    <Separator className="absolute inset-0" />
+                  </div>
                   
                   {/* Status panel anchored to bottom */}
                   <div className="flex-shrink-0">
@@ -97,7 +99,9 @@ function App() {
                 <div className="space-y-3">
                   <CharacterPalette />
                   
-                  <Separator className="-mx-4" />
+                  <div className="relative -mx-4 h-px">
+                    <Separator className="absolute inset-0" />
+                  </div>
                   
                   {/* Color Picker - now contains its own collapsible sections */}
                   <ColorPicker />
