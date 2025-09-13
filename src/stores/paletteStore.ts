@@ -1,7 +1,6 @@
 // Palette store for managing color palettes, active selections, and UI state
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { 
   ColorPalette, 
   PaletteColor, 
@@ -75,7 +74,6 @@ interface PaletteStore {
   // Initialization
   initialize: () => void;
   reset: () => void;
-  clearStorage: () => void;
 }
 
 const initialColorPickerState: ColorPickerState = {
@@ -93,9 +91,7 @@ const initialDragState: DragState = {
   dropTargetIndex: null
 };
 
-export const usePaletteStore = create<PaletteStore>()(
-  persist(
-    (set, get) => ({
+export const usePaletteStore = create<PaletteStore>()((set, get) => ({
       // Initial state
       palettes: DEFAULT_PALETTES, // Always start with default palettes
       customPalettes: [],
@@ -534,21 +530,4 @@ export const usePaletteStore = create<PaletteStore>()(
         });
       },
 
-      // Debug function to clear localStorage
-      clearStorage: () => {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('ascii-motion-palette-store');
-          window.location.reload();
-        }
-      }
-    }),
-    {
-      name: 'ascii-motion-palette-store',
-      partialize: (state) => ({
-        customPalettes: state.customPalettes,
-        activePaletteId: state.activePaletteId,
-        recentColors: state.recentColors
-      })
-    }
-  )
-);
+}));

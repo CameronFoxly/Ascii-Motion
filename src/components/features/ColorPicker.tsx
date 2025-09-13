@@ -34,8 +34,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
     moveColorLeft,
     moveColorRight,
     initialize,
-    addRecentColor,
-    clearStorage
+    addRecentColor
   } = usePaletteStore();
 
   const [activeTab, setActiveTab] = useState("text");
@@ -527,28 +526,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
             </Tooltip>
           </TooltipProvider>
 
-          {/* Temporary debug reset button */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="h-6 w-6 p-0"
-                  onClick={() => {
-                    if (confirm('Reset all palettes to default? This will clear custom palettes and reload the page.')) {
-                      clearStorage();
-                    }
-                  }}
-                >
-                  <span className="text-xs">R</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Reset palettes (Debug)</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+
         </div>
       </div>      {/* Status text */}
       {activePalette && (
