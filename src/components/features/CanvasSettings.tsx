@@ -300,21 +300,35 @@ export const CanvasSettings: React.FC = () => {
                         showColorPickerAnimated();
                       }
                     }}
-                    className="h-6 w-6 p-0 relative"
+                    className="h-6 w-6 p-0 relative overflow-hidden"
                     style={{ 
                       backgroundColor: canvasBackgroundColor === 'transparent' ? '#ffffff' : canvasBackgroundColor,
                       backgroundImage: canvasBackgroundColor === 'transparent' 
                         ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)'
                         : 'none',
-                      backgroundSize: canvasBackgroundColor === 'transparent' ? '3px 3px' : 'auto',
-                      backgroundPosition: canvasBackgroundColor === 'transparent' ? '0 0, 0 1.5px, 1.5px -1.5px, -1.5px 0px' : 'auto'
+                      backgroundSize: canvasBackgroundColor === 'transparent' ? '8px 8px' : 'auto',
+                      backgroundPosition: canvasBackgroundColor === 'transparent' ? '0 0, 0 4px, 4px -4px, -4px 0px' : 'auto'
                     }}
                     aria-label="Canvas background color"
                     aria-expanded={showColorPicker}
                     aria-controls="color-dropdown"
                   >
                     {canvasBackgroundColor === 'transparent' ? (
-                      <span className="text-red-500 font-bold text-xs">∅</span>
+                      <svg
+                        className="absolute inset-0 w-full h-full"
+                        viewBox="0 0 24 24"
+                        style={{ pointerEvents: 'none' }}
+                      >
+                        <line
+                          x1="2"
+                          y1="22"
+                          x2="22"
+                          y2="2"
+                          stroke="#dc2626"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                        />
+                      </svg>
                     ) : (
                       <Palette className="w-3 h-3" style={{ color: canvasBackgroundColor === '#FFFFFF' ? '#000000' : '#FFFFFF' }} />
                     )}
@@ -487,21 +501,33 @@ export const CanvasSettings: React.FC = () => {
                     <button
                       key={color}
                       onClick={() => handleColorChange(color)}
-                      className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform relative"
+                      className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform relative overflow-hidden"
                       style={{ 
                         backgroundColor: color === 'transparent' ? '#ffffff' : color,
                         backgroundImage: color === 'transparent' 
                           ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)'
                           : 'none',
-                        backgroundSize: color === 'transparent' ? '3px 3px' : 'auto',
-                        backgroundPosition: color === 'transparent' ? '0 0, 0 1.5px, 1.5px -1.5px, -1.5px 0px' : 'auto'
+                        backgroundSize: color === 'transparent' ? '8px 8px' : 'auto',
+                        backgroundPosition: color === 'transparent' ? '0 0, 0 4px, 4px -4px, -4px 0px' : 'auto'
                       }}
                       title={color === 'transparent' ? 'Transparent background' : color}
                     >
                       {color === 'transparent' && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-red-500 font-bold text-xs">∅</span>
-                        </div>
+                        <svg
+                          className="absolute inset-0 w-full h-full"
+                          viewBox="0 0 24 24"
+                          style={{ pointerEvents: 'none' }}
+                        >
+                          <line
+                            x1="2"
+                            y1="22"
+                            x2="22"
+                            y2="2"
+                            stroke="#dc2626"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
                       )}
                     </button>
                   ))}

@@ -67,11 +67,12 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
   const customPalettes = getCustomPalettes();
   const presetPalettes = getPresetPalettes();
 
-  // Filter colors for foreground (no transparent) and background (include transparent)
+  // Filter colors for foreground (no transparent) and background (always include transparent)
   const foregroundColors = activeColors.filter(color => color.value !== 'transparent' && color.value !== ANSI_COLORS.transparent);
-  const backgroundColors = activePalette?.id === 'ansi-16' 
-    ? [{ id: 'transparent', value: 'transparent', name: 'Transparent' }, ...activeColors.filter(color => color.value !== 'transparent')]
-    : activeColors;
+  const backgroundColors = [
+    { id: 'transparent', value: 'transparent', name: 'Transparent' }, 
+    ...activeColors.filter(color => color.value !== 'transparent' && color.value !== ANSI_COLORS.transparent)
+  ];
 
   // Handle palette selection
   const handlePaletteChange = (paletteId: string) => {
@@ -324,7 +325,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
             <CardContent className="p-2">
               <div className="grid grid-cols-6 gap-0.5 relative" onDragLeave={handleDragLeave}>
                 {foregroundColors.map((color, index) => (
-                  <div key={`text-${color.id}`} className="relative">
+                  <div key={`text-${color.id}`} className="relative flex items-center justify-center">
                     {/* Drop indicator line */}
                     {dropIndicatorIndex === index && (
                       <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
@@ -378,7 +379,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                 {backgroundColors.map((color, index) => {
                   const isTransparent = color.value === 'transparent';
                   return (
-                    <div key={`bg-${color.id}`} className="relative">
+                    <div key={`bg-${color.id}`} className="relative flex items-center justify-center">
                       {/* Drop indicator line */}
                       {dropIndicatorIndex === index && (
                         <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
@@ -400,8 +401,8 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                           backgroundImage: isTransparent 
                             ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)'
                             : 'none',
-                          backgroundSize: isTransparent ? '4px 4px' : 'auto',
-                          backgroundPosition: isTransparent ? '0 0, 0 2px, 2px -2px, -2px 0px' : 'auto'
+                          backgroundSize: isTransparent ? '8px 8px' : 'auto',
+                          backgroundPosition: isTransparent ? '0 0, 0 4px, 4px -4px, -4px 0px' : 'auto'
                         }}
                         onClick={() => {
                           handleColorSelect(color.value, true);
@@ -420,9 +421,18 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                         }
                       >
                         {isTransparent && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-red-500 font-bold text-xs">∅</span>
-                          </div>
+                          <svg 
+                            className="absolute inset-0 w-full h-full pointer-events-none" 
+                            viewBox="0 0 24 24"
+                            style={{ borderRadius: 'inherit' }}
+                          >
+                            <line 
+                              x1="2" y1="2" 
+                              x2="22" y2="22" 
+                              stroke="#ef4444" 
+                              strokeWidth="2"
+                            />
+                          </svg>
                         )}
                       </button>
                       

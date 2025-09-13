@@ -69,16 +69,28 @@ export const ForegroundBackgroundSelector: React.FC<ForegroundBackgroundSelector
                     backgroundImage: isBackgroundTransparent 
                       ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)'
                       : 'none',
-                    backgroundSize: isBackgroundTransparent ? '6px 6px' : 'auto',
-                    backgroundPosition: isBackgroundTransparent ? '0 0, 0 3px, 3px -3px, -3px 0px' : 'auto'
+                    backgroundSize: isBackgroundTransparent ? '8px 8px' : 'auto',
+                    backgroundPosition: isBackgroundTransparent ? '0 0, 0 4px, 4px -4px, -4px 0px' : 'auto'
                   }}
                   onClick={handleBackgroundClick}
                   title="Background Color"
                 >
                   {isBackgroundTransparent && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-red-500 font-bold text-sm">∅</span>
-                    </div>
+                    <svg
+                      className="absolute inset-0 w-full h-full"
+                      viewBox="0 0 48 48"
+                      style={{ pointerEvents: 'none' }}
+                    >
+                      <line
+                        x1="4"
+                        y1="44"
+                        x2="44"
+                        y2="4"
+                        stroke="#dc2626"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                    </svg>
                   )}
                   
                   {/* Background label */}
