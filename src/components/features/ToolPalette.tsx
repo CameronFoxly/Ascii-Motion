@@ -4,7 +4,9 @@ import { useCanvasContext } from '../../contexts/CanvasContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { Separator } from '@/components/ui/separator';
+import { CollapsibleHeader } from '../common/CollapsibleHeader';
 import { 
   PenTool, 
   Eraser, 
@@ -15,7 +17,6 @@ import {
   Lasso,
   Type,
   Wand2,
-  ChevronDown,
   Palette
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -112,12 +113,9 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
     <TooltipProvider>
       <div className={`space-y-1 ${className}`}>
         <Collapsible open={showTools} onOpenChange={setShowTools}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full h-6 text-xs justify-between p-1">
-              Tools
-              <ChevronDown className="h-3 w-3" />
-            </Button>
-          </CollapsibleTrigger>
+          <CollapsibleHeader isOpen={showTools}>
+            Tools
+          </CollapsibleHeader>
           <CollapsibleContent className="collapsible-content">
             <Card className="border-border/50 mt-1">
               <CardContent className="p-3">
@@ -157,16 +155,15 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
 
         {/* Tool Options */}
         {hasOptions && (
-          <Collapsible open={showOptions} onOpenChange={setShowOptions}>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full h-6 text-xs justify-between p-1">
-                <div className="flex items-center gap-1">
-                  {getCurrentToolIcon()}
-                  <span>Tool Options</span>
-                </div>
-                <ChevronDown className="h-3 w-3" />
-              </Button>
-            </CollapsibleTrigger>
+          <div>
+            <Separator />
+            <Collapsible open={showOptions} onOpenChange={setShowOptions}>
+            <CollapsibleHeader isOpen={showOptions}>
+              <div className="flex items-center gap-1">
+                {getCurrentToolIcon()}
+                <span>Tool Options</span>
+              </div>
+            </CollapsibleHeader>
             <CollapsibleContent className="collapsible-content">
               <Card className="bg-card/50 border-border/50 mt-1">
                 <CardContent className="p-2 space-y-2">
@@ -338,6 +335,7 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
               </Card>
             </CollapsibleContent>
           </Collapsible>
+          </div>
         )}
       </div>
     </TooltipProvider>

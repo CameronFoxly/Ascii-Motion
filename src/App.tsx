@@ -1,8 +1,5 @@
 import './App.css'
 import { Separator } from '@/components/ui/separator'
-import { Button } from '@/components/ui/button'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { ChevronDown } from 'lucide-react'
 import { CanvasWithShortcuts } from './components/features/CanvasWithShortcuts'
 import { CanvasProvider } from './contexts/CanvasContext'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -20,11 +17,9 @@ import { cn } from '@/lib/utils'
 import { PerformanceOverlay } from './components/common/PerformanceOverlay'
 import { StatusPanel } from './components/features/StatusPanel'
 import { useLayoutState } from './hooks/useLayoutState'
-import React from 'react'
 
 function App() {
   const { layout, toggleLeftPanel, toggleRightPanel, toggleBottomPanel, toggleFullscreen } = useLayoutState()
-  const [showColors, setShowColors] = React.useState(true)
 
   return (
     <ThemeProvider>
@@ -66,6 +61,8 @@ function App() {
                     <ToolPalette />
                   </div>
                   
+                  <Separator />
+                  
                   {/* Status panel anchored to bottom */}
                   <div className="flex-shrink-0">
                     <StatusPanel />
@@ -100,20 +97,10 @@ function App() {
                 <div className="space-y-3">
                   <CharacterPalette />
                   
-                  <Separator />
+                  <Separator className="-mx-4" />
                   
-                  {/* Color Picker */}
-                  <Collapsible open={showColors} onOpenChange={setShowColors}>
-                    <CollapsibleTrigger asChild>
-                      <Button variant="ghost" className="w-full h-6 text-xs justify-between p-1">
-                        Colors
-                        <ChevronDown className="h-3 w-3" />
-                      </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="collapsible-content">
-                      <ColorPicker />
-                    </CollapsibleContent>
-                  </Collapsible>
+                  {/* Color Picker - now contains its own collapsible sections */}
+                  <ColorPicker />
                 </div>
               </CollapsiblePanel>
               

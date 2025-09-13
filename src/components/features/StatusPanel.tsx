@@ -1,9 +1,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown } from 'lucide-react';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { CollapsibleHeader } from '../common/CollapsibleHeader';
 import { useToolStore } from '@/stores/toolStore';
 import { useCanvasContext } from '@/contexts/CanvasContext';
 
@@ -54,12 +53,9 @@ export const StatusPanel: React.FC = () => {
             </CardContent>
           </Card>
         </CollapsibleContent>
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" className="w-full h-6 text-xs justify-between p-1">
-            Status
-            <ChevronDown className="h-3 w-3" />
-          </Button>
-        </CollapsibleTrigger>
+        <CollapsibleHeader isOpen={showStatus} expandsUp>
+          Status
+        </CollapsibleHeader>
       </Collapsible>
     </div>
   );

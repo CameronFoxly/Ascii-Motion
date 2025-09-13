@@ -3,7 +3,8 @@ import { useToolStore } from '../../stores/toolStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { CollapsibleHeader } from '../common/CollapsibleHeader';
 import { CHARACTER_CATEGORIES } from '../../constants';
 import { 
   Type, 
@@ -13,8 +14,7 @@ import {
   Navigation, 
   Triangle, 
   Sparkles,
-  Minus,
-  ChevronDown
+  Minus
 } from 'lucide-react';
 
 interface CharacterPaletteProps {
@@ -42,12 +42,9 @@ export const CharacterPalette: React.FC<CharacterPaletteProps> = ({ className = 
   return (
     <div className={`space-y-2 ${className}`}>
       <Collapsible open={showCharacters} onOpenChange={setShowCharacters}>
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" className="w-full h-6 text-xs justify-between p-1">
-            Characters
-            <ChevronDown className="h-3 w-3" />
-          </Button>
-        </CollapsibleTrigger>
+        <CollapsibleHeader isOpen={showCharacters}>
+          Characters
+        </CollapsibleHeader>
         <CollapsibleContent className="collapsible-content">
       
       <Tabs value={activeCategory} onValueChange={setActiveCategory} className="w-full">

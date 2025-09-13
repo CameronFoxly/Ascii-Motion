@@ -5,8 +5,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { Palette, Type, Settings, Plus, Trash2, ChevronLeft, ChevronRight, Upload, Download } from 'lucide-react';
+import { CollapsibleHeader } from '../common/CollapsibleHeader';
 import { ForegroundBackgroundSelector } from './ForegroundBackgroundSelector';
 import { ColorPickerOverlay } from './ColorPickerOverlay';
 import { ImportPaletteDialog } from './ImportPaletteDialog';
@@ -26,7 +29,6 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
     selectedColorId,
     getActivePalette,
     getActiveColors,
-    getAllPalettes,
     getCustomPalettes,
     getPresetPalettes,
     setActivePalette,
@@ -37,9 +39,6 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
     moveColorLeft,
     moveColorRight,
     createCustomPalette,
-    deletePalette,
-    renamePalette,
-    duplicatePalette,
     initialize,
     addRecentColor
   } = usePaletteStore();
@@ -52,6 +51,10 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isManagePalettesOpen, setIsManagePalettesOpen] = useState(false);
+  
+  // Collapsible section states
+  const [isColorSectionOpen, setIsColorSectionOpen] = useState(true);
+  const [isPaletteSectionOpen, setIsPaletteSectionOpen] = useState(true);
 
   // Initialize palette store on mount (ensure default palettes are loaded)
   useEffect(() => {
@@ -63,7 +66,6 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
   // Get active palette and colors
   const activePalette = getActivePalette();
   const activeColors = getActiveColors();
-  const allPalettes = getAllPalettes();
   const customPalettes = getCustomPalettes();
   const presetPalettes = getPresetPalettes();
 
@@ -148,30 +150,20 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
 
     // Determine final position based on drop indicator
     let finalTargetIndex = targetIndex;
-    if (dropIndicatorIndex !== null) {
-      const rect = (e.target as HTMLElement).getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const isAfter = mouseX > rect.width / 2;
-      if (isAfter && sourceIndex < targetIndex) {
-        // No adjustment needed - will naturally end up after target
-      } else if (!isAfter && sourceIndex > targetIndex) {
-        // No adjustment needed - will naturally end up before target
-      } else if (isAfter && sourceIndex > targetIndex) {
-        finalTargetIndex = targetIndex + 1;
-      } else if (!isAfter && sourceIndex < targetIndex) {
-        finalTargetIndex = targetIndex - 1;
-      }
+    if (dropIndicatorIndex === targetIndex + 1) {
+      finalTargetIndex = targetIndex + 1;
     }
 
-    // Move the color multiple steps if needed
-    if (sourceIndex < finalTargetIndex) {
-      // Moving right
-      for (let i = sourceIndex; i < finalTargetIndex; i++) {
+    // Move the colors
+    let currentIndex = sourceIndex;
+    if (currentIndex < finalTargetIndex) {
+      // Moving right - use moveColorRight
+      for (let i = 0; i < finalTargetIndex - sourceIndex; i++) {
         moveColorRight(activePaletteId, draggedColorId);
       }
-    } else if (sourceIndex > finalTargetIndex) {
-      // Moving left
-      for (let i = sourceIndex; i > finalTargetIndex; i--) {
+    } else if (currentIndex > finalTargetIndex) {
+      // Moving left - use moveColorLeft
+      for (let i = 0; i < sourceIndex - finalTargetIndex; i++) {
         moveColorLeft(activePaletteId, draggedColorId);
       }
     }
@@ -182,21 +174,17 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
 
   // Handle drag leave
   const handleDragLeave = (e: React.DragEvent) => {
-    // Only clear indicator if we're leaving the grid area entirely
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const { clientX, clientY } = e;
-    
-    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+    // Only clear if leaving the grid container
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setDropIndicatorIndex(null);
     }
   };
 
-  // Handle double-click to edit color
+  // Handle color double-click to edit
   const handleColorDoubleClick = (color: string) => {
-    // Find the color being edited in the palette
-    const colorObj = activeColors.find(c => c.value === color);
-    if (colorObj) {
-      setEditingColorId(colorObj.id);
+    if (activePalette) {
+      const colorItem = activeColors.find(c => c.value === color);
+      setEditingColorId(colorItem?.id || null);
       setColorPickerMode('palette');
       setColorPickerInitialColor(color);
       setIsColorPickerOpen(true);
@@ -231,22 +219,58 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
   };
 
   return (
-    <div className={`space-y-4 ${className}`}>
-      {/* Photoshop-style foreground/background selector */}
-      <ForegroundBackgroundSelector onOpenColorPicker={handleOpenColorPicker} />
+    <div className={`space-y-3 ${className}`}>
+      {/* Color Section */}
+      <Collapsible open={isColorSectionOpen} onOpenChange={setIsColorSectionOpen}>
+        <CollapsibleHeader isOpen={isColorSectionOpen}>
+          Color
+        </CollapsibleHeader>
+        <CollapsibleContent className="collapsible-content space-y-3">
+          {/* Photoshop-style foreground/background selector */}
+          <ForegroundBackgroundSelector onOpenColorPicker={handleOpenColorPicker} />
+        </CollapsibleContent>
+      </Collapsible>
 
-      {/* Palette selector */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-muted-foreground">Palette</label>
-          <div className="flex gap-1">
+      <Separator className="-mx-4" />
+
+      {/* Palette Section */}
+      <Collapsible open={isPaletteSectionOpen} onOpenChange={setIsPaletteSectionOpen}>
+        <CollapsibleHeader isOpen={isPaletteSectionOpen}>
+          Palette
+        </CollapsibleHeader>
+        <CollapsibleContent className="collapsible-content space-y-3">
+          {/* Palette selector with inline buttons */}
+          <div className="flex items-center gap-1">
+            <Select value={activePaletteId || ''} onValueChange={handlePaletteChange}>
+              <SelectTrigger className="flex-1 h-8 text-xs">
+                <SelectValue placeholder="Select palette..." />
+              </SelectTrigger>
+              <SelectContent>
+                {customPalettes.length > 0 && (
+                  <>
+                    {customPalettes.map((palette) => (
+                      <SelectItem key={palette.id} value={palette.id} className="text-xs">
+                        <span>{palette.name}</span>
+                      </SelectItem>
+                    ))}
+                    <SelectSeparator />
+                  </>
+                )}
+                {presetPalettes.map((palette) => (
+                  <SelectItem key={palette.id} value={palette.id} className="text-xs">
+                    <span>{palette.name}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-6 w-6 p-0"
+                    className="h-8 w-8 p-0 flex-shrink-0"
                     onClick={() => {
                       const newPaletteId = createCustomPalette('New Palette');
                       setActivePalette(newPaletteId);
@@ -256,7 +280,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>New palette</p>
+                  <p>Create new palette</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -267,7 +291,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-6 w-6 p-0"
+                    className="h-8 w-8 p-0 flex-shrink-0"
                     onClick={() => setIsManagePalettesOpen(true)}
                   >
                     <Settings className="h-3 w-3" />
@@ -279,315 +303,284 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
               </Tooltip>
             </TooltipProvider>
           </div>
-        </div>
-        
-        <Select value={activePaletteId} onValueChange={handlePaletteChange}>
-          <SelectTrigger className="h-8 text-xs">
-            <SelectValue placeholder="Select palette" />
-          </SelectTrigger>
-          <SelectContent>
-            {/* Custom Palettes */}
-            {customPalettes.map((palette) => (
-              <SelectItem key={palette.id} value={palette.id} className="text-xs">
-                <span>{palette.name}</span>
-              </SelectItem>
-            ))}
-            
-            {/* Separator (only show if there are custom palettes) */}
-            {customPalettes.length > 0 && <SelectSeparator />}
-            
-            {/* Preset Palettes */}
-            {presetPalettes.map((palette) => (
-              <SelectItem key={palette.id} value={palette.id} className="text-xs">
-                <span>{palette.name}</span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
 
-      {/* Color palette tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 h-8">
-          <TabsTrigger value="text" className="text-xs h-full flex items-center justify-center gap-1">
-            <Type className="w-3 h-3" />
-            Text
-          </TabsTrigger>
-          <TabsTrigger value="bg" className="text-xs h-full flex items-center justify-center gap-1">
-            <Palette className="w-3 h-3" />
-            BG
-          </TabsTrigger>
-        </TabsList>
+          {/* Color palette tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 h-8">
+              <TabsTrigger value="text" className="text-xs h-full flex items-center justify-center gap-1">
+                <Type className="w-3 h-3" />
+                Text
+              </TabsTrigger>
+              <TabsTrigger value="bg" className="text-xs h-full flex items-center justify-center gap-1">
+                <Palette className="w-3 h-3" />
+                BG
+              </TabsTrigger>
+            </TabsList>
 
-        {/* Foreground colors */}
-        <TabsContent value="text" className="mt-2">
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="p-2">
-              <div className="grid grid-cols-6 gap-0.5 relative" onDragLeave={handleDragLeave}>
-                {foregroundColors.map((color, index) => (
-                  <div key={`text-${color.id}`} className="relative flex items-center justify-center">
-                    {/* Drop indicator line */}
-                    {dropIndicatorIndex === index && (
-                      <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
-                    )}
-                    
-                    <button
-                      draggable={!!activePalette}
-                      className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 relative ${
-                        draggedColorId === color.id ? 'opacity-50 scale-95' : ''
-                      } ${
-                        selectedColorId === color.id
-                          ? 'border-primary ring-2 ring-primary/20 shadow-lg' 
-                          : isColorSelected(color.value, false)
-                          ? 'border-primary ring-1 ring-primary/20' 
-                          : 'border-border'
-                      } cursor-move`}
-                      style={{ backgroundColor: color.value }}
-                      onClick={() => {
-                        // Single click sets drawing color and selects for editing
-                        handleColorSelect(color.value, false);
-                        handleColorPaletteSelect(color.id);
-                      }}
-                      onDoubleClick={() => handleColorDoubleClick(color.value)}
-                      onDragStart={(e) => handleDragStart(e, color.id)}
-                      onDragOver={(e) => handleDragOver(e, color.id)}
-                      onDrop={(e) => handleDrop(e, color.id)}
-                      title={
-                        activePalette?.isCustom 
-                          ? `${color.name ? `${color.name}: ${color.value}` : color.value} (drag to reorder)` 
-                          : color.name ? `${color.name}: ${color.value}` : color.value
-                      }
-                    >
-                    </button>
-                    
-                    {/* Drop indicator line after last item */}
-                    {dropIndicatorIndex === index + 1 && (
-                      <div className="absolute -right-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Background colors */}
-        <TabsContent value="bg" className="mt-2">
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="p-2">
-              <div className="grid grid-cols-6 gap-0.5 relative" onDragLeave={handleDragLeave}>
-                {backgroundColors.map((color, index) => {
-                  const isTransparent = color.value === 'transparent';
-                  return (
-                    <div key={`bg-${color.id}`} className="relative flex items-center justify-center">
-                      {/* Drop indicator line */}
-                      {dropIndicatorIndex === index && (
-                        <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
-                      )}
-                      
-                      <button
-                        draggable={!!activePalette}
-                        className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 relative ${
-                          draggedColorId === color.id ? 'opacity-50 scale-95' : ''
-                        } ${
-                          selectedColorId === color.id
-                            ? 'border-primary ring-2 ring-primary/20 shadow-lg' 
-                            : isColorSelected(color.value, true)
-                            ? 'border-primary ring-1 ring-primary/20' 
-                            : 'border-border'
-                        } cursor-move`}
-                        style={{ 
-                          backgroundColor: isTransparent ? '#ffffff' : color.value,
-                          backgroundImage: isTransparent 
-                            ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)'
-                            : 'none',
-                          backgroundSize: isTransparent ? '8px 8px' : 'auto',
-                          backgroundPosition: isTransparent ? '0 0, 0 4px, 4px -4px, -4px 0px' : 'auto'
-                        }}
-                        onClick={() => {
-                          handleColorSelect(color.value, true);
-                          handleColorPaletteSelect(color.id);
-                        }}
-                        onDoubleClick={() => !isTransparent && handleColorDoubleClick(color.value)}
-                        onDragStart={(e) => handleDragStart(e, color.id)}
-                        onDragOver={(e) => handleDragOver(e, color.id)}
-                        onDrop={(e) => handleDrop(e, color.id)}
-                        title={
-                          isTransparent 
-                            ? 'Transparent background' 
-                            : activePalette?.isCustom 
-                            ? `${color.name ? `${color.name}: ${color.value}` : color.value} (drag to reorder)` 
-                            : color.name ? `${color.name}: ${color.value}` : color.value
-                        }
-                      >
-                        {isTransparent && (
-                          <svg 
-                            className="absolute inset-0 w-full h-full pointer-events-none" 
-                            viewBox="0 0 24 24"
-                            style={{ borderRadius: 'inherit' }}
-                          >
-                            <line 
-                              x1="2" y1="2" 
-                              x2="22" y2="22" 
-                              stroke="#ef4444" 
-                              strokeWidth="2"
-                            />
-                          </svg>
+            {/* Foreground colors */}
+            <TabsContent value="text" className="mt-2">
+              <Card className="bg-card/50 border-border/50">
+                <CardContent className="p-2">
+                  <div className="grid grid-cols-6 gap-0.5 relative flex items-center justify-center" onDragLeave={handleDragLeave}>
+                    {foregroundColors.map((color, index) => (
+                      <div key={`text-${color.id}`} className="relative flex items-center justify-center">
+                        {/* Drop indicator line */}
+                        {dropIndicatorIndex === index && (
+                          <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
                         )}
-                      </button>
-                      
-                      {/* Drop indicator line after last item */}
-                      {dropIndicatorIndex === index + 1 && (
-                        <div className="absolute -right-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
-                      )}
-                    </div>
-                  );
-                })}
+                        
+                        <button
+                          draggable={!!activePalette}
+                          className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 relative ${
+                            draggedColorId === color.id ? 'opacity-50 scale-95' : ''
+                          } ${
+                            selectedColorId === color.id
+                              ? 'border-primary ring-2 ring-primary/20 shadow-lg' 
+                              : isColorSelected(color.value, false)
+                              ? 'border-primary ring-1 ring-primary/20' 
+                              : 'border-border'
+                          } cursor-move`}
+                          style={{ backgroundColor: color.value }}
+                          onClick={() => {
+                            // Single click sets drawing color and selects for editing
+                            handleColorSelect(color.value, false);
+                            handleColorPaletteSelect(color.id);
+                          }}
+                          onDoubleClick={() => handleColorDoubleClick(color.value)}
+                          onDragStart={(e) => handleDragStart(e, color.id)}
+                          onDragOver={(e) => handleDragOver(e, color.id)}
+                          onDrop={(e) => handleDrop(e, color.id)}
+                          title={
+                            activePalette?.isCustom 
+                              ? `${color.name ? `${color.name}: ${color.value}` : color.value} (drag to reorder)` 
+                              : color.name ? `${color.name}: ${color.value}` : color.value
+                          }
+                        />
+                        
+                        {/* Drop indicator line after last item */}
+                        {dropIndicatorIndex === index + 1 && (
+                          <div className="absolute -right-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Background colors */}
+            <TabsContent value="bg" className="mt-2">
+              <Card className="bg-card/50 border-border/50">
+                <CardContent className="p-2">
+                  <div className="grid grid-cols-6 gap-0.5 relative flex items-center justify-center" onDragLeave={handleDragLeave}>
+                    {backgroundColors.map((color, index) => {
+                      const isTransparent = color.value === 'transparent';
+                      return (
+                        <div key={`bg-${color.id}`} className="relative flex items-center justify-center">
+                          {/* Drop indicator line */}
+                          {dropIndicatorIndex === index && (
+                            <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
+                          )}
+                          
+                          <button
+                            draggable={!!activePalette && !isTransparent}
+                            className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 relative overflow-hidden ${
+                              draggedColorId === color.id ? 'opacity-50 scale-95' : ''
+                            } ${
+                              selectedColorId === color.id
+                                ? 'border-primary ring-2 ring-primary/20 shadow-lg' 
+                                : isColorSelected(color.value, true)
+                                ? 'border-primary ring-1 ring-primary/20' 
+                                : 'border-border'
+                            } ${!isTransparent ? 'cursor-move' : 'cursor-pointer'}`}
+                            style={{
+                              backgroundColor: isTransparent ? '#ffffff' : color.value,
+                              backgroundImage: isTransparent 
+                                ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)'
+                                : 'none',
+                              backgroundSize: isTransparent ? '8px 8px' : 'auto',
+                              backgroundPosition: isTransparent ? '0 0, 0 4px, 4px -4px, -4px 0px' : 'auto'
+                            }}
+                            onClick={() => {
+                              handleColorSelect(color.value, true);
+                              handleColorPaletteSelect(color.id);
+                            }}
+                            onDoubleClick={() => !isTransparent && handleColorDoubleClick(color.value)}
+                            onDragStart={(e) => handleDragStart(e, color.id)}
+                            onDragOver={(e) => handleDragOver(e, color.id)}
+                            onDrop={(e) => handleDrop(e, color.id)}
+                            title={
+                              isTransparent 
+                                ? 'Transparent background' 
+                                : activePalette?.isCustom 
+                                ? `${color.name ? `${color.name}: ${color.value}` : color.value} (drag to reorder)` 
+                                : color.name ? `${color.name}: ${color.value}` : color.value
+                            }
+                          >
+                            {isTransparent && (
+                              <svg 
+                                className="absolute inset-0 w-full h-full pointer-events-none" 
+                                viewBox="0 0 24 24"
+                                style={{ borderRadius: 'inherit' }}
+                              >
+                                <line 
+                                  x1="2" y1="2" 
+                                  x2="22" y2="22" 
+                                  stroke="#ef4444" 
+                                  strokeWidth="2"
+                                />
+                              </svg>
+                            )}
+                          </button>
+                          
+                          {/* Drop indicator line after last item */}
+                          {dropIndicatorIndex === index + 1 && (
+                            <div className="absolute -right-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+
+          {/* Palette controls */}
+          {activePalette && (
+            <div className="flex items-center justify-between">
+              {/* Editing controls (only for custom palettes) */}
+              <div className="flex gap-0.5">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 w-6 p-0"
+                        onClick={() => selectedColorId && moveColorLeft(activePaletteId, selectedColorId)}
+                        disabled={!selectedColorId || !activePalette?.isCustom}
+                      >
+                        <ChevronLeft className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Move color left{!activePalette?.isCustom ? ' (will create custom copy)' : ''}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 w-6 p-0"
+                        onClick={() => selectedColorId && moveColorRight(activePaletteId, selectedColorId)}
+                        disabled={!selectedColorId || !activePalette?.isCustom}
+                      >
+                        <ChevronRight className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Move color right{!activePalette?.isCustom ? ' (will create custom copy)' : ''}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 w-6 p-0"
+                        onClick={() => addColor(activePaletteId, '#808080')}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Add color{!activePalette?.isCustom ? ' (will create custom copy)' : ''}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 w-6 p-0"
+                        onClick={() => selectedColorId && removeColor(activePaletteId, selectedColorId)}
+                        disabled={!selectedColorId || activeColors.length <= 1}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Remove color{!activePalette?.isCustom ? ' (will create custom copy)' : ''}</p>
+                    </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+
+              {/* Import/Export buttons (always visible) */}
+              <div className="flex gap-0.5">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 w-6 p-0"
+                        onClick={() => setIsImportDialogOpen(true)}
+                      >
+                        <Upload className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Import palette</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 w-6 p-0"
+                        onClick={() => setIsExportDialogOpen(true)}
+                      >
+                        <Download className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Export palette</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Color management buttons */}
-      <div className="flex items-center justify-between gap-1">
-        {/* Reorder buttons (always visible) */}
-        <div className="flex gap-0.5">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-6 w-6 p-0"
-                  onClick={() => selectedColorId && moveColorLeft(activePaletteId, selectedColorId)}
-                  disabled={!selectedColorId}
-                >
-                  <ChevronLeft className="h-3 w-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Move color left{!activePalette?.isCustom ? ' (will create custom copy)' : ''}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-6 w-6 p-0"
-                  onClick={() => selectedColorId && moveColorRight(activePaletteId, selectedColorId)}
-                  disabled={!selectedColorId}
-                >
-                  <ChevronRight className="h-3 w-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Move color right{!activePalette?.isCustom ? ' (will create custom copy)' : ''}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-
-        {/* Add/Remove buttons (available for all palettes - auto-creates custom copy) */}
-        {activePalette && (
-          <div className="flex gap-0.5">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 w-6 p-0"
-                    onClick={() => addColor(activePaletteId, '#808080')}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Add color{!activePalette?.isCustom ? ' (will create custom copy)' : ''}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 w-6 p-0"
-                    onClick={() => selectedColorId && removeColor(activePaletteId, selectedColorId)}
-                    disabled={!selectedColorId || activeColors.length <= 1}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Remove color{!activePalette?.isCustom ? ' (will create custom copy)' : ''}</p>
-                </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
             </div>
-        )}
-
-        {/* Spacer when no palette */}
-        {!activePalette && <div className="flex-1" />}
-
-        {/* Import/Export buttons (always visible) */}
-        <div className="flex gap-0.5">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-6 w-6 p-0"
-                  onClick={() => setIsImportDialogOpen(true)}
-                >
-                  <Upload className="h-3 w-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Import palette</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-6 w-6 p-0"
-                  onClick={() => setIsExportDialogOpen(true)}
-                >
-                  <Download className="h-3 w-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Export palette</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-
-        </div>
-      </div>      {/* Status text */}
-      {activePalette && (
-        <div className="text-xs text-muted-foreground text-center">
-          {activePalette.name} • {activeColors.length} colors
-          {selectedColorId && (
-            <span className="ml-2">
-              • Selected: {activeColors.find(c => c.id === selectedColorId)?.name || 'Color'}
-            </span>
           )}
-        </div>
-      )}
+
+          {/* Status text */}
+          {activePalette && (
+            <div className="text-xs text-muted-foreground text-center">
+              {activePalette.name} • {activeColors.length} colors
+              {selectedColorId && (
+                <span className="ml-2">
+                  • Selected: {activeColors.find(c => c.id === selectedColorId)?.name || 'Color'}
+                </span>
+              )}
+            </div>
+          )}
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Color Picker Modal */}
       <ColorPickerOverlay
