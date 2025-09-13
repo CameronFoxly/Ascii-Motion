@@ -11,6 +11,7 @@ import { ForegroundBackgroundSelector } from './ForegroundBackgroundSelector';
 import { ColorPickerOverlay } from './ColorPickerOverlay';
 import { ImportPaletteDialog } from './ImportPaletteDialog';
 import { ExportPaletteDialog } from './ExportPaletteDialog';
+import { ManagePalettesDialog } from './ManagePalettesDialog';
 import { ANSI_COLORS } from '../../constants/colors';
 
 interface ColorPickerProps {
@@ -33,6 +34,10 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
     updateColor,
     moveColorLeft,
     moveColorRight,
+    createCustomPalette,
+    deletePalette,
+    renamePalette,
+    duplicatePalette,
     initialize,
     addRecentColor
   } = usePaletteStore();
@@ -44,6 +49,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
   const [editingColorId, setEditingColorId] = useState<string | null>(null);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [isManagePalettesOpen, setIsManagePalettesOpen] = useState(false);
 
   // Initialize palette store on mount (ensure default palettes are loaded)
   useEffect(() => {
@@ -228,23 +234,46 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label className="text-sm font-medium text-muted-foreground">Palette</label>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-6 w-6 p-0"
-                  onClick={() => {/* TODO: Open palette manager */}}
-                >
-                  <Settings className="h-3 w-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Manage palettes</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 w-6 p-0"
+                    onClick={() => {
+                      const newPaletteId = createCustomPalette('New Palette');
+                      setActivePalette(newPaletteId);
+                    }}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>New palette</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 w-6 p-0"
+                    onClick={() => setIsManagePalettesOpen(true)}
+                  >
+                    <Settings className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Manage palettes</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
         
         <Select value={activePaletteId} onValueChange={handlePaletteChange}>
@@ -569,6 +598,12 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
       <ExportPaletteDialog
         isOpen={isExportDialogOpen}
         onOpenChange={setIsExportDialogOpen}
+      />
+
+      {/* Manage Palettes Dialog */}
+      <ManagePalettesDialog
+        isOpen={isManagePalettesOpen}
+        onOpenChange={setIsManagePalettesOpen}
       />
     </div>
   );

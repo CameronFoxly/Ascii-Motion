@@ -133,7 +133,7 @@ export const usePaletteStore = create<PaletteStore>()((set, get) => ({
         set({ activePaletteId: paletteId, selectedColorId: null });
       },
 
-      createCustomPalette: (name: string, colors: string[] = ['#000000']) => {
+      createCustomPalette: (name: string, colors: string[] = ['#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff']) => {
         const paletteId = generatePaletteId();
         const paletteColors: PaletteColor[] = colors.map(color => ({
           id: generateColorId(),
