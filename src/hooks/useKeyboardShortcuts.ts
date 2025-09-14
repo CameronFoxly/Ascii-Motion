@@ -143,13 +143,13 @@ export const useKeyboardShortcuts = () => {
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     // If any modal dialog is open, disable all keyboard shortcuts
-    // Check for common modal/dialog selectors in the DOM
-    const hasOpenModal = document.querySelector('[role="dialog"]') || 
-                        document.querySelector('[data-state="open"]') ||
-                        document.querySelector('.modal-open') ||
-                        document.querySelector('[aria-modal="true"]');
+    // Check for shadcn/ui dialogs that are actually open and visible
+    const openDialogs = Array.from(document.querySelectorAll('[role="dialog"]')).filter(dialog => {
+      const style = window.getComputedStyle(dialog);
+      return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+    });
     
-    if (hasOpenModal) {
+    if (openDialogs.length > 0) {
       return;
     }
 
