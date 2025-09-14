@@ -142,6 +142,17 @@ export const useKeyboardShortcuts = () => {
   } = useToolStore();
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    // If any modal dialog is open, disable all keyboard shortcuts
+    // Check for common modal/dialog selectors in the DOM
+    const hasOpenModal = document.querySelector('[role="dialog"]') || 
+                        document.querySelector('[data-state="open"]') ||
+                        document.querySelector('.modal-open') ||
+                        document.querySelector('[aria-modal="true"]');
+    
+    if (hasOpenModal) {
+      return;
+    }
+
     // If text tool is actively typing, only allow Escape and modifier-based shortcuts
     // This prevents conflicts with single-key tool hotkeys and the space bar
     if (textToolState.isTyping && !event.metaKey && !event.ctrlKey && event.key !== 'Escape') {
