@@ -32,12 +32,26 @@ export const ForegroundBackgroundSelector: React.FC<ForegroundBackgroundSelector
   // Handle swapping foreground/background colors
   const handleSwapColors = () => {
     const tempColor = selectedColor;
-    setSelectedColor(selectedBgColor);
-    setSelectedBgColor(tempColor);
     
-    // Add both colors to recent colors
-    addRecentColor(selectedBgColor);
-    addRecentColor(tempColor);
+    // Handle edge case: never allow transparent as foreground color
+    if (selectedBgColor === 'transparent' || selectedBgColor === ANSI_COLORS.transparent) {
+      // Background becomes current foreground color
+      setSelectedBgColor(tempColor);
+      // Foreground stays the same (no transparent characters allowed)
+      // setSelectedColor remains unchanged
+    } else {
+      // Normal swap
+      setSelectedColor(selectedBgColor);
+      setSelectedBgColor(tempColor);
+    }
+    
+    // Add both colors to recent colors (only if they're not transparent)
+    if (selectedBgColor !== 'transparent' && selectedBgColor !== ANSI_COLORS.transparent) {
+      addRecentColor(selectedBgColor);
+    }
+    if (tempColor !== 'transparent' && tempColor !== ANSI_COLORS.transparent) {
+      addRecentColor(tempColor);
+    }
   };
 
   // Handle reset to default colors

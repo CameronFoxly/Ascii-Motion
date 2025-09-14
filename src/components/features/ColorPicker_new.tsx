@@ -5,11 +5,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
-import { Palette, Type, Settings, Plus, Trash2, ChevronLeft, ChevronRight, Upload, Download } from 'lucide-react';
-import { CollapsibleHeader } from '../common/CollapsibleHeader';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Palette, Type, Settings, Plus, Trash2, ChevronLeft, ChevronRight, Upload, Download, ChevronDown, ChevronUp } from 'lucide-react';
 import { ForegroundBackgroundSelector } from './ForegroundBackgroundSelector';
 import { ColorPickerOverlay } from './ColorPickerOverlay';
 import { ImportPaletteDialog } from './ImportPaletteDialog';
@@ -95,18 +93,6 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
   // Handle color selection for editing (single click)
   const handleColorPaletteSelect = (colorId: string) => {
     setSelectedColorId(selectedColorId === colorId ? null : colorId);
-  };
-
-  // Get current active color based on which tab is active
-  const getCurrentActiveColor = () => {
-    if (activeTab === 'bg') {
-      // If background is transparent, use default grey instead
-      if (selectedBgColor === 'transparent' || selectedBgColor === ANSI_COLORS.transparent) {
-        return '#808080';
-      }
-      return selectedBgColor;
-    }
-    return selectedColor;
   };
 
   // Drag and drop state
@@ -234,29 +220,83 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
     <div className={`space-y-3 ${className}`}>
       {/* Color Section */}
       <Collapsible open={isColorSectionOpen} onOpenChange={setIsColorSectionOpen}>
-        <CollapsibleHeader isOpen={isColorSectionOpen}>
-          Color
-        </CollapsibleHeader>
-        <CollapsibleContent className="collapsible-content space-y-3">
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full justify-between p-2 h-auto font-medium text-sm">
+            Color
+            {isColorSectionOpen ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-3">
           {/* Photoshop-style foreground/background selector */}
           <ForegroundBackgroundSelector onOpenColorPicker={handleOpenColorPicker} />
         </CollapsibleContent>
       </Collapsible>
 
-      <div className="relative -mx-4 h-px">
-        <Separator className="absolute inset-0" />
-      </div>
-
       {/* Palette Section */}
       <Collapsible open={isPaletteSectionOpen} onOpenChange={setIsPaletteSectionOpen}>
-        <CollapsibleHeader isOpen={isPaletteSectionOpen}>
-          Palette
-        </CollapsibleHeader>
-        <CollapsibleContent className="collapsible-content space-y-3">
-          {/* Palette selector with inline buttons */}
-          <div className="flex items-center gap-1">
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full justify-between p-2 h-auto font-medium text-sm">
+            Palette
+            {isPaletteSectionOpen ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-3">
+          {/* Palette selector */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-muted-foreground">Active Palette</label>
+              <div className="flex gap-1">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 w-6 p-0"
+                        onClick={() => {
+                          const newPaletteId = createCustomPalette('New Palette');
+                          setActivePalette(newPaletteId);
+                        }}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Create new palette</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 w-6 p-0"
+                        onClick={() => setIsManagePalettesOpen(true)}
+                      >
+                        <Settings className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Manage palettes</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </div>
+
             <Select value={activePaletteId || ''} onValueChange={handlePaletteChange}>
-              <SelectTrigger className="flex-1 h-8 text-xs">
+              <SelectTrigger className="w-full h-8 text-xs">
                 <SelectValue placeholder="Select palette..." />
               </SelectTrigger>
               <SelectContent>
@@ -277,45 +317,6 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                 ))}
               </SelectContent>
             </Select>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 w-8 p-0 flex-shrink-0"
-                    onClick={() => {
-                      const newPaletteId = createCustomPalette('New Palette');
-                      setActivePalette(newPaletteId);
-                    }}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Create new palette</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 w-8 p-0 flex-shrink-0"
-                    onClick={() => setIsManagePalettesOpen(true)}
-                  >
-                    <Settings className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Manage palettes</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </div>
 
           {/* Color palette tabs */}
@@ -510,7 +511,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                         size="sm"
                         variant="outline"
                         className="h-6 w-6 p-0"
-                        onClick={() => addColor(activePaletteId, getCurrentActiveColor())}
+                        onClick={() => addColor(activePaletteId, '#808080')}
                       >
                         <Plus className="h-3 w-3" />
                       </Button>
