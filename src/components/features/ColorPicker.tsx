@@ -255,10 +255,11 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
         <CollapsibleContent className="collapsible-content space-y-3">
           {/* Palette selector with inline buttons */}
           <div className="flex items-center gap-1">
-            <Select value={activePaletteId || ''} onValueChange={handlePaletteChange}>
-              <SelectTrigger className="flex-1 h-8 text-xs">
-                <SelectValue placeholder="Select palette..." />
-              </SelectTrigger>
+            <div className="w-28 flex-shrink-0">
+              <Select value={activePaletteId || ''} onValueChange={handlePaletteChange}>
+                <SelectTrigger className="w-full h-8 text-xs">
+                  <SelectValue placeholder="Select palette..." className="truncate" />
+                </SelectTrigger>
               <SelectContent>
                 {customPalettes.length > 0 && (
                   <>
@@ -277,6 +278,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                 ))}
               </SelectContent>
             </Select>
+            </div>
             
             <TooltipProvider>
               <Tooltip>
