@@ -446,12 +446,11 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
+        <div className="space-y-2">
           {/* Color Preview */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <div className="flex-1">
-              <Label className="text-sm font-medium">Preview</Label>
-              <div className="flex h-12 border border-border rounded overflow-hidden">
+              <div className="flex h-8 border border-border rounded overflow-hidden">
                 {/* Current Color */}
                 <div className="flex-1 relative">
                   {(currentColor === 'transparent' || currentColor === ANSI_COLORS.transparent) ? (
@@ -518,8 +517,7 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
           </div>
 
           {/* Color Wheel and Value Slider */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Color Wheel</Label>
+          <div className="space-y-1">
             <div className="flex justify-center items-start gap-4">
               {/* Color Wheel */}
               <div 
@@ -642,12 +640,10 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
           <Separator />
 
           {/* HSV Controls */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">HSV</Label>
-            
+          <div className="space-y-2">
             {/* Hue */}
-            <div className="flex items-center gap-2">
-              <Label className="w-4 text-xs">H</Label>
+            <div className="flex items-center gap-1.5">
+              <Label className="w-3 text-xs">H</Label>
               <Slider
                 value={isTransparentColor ? 0 : hsvValues.h}
                 onValueChange={(value) => handleHsvChange('h', value)}
@@ -659,15 +655,15 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
               <Input
                 value={isTransparentColor ? '-' : hsvValues.h.toFixed(2)}
                 onChange={(e) => handleHsvInputChange('h', e.target.value)}
-                className="w-20 h-8 text-xs select-text"
+                className="w-16 h-7 text-xs select-text"
                 disabled={isTransparentColor}
               />
-              <span className="text-xs text-muted-foreground">°</span>
+              <span className="text-xs text-muted-foreground w-2">°</span>
             </div>
             
             {/* Saturation */}
-            <div className="flex items-center gap-2">
-              <Label className="w-4 text-xs">S</Label>
+            <div className="flex items-center gap-1.5">
+              <Label className="w-3 text-xs">S</Label>
               <Slider
                 value={isTransparentColor ? 0 : hsvValues.s}
                 onValueChange={(value) => handleHsvChange('s', value)}
@@ -679,15 +675,15 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
               <Input
                 value={isTransparentColor ? '-' : Math.round(hsvValues.s).toString()}
                 onChange={(e) => handleHsvInputChange('s', e.target.value)}
-                className="w-20 h-8 text-xs"
+                className="w-16 h-7 text-xs"
                 disabled={isTransparentColor}
               />
-              <span className="text-xs text-muted-foreground">%</span>
+              <span className="text-xs text-muted-foreground w-2">%</span>
             </div>
             
             {/* Value */}
-            <div className="flex items-center gap-2">
-              <Label className="w-4 text-xs">V</Label>
+            <div className="flex items-center gap-1.5">
+              <Label className="w-3 text-xs">V</Label>
               <Slider
                 value={isTransparentColor ? 0 : hsvValues.v}
                 onValueChange={(value) => handleHsvChange('v', value)}
@@ -699,22 +695,20 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
               <Input
                 value={isTransparentColor ? '-' : Math.round(hsvValues.v).toString()}
                 onChange={(e) => handleHsvInputChange('v', e.target.value)}
-                className="w-20 h-8 text-xs"
+                className="w-16 h-7 text-xs"
                 disabled={isTransparentColor}
               />
-              <span className="text-xs text-muted-foreground">%</span>
+              <span className="text-xs text-muted-foreground w-2">%</span>
             </div>
           </div>
 
           <Separator />
 
           {/* RGB Controls */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">RGB</Label>
-            
+          <div className="space-y-2">
             {/* Red */}
-            <div className="flex items-center gap-2">
-              <Label className="w-4 text-xs">R</Label>
+            <div className="flex items-center gap-1.5">
+              <Label className="w-3 text-xs">R</Label>
               <Slider
                 value={isTransparentColor ? 0 : rgbValues.r}
                 onValueChange={(value) => handleRgbChange('r', value)}
@@ -726,14 +720,14 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
               <Input
                 value={isTransparentColor ? '-' : rgbValues.r.toString()}
                 onChange={(e) => handleRgbInputChange('r', e.target.value)}
-                className="w-16 h-8 text-xs"
+                className="w-14 h-7 text-xs"
                 disabled={isTransparentColor}
               />
             </div>
             
             {/* Green */}
-            <div className="flex items-center gap-2">
-              <Label className="w-4 text-xs">G</Label>
+            <div className="flex items-center gap-1.5">
+              <Label className="w-3 text-xs">G</Label>
               <Slider
                 value={isTransparentColor ? 0 : rgbValues.g}
                 onValueChange={(value) => handleRgbChange('g', value)}
@@ -745,14 +739,14 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
               <Input
                 value={isTransparentColor ? '-' : rgbValues.g.toString()}
                 onChange={(e) => handleRgbInputChange('g', e.target.value)}
-                className="w-16 h-8 text-xs"
+                className="w-14 h-7 text-xs"
                 disabled={isTransparentColor}
               />
             </div>
             
             {/* Blue */}
-            <div className="flex items-center gap-2">
-              <Label className="w-4 text-xs">B</Label>
+            <div className="flex items-center gap-1.5">
+              <Label className="w-3 text-xs">B</Label>
               <Slider
                 value={isTransparentColor ? 0 : rgbValues.b}
                 onValueChange={(value) => handleRgbChange('b', value)}
@@ -764,7 +758,7 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
               <Input
                 value={isTransparentColor ? '-' : rgbValues.b.toString()}
                 onChange={(e) => handleRgbInputChange('b', e.target.value)}
-                className="w-16 h-8 text-xs"
+                className="w-14 h-7 text-xs"
                 disabled={isTransparentColor}
               />
             </div>
@@ -773,26 +767,25 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
           <Separator />
 
           {/* Hex Input */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Hex</Label>
+          <div>
             <Input
               value={isTransparentColor ? '-' : hexInput}
               onChange={(e) => handleHexChange(e.target.value)}
               placeholder={isTransparentColor ? "Transparent" : "#000000"}
-              className="font-mono"
+              className="font-mono h-7 text-xs"
               disabled={isTransparentColor}
             />
           </div>
 
           {/* Recent Colors */}
           {recentColors.length > 0 && (
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label className="text-sm font-medium">Recent Colors</Label>
               <div className="flex gap-1 flex-wrap">
                 {recentColors.slice(0, 10).map((color, index) => (
                   <button
                     key={index}
-                    className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform"
+                    className="w-5 h-5 rounded border border-border hover:scale-110 transition-transform"
                     style={{ backgroundColor: color }}
                     onClick={() => handleRecentColorSelect(color)}
                     title={color}
@@ -804,7 +797,7 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
         </div>
 
         {/* Dialog Footer */} 
-        <div className="flex justify-between pt-4">
+        <div className="flex justify-between pt-3">
           <Button
             variant="outline"
             onClick={handleReset}
