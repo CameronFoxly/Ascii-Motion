@@ -46,27 +46,11 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
   const [previewColor, setPreviewColor] = useState(isTransparent ? 'transparent' : initialColor);
   const [hexInput, setHexInput] = useState(isTransparent ? '' : initialColor);
   const [rgbValues, setRgbValues] = useState<RGBColor>({ r: 0, g: 0, b: 0 });
-  // Initialize HSV values from the initial color
-  const getInitialHSV = () => {
-    if (initialColor === 'transparent' || initialColor === ANSI_COLORS.transparent) {
-      return { h: 0, s: 0, v: 0 };
-    }
-    const hsv = hexToHsv(normalizeHexColor(initialColor));
-    return hsv || { h: 120, s: 100, v: 80 }; // Default to green if parsing fails
-  };
-  
-  const [hsvValues, setHsvValues] = useState<HSVColor>(getInitialHSV());
-  const [colorWheelPosition, setColorWheelPosition] = useState({ x: 80, y: 80 }); // Center of 160px wheel
-  const [valueSliderValue, setValueSliderValue] = useState(() => {
-    if (initialColor === 'transparent' || initialColor === ANSI_COLORS.transparent) {
-      return 0;
-    }
-    const hsv = hexToHsv(normalizeHexColor(initialColor));
-    return hsv ? hsv.v : 80; // Default to 80% if parsing fails
-  });
+  const [hsvValues, setHsvValues] = useState<HSVColor>({ h: 0, s: 0, v: 0 });
+  const [colorWheelPosition, setColorWheelPosition] = useState({ x: 64, y: 64 }); // Center of 128px wheel
+  const [valueSliderValue, setValueSliderValue] = useState(100);
   const [isDragging, setIsDragging] = useState(false);
   const [isTransparentColor, setIsTransparentColor] = useState(isTransparent);
-  const [hasInitialized, setHasInitialized] = useState(false);
   
   const colorWheelRef = useRef<HTMLDivElement>(null);
 
@@ -75,7 +59,6 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     if (isOpen) {
       const transparent = initialColor === 'transparent' || initialColor === ANSI_COLORS.transparent;
       setIsTransparentColor(transparent);
-
       
       if (transparent) {
         // Handle transparent color
@@ -85,7 +68,7 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
         setRgbValues({ r: 0, g: 0, b: 0 });
         setHsvValues({ h: 0, s: 0, v: 0 });
         setValueSliderValue(0);
-        setColorWheelPosition({ x: 80, y: 80 });
+        setColorWheelPosition({ x: 64, y: 64 });
       } else {
         // Handle normal color
         const color = normalizeHexColor(initialColor);
@@ -103,11 +86,6 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
           updateColorWheelPosition(hsv);
         }
       }
-      
-      // Mark as initialized after setting all values
-      setTimeout(() => setHasInitialized(true), 0);
-    } else {
-      setHasInitialized(false);
     }
   }, [isOpen, initialColor]);
 
@@ -118,9 +96,9 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
 
   // Update color wheel position based on HSV values
   const updateColorWheelPosition = useCallback((hsv: HSVColor) => {
-    const centerX = 80; // Half of 160px wheel
-    const centerY = 80;
-    const maxRadius = 72; // Slightly less than 80 to stay within bounds
+    const centerX = 64; // Half of 128px wheel
+    const centerY = 64;
+    const maxRadius = 54; // Slightly less than 64 to stay within bounds
     
     const angle = (hsv.h * Math.PI) / 180;
     const radius = (hsv.s / 100) * maxRadius;
@@ -232,37 +210,21 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     const distance = Math.sqrt(x * x + y * y);
     const maxDistance = Math.min(centerX, centerY) - 10;
     
-    // Always calculate the angle for hue
-    let angle = Math.atan2(y, x);
-    angle = (angle * 180 / Math.PI + 360) % 360; // Convert to 0-360 degrees
-    
-    // Calculate saturation based on distance, but clamp to maximum when outside
-    let saturation: number;
-    let displayX: number;
-    let displayY: number;
-    
     if (distance <= maxDistance) {
-      // Inside circle - normal behavior
-      saturation = (distance / maxDistance) * 100;
-      displayX = centerX + x;
-      displayY = centerY + y;
-    } else {
-      // Outside circle - snap to edge with full saturation
-      saturation = 100;
+      let angle = Math.atan2(y, x);
+      angle = (angle * 180 / Math.PI + 360) % 360; // Convert to 0-360 degrees
       
-      // Calculate position on the edge of the circle
-      const edgeX = Math.cos(angle * Math.PI / 180) * maxDistance;
-      const edgeY = Math.sin(angle * Math.PI / 180) * maxDistance;
-      displayX = centerX + edgeX;
-      displayY = centerY + edgeY;
+      const saturation = Math.min(100, (distance / maxDistance) * 100);
+      
+      const newHsv = { ...hsvValues, h: angle, s: saturation };
+      setHsvValues(newHsv);
+      updateFromHsv(newHsv);
+      
+      // Update position for visual feedback
+      const displayX = centerX + x;
+      const displayY = centerY + y;
+      setColorWheelPosition({ x: displayX, y: displayY });
     }
-    
-    const newHsv = { ...hsvValues, h: angle, s: saturation };
-    setHsvValues(newHsv);
-    updateFromHsv(newHsv);
-    
-    // Update position for visual feedback
-    setColorWheelPosition({ x: displayX, y: displayY });
   };
 
   const handleColorWheelMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -337,90 +299,25 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     onOpenChange(false);
   };
 
-  // Create canvas-based HSV color wheel
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  
-  // Generate HSV color wheel on canvas - using ref to prevent layout shifts
-  const renderingRef = useRef(false);
-  
-  useEffect(() => {
-    if (!isOpen || !hasInitialized) return; // Don't render when dialog is closed or not initialized
-    
-    const canvas = canvasRef.current;
-    if (!canvas || renderingRef.current) return;
-    
-    renderingRef.current = true;
-    
-    // Use requestAnimationFrame to prevent layout shifts
-    requestAnimationFrame(() => {
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        renderingRef.current = false;
-        return;
-      }
-      
-      const size = 160;
-      const center = size / 2;
-      const radius = center - 4;
-      
-      // Only set dimensions if they're different to prevent layout recalculation
-      if (canvas.width !== size) canvas.width = size;
-      if (canvas.height !== size) canvas.height = size;
-      
-      // Enable canvas smoothing
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      
-      const imageData = ctx.createImageData(size, size);
-      const data = imageData.data;
-      
-      for (let y = 0; y < size; y++) {
-        for (let x = 0; x < size; x++) {
-          const dx = x - center;
-          const dy = y - center;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          
-          if (distance <= radius) {
-            // Calculate hue from angle
-            let angle = Math.atan2(dy, dx);
-            angle = (angle * 180 / Math.PI + 360) % 360;
-            
-            // Calculate saturation from distance
-            const saturation = Math.min(100, (distance / radius) * 100);
-            
-            // Use current value from slider
-            const value = valueSliderValue;
-            
-            // Convert HSV to RGB
-            const rgb = hsvToRgb({ h: angle, s: saturation, v: value });
-            
-            // Anti-aliasing for smooth edges
-            let alpha = 255;
-            if (distance > radius - 1) {
-              alpha = Math.round(255 * (radius - distance));
-            }
-            
-            const index = (y * size + x) * 4;
-            data[index] = rgb.r;
-            data[index + 1] = rgb.g;
-            data[index + 2] = rgb.b;
-            data[index + 3] = alpha;
-          } else {
-            // Outside circle - transparent
-            const index = (y * size + x) * 4;
-            data[index + 3] = 0;
-          }
-        }
-      }
-      
-      ctx.putImageData(imageData, 0, 0);
-      renderingRef.current = false;
-    });
-  }, [valueSliderValue, hsvValues, isOpen, hasInitialized]);
+  // Create radial gradient for saturation in color wheel
+  const createColorWheelStyle = () => {
+    const lightness = 50 + (valueSliderValue - 50) * 0.5; // Adjust lightness based on value
+    return {
+      background: `conic-gradient(
+        hsl(0, 100%, ${lightness}%),
+        hsl(60, 100%, ${lightness}%),
+        hsl(120, 100%, ${lightness}%),
+        hsl(180, 100%, ${lightness}%),
+        hsl(240, 100%, ${lightness}%),
+        hsl(300, 100%, ${lightness}%),
+        hsl(0, 100%, ${lightness}%)
+      ), radial-gradient(circle, transparent 0%, rgba(255,255,255,0.8) 70%)`
+    };
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md select-none">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
@@ -499,35 +396,14 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
           {/* Color Wheel and Value Slider */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Color Wheel</Label>
-            <div className="flex justify-center items-start gap-4">
+            <div className="flex justify-center items-center gap-4">
               {/* Color Wheel */}
               <div 
                 ref={colorWheelRef}
-                className="rounded-full border border-border cursor-crosshair relative select-none overflow-hidden"
+                className="w-32 h-32 rounded-full border border-border cursor-crosshair relative select-none"
+                style={createColorWheelStyle()}
                 onMouseDown={handleColorWheelMouseDown}
-                style={{ 
-                  width: '160px',
-                  height: '160px',
-                  clipPath: 'circle(50% at 50% 50%)',
-                  borderRadius: '50%',
-                  flexShrink: 0,
-                  contain: 'layout style paint'
-                }}
               >
-                <canvas
-                  ref={canvasRef}
-                  width={160}
-                  height={160}
-                  style={{ 
-                    width: '160px',
-                    height: '160px',
-                    borderRadius: '50%',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    display: 'block'
-                  }}
-                />
                 <div 
                   className="absolute w-3 h-3 bg-white border-2 border-black rounded-full transform -translate-x-1.5 -translate-y-1.5 pointer-events-none"
                   style={{
@@ -537,72 +413,19 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
                 />
               </div>
               
-              {/* Value Slider - Vertical */}
-              <div className="flex flex-col items-center gap-2 ml-4 select-none">
-                <Label className="text-xs font-medium select-none">V</Label>
-                <div className="relative h-32 w-4 flex items-center justify-center select-none">
-                  {/* Custom vertical slider track */}
-                  <div className="absolute h-32 w-1 bg-muted rounded-full"></div>
-                  {/* Slider handle */}
-                  <div 
-                    className="absolute w-3 h-3 bg-primary rounded-full cursor-pointer shadow-sm border border-background z-10"
-                    style={{
-                      top: `${((100 - valueSliderValue) / 100) * 128 - 6}px`,
-                      left: '50%',
-                      transform: 'translateX(-50%)'
-                    }}
-                    onMouseDown={(e) => {
-                      if (isTransparentColor) return;
-                      
-                      e.preventDefault(); // Prevent text selection
-                      e.stopPropagation(); // Prevent track click handler
-                      
-                      const startY = e.clientY;
-                      const startValue = valueSliderValue;
-                      
-                      const handleMouseMove = (moveEvent: MouseEvent) => {
-                        const deltaY = moveEvent.clientY - startY;
-                        const newValue = Math.max(0, Math.min(100, startValue - (deltaY / 128) * 100));
-                        handleValueSliderChange(newValue);
-                      };
-                      
-                      const handleMouseUp = () => {
-                        document.removeEventListener('mousemove', handleMouseMove);
-                        document.removeEventListener('mouseup', handleMouseUp);
-                      };
-                      
-                      document.addEventListener('mousemove', handleMouseMove);
-                      document.addEventListener('mouseup', handleMouseUp);
-                    }}
-                  />
-                  {/* Click on track to set value */}
-                  <div 
-                    className="absolute inset-0 cursor-pointer select-none"
-                    onMouseDown={(e) => {
-                      if (isTransparentColor) return;
-                      
-                      e.preventDefault(); // Prevent text selection
-                      
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const y = e.clientY - rect.top;
-                      const newValue = Math.max(0, Math.min(100, 100 - (y / rect.height) * 100));
-                      handleValueSliderChange(newValue);
-                      
-                      // Start dragging from track click
-                      const handleMouseMove = (moveEvent: MouseEvent) => {
-                        const moveY = moveEvent.clientY - rect.top;
-                        const moveValue = Math.max(0, Math.min(100, 100 - (moveY / rect.height) * 100));
-                        handleValueSliderChange(moveValue);
-                      };
-                      
-                      const handleMouseUp = () => {
-                        document.removeEventListener('mousemove', handleMouseMove);
-                        document.removeEventListener('mouseup', handleMouseUp);
-                      };
-                      
-                      document.addEventListener('mousemove', handleMouseMove);
-                      document.addEventListener('mouseup', handleMouseUp);
-                    }}
+              {/* Value Slider */}
+              <div className="flex flex-col items-center gap-2">
+                <Label className="text-xs font-medium">V</Label>
+                <div className="w-6 flex flex-col items-center">
+                  <input
+                    type="range"
+                    value={valueSliderValue}
+                    onChange={(e) => handleValueSliderChange(parseFloat(e.target.value))}
+                    max={100}
+                    step={1}
+                    className="h-32 w-2 bg-muted rounded-lg appearance-none cursor-pointer transform -rotate-90 origin-center"
+                    style={{ writingMode: 'bt-lr' } as any}
+                    disabled={isTransparentColor}
                   />
                 </div>
                 <span className="text-xs text-muted-foreground">
@@ -632,7 +455,7 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
               <Input
                 value={isTransparentColor ? '-' : hsvValues.h.toFixed(2)}
                 onChange={(e) => handleHsvInputChange('h', e.target.value)}
-                className="w-20 h-8 text-xs select-text"
+                className="w-20 h-8 text-xs"
                 disabled={isTransparentColor}
               />
               <span className="text-xs text-muted-foreground">°</span>
