@@ -3,7 +3,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { RotateCcw, Palette, Type } from 'lucide-react';
+import { RotateCcw, Palette, Type, MoveDiagonal2 } from 'lucide-react';
 import { useToolStore } from '../../stores/toolStore';
 import { usePaletteStore } from '../../stores/paletteStore';
 import { ANSI_COLORS } from '../../constants/colors';
@@ -71,58 +71,60 @@ export const ForegroundBackgroundSelector: React.FC<ForegroundBackgroundSelector
       <div className={`space-y-3 ${className}`}>
         {/* Main color selector area */}
         <div className="flex items-center gap-3">
-          {/* Large color squares */}
-          <div className="relative">
-            {/* Background color square (larger, behind) */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className="w-12 h-12 rounded border-2 border-border hover:border-primary transition-colors shadow-sm relative overflow-hidden"
-                  style={{ 
-                    backgroundColor: isBackgroundTransparent ? '#ffffff' : selectedBgColor,
-                    backgroundImage: isBackgroundTransparent 
-                      ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)'
-                      : 'none',
-                    backgroundSize: isBackgroundTransparent ? '8px 8px' : 'auto',
-                    backgroundPosition: isBackgroundTransparent ? '0 0, 0 4px, 4px -4px, -4px 0px' : 'auto'
-                  }}
-                  onClick={handleBackgroundClick}
-                  title="Background Color"
-                >
-                  {isBackgroundTransparent && (
-                    <svg
-                      className="absolute inset-0 w-full h-full"
-                      viewBox="0 0 48 48"
-                      style={{ pointerEvents: 'none' }}
-                    >
-                      <line
-                        x1="4"
-                        y1="44"
-                        x2="44"
-                        y2="4"
-                        stroke="#dc2626"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  )}
-                  
-                  {/* Background label */}
-                  <div className="absolute -bottom-1 -right-1">
-                    <div className="bg-background border border-border rounded-full p-0.5">
-                      <Palette className="w-2.5 h-2.5 text-muted-foreground" />
+          {/* Color squares container - positioned to show both squares with corner overlap */}
+          <div className="relative w-12 h-12">
+            {/* Background color square (positioned bottom-right) */}
+            <div className="absolute bottom-0 right-0">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className="w-8 h-8 rounded border-2 border-border hover:border-primary transition-colors shadow-sm relative overflow-hidden"
+                    style={{ 
+                      backgroundColor: isBackgroundTransparent ? '#ffffff' : selectedBgColor,
+                      backgroundImage: isBackgroundTransparent 
+                        ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)'
+                        : 'none',
+                      backgroundSize: isBackgroundTransparent ? '8px 8px' : 'auto',
+                      backgroundPosition: isBackgroundTransparent ? '0 0, 0 4px, 4px -4px, -4px 0px' : 'auto'
+                    }}
+                    onClick={handleBackgroundClick}
+                    title="Background Color"
+                  >
+                    {isBackgroundTransparent && (
+                      <svg
+                        className="absolute inset-0 w-full h-full"
+                        viewBox="0 0 32 32"
+                        style={{ pointerEvents: 'none' }}
+                      >
+                        <line
+                          x1="2"
+                          y1="30"
+                          x2="30"
+                          y2="2"
+                          stroke="#dc2626"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    )}
+                    
+                    {/* Background label */}
+                    <div className="absolute -bottom-1 -right-1">
+                      <div className="bg-background border border-border rounded-full p-0.5">
+                        <Palette className="w-2.5 h-2.5 text-muted-foreground" />
+                      </div>
                     </div>
-                  </div>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Background Color: {isBackgroundTransparent ? 'Transparent' : selectedBgColor}</p>
-                <p className="text-xs text-muted-foreground">Click to edit</p>
-              </TooltipContent>
-            </Tooltip>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Background Color: {isBackgroundTransparent ? 'Transparent' : selectedBgColor}</p>
+                  <p className="text-xs text-muted-foreground">Click to edit</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
 
-            {/* Foreground color square (smaller, in front) */}
-            <div className="absolute -top-2 -left-2">
+            {/* Foreground color square (positioned top-left, overlapping corner) */}
+            <div className="absolute top-0 left-0">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -158,9 +160,7 @@ export const ForegroundBackgroundSelector: React.FC<ForegroundBackgroundSelector
                   className="h-6 w-6 p-0"
                   onClick={handleSwapColors}
                 >
-                  <div className="flex items-center justify-center">
-                    <div className="w-2 h-2 bg-foreground rounded-sm transform rotate-45"></div>
-                  </div>
+                  <MoveDiagonal2 className="h-3 w-3" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
