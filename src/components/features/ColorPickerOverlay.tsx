@@ -139,6 +139,7 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     
     if (rgb && hsv) {
       setPreviewColor(normalizedHex);
+      setHexInput(normalizedHex);
       setRgbValues(rgb);
       setHsvValues(hsv);
       setValueSliderValue(hsv.v);
@@ -171,11 +172,26 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     setIsTransparentColor(false);
   }, [updateColorWheelPosition]);
 
-  // Handle hex input change
+  // Handle hex input change with live sanitization
   const handleHexChange = (value: string) => {
-    setHexInput(value);
-    if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
-      updateFromHex(value);
+    // Remove any non-hex characters and convert to uppercase
+    let sanitized = value.replace(/[^#0-9A-Fa-f]/g, '').toUpperCase();
+    
+    // Ensure it starts with # and limit length
+    if (!sanitized.startsWith('#')) {
+      sanitized = '#' + sanitized.replace(/#/g, ''); // Remove any # that's not at the start
+    }
+    
+    // Limit to 7 characters max (#FFFFFF)
+    if (sanitized.length > 7) {
+      sanitized = sanitized.slice(0, 7);
+    }
+    
+    setHexInput(sanitized);
+    
+    // Only update color if we have a valid 6-digit hex
+    if (/^#[0-9A-F]{6}$/.test(sanitized)) {
+      updateFromHex(sanitized);
     }
   };
 
@@ -319,7 +335,7 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
       setRgbValues({ r: 0, g: 0, b: 0 });
       setHsvValues({ h: 0, s: 0, v: 0 });
       setValueSliderValue(0);
-      setColorWheelPosition({ x: 64, y: 64 });
+      setColorWheelPosition({ x: 80, y: 80 });
     } else {
       updateFromHex(currentColor);
     }
@@ -340,32 +356,35 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
   // Create canvas-based HSV color wheel
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
-  // Generate HSV color wheel on canvas - using ref to prevent layout shifts
+  // Generate base HSV color wheel once (at full brightness)
   const renderingRef = useRef(false);
+  const baseRendered = useRef(false);
   
   useEffect(() => {
-    if (!isOpen || !hasInitialized) return; // Don't render when dialog is closed or not initialized
+    if (!isOpen || !hasInitialized || baseRendered.current) return;
     
     const canvas = canvasRef.current;
     if (!canvas || renderingRef.current) return;
     
     renderingRef.current = true;
     
-    // Use requestAnimationFrame to prevent layout shifts
-    requestAnimationFrame(() => {
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        renderingRef.current = false;
-        return;
-      }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      renderingRef.current = false;
+      return;
+    }
       
       const size = 160;
       const center = size / 2;
       const radius = center - 4;
       
-      // Only set dimensions if they're different to prevent layout recalculation
-      if (canvas.width !== size) canvas.width = size;
-      if (canvas.height !== size) canvas.height = size;
+      // Set dimensions only once to prevent layout recalculation
+      if (canvas.width !== size || canvas.height !== size) {
+        canvas.style.width = '160px';
+        canvas.style.height = '160px';
+        canvas.width = size;
+        canvas.height = size;
+      }
       
       // Enable canvas smoothing
       ctx.imageSmoothingEnabled = true;
@@ -388,13 +407,8 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
             // Calculate saturation from distance
             const saturation = Math.min(100, (distance / radius) * 100);
             
-            // Use current value from slider
-            const value = valueSliderValue;
-            
-            // Convert HSV to RGB
-            const rgb = hsvToRgb({ h: angle, s: saturation, v: value });
-            
-            // Anti-aliasing for smooth edges
+          // Use full brightness for base canvas
+          const rgb = hsvToRgb({ h: angle, s: saturation, v: 100 });            // Anti-aliasing for smooth edges
             let alpha = 255;
             if (distance > radius - 1) {
               alpha = Math.round(255 * (radius - distance));
@@ -414,9 +428,16 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
       }
       
       ctx.putImageData(imageData, 0, 0);
+      baseRendered.current = true;
       renderingRef.current = false;
-    });
-  }, [valueSliderValue, hsvValues, isOpen, hasInitialized]);
+  }, [isOpen, hasInitialized]);
+  
+  // Reset base canvas when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      baseRendered.current = false;
+    }
+  }, [isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -511,7 +532,9 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
                   clipPath: 'circle(50% at 50% 50%)',
                   borderRadius: '50%',
                   flexShrink: 0,
-                  contain: 'layout style paint'
+                  contain: 'layout style paint',
+                  willChange: 'contents',
+                  transform: 'translateZ(0)' // Force hardware acceleration
                 }}
               >
                 <canvas
@@ -525,7 +548,11 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
                     position: 'absolute',
                     top: 0,
                     left: 0,
-                    display: 'block'
+                    display: 'block',
+                    willChange: 'filter',
+                    backfaceVisibility: 'hidden',
+                    transform: 'translateZ(0)',
+                    filter: `brightness(${valueSliderValue / 100})`
                   }}
                 />
                 <div 
