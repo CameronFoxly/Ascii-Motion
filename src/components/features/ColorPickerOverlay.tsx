@@ -121,13 +121,11 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     const centerX = 80; // Half of 160px wheel
     const centerY = 80;
     const maxRadius = 72; // Slightly less than 80 to stay within bounds
-    
     const angle = (hsv.h * Math.PI) / 180;
     const radius = (hsv.s / 100) * maxRadius;
-    
-    const x = centerX + radius * Math.cos(angle);
-    const y = centerY + radius * Math.sin(angle);
-    
+    // Round to mitigate sub-pixel oscillation that can cause jitter when React recalculates layout
+    const x = +(centerX + radius * Math.cos(angle)).toFixed(2);
+    const y = +(centerY + radius * Math.sin(angle)).toFixed(2);
     setColorWheelPosition({ x, y });
   }, []);
 
@@ -160,15 +158,16 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     setIsTransparentColor(false);
   }, [updateColorWheelPosition]);
 
-  const updateFromHsv = useCallback((hsv: HSVColor) => {
+  const updateFromHsv = useCallback((hsv: HSVColor, skipWheelPosition: boolean = false) => {
     const rgb = hsvToRgb(hsv);
     const hex = hsvToHex(hsv);
-    
     setPreviewColor(hex);
     setHexInput(hex);
     setRgbValues(rgb);
     setValueSliderValue(hsv.v);
-    updateColorWheelPosition(hsv);
+    if (!skipWheelPosition) {
+      updateColorWheelPosition(hsv);
+    }
     setIsTransparentColor(false);
   }, [updateColorWheelPosition]);
 
@@ -215,7 +214,7 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     const roundedValue = component === 'h' ? Math.round(value * 100) / 100 : Math.round(value);
     const newHsv = { ...hsvValues, [component]: roundedValue };
     setHsvValues(newHsv);
-    updateFromHsv(newHsv);
+    updateFromHsv(newHsv, component === 'v');
   };
 
   // Handle HSV input changes
@@ -232,7 +231,7 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     const newHsv = { ...hsvValues, v: value };
     setHsvValues(newHsv);
     setValueSliderValue(value);
-    updateFromHsv(newHsv);
+    updateFromHsv(newHsv, true);
   };
 
   // Color wheel interaction with drag support
@@ -359,6 +358,10 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
   // Generate base HSV color wheel once (at full brightness)
   const renderingRef = useRef(false);
   const baseRendered = useRef(false);
+  // Cache original wheel pixel data at V=100 for brightness adjustments
+  const baseImageDataRef = useRef<ImageData | null>(null);
+  const lastAppliedValueRef = useRef<number | null>(null);
+  const dprRef = useRef<number>(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1);
   
   useEffect(() => {
     if (!isOpen || !hasInitialized || baseRendered.current) return;
@@ -374,14 +377,16 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
       return;
     }
       
-      const size = 160;
+      const logicalSize = 160; // CSS pixels
+      const dpr = dprRef.current;
+      const size = Math.round(logicalSize * dpr); // backing store size
       const center = size / 2;
-      const radius = center - 4;
+      const radius = center - 4 * dpr; // scale border inset with DPR
       
       // Set dimensions only once to prevent layout recalculation
       if (canvas.width !== size || canvas.height !== size) {
-        canvas.style.width = '160px';
-        canvas.style.height = '160px';
+        canvas.style.width = `${logicalSize}px`;
+        canvas.style.height = `${logicalSize}px`;
         canvas.width = size;
         canvas.height = size;
       }
@@ -389,8 +394,10 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
       // Enable canvas smoothing
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
+      ctx.setTransform(1,0,0,1,0,0); // reset
+      ctx.scale(dpr, dpr); // scale drawing operations to logical pixels
       
-      const imageData = ctx.createImageData(size, size);
+      const imageData = ctx.createImageData(size, size); // we draw in backing pixel space manually
       const data = imageData.data;
       
       for (let y = 0; y < size; y++) {
@@ -427,9 +434,11 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
         }
       }
       
-      ctx.putImageData(imageData, 0, 0);
-      baseRendered.current = true;
-      renderingRef.current = false;
+    ctx.putImageData(imageData, 0, 0);
+    baseImageDataRef.current = imageData; // store base pixels
+    baseRendered.current = true;
+    lastAppliedValueRef.current = 100; // initial brightness
+    renderingRef.current = false;
   }, [isOpen, hasInitialized]);
   
   // Reset base canvas when dialog closes
@@ -438,6 +447,30 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
       baseRendered.current = false;
     }
   }, [isOpen]);
+
+  // Re-render brightness when V changes without shifting underlying wheel pixels
+  useEffect(() => {
+    if (!isOpen || !baseRendered.current) return;
+    if (lastAppliedValueRef.current === valueSliderValue) return; // no change
+    const canvas = canvasRef.current;
+    const base = baseImageDataRef.current;
+    if (!canvas || !base) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    // Create a copy to avoid mutating the base reference
+    const copy = ctx.createImageData(base.width, base.height);
+    const src = base.data;
+    const dst = copy.data;
+    const factor = valueSliderValue / 100; // linear scale
+    for (let i = 0; i < src.length; i += 4) {
+      dst[i] = Math.round(src[i] * factor);
+      dst[i + 1] = Math.round(src[i + 1] * factor);
+      dst[i + 2] = Math.round(src[i + 2] * factor);
+      dst[i + 3] = src[i + 3]; // preserve alpha
+    }
+    ctx.putImageData(copy, 0, 0);
+    lastAppliedValueRef.current = valueSliderValue;
+  }, [valueSliderValue, isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -547,23 +580,20 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
                     top: 0,
                     left: 0,
                     display: 'block',
-                    willChange: 'filter',
-                    backfaceVisibility: 'hidden',
-                    transform: 'translateZ(0)',
-                    filter: `brightness(${valueSliderValue / 100})`
+                    backfaceVisibility: 'hidden'
                   }}
                 />
                 <div 
                   className="absolute w-3 h-3 bg-white border-2 border-black rounded-full transform -translate-x-1.5 -translate-y-1.5 pointer-events-none"
                   style={{
-                    left: colorWheelPosition.x,
-                    top: colorWheelPosition.y
+                    left: Math.round(colorWheelPosition.x),
+                    top: Math.round(colorWheelPosition.y)
                   }}
                 />
               </div>
               
               {/* Value Slider - Vertical */}
-              <div className="flex flex-col items-center gap-2 ml-4 select-none">
+              <div className="flex flex-col items-center gap-2 ml-4 select-none w-12 flex-shrink-0">
                 <Label className="text-xs font-medium select-none">V</Label>
                 <div className="relative h-32 w-4 flex items-center justify-center select-none">
                   {/* Custom vertical slider track */}
@@ -630,7 +660,10 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
                     }}
                   />
                 </div>
-                <span className="text-xs text-muted-foreground">
+                <span 
+                  className="text-xs text-muted-foreground inline-block text-center"
+                  style={{ width: '100%', fontVariantNumeric: 'tabular-nums' }}
+                >
                   {isTransparentColor ? '-' : `${Math.round(valueSliderValue)}%`}
                 </span>
               </div>
