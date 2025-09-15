@@ -31,6 +31,7 @@ export const ExportPaletteDialog: React.FC<ExportPaletteDialogProps> = ({
   const [jsonString, setJsonString] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [downloadedFileName, setDownloadedFileName] = useState('');
 
   // Initialize export data when dialog opens
   useEffect(() => {
@@ -40,25 +41,33 @@ export const ExportPaletteDialog: React.FC<ExportPaletteDialogProps> = ({
       
       if (data && activePalette) {
         setExportData(data);
-        setFileName(sanitizeFileName(data.name));
+        setFileName(sanitizeFileNameForDownload(data.name));
         setJsonString(JSON.stringify(data, null, 2));
       }
     }
   }, [isOpen, activePaletteId, getActivePalette, exportPalette]);
 
-  // Sanitize filename for download
-  const sanitizeFileName = (name: string): string => {
-    return name
-      .replace(/[^a-z0-9]/gi, '_')
-      .replace(/_{2,}/g, '_')
-      .replace(/^_|_$/g, '')
-      .toLowerCase() || 'palette';
+  // Live sanitization for typing - minimal processing, just convert spaces to dashes
+  const liveProcessFileName = (name: string): string => {
+    return name.replace(/\s/g, '-'); // Only convert spaces to dashes during typing
   };
 
-  // Handle filename change
+  // Final sanitization for download - more thorough cleaning
+  const sanitizeFileNameForDownload = (name: string): string => {
+    if (!name.trim()) return '';
+    
+    return name
+      .replace(/\s+/g, '-') // Convert spaces to dashes
+      .replace(/[^a-z0-9\-_]/gi, '') // Allow letters, numbers, dashes, underscores
+      .replace(/[-_]{2,}/g, '-') // Replace multiple consecutive dashes/underscores with single dash
+      .replace(/^[-_]|[-_]$/g, '') // Remove leading/trailing dashes or underscores
+      .toLowerCase();
+  };
+
+  // Handle filename change - live processing for better UX
   const handleFileNameChange = (value: string) => {
-    const sanitized = sanitizeFileName(value);
-    setFileName(sanitized);
+    const processed = liveProcessFileName(value);
+    setFileName(processed);
   };
 
   // Copy JSON to clipboard
@@ -77,18 +86,22 @@ export const ExportPaletteDialog: React.FC<ExportPaletteDialogProps> = ({
     if (!exportData || !fileName) return;
 
     try {
+      // Apply final sanitization at download time
+      const finalFileName = sanitizeFileNameForDownload(fileName) || 'palette';
+      
       const blob = new Blob([jsonString], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${fileName}.json`;
+      link.download = `${finalFileName}.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
       URL.revokeObjectURL(url);
       
+      setDownloadedFileName(finalFileName);
       setDownloadSuccess(true);
       setTimeout(() => {
         setDownloadSuccess(false);
@@ -250,7 +263,7 @@ export const ExportPaletteDialog: React.FC<ExportPaletteDialogProps> = ({
             <Alert className="border-green-200">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-700">
-                Palette exported successfully as {fileName}.json
+                Palette exported successfully as {downloadedFileName}.json
               </AlertDescription>
             </Alert>
           )}
