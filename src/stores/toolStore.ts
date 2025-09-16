@@ -66,6 +66,11 @@ interface ToolStoreState extends ToolState {
   fillMatchChar: boolean;
   fillMatchColor: boolean;
   fillMatchBgColor: boolean;
+
+  // Magic wand match criteria (Selects same:)
+  magicMatchChar: boolean;
+  magicMatchColor: boolean;
+  magicMatchBgColor: boolean;
   
   // Eyedropper behavior toggles
   eyedropperPicksChar: boolean;
@@ -79,6 +84,9 @@ interface ToolStoreState extends ToolState {
   setFillMatchChar: (enabled: boolean) => void;
   setFillMatchColor: (enabled: boolean) => void;
   setFillMatchBgColor: (enabled: boolean) => void;
+  setMagicMatchChar: (enabled: boolean) => void;
+  setMagicMatchColor: (enabled: boolean) => void;
+  setMagicMatchBgColor: (enabled: boolean) => void;
   setEyedropperPicksChar: (enabled: boolean) => void;
   setEyedropperPicksColor: (enabled: boolean) => void;
   setEyedropperPicksBgColor: (enabled: boolean) => void;
@@ -164,6 +172,11 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   fillMatchChar: true,
   fillMatchColor: true,
   fillMatchBgColor: true,
+
+  // Magic wand matching criteria (Selects same:) - all enabled by default
+  magicMatchChar: true,
+  magicMatchColor: true,
+  magicMatchBgColor: true,
   
   // Eyedropper behavior toggles - all enabled by default
   eyedropperPicksChar: true,
@@ -269,6 +282,10 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   setFillMatchChar: (enabled: boolean) => set({ fillMatchChar: enabled }),
   setFillMatchColor: (enabled: boolean) => set({ fillMatchColor: enabled }),
   setFillMatchBgColor: (enabled: boolean) => set({ fillMatchBgColor: enabled }),
+  // Magic wand matching criteria setters
+  setMagicMatchChar: (enabled: boolean) => set({ magicMatchChar: enabled }),
+  setMagicMatchColor: (enabled: boolean) => set({ magicMatchColor: enabled }),
+  setMagicMatchBgColor: (enabled: boolean) => set({ magicMatchBgColor: enabled }),
   
   // Eyedropper behavior toggle actions
   setEyedropperPicksChar: (enabled: boolean) => set({ eyedropperPicksChar: enabled }),

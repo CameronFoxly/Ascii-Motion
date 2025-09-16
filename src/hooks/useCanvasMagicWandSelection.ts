@@ -30,7 +30,10 @@ export const useCanvasMagicWandSelection = () => {
     magicWandContiguous,
     startMagicWandSelection,
     clearMagicWandSelection,
-    pushCanvasHistory 
+    pushCanvasHistory,
+    magicMatchChar,
+    magicMatchColor,
+    magicMatchBgColor
   } = useToolStore();
 
   // Convert mouse coordinates to grid coordinates
@@ -51,25 +54,29 @@ export const useCanvasMagicWandSelection = () => {
     return !cell.char || cell.char === '' || cell.char === ' ';
   }, []);
 
-  // Check if two cells match exactly (character, color, background)
+  // Check if two cells match according to enabled criteria (AND semantics)
   const cellsMatch = useCallback((cell1: Cell | undefined, cell2: Cell | undefined) => {
-    // Both empty cells match
-    if (isCellEmpty(cell1) && isCellEmpty(cell2)) return true;
-    
-    // One empty, one not - no match
+    // Both empty considered match only if character matching is enabled (so they represent same absence)
+    if (isCellEmpty(cell1) && isCellEmpty(cell2)) {
+      return magicMatchChar; // Only match empties if char criterion is on
+    }
     if (isCellEmpty(cell1) || isCellEmpty(cell2)) return false;
-    
-    // Both have content - exact match required
     if (!cell1 || !cell2) return false;
-    return cell1.char === cell2.char && 
-           cell1.color === cell2.color && 
-           cell1.bgColor === cell2.bgColor;
-  }, [isCellEmpty]);
+    if (magicMatchChar && cell1.char !== cell2.char) return false;
+    if (magicMatchColor && cell1.color !== cell2.color) return false;
+    if (magicMatchBgColor && cell1.bgColor !== cell2.bgColor) return false;
+    // If all enabled criteria passed
+    return true;
+  }, [isCellEmpty, magicMatchChar, magicMatchColor, magicMatchBgColor]);
 
   // Find all matching cells using flood fill (contiguous) or scan (non-contiguous)
   const findMatchingCells = useCallback((targetX: number, targetY: number, targetCell: Cell | undefined) => {
-    // Ignore empty cells
-    if (isCellEmpty(targetCell)) {
+    // If no criteria enabled, do nothing
+    if (!magicMatchChar && !magicMatchColor && !magicMatchBgColor) {
+      return new Set<string>();
+    }
+    // If target is empty and char not part of criteria -> nothing
+    if (isCellEmpty(targetCell) && !magicMatchChar) {
       return new Set<string>();
     }
 
@@ -118,7 +125,7 @@ export const useCanvasMagicWandSelection = () => {
     }
 
     return matchingCells;
-  }, [width, height, getCell, cellsMatch, isCellEmpty, magicWandContiguous]);
+  }, [width, height, getCell, cellsMatch, isCellEmpty, magicWandContiguous, magicMatchChar, magicMatchColor, magicMatchBgColor]);
 
   // Check if a point is inside the current magic wand selection
   const isPointInMagicWandSelection = useCallback((x: number, y: number) => {

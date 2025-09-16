@@ -68,7 +68,7 @@ const UTILITY_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; desc
 ];
 
 export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
-  const { activeTool, setActiveTool, rectangleFilled, setRectangleFilled, paintBucketContiguous, setPaintBucketContiguous, magicWandContiguous, setMagicWandContiguous, toolAffectsChar, toolAffectsColor, toolAffectsBgColor, eyedropperPicksChar, eyedropperPicksColor, eyedropperPicksBgColor, setToolAffectsChar, setToolAffectsColor, setToolAffectsBgColor, setEyedropperPicksChar, setEyedropperPicksColor, setEyedropperPicksBgColor, fillMatchChar, fillMatchColor, fillMatchBgColor, setFillMatchChar, setFillMatchColor, setFillMatchBgColor } = useToolStore();
+  const { activeTool, setActiveTool, rectangleFilled, setRectangleFilled, paintBucketContiguous, setPaintBucketContiguous, magicWandContiguous, setMagicWandContiguous, toolAffectsChar, toolAffectsColor, toolAffectsBgColor, eyedropperPicksChar, eyedropperPicksColor, eyedropperPicksBgColor, setToolAffectsChar, setToolAffectsColor, setToolAffectsBgColor, setEyedropperPicksChar, setEyedropperPicksColor, setEyedropperPicksBgColor, fillMatchChar, fillMatchColor, fillMatchBgColor, setFillMatchChar, setFillMatchColor, setFillMatchBgColor, magicMatchChar, magicMatchColor, magicMatchBgColor, setMagicMatchChar, setMagicMatchColor, setMagicMatchBgColor } = useToolStore();
   const { altKeyDown } = useCanvasContext();
   const [showOptions, setShowOptions] = React.useState(true);
   const [showTools, setShowTools] = React.useState(true);
@@ -215,6 +215,58 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                         checked={magicWandContiguous}
                         onCheckedChange={setMagicWandContiguous}
                       />
+                    </div>
+                  )}
+                  {effectiveTool === 'magicwand' && (
+                    <div className="space-y-2 mt-2">
+                      <div className="text-xs text-muted-foreground">Selects same:</div>
+                      <div className="flex gap-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant={magicMatchChar ? "default" : "outline"}
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={() => setMagicMatchChar(!magicMatchChar)}
+                            >
+                              <Type className="h-3 w-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Match character</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant={magicMatchColor ? "default" : "outline"}
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={() => setMagicMatchColor(!magicMatchColor)}
+                            >
+                              <Palette className="h-3 w-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Match text color</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant={magicMatchBgColor ? "default" : "outline"}
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={() => setMagicMatchBgColor(!magicMatchBgColor)}
+                            >
+                              <Square className="h-3 w-3 fill-current" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Match background color</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
                     </div>
                   )}
                   
