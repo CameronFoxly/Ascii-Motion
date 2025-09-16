@@ -69,6 +69,8 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
   const [hasInitialized, setHasInitialized] = useState(false);
   
   const colorWheelRef = useRef<HTMLDivElement>(null);
+  // Ref for hex input to auto-focus on open
+  const hexInputRef = useRef<HTMLInputElement | null>(null);
 
   // Initialize color values when dialog opens or initial color changes
   useEffect(() => {
@@ -115,6 +117,20 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
   useEffect(() => {
     updatePreviewColor(previewColor);
   }, [previewColor, updatePreviewColor]);
+
+  // Auto-focus and select hex input when dialog opens (if not transparent)
+  useEffect(() => {
+    if (isOpen) {
+      // Use rAF to ensure the input is mounted after dialog animation/layout
+      requestAnimationFrame(() => {
+        if (hexInputRef.current && !isTransparentColor) {
+          hexInputRef.current.focus();
+          // Select existing content for quick replacement/paste
+          hexInputRef.current.select();
+        }
+      });
+    }
+  }, [isOpen, isTransparentColor]);
 
   // Update color wheel position based on HSV values
   const updateColorWheelPosition = useCallback((hsv: HSVColor) => {
@@ -196,6 +212,10 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
 
   // Handle RGB slider changes
   const handleRgbChange = (component: 'r' | 'g' | 'b', value: number) => {
+    if (isTransparentColor) {
+      // Wake from transparent mode
+      setIsTransparentColor(false);
+    }
     const newRgb = { ...rgbValues, [component]: Math.round(value) };
     setRgbValues(newRgb);
     updateFromRgb(newRgb);
@@ -211,6 +231,9 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
 
   // Handle HSV slider changes
   const handleHsvChange = (component: 'h' | 's' | 'v', value: number) => {
+    if (isTransparentColor) {
+      setIsTransparentColor(false);
+    }
     const roundedValue = component === 'h' ? Math.round(value * 100) / 100 : Math.round(value);
     const newHsv = { ...hsvValues, [component]: roundedValue };
     setHsvValues(newHsv);
@@ -228,6 +251,9 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
 
   // Handle value slider change (affects the entire color wheel brightness)
   const handleValueSliderChange = (value: number) => {
+    if (isTransparentColor) {
+      setIsTransparentColor(false);
+    }
     const newHsv = { ...hsvValues, v: value };
     setHsvValues(newHsv);
     setValueSliderValue(value);
@@ -237,6 +263,9 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
   // Color wheel interaction with drag support
   const handleColorWheelInteraction = (event: React.MouseEvent<HTMLDivElement> | MouseEvent) => {
     if (!colorWheelRef.current) return;
+    if (isTransparentColor) {
+      setIsTransparentColor(false);
+    }
     
     const rect = colorWheelRef.current.getBoundingClientRect();
     const centerX = rect.width / 2;
@@ -607,8 +636,10 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
                       transform: 'translateX(-50%)'
                     }}
                     onMouseDown={(e) => {
-                      if (isTransparentColor) return;
-                      
+                      // Wake from transparent mode if needed
+                      if (isTransparentColor) {
+                        setIsTransparentColor(false);
+                      }
                       e.preventDefault(); // Prevent text selection
                       e.stopPropagation(); // Prevent track click handler
                       
@@ -634,8 +665,9 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
                   <div 
                     className="absolute inset-0 cursor-pointer select-none"
                     onMouseDown={(e) => {
-                      if (isTransparentColor) return;
-                      
+                      if (isTransparentColor) {
+                        setIsTransparentColor(false);
+                      }
                       e.preventDefault(); // Prevent text selection
                       
                       const rect = e.currentTarget.getBoundingClientRect();
@@ -676,20 +708,18 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
           <div className="space-y-2">
             {/* Hue */}
             <div className="flex items-center gap-1.5">
-              <Label className="w-3 text-xs">H</Label>
+                <Label className="w-3 text-xs">H</Label>
               <Slider
-                value={isTransparentColor ? 0 : hsvValues.h}
+                value={hsvValues.h}
                 onValueChange={(value) => handleHsvChange('h', value)}
                 max={360}
                 step={0.1}
                 className="flex-1"
-                disabled={isTransparentColor}
               />
               <Input
-                value={isTransparentColor ? '-' : hsvValues.h.toFixed(2)}
+                value={hsvValues.h.toFixed(2)}
                 onChange={(e) => handleHsvInputChange('h', e.target.value)}
                 className="w-16 h-7 text-xs select-text"
-                disabled={isTransparentColor}
               />
               <span className="text-xs text-muted-foreground w-2">°</span>
             </div>
@@ -698,18 +728,16 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
             <div className="flex items-center gap-1.5">
               <Label className="w-3 text-xs">S</Label>
               <Slider
-                value={isTransparentColor ? 0 : hsvValues.s}
+                value={hsvValues.s}
                 onValueChange={(value) => handleHsvChange('s', value)}
                 max={100}
                 step={1}
                 className="flex-1"
-                disabled={isTransparentColor}
               />
               <Input
-                value={isTransparentColor ? '-' : Math.round(hsvValues.s).toString()}
+                value={Math.round(hsvValues.s).toString()}
                 onChange={(e) => handleHsvInputChange('s', e.target.value)}
                 className="w-16 h-7 text-xs"
-                disabled={isTransparentColor}
               />
               <span className="text-xs text-muted-foreground w-2">%</span>
             </div>
@@ -718,18 +746,16 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
             <div className="flex items-center gap-1.5">
               <Label className="w-3 text-xs">V</Label>
               <Slider
-                value={isTransparentColor ? 0 : hsvValues.v}
+                value={hsvValues.v}
                 onValueChange={(value) => handleHsvChange('v', value)}
                 max={100}
                 step={1}
                 className="flex-1"
-                disabled={isTransparentColor}
               />
               <Input
-                value={isTransparentColor ? '-' : Math.round(hsvValues.v).toString()}
+                value={Math.round(hsvValues.v).toString()}
                 onChange={(e) => handleHsvInputChange('v', e.target.value)}
                 className="w-16 h-7 text-xs"
-                disabled={isTransparentColor}
               />
               <span className="text-xs text-muted-foreground w-2">%</span>
             </div>
@@ -743,18 +769,16 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
             <div className="flex items-center gap-1.5">
               <Label className="w-3 text-xs">R</Label>
               <Slider
-                value={isTransparentColor ? 0 : rgbValues.r}
+                value={rgbValues.r}
                 onValueChange={(value) => handleRgbChange('r', value)}
                 max={255}
                 step={1}
                 className="flex-1"
-                disabled={isTransparentColor}
               />
               <Input
-                value={isTransparentColor ? '-' : rgbValues.r.toString()}
+                value={rgbValues.r.toString()}
                 onChange={(e) => handleRgbInputChange('r', e.target.value)}
                 className="w-14 h-7 text-xs"
-                disabled={isTransparentColor}
               />
             </div>
             
@@ -762,18 +786,16 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
             <div className="flex items-center gap-1.5">
               <Label className="w-3 text-xs">G</Label>
               <Slider
-                value={isTransparentColor ? 0 : rgbValues.g}
+                value={rgbValues.g}
                 onValueChange={(value) => handleRgbChange('g', value)}
                 max={255}
                 step={1}
                 className="flex-1"
-                disabled={isTransparentColor}
               />
               <Input
-                value={isTransparentColor ? '-' : rgbValues.g.toString()}
+                value={rgbValues.g.toString()}
                 onChange={(e) => handleRgbInputChange('g', e.target.value)}
                 className="w-14 h-7 text-xs"
-                disabled={isTransparentColor}
               />
             </div>
             
@@ -781,18 +803,16 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
             <div className="flex items-center gap-1.5">
               <Label className="w-3 text-xs">B</Label>
               <Slider
-                value={isTransparentColor ? 0 : rgbValues.b}
+                value={rgbValues.b}
                 onValueChange={(value) => handleRgbChange('b', value)}
                 max={255}
                 step={1}
                 className="flex-1"
-                disabled={isTransparentColor}
               />
               <Input
-                value={isTransparentColor ? '-' : rgbValues.b.toString()}
+                value={rgbValues.b.toString()}
                 onChange={(e) => handleRgbInputChange('b', e.target.value)}
                 className="w-14 h-7 text-xs"
-                disabled={isTransparentColor}
               />
             </div>
           </div>
@@ -802,11 +822,16 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
           {/* Hex Input */}
           <div>
             <Input
-              value={isTransparentColor ? '-' : hexInput}
-              onChange={(e) => handleHexChange(e.target.value)}
-              placeholder={isTransparentColor ? "Transparent" : "#000000"}
+              ref={hexInputRef}
+              value={hexInput}
+              onChange={(e) => {
+                if (isTransparentColor) {
+                  setIsTransparentColor(false);
+                }
+                handleHexChange(e.target.value);
+              }}
+              placeholder={isTransparentColor ? 'Transparent' : '#000000'}
               className="font-mono h-7 text-xs"
-              disabled={isTransparentColor}
             />
           </div>
 
