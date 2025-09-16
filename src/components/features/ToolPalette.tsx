@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
-import { Separator } from '@/components/ui/separator';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
 import { 
   PenTool, 
@@ -69,7 +68,7 @@ const UTILITY_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; desc
 ];
 
 export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
-  const { activeTool, setActiveTool, rectangleFilled, setRectangleFilled, paintBucketContiguous, setPaintBucketContiguous, magicWandContiguous, setMagicWandContiguous, toolAffectsChar, toolAffectsColor, toolAffectsBgColor, eyedropperPicksChar, eyedropperPicksColor, eyedropperPicksBgColor, setToolAffectsChar, setToolAffectsColor, setToolAffectsBgColor, setEyedropperPicksChar, setEyedropperPicksColor, setEyedropperPicksBgColor } = useToolStore();
+  const { activeTool, setActiveTool, rectangleFilled, setRectangleFilled, paintBucketContiguous, setPaintBucketContiguous, magicWandContiguous, setMagicWandContiguous, toolAffectsChar, toolAffectsColor, toolAffectsBgColor, eyedropperPicksChar, eyedropperPicksColor, eyedropperPicksBgColor, setToolAffectsChar, setToolAffectsColor, setToolAffectsBgColor, setEyedropperPicksChar, setEyedropperPicksColor, setEyedropperPicksBgColor, fillMatchChar, fillMatchColor, fillMatchBgColor, setFillMatchChar, setFillMatchColor, setFillMatchBgColor } = useToolStore();
   const { altKeyDown } = useCanvasContext();
   const [showOptions, setShowOptions] = React.useState(true);
   const [showTools, setShowTools] = React.useState(true);
@@ -79,7 +78,8 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
   const shouldAllowEyedropperOverride = drawingTools.includes(activeTool as any);
   const effectiveTool = (altKeyDown && shouldAllowEyedropperOverride) ? 'eyedropper' : activeTool;
 
-  const hasOptions = ['rectangle', 'ellipse', 'paintbucket', 'magicwand', 'pencil', 'eraser', 'text', 'eyedropper'].includes(effectiveTool);
+  // Tools that actually have configurable options. (Removed 'eraser' and 'text' per layout bug fix.)
+  const hasOptions = ['rectangle', 'ellipse', 'paintbucket', 'magicwand', 'pencil', 'eyedropper'].includes(effectiveTool);
 
   // Get the current tool's icon
   const getCurrentToolIcon = () => {
@@ -156,9 +156,6 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
         {/* Tool Options */}
         {hasOptions && (
           <div>
-            <div className="relative -mx-4 h-px">
-              <Separator className="absolute inset-0" />
-            </div>
             <Collapsible open={showOptions} onOpenChange={setShowOptions}>
             <CollapsibleHeader isOpen={showOptions}>
               <div className="flex items-center gap-1">
@@ -224,8 +221,60 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                   {/* Tool behavior toggles for drawing tools */}
                   {(['pencil', 'paintbucket'] as Tool[]).includes(effectiveTool) && (
                     <>
-                      <div className="border-t border-border/30 my-2"></div>
-                      <div className="space-y-2">
+                      {/* Paint bucket specific: Selects same criteria */}
+                      {effectiveTool === 'paintbucket' && (
+                        <div className="space-y-2 mt-2">
+                          <div className="text-xs text-muted-foreground">Selects same:</div>
+                          <div className="flex gap-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant={fillMatchChar ? "default" : "outline"}
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => setFillMatchChar(!fillMatchChar)}
+                                >
+                                  <Type className="h-3 w-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Match character</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant={fillMatchColor ? "default" : "outline"}
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => setFillMatchColor(!fillMatchColor)}
+                                >
+                                  <Palette className="h-3 w-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Match text color</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant={fillMatchBgColor ? "default" : "outline"}
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => setFillMatchBgColor(!fillMatchBgColor)}
+                                >
+                                  <Square className="h-3 w-3 fill-current" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Match background color</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </div>
+                      )}
+                      <div className="space-y-2 mt-2">
                         <div className="text-xs text-muted-foreground">Affects:</div>
                         <div className="flex gap-1">
                           <Tooltip>

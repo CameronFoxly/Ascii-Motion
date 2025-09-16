@@ -61,6 +61,11 @@ interface ToolStoreState extends ToolState {
   toolAffectsChar: boolean;
   toolAffectsColor: boolean;
   toolAffectsBgColor: boolean;
+
+  // Paint bucket match criteria (Selects same:)
+  fillMatchChar: boolean;
+  fillMatchColor: boolean;
+  fillMatchBgColor: boolean;
   
   // Eyedropper behavior toggles
   eyedropperPicksChar: boolean;
@@ -71,6 +76,9 @@ interface ToolStoreState extends ToolState {
   setToolAffectsChar: (enabled: boolean) => void;
   setToolAffectsColor: (enabled: boolean) => void;
   setToolAffectsBgColor: (enabled: boolean) => void;
+  setFillMatchChar: (enabled: boolean) => void;
+  setFillMatchColor: (enabled: boolean) => void;
+  setFillMatchBgColor: (enabled: boolean) => void;
   setEyedropperPicksChar: (enabled: boolean) => void;
   setEyedropperPicksColor: (enabled: boolean) => void;
   setEyedropperPicksBgColor: (enabled: boolean) => void;
@@ -151,6 +159,11 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   toolAffectsChar: true,
   toolAffectsColor: true,
   toolAffectsBgColor: true,
+
+  // Paint bucket matching criteria (Selects same:) - all enabled by default
+  fillMatchChar: true,
+  fillMatchColor: true,
+  fillMatchBgColor: true,
   
   // Eyedropper behavior toggles - all enabled by default
   eyedropperPicksChar: true,
@@ -252,6 +265,10 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   setToolAffectsChar: (enabled: boolean) => set({ toolAffectsChar: enabled }),
   setToolAffectsColor: (enabled: boolean) => set({ toolAffectsColor: enabled }),
   setToolAffectsBgColor: (enabled: boolean) => set({ toolAffectsBgColor: enabled }),
+  // Paint bucket matching criteria setters
+  setFillMatchChar: (enabled: boolean) => set({ fillMatchChar: enabled }),
+  setFillMatchColor: (enabled: boolean) => set({ fillMatchColor: enabled }),
+  setFillMatchBgColor: (enabled: boolean) => set({ fillMatchBgColor: enabled }),
   
   // Eyedropper behavior toggle actions
   setEyedropperPicksChar: (enabled: boolean) => set({ eyedropperPicksChar: enabled }),

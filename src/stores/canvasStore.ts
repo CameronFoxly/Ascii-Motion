@@ -16,7 +16,7 @@ interface CanvasState extends Canvas {
   getCell: (x: number, y: number) => Cell | undefined;
   clearCell: (x: number, y: number) => void;
   clearCanvas: () => void;
-  fillArea: (x: number, y: number, cell: Cell, contiguous?: boolean) => void;
+  fillArea: (x: number, y: number, cell: Cell, contiguous?: boolean, matchCriteria?: { char: boolean; color: boolean; bgColor: boolean }) => void;
   setCanvasData: (cells: Map<string, Cell>) => void;
   
   // Computed values
@@ -109,20 +109,34 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set({ cells: new Map() });
   },
 
-  fillArea: (startX: number, startY: number, newCell: Cell, contiguous: boolean = true) => {
+  fillArea: (startX: number, startY: number, newCell: Cell, contiguous: boolean = true, matchCriteria?: { char: boolean; color: boolean; bgColor: boolean }) => {
     const { width, height, getCell } = get();
+    const fillMatchChar = matchCriteria?.char ?? true;
+    const fillMatchColor = matchCriteria?.color ?? true;
+    const fillMatchBgColor = matchCriteria?.bgColor ?? true;
+    if (!fillMatchChar && !fillMatchColor && !fillMatchBgColor) return; // nothing to match
     if (startX < 0 || startX >= width || startY < 0 || startY >= height) return;
 
     const targetCell = getCell(startX, startY);
     if (!targetCell) return;
     
-    if (
-      targetCell.char === newCell.char &&
-      targetCell.color === newCell.color &&
-      targetCell.bgColor === newCell.bgColor
-    ) {
-      return; // Same cell, no need to fill
+    // If applying all three properties and they match target, skip (optimization)
+    if (fillMatchChar && fillMatchColor && fillMatchBgColor) {
+      if (
+        targetCell.char === newCell.char &&
+        targetCell.color === newCell.color &&
+        targetCell.bgColor === newCell.bgColor
+      ) {
+        return; // Same cell, no need to fill
+      }
     }
+
+    const matchesTarget = (cell: Cell) => {
+      if (fillMatchChar && cell.char !== targetCell.char) return false;
+      if (fillMatchColor && cell.color !== targetCell.color) return false;
+      if (fillMatchBgColor && cell.bgColor !== targetCell.bgColor) return false;
+      return true; // AND semantics across selected criteria
+    };
 
     const newCells = new Map(get().cells);
 
@@ -141,13 +155,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         const currentCell = getCell(x, y);
         if (!currentCell || !targetCell) continue;
         
-        if (
-          currentCell.char !== targetCell.char ||
-          currentCell.color !== targetCell.color ||
-          currentCell.bgColor !== targetCell.bgColor
-        ) {
-          continue;
-        }
+        if (!matchesTarget(currentCell)) continue;
 
         // Set the new cell
         if (newCell.char === ' ' && newCell.color === '#FFFFFF' && newCell.bgColor === get().canvasBackgroundColor) {
@@ -178,10 +186,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           const currentCell = getCell(x, y);
-          if (currentCell && 
-              currentCell.char === targetCell.char &&
-              currentCell.color === targetCell.color &&
-              currentCell.bgColor === targetCell.bgColor) {
+      if (currentCell && matchesTarget(currentCell)) {
             
             const key = createCellKey(x, y);
             

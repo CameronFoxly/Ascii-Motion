@@ -20,7 +20,10 @@ export const useDrawingTool = () => {
     setPencilLastPosition,
     toolAffectsChar,
     toolAffectsColor,
-    toolAffectsBgColor
+    toolAffectsBgColor,
+    fillMatchChar,
+    fillMatchColor,
+    fillMatchBgColor
   } = useToolStore();
 
   // Helper function to create a cell respecting the tool toggles
@@ -132,7 +135,7 @@ export const useDrawingTool = () => {
       }
       case 'paintbucket': {
         const newCell = createCellWithToggles(x, y);
-        fillArea(x, y, newCell, paintBucketContiguous);
+        fillArea(x, y, newCell, paintBucketContiguous, { char: fillMatchChar, color: fillMatchColor, bgColor: fillMatchBgColor });
         break;
       }
     }
@@ -147,7 +150,10 @@ export const useDrawingTool = () => {
     pencilLastPosition,
     setPencilLastPosition,
     drawLine,
-    createCellWithToggles
+    createCellWithToggles,
+    fillMatchChar,
+    fillMatchColor,
+    fillMatchBgColor
   ]);
 
   const drawRectangle = useCallback((startX: number, startY: number, endX: number, endY: number) => {
