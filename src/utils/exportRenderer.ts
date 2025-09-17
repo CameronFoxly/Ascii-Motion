@@ -34,6 +34,11 @@ export class ExportRenderer {
     try {
       // Get current frame data
       const currentFrame = data.frames[data.currentFrameIndex]?.data || data.canvasData;
+      console.log('PNG Export - Current frame index:', data.currentFrameIndex);
+      console.log('PNG Export - Available frames:', data.frames.length);
+      console.log('PNG Export - Canvas data size:', data.canvasData.size);
+      console.log('PNG Export - Current frame data size:', currentFrame.size);
+      console.log('PNG Export - Using frame data:', currentFrame === data.canvasData ? 'canvas data' : 'frame data');
       
       // Create high-resolution canvas for export
       const exportCanvas = this.createExportCanvas(
@@ -185,6 +190,13 @@ export class ExportRenderer {
     sizeMultiplier: number,
     fontMetrics: any
   ): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
+    console.log('Creating export canvas with:', {
+      gridWidth,
+      gridHeight,
+      sizeMultiplier,
+      fontMetrics
+    });
+
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     
@@ -193,12 +205,20 @@ export class ExportRenderer {
     }
 
     // Calculate cell dimensions based on font metrics
-    const cellWidth = fontMetrics.charWidth * sizeMultiplier;
-    const cellHeight = fontMetrics.lineHeight * sizeMultiplier;
+    // Use correct property names from FontMetrics interface
+    const cellWidth = (fontMetrics?.characterWidth || 12) * sizeMultiplier;
+    const cellHeight = (fontMetrics?.characterHeight || 16) * sizeMultiplier;
     
-    // Set canvas size
-    canvas.width = gridWidth * cellWidth;
-    canvas.height = gridHeight * cellHeight;
+    console.log('Calculated cell dimensions:', { cellWidth, cellHeight });
+    
+    // Set canvas size with minimum dimensions
+    const canvasWidth = Math.max(gridWidth * cellWidth, 1);
+    const canvasHeight = Math.max(gridHeight * cellHeight, 1);
+    
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    
+    console.log('Canvas dimensions set to:', { width: canvas.width, height: canvas.height });
     
     // Setup high-quality rendering
     setupTextRendering(ctx);
@@ -228,8 +248,8 @@ export class ExportRenderer {
     const { backgroundColor, showGrid, fontMetrics, sizeMultiplier, theme } = options;
     
     // Calculate cell dimensions
-    const cellWidth = fontMetrics.charWidth * sizeMultiplier;
-    const cellHeight = fontMetrics.lineHeight * sizeMultiplier;
+    const cellWidth = fontMetrics.characterWidth * sizeMultiplier;
+    const cellHeight = fontMetrics.characterHeight * sizeMultiplier;
     
     // Clear canvas with background color
     ctx.fillStyle = backgroundColor;
@@ -247,8 +267,12 @@ export class ExportRenderer {
     ctx.textBaseline = 'middle';
     
     // Draw all cells
+    console.log('Frame data for rendering:', frameData);
+    console.log('Frame data size:', frameData.size);
+    
     frameData.forEach((cell, key) => {
       const [x, y] = key.split(',').map(Number);
+      console.log(`Drawing cell at ${x},${y}:`, cell);
       this.drawExportCell(ctx, x, y, cell, cellWidth, cellHeight);
     });
   }
@@ -302,20 +326,27 @@ export class ExportRenderer {
     const pixelX = x * cellWidth;
     const pixelY = y * cellHeight;
     
+    console.log(`Drawing cell at pixel position ${pixelX},${pixelY} with dimensions ${cellWidth}x${cellHeight}`);
+    console.log('Cell data:', cell);
+    
     // Draw background if specified
     if (cell.bgColor && cell.bgColor !== 'transparent') {
+      console.log(`Drawing background color ${cell.bgColor}`);
       ctx.fillStyle = cell.bgColor;
       ctx.fillRect(pixelX, pixelY, cellWidth, cellHeight);
     }
     
     // Draw character
     if (cell.char && cell.char.trim()) {
+      console.log(`Drawing character "${cell.char}" with color ${cell.color}`);
       ctx.fillStyle = cell.color || '#FFFFFF';
       ctx.fillText(
         cell.char,
         pixelX + cellWidth / 2,
         pixelY + cellHeight / 2
       );
+    } else {
+      console.log('No character to draw:', { char: cell.char, trimmed: cell.char?.trim() });
     }
   }
 
@@ -323,14 +354,43 @@ export class ExportRenderer {
    * Convert canvas to blob
    */
   private canvasToBlob(canvas: HTMLCanvasElement, type: string): Promise<Blob> {
+    console.log('Converting canvas to blob. Canvas dimensions:', {
+      width: canvas.width,
+      height: canvas.height,
+      area: canvas.width * canvas.height,
+      type
+    });
+
+    // Check if canvas has valid dimensions
+    if (canvas.width <= 0 || canvas.height <= 0) {
+      throw new Error(`Invalid canvas dimensions: ${canvas.width}x${canvas.height}`);
+    }
+
+    // Check if canvas is too large (some browsers have limits)
+    const maxDimension = 32767; // Common browser limit
+    if (canvas.width > maxDimension || canvas.height > maxDimension) {
+      throw new Error(`Canvas dimensions too large: ${canvas.width}x${canvas.height}. Max: ${maxDimension}x${maxDimension}`);
+    }
+
     return new Promise((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (blob) {
-          resolve(blob);
-        } else {
-          reject(new Error('Failed to create blob from canvas'));
-        }
-      }, type);
+      try {
+        canvas.toBlob((blob) => {
+          if (blob) {
+            console.log('Successfully created blob:', blob.size, 'bytes');
+            resolve(blob);
+          } else {
+            console.error('toBlob returned null. Canvas state:', {
+              width: canvas.width,
+              height: canvas.height,
+              context: canvas.getContext('2d') ? 'available' : 'null'
+            });
+            reject(new Error('Failed to create blob from canvas - toBlob returned null'));
+          }
+        }, type);
+      } catch (error) {
+        console.error('Error in toBlob call:', error);
+        reject(new Error(`Canvas toBlob failed: ${error instanceof Error ? error.message : String(error)}`));
+      }
     });
   }
 
