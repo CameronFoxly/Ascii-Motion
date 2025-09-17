@@ -12,7 +12,14 @@ export class SessionImporter {
   /**
    * Import session data from a JSON file
    */
-  static async importSessionFile(file: File): Promise<void> {
+  static async importSessionFile(
+    file: File, 
+    typographyCallbacks?: {
+      setFontSize: (size: number) => void;
+      setCharacterSpacing: (spacing: number) => void;
+      setLineSpacing: (spacing: number) => void;
+    }
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       
@@ -27,7 +34,7 @@ export class SessionImporter {
           }
           
           // Import the session data
-          SessionImporter.restoreSessionData(sessionData);
+          SessionImporter.restoreSessionData(sessionData, typographyCallbacks);
           
           resolve();
         } catch (error) {
@@ -74,7 +81,14 @@ export class SessionImporter {
   /**
    * Restore session data to application stores
    */
-  private static restoreSessionData(sessionData: any): void {
+  private static restoreSessionData(
+    sessionData: any, 
+    typographyCallbacks?: {
+      setFontSize: (size: number) => void;
+      setCharacterSpacing: (spacing: number) => void;
+      setLineSpacing: (spacing: number) => void;
+    }
+  ): void {
     const canvasStore = useCanvasStore.getState();
     const animationStore = useAnimationStore.getState();
     const toolStore = useToolStore.getState();
@@ -141,6 +155,18 @@ export class SessionImporter {
       if (sessionData.animation.currentFrameIndex >= 0 && 
           sessionData.animation.currentFrameIndex < sessionData.animation.frames.length) {
         animationStore.setCurrentFrame(sessionData.animation.currentFrameIndex);
+        
+        // Load the current frame's data into the canvas
+        const currentFrame = sessionData.animation.frames[sessionData.animation.currentFrameIndex];
+        if (currentFrame && currentFrame.data) {
+          canvasStore.clearCanvas();
+          // Convert the object back to Map and load into canvas
+          const frameDataMap = new Map(Object.entries(currentFrame.data));
+          frameDataMap.forEach((cell, key) => {
+            const [x, y] = key.split(',').map(Number);
+            canvasStore.setCell(x, y, cell as Cell);
+          });
+        }
       }
     }
     
@@ -161,6 +187,19 @@ export class SessionImporter {
       toolStore.setRectangleFilled(sessionData.tools.rectangleFilled);
     }
     
+    // Restore typography settings
+    if (typographyCallbacks && sessionData.typography) {
+      if (sessionData.typography.fontSize !== undefined) {
+        typographyCallbacks.setFontSize(sessionData.typography.fontSize);
+      }
+      if (sessionData.typography.characterSpacing !== undefined) {
+        typographyCallbacks.setCharacterSpacing(sessionData.typography.characterSpacing);
+      }
+      if (sessionData.typography.lineSpacing !== undefined) {
+        typographyCallbacks.setLineSpacing(sessionData.typography.lineSpacing);
+      }
+    }
+    
     console.log('Session imported successfully');
   }
 }
@@ -169,9 +208,16 @@ export class SessionImporter {
  * Hook for session import functionality
  */
 export const useSessionImporter = () => {
-  const importSession = async (file: File): Promise<void> => {
+  const importSession = async (
+    file: File, 
+    typographyCallbacks?: {
+      setFontSize: (size: number) => void;
+      setCharacterSpacing: (spacing: number) => void;
+      setLineSpacing: (spacing: number) => void;
+    }
+  ): Promise<void> => {
     try {
-      await SessionImporter.importSessionFile(file);
+      await SessionImporter.importSessionFile(file, typographyCallbacks);
     } catch (error) {
       console.error('Session import failed:', error);
       throw error;

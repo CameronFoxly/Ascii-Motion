@@ -34,18 +34,14 @@ export class ExportRenderer {
     try {
       // Get current frame data
       const currentFrame = data.frames[data.currentFrameIndex]?.data || data.canvasData;
-      console.log('PNG Export - Current frame index:', data.currentFrameIndex);
-      console.log('PNG Export - Available frames:', data.frames.length);
-      console.log('PNG Export - Canvas data size:', data.canvasData.size);
-      console.log('PNG Export - Current frame data size:', currentFrame.size);
-      console.log('PNG Export - Using frame data:', currentFrame === data.canvasData ? 'canvas data' : 'frame data');
       
       // Create high-resolution canvas for export
       const exportCanvas = this.createExportCanvas(
         data.canvasDimensions.width,
         data.canvasDimensions.height,
         settings.sizeMultiplier,
-        data.fontMetrics
+        data.fontMetrics,
+        data.typography
       );
 
       this.updateProgress('Rendering canvas...', 30);
@@ -60,8 +56,10 @@ export class ExportRenderer {
           backgroundColor: data.canvasBackgroundColor,
           showGrid: settings.includeGrid && data.showGrid,
           fontMetrics: data.fontMetrics,
+          typography: data.typography,
           sizeMultiplier: settings.sizeMultiplier,
-          theme: data.uiState.theme
+          theme: data.uiState.theme,
+          scale: exportCanvas.scale
         }
       );
 
@@ -160,6 +158,11 @@ export class ExportRenderer {
           zoom: data.uiState.zoom,
           panOffset: data.uiState.panOffset,
           fontMetrics: data.fontMetrics
+        },
+        typography: {
+          fontSize: data.typography.fontSize,
+          characterSpacing: data.typography.characterSpacing,
+          lineSpacing: data.typography.lineSpacing
         }
       };
 
@@ -182,21 +185,15 @@ export class ExportRenderer {
   }
 
   /**
-   * Create a high-resolution canvas for export
+   * Create a high-resolution canvas for export with DPI scaling
    */
   private createExportCanvas(
     gridWidth: number,
     gridHeight: number,
     sizeMultiplier: number,
-    fontMetrics: any
-  ): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
-    console.log('Creating export canvas with:', {
-      gridWidth,
-      gridHeight,
-      sizeMultiplier,
-      fontMetrics
-    });
-
+    fontMetrics: any,
+    typography: any
+  ): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; scale: number } {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     
@@ -204,26 +201,38 @@ export class ExportRenderer {
       throw new Error('Failed to create canvas context');
     }
 
-    // Calculate cell dimensions based on font metrics
-    // Use correct property names from FontMetrics interface
-    const cellWidth = (fontMetrics?.characterWidth || 12) * sizeMultiplier;
-    const cellHeight = (fontMetrics?.characterHeight || 16) * sizeMultiplier;
+    // Calculate cell dimensions using actual typography settings
+    // Use typography.fontSize instead of fontMetrics.fontSize for accurate sizing
+    const actualFontSize = typography?.fontSize || fontMetrics?.fontSize || 16;
+    const characterSpacing = typography?.characterSpacing || 1.0;
+    const lineSpacing = typography?.lineSpacing || 1.0;
     
-    console.log('Calculated cell dimensions:', { cellWidth, cellHeight });
+    // Calculate base character dimensions from actual font size
+    const baseCharWidth = actualFontSize * 0.6; // Standard monospace aspect ratio
+    const baseCharHeight = actualFontSize;
     
-    // Set canvas size with minimum dimensions
-    const canvasWidth = Math.max(gridWidth * cellWidth, 1);
-    const canvasHeight = Math.max(gridHeight * cellHeight, 1);
+    // Apply spacing multipliers and size multiplier
+    const baseCellWidth = baseCharWidth * characterSpacing * sizeMultiplier;
+    const baseCellHeight = baseCharHeight * lineSpacing * sizeMultiplier;
     
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
+    // Calculate display dimensions
+    const displayWidth = Math.max(gridWidth * baseCellWidth, 1);
+    const displayHeight = Math.max(gridHeight * baseCellHeight, 1);
     
-    console.log('Canvas dimensions set to:', { width: canvas.width, height: canvas.height });
+    // Use device pixel ratio for high-DPI export (minimum 2x for crisp exports)
+    const devicePixelRatio = Math.max(window.devicePixelRatio || 1, 2);
+    
+    // Set canvas internal resolution to match device pixel ratio
+    canvas.width = displayWidth * devicePixelRatio;
+    canvas.height = displayHeight * devicePixelRatio;
+    
+    // Scale the drawing context to match the device pixel ratio
+    ctx.scale(devicePixelRatio, devicePixelRatio);
     
     // Setup high-quality rendering
     setupTextRendering(ctx);
     
-    return { canvas, ctx };
+    return { canvas, ctx, scale: devicePixelRatio };
   }
 
   /**
@@ -238,18 +247,28 @@ export class ExportRenderer {
       backgroundColor: string;
       showGrid: boolean;
       fontMetrics: any;
+      typography: any;
       sizeMultiplier: number;
       theme: string;
+      scale?: number;
     }
   ): Promise<void> {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('No canvas context');
 
-    const { backgroundColor, showGrid, fontMetrics, sizeMultiplier, theme } = options;
+    const { backgroundColor, showGrid, fontMetrics, typography, sizeMultiplier, theme } = options;
     
-    // Calculate cell dimensions
-    const cellWidth = fontMetrics.characterWidth * sizeMultiplier;
-    const cellHeight = fontMetrics.characterHeight * sizeMultiplier;
+    // Calculate cell dimensions using actual typography settings
+    const actualFontSize = typography?.fontSize || fontMetrics?.fontSize || 16;
+    const characterSpacing = typography?.characterSpacing || 1.0;
+    const lineSpacing = typography?.lineSpacing || 1.0;
+    
+    // Calculate character dimensions with spacing
+    const baseCharWidth = actualFontSize * 0.6; // Standard monospace aspect ratio
+    const baseCharHeight = actualFontSize;
+    
+    const cellWidth = baseCharWidth * characterSpacing * sizeMultiplier;
+    const cellHeight = baseCharHeight * lineSpacing * sizeMultiplier;
     
     // Clear canvas with background color
     ctx.fillStyle = backgroundColor;
@@ -260,19 +279,16 @@ export class ExportRenderer {
       this.drawGrid(ctx, gridWidth, gridHeight, cellWidth, cellHeight, backgroundColor, theme);
     }
     
-    // Setup font for text rendering
-    const fontSize = fontMetrics.fontSize * sizeMultiplier;
-    ctx.font = `${fontSize}px '${fontMetrics.fontFamily}', monospace`;
+    // Setup font for text rendering using actual typography settings
+    const exportFontSize = actualFontSize * sizeMultiplier;
+    const fontFamily = fontMetrics?.fontFamily || 'SF Mono, Monaco, Inconsolata, "Roboto Mono", Consolas, "Courier New"';
+    ctx.font = `${exportFontSize}px '${fontFamily}', monospace`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     
     // Draw all cells
-    console.log('Frame data for rendering:', frameData);
-    console.log('Frame data size:', frameData.size);
-    
     frameData.forEach((cell, key) => {
       const [x, y] = key.split(',').map(Number);
-      console.log(`Drawing cell at ${x},${y}:`, cell);
       this.drawExportCell(ctx, x, y, cell, cellWidth, cellHeight);
     });
   }
@@ -326,27 +342,20 @@ export class ExportRenderer {
     const pixelX = x * cellWidth;
     const pixelY = y * cellHeight;
     
-    console.log(`Drawing cell at pixel position ${pixelX},${pixelY} with dimensions ${cellWidth}x${cellHeight}`);
-    console.log('Cell data:', cell);
-    
     // Draw background if specified
     if (cell.bgColor && cell.bgColor !== 'transparent') {
-      console.log(`Drawing background color ${cell.bgColor}`);
       ctx.fillStyle = cell.bgColor;
       ctx.fillRect(pixelX, pixelY, cellWidth, cellHeight);
     }
     
     // Draw character
     if (cell.char && cell.char.trim()) {
-      console.log(`Drawing character "${cell.char}" with color ${cell.color}`);
       ctx.fillStyle = cell.color || '#FFFFFF';
       ctx.fillText(
         cell.char,
         pixelX + cellWidth / 2,
         pixelY + cellHeight / 2
       );
-    } else {
-      console.log('No character to draw:', { char: cell.char, trimmed: cell.char?.trim() });
     }
   }
 
@@ -354,13 +363,6 @@ export class ExportRenderer {
    * Convert canvas to blob
    */
   private canvasToBlob(canvas: HTMLCanvasElement, type: string): Promise<Blob> {
-    console.log('Converting canvas to blob. Canvas dimensions:', {
-      width: canvas.width,
-      height: canvas.height,
-      area: canvas.width * canvas.height,
-      type
-    });
-
     // Check if canvas has valid dimensions
     if (canvas.width <= 0 || canvas.height <= 0) {
       throw new Error(`Invalid canvas dimensions: ${canvas.width}x${canvas.height}`);
@@ -376,19 +378,12 @@ export class ExportRenderer {
       try {
         canvas.toBlob((blob) => {
           if (blob) {
-            console.log('Successfully created blob:', blob.size, 'bytes');
             resolve(blob);
           } else {
-            console.error('toBlob returned null. Canvas state:', {
-              width: canvas.width,
-              height: canvas.height,
-              context: canvas.getContext('2d') ? 'available' : 'null'
-            });
             reject(new Error('Failed to create blob from canvas - toBlob returned null'));
           }
         }, type);
       } catch (error) {
-        console.error('Error in toBlob call:', error);
         reject(new Error(`Canvas toBlob failed: ${error instanceof Error ? error.message : String(error)}`));
       }
     });

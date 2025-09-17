@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 import { Upload, Save, AlertCircle, Loader2 } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
 import { useSessionImporter } from '../../utils/sessionImporter';
+import { useCanvasContext } from '../../contexts/CanvasContext';
 
 /**
  * Session Import Dialog
@@ -15,6 +16,9 @@ export const ImportModal: React.FC = () => {
   const showImportModal = useExportStore(state => state.showImportModal);
   const setShowImportModal = useExportStore(state => state.setShowImportModal);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Get typography setters from CanvasContext
+  const { setFontSize, setCharacterSpacing, setLineSpacing } = useCanvasContext();
   
   const { importSession } = useSessionImporter();
   const [isImporting, setIsImporting] = useState(false);
@@ -29,7 +33,12 @@ export const ImportModal: React.FC = () => {
       setIsImporting(true);
       console.log('Importing session file:', file.name);
       
-      await importSession(file);
+      // Pass typography callbacks to the import function
+      await importSession(file, {
+        setFontSize,
+        setCharacterSpacing,
+        setLineSpacing
+      });
       
       console.log('Session imported successfully');
       
