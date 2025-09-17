@@ -73,10 +73,11 @@ export const ExportImportButtons: React.FC = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 px-2 gap-1"
+                  className="h-8 px-3 gap-2"
                   title="Import options"
                 >
                   <Upload className="h-4 w-4" />
+                  <span className="text-sm">Import</span>
                   <ChevronDown className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
@@ -85,7 +86,7 @@ export const ExportImportButtons: React.FC = () => {
               <p>Import project</p>
             </TooltipContent>
           </Tooltip>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="border-border/50">
             {IMPORT_OPTIONS.map((option) => {
               const IconComponent = option.icon;
               return (
@@ -113,10 +114,11 @@ export const ExportImportButtons: React.FC = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 px-2 gap-1"
+                  className="h-8 px-3 gap-2"
                   title="Export options"
                 >
                   <Download className="h-4 w-4" />
+                  <span className="text-sm">Export</span>
                   <ChevronDown className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
@@ -125,7 +127,7 @@ export const ExportImportButtons: React.FC = () => {
               <p>Export project</p>
             </TooltipContent>
           </Tooltip>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="border-border/50">
             {EXPORT_OPTIONS.map((option) => {
               const IconComponent = option.icon;
               return (
