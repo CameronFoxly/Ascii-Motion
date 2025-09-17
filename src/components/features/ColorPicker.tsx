@@ -616,6 +616,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
             ? 'Edit Palette Color' 
             : `Edit ${colorPickerMode === 'foreground' ? 'Foreground' : 'Background'} Color`
         }
+        showTransparentOption={colorPickerMode === 'background'}
       />
 
       {/* Import/Export Dialogs */}

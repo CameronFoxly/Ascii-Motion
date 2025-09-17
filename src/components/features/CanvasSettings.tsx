@@ -247,7 +247,7 @@ export const CanvasSettings: React.FC = () => {
                   variant={showGrid ? "default" : "outline"}
                   size="sm"
                   onClick={toggleGrid}
-                  className="h-6 w-6 p-0"
+                  className="h-6 w-6 p-0 leading-none flex items-center justify-center [&_svg]:w-3 [&_svg]:h-3"
                 >
                   <Grid3X3 className="w-3 h-3" />
                 </Button>
@@ -268,37 +268,38 @@ export const CanvasSettings: React.FC = () => {
                       closeTypographyPicker();
                       showColorPickerAnimated();
                     }}
-                    className="h-6 w-6 p-0 relative overflow-hidden"
-                    style={{ 
-                      backgroundColor: canvasBackgroundColor === 'transparent' ? '#ffffff' : canvasBackgroundColor,
-                      backgroundImage: canvasBackgroundColor === 'transparent' 
-                        ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)'
-                        : 'none',
-                      backgroundSize: canvasBackgroundColor === 'transparent' ? '8px 8px' : 'auto',
-                      backgroundPosition: canvasBackgroundColor === 'transparent' ? '0 0, 0 4px, 4px -4px, -4px 0px' : 'auto'
-                    }}
+                    className={`h-6 w-6 p-0 leading-none flex items-center justify-center relative overflow-hidden ${canvasBackgroundColor === 'transparent' ? 'border-2' : ''}`}
                     aria-label="Canvas background color"
                     aria-expanded={showColorPicker}
                     aria-controls="color-dropdown"
                   >
                     {canvasBackgroundColor === 'transparent' ? (
-                      <svg
-                        className="absolute inset-0 w-full h-full"
-                        viewBox="0 0 24 24"
-                        style={{ pointerEvents: 'none' }}
-                      >
-                        <line
-                          x1="2"
-                          y1="22"
-                          x2="22"
-                          y2="2"
-                          stroke="#dc2626"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                        />
-                      </svg>
+                      // Match structure/metrics of other buttons: use an inner span with inset background & diagonal
+                      <span className="flex items-center justify-center w-full h-full">
+                        <span className="relative block w-full h-full rounded overflow-hidden">
+                          <span
+                            className="absolute inset-0 rounded"
+                            style={{
+                              backgroundColor: '#ffffff',
+                              backgroundImage: 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)',
+                              backgroundSize: '8px 8px',
+                              backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px'
+                            }}
+                          />
+                          <svg
+                            className="absolute inset-0 w-full h-full pointer-events-none"
+                            viewBox="0 0 32 32"
+                            preserveAspectRatio="xMidYMid meet"
+                          >
+                            {/* Slash to match palette panel (bottom-left to top-right) */}
+                            <line x1="2" y1="30" x2="30" y2="2" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" />
+                          </svg>
+                        </span>
+                      </span>
                     ) : (
-                      <Palette className="w-3 h-3" style={{ color: canvasBackgroundColor === '#FFFFFF' ? '#000000' : '#FFFFFF' }} />
+                      <div className="flex items-center justify-center w-full h-full" style={{ backgroundColor: canvasBackgroundColor }}>
+                        <Palette className="w-3 h-3" style={{ color: canvasBackgroundColor === '#FFFFFF' ? '#000000' : '#FFFFFF' }} />
+                      </div>
                     )}
                   </Button>
                 </TooltipTrigger>
@@ -325,7 +326,7 @@ export const CanvasSettings: React.FC = () => {
                         showTypographyPickerAnimated();
                       }
                     }}
-                    className="h-6 w-6 p-0"
+                    className="h-6 w-6 p-0 leading-none flex items-center justify-center [&_svg]:w-3 [&_svg]:h-3"
                     aria-label="Typography settings"
                     aria-expanded={showTypographyPicker}
                     aria-controls="typography-dropdown"
@@ -454,6 +455,7 @@ export const CanvasSettings: React.FC = () => {
           }}
           initialColor={canvasBackgroundColor}
           title="Edit Canvas Background Color"
+          showTransparentOption
         />
       </div>
     </TooltipProvider>

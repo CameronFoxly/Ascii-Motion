@@ -27,6 +27,7 @@ interface ColorPickerOverlayProps {
   onColorSelect: (color: string) => void;
   initialColor?: string;
   title?: string;
+  showTransparentOption?: boolean; // whether to show the transparent quick-set button
 }
 
 export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
@@ -34,7 +35,8 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
   onOpenChange,
   onColorSelect,
   initialColor = '#000000',
-  title = 'Color Picker'
+  title = 'Color Picker',
+  showTransparentOption = false
 }) => {
   const { updatePreviewColor, addRecentColor, recentColors } = usePaletteStore();
   
@@ -830,8 +832,8 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
 
           <Separator />
 
-          {/* Hex Input + Transparent Button */}
-          <div className="flex items-center gap-2">
+          {/* Hex Input (and optional Transparent Button) */}
+          <div className={`flex items-center ${showTransparentOption ? 'gap-2' : ''}`}>
             <Input
               ref={hexInputRef}
               value={hexInput}
@@ -842,31 +844,33 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
                 handleHexChange(e.target.value);
               }}
               placeholder={isTransparentColor ? 'Transparent' : '#000000'}
-              className="font-mono h-7 text-xs flex-1"
+              className={`font-mono h-7 text-xs ${showTransparentOption ? 'flex-1' : 'w-full'}`}
             />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleSetTransparent}
-              title="Set Transparent"
-              aria-label="Set Transparent"
-              className={`h-7 w-7 p-0 overflow-hidden ${isTransparentColor ? 'ring-2 ring-primary ring-offset-1' : ''}`}
-            >
-              <div className="w-full h-full relative bg-white">
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    backgroundImage: 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)',
-                    backgroundSize: '8px 8px',
-                    backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px'
-                  }}
-                />
-                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 48 48">
-                  <line x1="4" y1="44" x2="44" y2="4" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              </div>
-            </Button>
+            {showTransparentOption && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSetTransparent}
+                title="Set Transparent"
+                aria-label="Set Transparent"
+                className={`h-7 w-7 p-0 overflow-hidden ${isTransparentColor ? 'ring-2 ring-primary ring-offset-1' : ''}`}
+              >
+                <div className="w-full h-full relative bg-white">
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      backgroundImage: 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)',
+                      backgroundSize: '8px 8px',
+                      backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px'
+                    }}
+                  />
+                  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 48 48">
+                    <line x1="4" y1="44" x2="44" y2="4" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                </div>
+              </Button>
+            )}
           </div>
 
           {/* Recent Colors */}
