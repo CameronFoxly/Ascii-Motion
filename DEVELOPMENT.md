@@ -983,7 +983,7 @@ src/
 ├── components/
 │   └── features/
 │       ├── ExportModal.tsx           # Main export interface
-│       ├── ImportModal.tsx           # Main import interface
+│       ├── ImportModal.tsx           # Main import interface  
 │       ├── ExportFormatCard.tsx      # Individual format selection
 │       ├── ExportSettings.tsx        # Dynamic settings panel
 │       ├── ExportProgress.tsx        # Progress indicator with cancel
@@ -994,60 +994,86 @@ src/
 ├── utils/
 │   ├── exportEngine.ts               # Core export orchestration
 │   ├── exportDataCollector.ts        # Data gathering utilities
-│   ├── exportRenderer.ts             # High-quality rendering
-│   ├── importValidator.ts            # File validation and parsing  
+│   ├── exportRenderer.ts             # High-quality rendering pipeline
 │   └── exporters/
-│       ├── videoExporter.ts          # MP4 export implementation
-│       ├── gifExporter.ts            # GIF export implementation
-│       ├── jsonExporter.ts           # JSON data export
-│       ├── pngExporter.ts            # PNG image export
-│       └── sessionExporter.ts        # Session save/load
+│       ├── pngExporter.ts            # PNG image export (Phase 3.2)
+│       ├── sessionExporter.ts        # Session save/load (Phase 3.3)
+│       └── videoExporter.ts          # MP4 export (Phase 3.4)
 └── types/
     └── export.ts                     # Export-related type definitions
 ```
+
+**Note**: Structure focuses on the three core export formats (PNG, Session, MP4) with clean separation between rendering pipeline and format-specific exporters.
 
 #### **Dependencies to Add**
 ```json
 {
   "dependencies": {
-    "@ffmpeg/ffmpeg": "^0.12.7",      // Video encoding
+    "@ffmpeg/ffmpeg": "^0.12.7",      // Video encoding (MP4 export)
     "@ffmpeg/util": "^0.12.1",        // FFmpeg utilities
-    "gif.js": "^0.2.0",               // GIF generation
-    "file-saver": "^2.0.5",           // File download utility
-    "jszip": "^3.10.1"                // Multi-file exports (future)
+    "file-saver": "^2.0.5"            // File download utility
+  },
+  "devDependencies": {
+    // Future: "gif.js": "^0.2.0" for GIF export
+    // Future: "jszip": "^3.10.1" for multi-file exports
   }
 }
 ```
 
 ### **🎯 Development Phases**
 
-#### **Phase 3.1: Core Infrastructure (Week 1)**
-- [x] Export/Import store setup
-- [x] Modal components and UI integration
-- [x] Data collection and validation utilities
-- [x] Basic export engine architecture
+The implementation follows a clean architectural progression from simple to complex, building reusable infrastructure that supports all export formats.
 
-#### **Phase 3.2: Image Exports (Week 1-2)**
-- [x] PNG export with scaling options
-- [x] High-quality canvas rendering pipeline
-- [x] Settings UI and format selection
+#### **Phase 3.1: Foundation Infrastructure (Days 1-2)**
+**Goal**: Establish core export system architecture and UI integration
+- [ ] Export/Import store setup (`src/stores/exportStore.ts`)
+- [ ] Export data collector utility (`src/utils/exportDataCollector.ts`)
+- [ ] Top bar Export/Import buttons integration
+- [ ] Basic export modal component with format selection
+- [ ] High-quality canvas rendering pipeline for exports
 
-#### **Phase 3.3: Animation Exports (Week 2-3)**
-- [x] GIF export with optimization
-- [x] MP4 export with FFmpeg integration
-- [x] Frame range selection and progress tracking
-- [x] Quality settings and compression options
+**Why First**: Creates the foundation that all export formats will use, ensuring consistent architecture.
 
-#### **Phase 3.4: Data Formats (Week 3)**
-- [x] JSON animation export/import
-- [x] Session save/load functionality
-- [x] Import validation and error handling
+#### **Phase 3.2: PNG Export (Days 2-3)**
+**Goal**: Simplest export format to validate the pipeline
+- [ ] PNG exporter implementation (`src/utils/exporters/pngExporter.ts`)
+- [ ] Size multiplier options (1x, 2x)
+- [ ] Grid overlay toggle
+- [ ] PNG export settings UI
+- [ ] File download integration
 
-#### **Phase 3.5: Polish & Testing (Week 4)**
-- [x] Comprehensive error handling
-- [x] Export history and recent files
-- [x] Performance optimization for large animations
-- [x] Documentation and user guides
+**Why Second**: PNG is the simplest format and validates the entire export pipeline without complex encoding.
+
+#### **Phase 3.3: Session Save/Load (Days 3-4)**
+**Goal**: Core creative state preservation for project continuity
+- [ ] Session data collector (core creative state)
+- [ ] Session exporter implementation (`src/utils/exporters/sessionExporter.ts`)
+- [ ] Import modal with file drop zone
+- [ ] Session import validation and restoration
+- [ ] Version compatibility handling
+
+**Why Third**: Session save is critical for user workflow and tests complete state management integration.
+
+#### **Phase 3.4: MP4 Video Export (Days 4-6)**
+**Goal**: Animation export with H.264 encoding
+- [ ] FFmpeg integration setup (`@ffmpeg/ffmpeg`)
+- [ ] Frame sequence rendering for animation
+- [ ] H.264 encoding with quality presets
+- [ ] Frame rate control (1-60 fps)
+- [ ] Progress tracking with cancellation
+- [ ] MP4 export settings UI
+
+**Why Last**: MP4 is the most complex format requiring external dependencies and the most sophisticated encoding pipeline.
+
+#### **Phase 3.5: Polish & Error Handling (Days 6-7)**
+**Goal**: Production-ready export system
+- [ ] Comprehensive error handling and user feedback
+- [ ] Export progress indicators with cancellation
+- [ ] File naming conventions and metadata
+- [ ] Performance optimization for large animations
+- [ ] Documentation updates
+
+**Why Final**: Ensures the entire system is robust and user-friendly before considering complete.
 
 ### **🚀 Future Expansion Points**
 
