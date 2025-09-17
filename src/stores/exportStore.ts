@@ -44,7 +44,8 @@ const DEFAULT_VIDEO_SETTINGS: VideoExportSettings = {
   sizeMultiplier: 1,
   frameRate: 12, // Match typical animation frame rate
   frameRange: { start: 0, end: -1 }, // -1 means "end of animation"
-  quality: 'medium',
+  quality: 'medium', // For WebM
+  crf: 24, // Default CRF for H.264 (good balance of quality/size)
   format: 'webm', // Default to WebM format
   includeGrid: false, // Default to no grid in video
   loops: 'none', // Default to no looping

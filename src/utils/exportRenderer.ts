@@ -455,26 +455,109 @@ export class ExportRenderer {
   }
 
   /**
-   * Export video using canvas frame capture fallback (MP4-like)
+   * Export video using FFmpeg.wasm (H.264 MP4)
    */
   private async exportMP4Fallback(
     data: ExportDataBundle,
     settings: VideoExportSettings,
     filename: string
   ): Promise<void> {
-    this.updateProgress('Creating animation frames...', 20);
+    this.updateProgress('Initializing FFmpeg...', 10);
     
-    // For now, create a simple image sequence as a fallback
-    // In a production app, you'd integrate FFmpeg.wasm here
-    const frameCanvases = await this.generateVideoFrames(data, settings);
-    
-    this.updateProgress('Creating frame archive...', 70);
-    
-    // Create a ZIP file with all frames for now
-    // This is a temporary solution until FFmpeg.wasm is integrated
-    await this.createFrameArchive(frameCanvases, filename, settings);
-    
-    this.updateProgress('Export complete!', 100);
+    try {
+      // Dynamic import of FFmpeg
+      const { FFmpeg } = await import('@ffmpeg/ffmpeg');
+      const { fetchFile } = await import('@ffmpeg/util');
+      
+      const ffmpeg = new FFmpeg();
+      
+      // Load FFmpeg core with better error handling
+      this.updateProgress('Loading FFmpeg core...', 15);
+      
+      try {
+        // Use default FFmpeg loading which handles worker files properly
+        await ffmpeg.load();
+      } catch (loadError) {
+        console.error('Failed to load FFmpeg:', loadError);
+        throw new Error(`Failed to initialize FFmpeg: ${loadError instanceof Error ? loadError.message : String(loadError)}`);
+      }
+      
+      this.updateProgress('Generating frames...', 20);
+      
+      // Generate frame canvases
+      const frameCanvases = await this.generateVideoFrames(data, settings);
+      
+      if (frameCanvases.length === 0) {
+        throw new Error('No frames generated for MP4 export');
+      }
+      
+      this.updateProgress('Converting frames to images...', 40);
+      
+      // Convert canvases to PNG files for FFmpeg
+      for (let i = 0; i < frameCanvases.length; i++) {
+        const canvas = frameCanvases[i];
+        const blob = await this.canvasToBlob(canvas, 'image/png');
+        const frameData = await fetchFile(blob);
+        
+        // Write frame to FFmpeg file system with zero-padded name
+        const frameName = `frame${i.toString().padStart(6, '0')}.png`;
+        await ffmpeg.writeFile(frameName, frameData);
+        
+        // Update progress during frame conversion
+        const progress = 40 + (i / frameCanvases.length) * 20; // 40-60%
+        this.updateProgress(`Converting frame ${i + 1}/${frameCanvases.length}...`, progress);
+      }
+      
+      this.updateProgress('Encoding H.264 MP4 video...', 70);
+      
+      // Build FFmpeg command based on your specification
+      const inputPattern = 'frame%06d.png';
+      const outputFilename = 'output.mp4';
+      
+      // Calculate frame rate (FFmpeg needs frames per second)
+      const framerate = settings.frameRate.toString();
+      
+      // Your FFmpeg command adapted for frame input:
+      const ffmpegArgs = [
+        '-framerate', framerate,        // Input framerate
+        '-i', inputPattern,             // Input pattern
+        '-map_metadata', '-1',          // Remove metadata
+        '-an',                          // No audio
+        '-c:v', 'libx264',             // H.264 codec
+        '-crf', settings.crf.toString(), // Quality (CRF value)
+        '-profile:v', 'main',           // H.264 profile
+        '-pix_fmt', 'yuv420p',         // Pixel format for compatibility
+        '-movflags', '+faststart',      // Optimize for web playback
+        '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', // Ensure even dimensions
+        outputFilename
+      ];
+      
+      console.log('🎬 FFmpeg command:', ['ffmpeg', ...ffmpegArgs].join(' '));
+      
+      // Execute FFmpeg encoding
+      await ffmpeg.exec(ffmpegArgs);
+      
+      this.updateProgress('Saving MP4 file...', 90);
+      
+      // Read the output file
+      const outputData = await ffmpeg.readFile(outputFilename);
+      
+      // Create blob from FFmpeg output data
+      const uint8Array = new Uint8Array(outputData as unknown as ArrayBuffer);
+      const mp4Blob = new Blob([uint8Array.buffer], { type: 'video/mp4' });
+      
+      console.log(`💾 MP4 created: ${(mp4Blob.size / 1024 / 1024).toFixed(2)} MB`);
+      
+      saveAs(mp4Blob, `${filename}.mp4`);
+      
+      this.updateProgress('MP4 export complete!', 100);
+      
+      console.log('✅ H.264 MP4 export completed successfully');
+      
+    } catch (error) {
+      console.error('❌ FFmpeg MP4 export failed:', error);
+      throw new Error(`MP4 export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   /**
@@ -717,39 +800,6 @@ export class ExportRenderer {
       default:
         return Math.max(1000000, baseRate * 400);
     }
-  }
-
-  /**
-   * Create a frame archive as fallback for MP4 export
-   */
-  private async createFrameArchive(
-    frames: HTMLCanvasElement[],
-    filename: string,
-    settings: VideoExportSettings
-  ): Promise<void> {
-    // Create individual PNG files for each frame
-    // This is a temporary solution - in production, use FFmpeg.wasm for MP4
-    
-    const archiveFrames: { name: string; blob: Blob }[] = [];
-    
-    for (let i = 0; i < frames.length; i++) {
-      const canvas = frames[i];
-      const blob = await this.canvasToBlob(canvas, 'image/png');
-      
-      archiveFrames.push({
-        name: `frame_${i.toString().padStart(4, '0')}.png`,
-        blob
-      });
-    }
-    
-    // For now, just save the first frame as a sample
-    // In production, you'd create a ZIP file or integrate FFmpeg.wasm
-    if (archiveFrames.length > 0) {
-      saveAs(archiveFrames[0].blob, `${filename}_frame_sequence.png`);
-    }
-    
-    // Show info about the frame sequence
-    alert(`Created ${archiveFrames.length} frames. Frame rate: ${settings.frameRate} FPS. Duration: ${(archiveFrames.length / settings.frameRate).toFixed(1)}s\n\nNote: Full MP4 export requires FFmpeg integration. Currently exporting frame sequence.`);
   }
 
   /**

@@ -6,6 +6,7 @@ import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Checkbox } from '../ui/checkbox';
 import { Progress } from '../ui/progress';
+import { Slider } from '../ui/slider';
 import { Card, CardContent } from '../ui/card';
 import { Video, Loader2, Play, Settings } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
@@ -29,6 +30,7 @@ export const VideoExportDialog: React.FC = () => {
     frameRate: 12,
     frameRange: 'all',
     quality: 'high',
+    crf: 24,
     format: 'webm',
     includeGrid: false,
     loops: 'none'
@@ -154,22 +156,46 @@ export const VideoExportDialog: React.FC = () => {
                 </Select>
               </div>
 
+              {/* Quality Control - Different for each format */}
               <div className="space-y-2">
-                <Label htmlFor="quality">Quality</Label>
-                <Select
-                  value={videoSettings.quality}
-                  onValueChange={(value: 'high' | 'medium' | 'low') => handleSettingChange('quality', value)}
-                  disabled={isExporting}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="low">Low</SelectItem>
-                  </SelectContent>
-                </Select>
+                {videoSettings.format === 'webm' ? (
+                  <>
+                    <Label htmlFor="quality">Quality</Label>
+                    <Select
+                      value={videoSettings.quality}
+                      onValueChange={(value: 'high' | 'medium' | 'low') => handleSettingChange('quality', value)}
+                      disabled={isExporting}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </>
+                ) : (
+                  <>
+                    <Label htmlFor="crf">Quality (CRF: {videoSettings.crf})</Label>
+                    <div className="px-2">
+                      <Slider
+                        value={videoSettings.crf}
+                        onValueChange={(value) => handleSettingChange('crf', value)}
+                        max={51}
+                        min={0}
+                        step={1}
+                        disabled={isExporting}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>Higher Quality (0)</span>
+                        <span>Lower Quality (51)</span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="space-y-2">

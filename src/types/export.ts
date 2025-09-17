@@ -24,7 +24,8 @@ export interface VideoExportSettings {
   sizeMultiplier: 1 | 2 | 4;
   frameRate: number; // 1-60 fps
   frameRange: { start: number; end: number } | 'all';
-  quality: 'high' | 'medium' | 'low';
+  quality: 'high' | 'medium' | 'low'; // Used for WebM encoding
+  crf: number; // 0-51, used for H.264 MP4 encoding (lower = higher quality)
   format: 'webm' | 'mp4'; // WebM for WebCodecs, MP4 for broader compatibility
   includeGrid: boolean;
   loops: 'none' | '2x' | '4x' | '8x'; // Number of times to loop the animation
