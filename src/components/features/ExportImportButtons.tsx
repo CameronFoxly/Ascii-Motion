@@ -7,8 +7,9 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { Download, Upload, FileImage, Film, Save, ChevronDown } from 'lucide-react';
+import { Download, Upload, FileImage, Film, Save, ChevronDown, Image } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
+import { useImportModal } from '../../stores/importStore';
 import type { ExportFormatId } from '../../types/export';
 
 // Export format definitions for dropdown
@@ -36,6 +37,12 @@ const EXPORT_OPTIONS = [
 // Import format definitions for dropdown
 const IMPORT_OPTIONS = [
   {
+    id: 'media' as ExportFormatId,
+    name: 'Image/Video',
+    description: 'Convert to ASCII art',
+    icon: Upload,
+  },
+  {
     id: 'session' as ExportFormatId,
     name: 'Session File',
     description: 'Load complete project',
@@ -51,6 +58,7 @@ export const ExportImportButtons: React.FC = () => {
   const setActiveFormat = useExportStore(state => state.setActiveFormat);
   const setShowExportModal = useExportStore(state => state.setShowExportModal);
   const setShowImportModal = useExportStore(state => state.setShowImportModal);
+  const { openModal: openMediaImportModal } = useImportModal();
 
   const handleExportSelect = (formatId: ExportFormatId) => {
     setActiveFormat(formatId);
@@ -58,8 +66,14 @@ export const ExportImportButtons: React.FC = () => {
   };
 
   const handleImportSelect = (formatId: ExportFormatId) => {
-    setActiveFormat(formatId);
-    setShowImportModal(true);
+    if (formatId === 'media') {
+      // Use new media import modal
+      openMediaImportModal();
+    } else {
+      // Use existing session import modal
+      setActiveFormat(formatId);
+      setShowImportModal(true);
+    }
   };
 
   return (

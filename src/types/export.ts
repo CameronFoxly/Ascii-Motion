@@ -2,7 +2,7 @@ import type { Frame, Cell, Tool } from './index';
 import type { FontMetrics } from '../utils/fontMetrics';
 
 // Export format identifiers
-export type ExportFormatId = 'png' | 'mp4' | 'session';
+export type ExportFormatId = 'png' | 'mp4' | 'session' | 'media';
 
 // Base export format interface
 export interface ExportFormat {
