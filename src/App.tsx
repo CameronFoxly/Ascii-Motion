@@ -18,7 +18,7 @@ import { PerformanceOverlay } from './components/common/PerformanceOverlay'
 import { StatusPanel } from './components/features/StatusPanel'
 import { ExportImportButtons } from './components/features/ExportImportButtons'
 import { ImportModal } from './components/features/ImportModal'
-import { MediaImportModal } from './components/features/MediaImportModal'
+import { MediaImportPanel } from './components/features/MediaImportPanel'
 import { PngExportDialog } from './components/features/PngExportDialog'
 import { VideoExportDialog } from './components/features/VideoExportDialog'
 import { SessionExportDialog } from './components/features/SessionExportDialog'
@@ -190,7 +190,7 @@ function App() {
           
           {/* Export/Import Dialogs - Inside CanvasProvider to access context */}
           <ImportModal />
-          <MediaImportModal />
+          <MediaImportPanel />
           <PngExportDialog />
           <VideoExportDialog />
           <SessionExportDialog />
