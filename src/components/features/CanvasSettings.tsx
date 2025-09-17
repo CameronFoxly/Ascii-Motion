@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { ColorPickerOverlay } from './ColorPickerOverlay';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
@@ -28,11 +29,12 @@ export const CanvasSettings: React.FC = () => {
     setFontSize
   } = useCanvasContext();
 
+  // Replace inline dropdown picker with modal overlay reuse
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showTypographyPicker, setShowTypographyPicker] = useState(false);
-  const [colorPickerAnimationClass, setColorPickerAnimationClass] = useState('');
+  // (Removed old dropdown animation state)
   const [typographyPickerAnimationClass, setTypographyPickerAnimationClass] = useState('');
-  const [tempColor, setTempColor] = useState(canvasBackgroundColor);
+  // Temp color state removed; modal handles confirmation
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const colorPickerRef = useRef<HTMLDivElement>(null);
   const typographyPickerRef = useRef<HTMLDivElement>(null);
@@ -52,26 +54,13 @@ export const CanvasSettings: React.FC = () => {
   };
 
   // Sync tempColor with actual background color
-  useEffect(() => {
-    setTempColor(canvasBackgroundColor);
-  }, [canvasBackgroundColor]);
+  // (Removed tempColor sync effect)
 
-  // Close color picker when clicking outside
+  // Close typography picker when clicking outside (color picker overlay handles its own dialog focus trapping)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      
-      // Check if click is outside color picker
-      if (showColorPicker && 
-          colorPickerRef.current && 
-          !colorPickerRef.current.contains(target)) {
-        // Also check if click is not on the portal dropdown
-        const colorDropdown = document.getElementById('color-dropdown');
-        if (!colorDropdown || !colorDropdown.contains(target)) {
-          closeColorPicker();
-        }
-      }
-      
+
       // Check if click is outside typography picker
       if (showTypographyPicker && 
           typographyPickerRef.current && 
@@ -84,11 +73,11 @@ export const CanvasSettings: React.FC = () => {
       }
     };
 
-    if (showColorPicker || showTypographyPicker) {
+    if (showTypographyPicker) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [showColorPicker, showTypographyPicker]);
+  }, [showTypographyPicker]);
 
   // Reset dropdown states when layout might be changing (e.g., window resize)
   useEffect(() => {
@@ -115,21 +104,11 @@ export const CanvasSettings: React.FC = () => {
 
   // Animated show/hide functions for color picker
   const showColorPickerAnimated = () => {
-    if (colorPickerTimeoutRef.current) {
-      clearTimeout(colorPickerTimeoutRef.current);
-    }
     setShowColorPicker(true);
-    setColorPickerAnimationClass('dropdown-enter');
   };
 
   const closeColorPicker = () => {
-    if (!showColorPicker) return;
-    
-    setColorPickerAnimationClass('dropdown-exit');
-    colorPickerTimeoutRef.current = setTimeout(() => {
-      setShowColorPicker(false);
-      setColorPickerAnimationClass('');
-    }, 100); // Match faster exit animation duration
+    setShowColorPicker(false);
   };
 
   // Animated show/hide functions for typography picker
@@ -152,7 +131,6 @@ export const CanvasSettings: React.FC = () => {
   };
 
   const handleColorChange = (color: string) => {
-    setTempColor(color);
     setCanvasBackgroundColor(color);
   };
 
@@ -291,14 +269,8 @@ export const CanvasSettings: React.FC = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      if (showColorPicker) {
-                        closeColorPicker();
-                      } else {
-                        const position = calculatePosition(colorPickerRef.current);
-                        setDropdownPosition(position);
-                        closeTypographyPicker(); // Close other dropdown first
-                        showColorPickerAnimated();
-                      }
+                      closeTypographyPicker();
+                      showColorPickerAnimated();
                     }}
                     className="h-6 w-6 p-0 relative overflow-hidden"
                     style={{ 
@@ -376,7 +348,7 @@ export const CanvasSettings: React.FC = () => {
 
           {/* Zoom Controls - kept exactly as is */}
           <ZoomControls />
-        </div>        {/* Typography Picker Dropdown - Portal rendered for proper layering */}
+  </div>        {/* Typography Picker Dropdown - Portal rendered for proper layering */}
         {showTypographyPicker && dropdownPosition.top > 0 && createPortal(
           <div 
             id="typography-dropdown"
@@ -475,120 +447,20 @@ export const CanvasSettings: React.FC = () => {
           document.body
         )}
 
-        {/* Background Color Picker Dropdown - Portal rendered for proper layering */}
-        {showColorPicker && dropdownPosition.top > 0 && createPortal(
-          <div 
-            id="color-dropdown"
-            className={`fixed z-[99999] p-3 bg-popover border border-border rounded-md shadow-lg ${colorPickerAnimationClass}`}
-            style={{
-              top: `${dropdownPosition.top}px`,
-              left: `${dropdownPosition.left}px`,
-              minWidth: `${dropdownPosition.width}px`
-            }}
-            role="menu"
-            aria-label="Background color selection menu"
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="space-y-3">
-              {/* Preset Colors */}
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-2 block">
-                  Canvas color
-                </label>
-                <div className="grid grid-cols-5 gap-1">
-                  {presetColors.map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => handleColorChange(color)}
-                      className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform relative overflow-hidden"
-                      style={{ 
-                        backgroundColor: color === 'transparent' ? '#ffffff' : color,
-                        backgroundImage: color === 'transparent' 
-                          ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)'
-                          : 'none',
-                        backgroundSize: color === 'transparent' ? '8px 8px' : 'auto',
-                        backgroundPosition: color === 'transparent' ? '0 0, 0 4px, 4px -4px, -4px 0px' : 'auto'
-                      }}
-                      title={color === 'transparent' ? 'Transparent background' : color}
-                    >
-                      {color === 'transparent' && (
-                        <svg
-                          className="absolute inset-0 w-full h-full"
-                          viewBox="0 0 24 24"
-                          style={{ pointerEvents: 'none' }}
-                        >
-                          <line
-                            x1="2"
-                            y1="22"
-                            x2="22"
-                            y2="2"
-                            stroke="#dc2626"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Hex Input */}
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                  Hex Color
-                </label>
-                <input
-                  type="text"
-                  value={tempColor}
-                  onChange={(e) => {
-                    let value = e.target.value;
-                    
-                    // Auto-add # if missing
-                    if (value.length > 0 && !value.startsWith('#')) {
-                      value = '#' + value;
-                    }
-                    
-                    setTempColor(value);
-                    
-                    // Validate hex color (3 or 6 digits after #)
-                    if (/^#[0-9A-Fa-f]{6}$/.test(value) || /^#[0-9A-Fa-f]{3}$/.test(value)) {
-                      // Convert 3-digit hex to 6-digit
-                      let fullHex = value;
-                      if (value.length === 4) {
-                        fullHex = '#' + value[1] + value[1] + value[2] + value[2] + value[3] + value[3];
-                      }
-                      handleColorChange(fullHex);
-                    }
-                  }}
-                  onBlur={() => {
-                    // Reset to current color if invalid input
-                    if (!/^#[0-9A-Fa-f]{6}$/.test(tempColor) && !/^#[0-9A-Fa-f]{3}$/.test(tempColor)) {
-                      setTempColor(canvasBackgroundColor);
-                    }
-                  }}
-                  placeholder="#000000"
-                  className="w-full px-2 py-1 text-xs border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-                />
-              </div>
-
-              {/* HTML Color Picker */}
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                  Color Picker
-                </label>
-                <input
-                  type="color"
-                  value={canvasBackgroundColor}
-                  onChange={(e) => handleColorChange(e.target.value)}
-                  className="w-full h-8 border border-border rounded bg-background cursor-pointer"
-                />
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
+        {/* Background Color Picker Modal (full replacement) */}
+        <ColorPickerOverlay
+          isOpen={showColorPicker}
+          onOpenChange={(open) => {
+            setShowColorPicker(open);
+          }}
+          onColorSelect={(color) => {
+            handleColorChange(color);
+          }}
+          initialColor={canvasBackgroundColor}
+          title="Edit Canvas Background Color"
+          presetColors={presetColors}
+          closeOnPresetSelect={true}
+        />
       </div>
     </TooltipProvider>
   );
