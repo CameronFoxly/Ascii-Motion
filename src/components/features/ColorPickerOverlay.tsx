@@ -381,6 +381,17 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     onOpenChange(false);
   };
 
+  // Set preview state to transparent (without committing until confirm)
+  const handleSetTransparent = () => {
+    setIsTransparentColor(true);
+    setPreviewColor('transparent');
+    setHexInput('');
+    setRgbValues({ r: 0, g: 0, b: 0 });
+    setHsvValues({ h: 0, s: 0, v: 0 });
+    setValueSliderValue(0);
+    setColorWheelPosition({ x: 80, y: 80 });
+  };
+
   // Create canvas-based HSV color wheel
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
@@ -819,8 +830,8 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
 
           <Separator />
 
-          {/* Hex Input */}
-          <div>
+          {/* Hex Input + Transparent Button */}
+          <div className="flex items-center gap-2">
             <Input
               ref={hexInputRef}
               value={hexInput}
@@ -831,8 +842,31 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
                 handleHexChange(e.target.value);
               }}
               placeholder={isTransparentColor ? 'Transparent' : '#000000'}
-              className="font-mono h-7 text-xs"
+              className="font-mono h-7 text-xs flex-1"
             />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleSetTransparent}
+              title="Set Transparent"
+              aria-label="Set Transparent"
+              className={`h-7 w-7 p-0 overflow-hidden ${isTransparentColor ? 'ring-2 ring-primary ring-offset-1' : ''}`}
+            >
+              <div className="w-full h-full relative bg-white">
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    backgroundImage: 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)',
+                    backgroundSize: '8px 8px',
+                    backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px'
+                  }}
+                />
+                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 48 48">
+                  <line x1="4" y1="44" x2="44" y2="4" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </div>
+            </Button>
           </div>
 
           {/* Recent Colors */}
