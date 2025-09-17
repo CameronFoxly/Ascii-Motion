@@ -695,11 +695,397 @@ Always test frame operations with this sequence:
 - Cache onion skin renders when frame data unchanged
 - Leverage existing thumbnail generation system
 
-3. **Phase 3: Export Functions** - Final development
-   - Text export capabilities
-   - JSON project file format
-   - GIF generation for animations
-   - MP4 export for video output
+## **Phase 3: Export/Import System** - ✅ **PLANNED** (Sept 16, 2025)
+
+### **🎯 Overview: Comprehensive Export/Import Functionality**
+
+A modular, extensible export/import system providing multiple output formats for ASCII animations and static frames. The system is designed with a plugin-like architecture for easy expansion and follows established UI patterns from the existing application.
+
+### **🏗️ System Architecture**
+
+#### **1. Core Export Architecture**
+```typescript
+// src/stores/exportStore.ts - Centralized export state management
+interface ExportState {
+  activeFormat: ExportFormat | null;
+  isExporting: boolean;
+  progress: number;
+  settings: ExportSettings;
+  history: ExportHistoryEntry[];
+}
+
+// src/types/export.ts - Export type definitions
+interface ExportFormat {
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+  description: string;
+  fileExtension: string;
+  requiresAnimation: boolean;
+  settings: ExportFormatSettings;
+}
+
+// src/utils/exportEngine.ts - Plugin-like export engine
+class ExportEngine {
+  exporters: Map<string, ExportHandler>;
+  registerExporter(id: string, handler: ExportHandler): void;
+  export(format: string, settings: ExportSettings): Promise<ExportResult>;
+}
+```
+
+#### **2. Data Collection System**
+```typescript
+// src/utils/exportDataCollector.ts - Gathers all necessary export data
+interface ExportDataBundle {
+  // Animation data
+  frames: Frame[];
+  frameRange: { start: number; end: number };
+  
+  // Canvas data
+  canvasData: Map<string, Cell>;
+  canvasDimensions: { width: number; height: number };
+  canvasBackgroundColor: string;
+  
+  // Typography & rendering
+  fontMetrics: FontMetrics;
+  typography: TypographySettings;
+  
+  // App state (for session saves)
+  toolState: ToolState;
+  animationState: AnimationState;
+  contextState: CanvasContextState;
+}
+```
+
+#### **3. Rendering Pipeline**
+```typescript
+// src/utils/exportRenderer.ts - High-quality frame rendering
+interface ExportRenderer {
+  renderFrame(frameData: Map<string, Cell>, settings: RenderSettings): Promise<HTMLCanvasElement>;
+  renderFrameSequence(frames: Frame[], settings: RenderSettings): Promise<HTMLCanvasElement[]>;
+  applyScaling(canvas: HTMLCanvasElement, multiplier: number): HTMLCanvasElement;
+}
+```
+
+### **🎨 User Interface Design**
+
+#### **1. Top Bar Integration**
+- **Export Button**: Right side of top bar, next to theme toggle
+- **Import Button**: Adjacent to export button
+- Both buttons use consistent styling with existing UI elements
+- Icons: `Download` for export, `Upload` for import
+
+#### **2. Export Modal (`ExportModal.tsx`)**
+```typescript
+interface ExportModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+// Modal structure:
+// 1. Format selection (grid of cards)
+// 2. Settings panel (dynamic based on format)
+// 3. Frame range selector (for animation formats)
+// 4. Quality/size controls
+// 5. Export button with progress indicator
+```
+
+#### **3. Import Modal (`ImportModal.tsx`)**
+- File drop zone with format auto-detection
+- Import preview for supported formats
+- Merge vs. replace options for session imports
+- Error handling and validation feedback
+
+### **📤 Export Formats Implementation**
+
+#### **1. Video Export (.mp4)**
+**Technical Requirements:**
+- **FFmpeg Integration**: Web-based FFmpeg using `@ffmpeg/ffmpeg`
+- **H.264 Codec**: Standard video codec for broad compatibility
+- **Size Options**: 1x or 2x current canvas pixel dimensions
+- **Frame Rate Control**: User-selectable up to 60 fps
+- **Progress Tracking**: Real-time encoding progress updates
+
+**Settings Interface:**
+```typescript
+interface VideoExportSettings {
+  sizeMultiplier: 1 | 2;     // 1x or 2x canvas pixel size
+  frameRate: number;         // 1-60 fps, user selectable
+  frameRange: { start: number; end: number }; // Which frames to export
+  quality: 'high' | 'medium' | 'low'; // Simplified quality presets
+}
+```
+
+**Implementation:**
+```typescript
+// src/utils/exporters/videoExporter.ts
+export class VideoExporter implements ExportHandler {
+  async export(data: ExportDataBundle, settings: VideoExportSettings): Promise<Blob> {
+    // 1. Render all frames at specified size multiplier
+    // 2. Convert to image sequence for FFmpeg
+    // 3. Initialize FFmpeg with H.264 preset
+    // 4. Encode at user-specified frame rate
+    // 5. Return MP4 blob for download
+  }
+}
+```
+
+#### **2. GIF Export (.gif)** - *Future Enhancement*
+**Technical Requirements:**
+- **GIF.js Library**: High-quality GIF encoding with dithering options
+- **Frame Optimization**: Frame differencing for smaller file sizes
+- **Color Palette**: Optimized 256-color palette generation
+
+**Settings Interface:**
+```typescript
+interface GifExportSettings {
+  sizeMultiplier: number; // 1x, 2x, 4x scaling
+  quality: number;        // 1-20 (GIF.js quality setting)
+  frameRange: { start: number; end: number };
+  dithering: boolean;     // Floyd-Steinberg dithering
+  repeat: number;         // 0 = infinite loop, n = repeat n times
+}
+```
+
+*Note: GIF export will be implemented in a future phase to focus on core MP4 and PNG functionality first.*
+
+#### **3. JSON Data Export (.json)** - *Future Enhancement*
+**Technical Requirements:**
+- **Pure Animation Data**: Frames, timing, and canvas data only
+- **Compact Format**: Optimized JSON structure for smaller files
+- **Version Compatibility**: Forward/backward compatible schema
+
+**Data Structure:**
+```typescript
+interface AnimationDataExport {
+  version: string;
+  metadata: {
+    name: string;
+    createdAt: string;
+    canvasDimensions: { width: number; height: number };
+    totalFrames: number;
+    totalDuration: number;
+  };
+  frames: {
+    id: string;
+    name: string;
+    duration: number;
+    cells: Array<{ x: number; y: number; char: string; color: string; bgColor: string }>;
+  }[];
+}
+```
+
+*Note: JSON export will be implemented in a future phase to focus on core functionality first.*
+
+#### **2. PNG Export (.png)**
+**Technical Requirements:**
+- **Current Frame Only**: Exports active frame as high-quality PNG
+- **High-DPI Support**: Device pixel ratio scaling for crisp exports
+- **Size Options**: 1x or 2x current canvas pixel dimensions
+- **Background Handling**: Uses current canvas background color
+
+**Settings Interface:**
+```typescript
+interface PngExportSettings {
+  sizeMultiplier: 1 | 2;  // 1x or 2x canvas pixel size
+  includeGrid: boolean;   // Optional grid overlay (default: false)
+}
+```
+
+**Implementation:**
+```typescript
+// src/utils/exporters/pngExporter.ts
+export class PngExporter implements ExportHandler {
+  async export(data: ExportDataBundle, settings: PngExportSettings): Promise<Blob> {
+    // 1. Render current frame at specified size multiplier
+    // 2. Apply canvas background color
+    // 3. Optionally overlay grid
+    // 4. Convert canvas to PNG blob
+    // 5. Return PNG blob for download
+  }
+}
+```
+
+#### **3. Session Save (.asciimtn)**
+**Technical Requirements:**
+- **Core Creative State**: Canvas data, animation frames, and typography settings
+- **Tool State**: Active colors, selected character, and essential tool settings
+- **Future-Proof Schema**: Extensible format for new features
+
+**Data Structure:**
+```typescript
+interface SessionExport {
+  version: string;
+  metadata: {
+    name: string;
+    createdAt: string;
+    appVersion: string;
+  };
+  
+  // Complete animation state
+  animation: {
+    frames: Frame[]; // Full frame data with cells
+    currentFrameIndex: number;
+    frameRate: number;
+    looping: boolean;
+  };
+  
+  // Canvas state
+  canvas: {
+    width: number;
+    height: number;
+    backgroundColorstring;
+    showGrid: boolean;
+  };
+  
+  // Core tool state
+  tools: {
+    activeTool: Tool;
+    selectedColor: string;
+    selectedBgColor: string;
+    selectedCharacter: string;
+    // Essential tool settings only
+    paintBucketContiguous: boolean;
+    rectangleFilled: boolean;
+  };
+  
+  // Typography settings
+  typography: {
+    fontSize: number;
+    characterSpacing: number;
+    lineSpacing: number;
+  };
+}
+```
+
+### **📥 Import System Implementation**
+
+#### **1. JSON Animation Import**
+- **File Validation**: Schema validation with detailed error messages
+- **Merge Options**: Replace current animation vs. append frames
+- **Canvas Resize**: Handle dimension mismatches gracefully
+
+#### **2. Session Import**
+- **State Restoration**: Complete app state restoration from `.asciimtn` files
+- **Version Migration**: Handle imports from older app versions
+- **Selective Import**: Choose which aspects to import (animation, tools, UI)
+
+#### **3. Future Import Formats**
+- **Text File Import**: Parse ASCII art from `.txt` files
+- **Image Import**: Convert images to ASCII using edge detection
+- **GIF Import**: Extract frames from animated GIFs for editing
+
+### **🔧 Implementation Architecture**
+
+#### **Component Structure**
+```
+src/
+├── components/
+│   └── features/
+│       ├── ExportModal.tsx           # Main export interface
+│       ├── ImportModal.tsx           # Main import interface
+│       ├── ExportFormatCard.tsx      # Individual format selection
+│       ├── ExportSettings.tsx        # Dynamic settings panel
+│       ├── ExportProgress.tsx        # Progress indicator with cancel
+│       ├── FrameRangeSelector.tsx    # Animation frame range picker
+│       └── ImportDropZone.tsx        # File drag-and-drop area
+├── stores/
+│   └── exportStore.ts                # Export/import state management
+├── utils/
+│   ├── exportEngine.ts               # Core export orchestration
+│   ├── exportDataCollector.ts        # Data gathering utilities
+│   ├── exportRenderer.ts             # High-quality rendering
+│   ├── importValidator.ts            # File validation and parsing  
+│   └── exporters/
+│       ├── videoExporter.ts          # MP4 export implementation
+│       ├── gifExporter.ts            # GIF export implementation
+│       ├── jsonExporter.ts           # JSON data export
+│       ├── pngExporter.ts            # PNG image export
+│       └── sessionExporter.ts        # Session save/load
+└── types/
+    └── export.ts                     # Export-related type definitions
+```
+
+#### **Dependencies to Add**
+```json
+{
+  "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.7",      // Video encoding
+    "@ffmpeg/util": "^0.12.1",        // FFmpeg utilities
+    "gif.js": "^0.2.0",               // GIF generation
+    "file-saver": "^2.0.5",           // File download utility
+    "jszip": "^3.10.1"                // Multi-file exports (future)
+  }
+}
+```
+
+### **🎯 Development Phases**
+
+#### **Phase 3.1: Core Infrastructure (Week 1)**
+- [x] Export/Import store setup
+- [x] Modal components and UI integration
+- [x] Data collection and validation utilities
+- [x] Basic export engine architecture
+
+#### **Phase 3.2: Image Exports (Week 1-2)**
+- [x] PNG export with scaling options
+- [x] High-quality canvas rendering pipeline
+- [x] Settings UI and format selection
+
+#### **Phase 3.3: Animation Exports (Week 2-3)**
+- [x] GIF export with optimization
+- [x] MP4 export with FFmpeg integration
+- [x] Frame range selection and progress tracking
+- [x] Quality settings and compression options
+
+#### **Phase 3.4: Data Formats (Week 3)**
+- [x] JSON animation export/import
+- [x] Session save/load functionality
+- [x] Import validation and error handling
+
+#### **Phase 3.5: Polish & Testing (Week 4)**
+- [x] Comprehensive error handling
+- [x] Export history and recent files
+- [x] Performance optimization for large animations
+- [x] Documentation and user guides
+
+### **🚀 Future Expansion Points**
+
+The export system is designed for easy extension. Future formats can be added by:
+
+1. **Creating New Exporter**: Implement `ExportHandler` interface
+2. **Registering Format**: Add to export engine registry
+3. **Adding UI Components**: Settings panel and format card
+4. **Defining Types**: Add format-specific settings interface
+
+**Planned Future Formats:**
+- **SVG Export**: Vector-based output for scalability
+- **HTML Export**: Interactive web page with CSS animations
+- **Sprite Sheets**: Game development asset generation
+- **Adobe After Effects**: JSON export for motion graphics
+- **ASCII Text**: Plain text art export with formatting
+
+### **🔧 Technical Implementation Notes**
+
+#### **Performance Optimizations**
+- **Worker Threads**: Offload heavy rendering to web workers
+- **Canvas Pooling**: Reuse canvas elements for memory efficiency  
+- **Streaming Exports**: Process large animations in chunks
+- **Progress Cancellation**: Allow users to cancel long exports
+
+#### **Error Handling**
+- **Graceful Degradation**: Fallback options for unsupported formats
+- **Detailed Logging**: Export logs for debugging and user feedback
+- **Recovery Options**: Resume failed exports where possible
+- **Validation Feedback**: Clear error messages with suggested fixes
+
+#### **Accessibility**
+- **Keyboard Navigation**: Full keyboard support for export dialogs
+- **Screen Reader Support**: Proper ARIA labels and descriptions
+- **Progress Announcements**: Audio feedback for export completion
+- **High Contrast**: Export UI works with accessibility themes
+
+This comprehensive export/import system will transform ASCII Motion from a creation tool into a complete production pipeline, enabling users to share their work across multiple platforms and formats while maintaining the highest quality output.
 
 ### **🎯 ENHANCEMENT COMPLETED: Lasso Selection Tool (Sept 5, 2025)**
 ✅ **Status**: COMPLETE - Full implementation with move functionality and proper tool switching
