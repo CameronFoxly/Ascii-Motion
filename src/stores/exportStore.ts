@@ -45,6 +45,8 @@ const DEFAULT_VIDEO_SETTINGS: VideoExportSettings = {
   frameRate: 12, // Match typical animation frame rate
   frameRange: { start: 0, end: -1 }, // -1 means "end of animation"
   quality: 'medium',
+  format: 'webm', // Default to WebM format
+  includeGrid: false, // Default to no grid in video
 };
 
 const DEFAULT_SESSION_SETTINGS: SessionExportSettings = {

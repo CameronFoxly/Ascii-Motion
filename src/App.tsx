@@ -19,7 +19,7 @@ import { StatusPanel } from './components/features/StatusPanel'
 import { ExportImportButtons } from './components/features/ExportImportButtons'
 import { ImportModal } from './components/features/ImportModal'
 import { PngExportDialog } from './components/features/PngExportDialog'
-import { Mp4ExportDialog } from './components/features/Mp4ExportDialog'
+import { VideoExportDialog } from './components/features/VideoExportDialog'
 import { SessionExportDialog } from './components/features/SessionExportDialog'
 import { useLayoutState } from './hooks/useLayoutState'
 
@@ -190,7 +190,7 @@ function App() {
           {/* Export/Import Dialogs - Inside CanvasProvider to access context */}
           <ImportModal />
           <PngExportDialog />
-          <Mp4ExportDialog />
+          <VideoExportDialog />
           <SessionExportDialog />
         </CanvasProvider>
         

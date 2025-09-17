@@ -21,10 +21,12 @@ export interface PngExportSettings {
 }
 
 export interface VideoExportSettings {
-  sizeMultiplier: 1 | 2;
+  sizeMultiplier: 1 | 2 | 4;
   frameRate: number; // 1-60 fps
-  frameRange: { start: number; end: number };
+  frameRange: { start: number; end: number } | 'all';
   quality: 'high' | 'medium' | 'low';
+  format: 'webm' | 'mp4'; // WebM for WebCodecs, MP4 for broader compatibility
+  includeGrid: boolean;
 }
 
 export interface SessionExportSettings {

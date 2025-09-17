@@ -1,0 +1,298 @@
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Button } from '../ui/button';
+import { Label } from '../ui/label';
+import { Input } from '../ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Checkbox } from '../ui/checkbox';
+import { Progress } from '../ui/progress';
+import { Card, CardContent } from '../ui/card';
+import { Video, Loader2, Play, Settings } from 'lucide-react';
+import { useExportStore } from '../../stores/exportStore';
+import { useExportDataCollector } from '../../utils/exportDataCollector';
+import { ExportRenderer } from '../../utils/exportRenderer';
+import type { VideoExportSettings } from '../../types/export';
+
+/**
+ * Video Export Dialog
+ * Handles MP4/WebM video export with customizable settings
+ */
+export const VideoExportDialog: React.FC = () => {
+  const showExportModal = useExportStore(state => state.showExportModal);
+  const activeFormat = useExportStore(state => state.activeFormat);
+  const setShowExportModal = useExportStore(state => state.setShowExportModal);
+  
+  const exportData = useExportDataCollector();
+  
+  const [videoSettings, setVideoSettings] = useState<VideoExportSettings>({
+    sizeMultiplier: 2,
+    frameRate: 12,
+    frameRange: 'all',
+    quality: 'high',
+    format: 'webm',
+    includeGrid: false
+  });
+  
+  const [filename, setFilename] = useState('ascii-motion-video');
+  const [isExporting, setIsExporting] = useState(false);
+  const [progress, setProgress] = useState<{ message: string; progress: number } | null>(null);
+
+  const isOpen = showExportModal && activeFormat === 'mp4';
+
+  // Check WebCodecs support
+  const [supportsWebCodecs, setSupportsWebCodecs] = useState(false);
+  
+  useEffect(() => {
+    // Check if WebCodecs is supported
+    const checkWebCodecsSupport = () => {
+      return typeof window !== 'undefined' && 
+             'VideoEncoder' in window && 
+             'VideoFrame' in window;
+    };
+    
+    setSupportsWebCodecs(checkWebCodecsSupport());
+  }, []);
+
+  const handleClose = () => {
+    setShowExportModal(false);
+  };
+
+  const handleExport = async () => {
+    if (!exportData) {
+      alert('No export data available. Please make sure you have an animation to export.');
+      return;
+    }
+
+    if (!supportsWebCodecs && videoSettings.format === 'webm') {
+      alert('WebCodecs is not supported in your browser. Please try using a modern Chrome, Edge, or Safari browser, or switch to MP4 format.');
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+      
+      // Create renderer with progress callback
+      const renderer = new ExportRenderer((progress) => {
+        setProgress(progress);
+      });
+
+      // Perform the export
+      await renderer.exportVideo(exportData, videoSettings, filename);
+      
+      // Close dialog on success
+      handleClose();
+    } catch (error) {
+      console.error('Video export failed:', error);
+      alert(`Video export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsExporting(false);
+      setProgress(null);
+    }
+  };
+
+  const handleSettingChange = <K extends keyof VideoExportSettings>(
+    key: K,
+    value: VideoExportSettings[K]
+  ) => {
+    setVideoSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Calculate estimated duration and file size
+  const frameCount = exportData?.frames.length || 1;
+  const duration = frameCount / videoSettings.frameRate;
+  const estimatedSize = Math.round((frameCount * videoSettings.sizeMultiplier * 50) / 1024); // Rough estimate in KB
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setShowExportModal}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Video className="w-5 h-5" />
+            Export Video Animation
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* File Name Input */}
+          <div className="space-y-2">
+            <Label htmlFor="filename">File Name</Label>
+            <Input
+              id="filename"
+              value={filename}
+              onChange={(e) => setFilename(e.target.value)}
+              placeholder="Enter filename"
+              disabled={isExporting}
+            />
+          </div>
+
+          {/* Video Settings */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              <Label className="text-sm font-medium">Video Settings</Label>
+            </div>
+
+            {/* Format Selection */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="format">Format</Label>
+                <Select
+                  value={videoSettings.format}
+                  onValueChange={(value: 'webm' | 'mp4') => handleSettingChange('format', value)}
+                  disabled={isExporting}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="webm">
+                      WebM {supportsWebCodecs ? '(Recommended)' : '(Not Supported)'}
+                    </SelectItem>
+                    <SelectItem value="mp4">MP4 (Fallback)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="quality">Quality</Label>
+                <Select
+                  value={videoSettings.quality}
+                  onValueChange={(value: 'high' | 'medium' | 'low') => handleSettingChange('quality', value)}
+                  disabled={isExporting}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Frame Rate and Size */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="frameRate">Frame Rate (FPS)</Label>
+                <Select
+                  value={videoSettings.frameRate.toString()}
+                  onValueChange={(value) => handleSettingChange('frameRate', parseInt(value))}
+                  disabled={isExporting}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="8">8 FPS</SelectItem>
+                    <SelectItem value="12">12 FPS</SelectItem>
+                    <SelectItem value="15">15 FPS</SelectItem>
+                    <SelectItem value="24">24 FPS</SelectItem>
+                    <SelectItem value="30">30 FPS</SelectItem>
+                    <SelectItem value="60">60 FPS</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="sizeMultiplier">Resolution</Label>
+                <Select
+                  value={videoSettings.sizeMultiplier.toString()}
+                  onValueChange={(value) => handleSettingChange('sizeMultiplier', parseInt(value) as 1 | 2 | 4)}
+                  disabled={isExporting}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1x (Standard)</SelectItem>
+                    <SelectItem value="2">2x (High-DPI)</SelectItem>
+                    <SelectItem value="4">4x (Ultra High)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Grid Option */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="includeGrid"
+                checked={videoSettings.includeGrid}
+                onCheckedChange={(checked: boolean) => handleSettingChange('includeGrid', checked)}
+                disabled={isExporting}
+              />
+              <Label htmlFor="includeGrid" className="text-sm">
+                Include grid lines
+              </Label>
+            </div>
+          </div>
+
+          {/* Video Preview Info */}
+          <Card className="bg-muted/50">
+            <CardContent className="pt-4">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Frames:</span>
+                  <span>{frameCount}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Duration:</span>
+                  <span>{duration.toFixed(1)}s</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Est. Size:</span>
+                  <span>{estimatedSize < 1024 ? `${estimatedSize}KB` : `${(estimatedSize/1024).toFixed(1)}MB`}</span>
+                </div>
+                {!supportsWebCodecs && (
+                  <div className="text-amber-600 text-xs mt-2">
+                    ⚠️ WebCodecs not supported. Video export may use fallback encoding.
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Progress Display */}
+          {progress && (
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">{progress.message}</span>
+                <span className="text-sm text-muted-foreground">{Math.round(progress.progress)}%</span>
+              </div>
+              <Progress value={progress.progress} />
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={handleClose}
+              disabled={isExporting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleExport}
+              disabled={isExporting || !exportData}
+              className="gap-2"
+            >
+              {isExporting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4" />
+                  Export Video
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
