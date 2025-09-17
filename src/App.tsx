@@ -16,6 +16,11 @@ import { FullscreenToggle } from './components/features/FullscreenToggle'
 import { cn } from '@/lib/utils'
 import { PerformanceOverlay } from './components/common/PerformanceOverlay'
 import { StatusPanel } from './components/features/StatusPanel'
+import { ExportImportButtons } from './components/features/ExportImportButtons'
+import { ImportModal } from './components/features/ImportModal'
+import { PngExportDialog } from './components/features/PngExportDialog'
+import { Mp4ExportDialog } from './components/features/Mp4ExportDialog'
+import { SessionExportDialog } from './components/features/SessionExportDialog'
 import { useLayoutState } from './hooks/useLayoutState'
 
 function App() {
@@ -36,7 +41,10 @@ function App() {
                   <div className="text-purple-300">  -▐▌ ▐▌▗▄▄▞▘▝▚▄▄▖▗▄█▄▖▗▄█▄▖    ▐▌  ▐▌▝▚▄▞▘ █  ▗▄█▄▖▝▚▄▞▘▐▌  ▐▌</div>
                 </pre>
               </div>
-              <ThemeToggle />
+              <div className="flex items-center gap-2">
+                <ExportImportButtons />
+                <ThemeToggle />
+              </div>
             </div>
           </div>
         </header>
@@ -182,6 +190,12 @@ function App() {
         
         {/* Performance Overlay for Development */}
         <PerformanceOverlay />
+        
+        {/* Export/Import Dialogs */}
+        <ImportModal />
+        <PngExportDialog />
+        <Mp4ExportDialog />
+        <SessionExportDialog />
       </div>
     </ThemeProvider>
   )
