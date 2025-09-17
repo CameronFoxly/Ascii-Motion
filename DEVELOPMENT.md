@@ -2565,13 +2565,508 @@ copySelection: (canvasData) => {
 
 ---
 
-### **🎯 PREVIOUS IMPLEMENTATIONS:**
+---
 
-2. **Phase 3: Export Functions** - Future development
-   - Text export capabilities
-   - JSON project file format
-   - GIF generation for animations
-   - MP4 export for video output
+## **Phase 4: Image/Video Import & ASCII Conversion System** - 🎯 **PLANNING** (Sept 17, 2025)
+
+### **� Overview: Professional Media-to-ASCII Conversion Pipeline**
+
+A comprehensive image and video import system that converts visual media into ASCII art using configurable character mapping, color palette selection, and image processing filters. The system provides real-time preview capabilities and integrates seamlessly with the existing canvas and animation workflows.
+
+### **🔧 Core Technical Requirements**
+
+#### **1. Media Processing Pipeline**
+```typescript
+// src/utils/mediaProcessor.ts - Core media processing engine
+interface MediaProcessor {
+  // Image processing
+  processImage(file: File, settings: ConversionSettings): Promise<ProcessedFrame>;
+  
+  // Video processing
+  processVideo(file: File, settings: ConversionSettings): Promise<ProcessedFrame[]>;
+  
+  // Frame-by-frame conversion
+  convertFrameToASCII(imageData: ImageData, settings: ConversionSettings): Map<string, Cell>;
+}
+
+interface ConversionSettings {
+  sizing: SizingSettings;
+  characters: CharacterMappingSettings;
+  colors: ColorPaletteSettings;
+  preprocessing: ImageFilterSettings;
+}
+```
+
+#### **2. Image Processing Engine**
+```typescript
+// Image manipulation before ASCII conversion
+interface ImageFilterSettings {
+  brightness: number;    // -100 to +100
+  contrast: number;      // -100 to +100
+  highlights: number;    // -100 to +100
+  shadows: number;       // -100 to +100
+  midtones: number;      // -100 to +100
+  blur: number;          // 0 to 10 pixels
+  sharpen: number;       // 0 to 10 (unsharp mask)
+  saturation: number;    // -100 to +100
+}
+
+// Extensible filter system for future additions
+interface ImageFilter {
+  name: string;
+  apply(imageData: ImageData, value: number): ImageData;
+}
+```
+
+#### **3. Character Mapping System**
+```typescript
+// Character density mapping for ASCII conversion
+interface CharacterMappingSettings {
+  characters: string[];           // Ordered by density (light to dark)
+  useCharacters: boolean;         // Enable/disable character mapping
+  mappingMethod: 'brightness' | 'luminance' | 'average';
+  invertDensity: boolean;         // Reverse light/dark mapping
+}
+
+const DEFAULT_ASCII_GRADIENTS = {
+  minimal: [' ', '.', ':', '-', '=', '+', '*', '#', '%', '@'],
+  standard: [' ', '`', '.', "'", ',', ':', ';', 'c', 'l', 'x', 'o', 'k', 'X', 'd', 'O', '0', 'K', 'N'],
+  blocks: [' ', '░', '▒', '▓', '█'],
+  extended: [' ', '·', '∘', '○', '●', '◐', '◑', '◒', '◓', '⬛']
+};
+```
+
+#### **4. Color Palette System**
+```typescript
+// Dual palette system for foreground and background
+interface ColorPaletteSettings {
+  foregroundPalette: ColorPalette;
+  backgroundPalette: ColorPalette;
+  useForeground: boolean;
+  useBackground: boolean;
+  colorMatchingMethod: 'nearest' | 'dithered' | 'quantized';
+}
+
+interface ColorPalette {
+  colors: string[];              // Hex color values
+  name: string;                  // Display name
+  isCustom: boolean;             // User-created vs preset
+}
+```
+
+#### **5. Sizing & Aspect Ratio Controls**
+```typescript
+interface SizingSettings {
+  width: number;                 // Target width in characters
+  height: number;                // Target height in characters
+  maintainAspectRatio: boolean;  // Lock to source aspect ratio
+  resizeMethod: 'stretch' | 'crop' | 'letterbox';
+  quickSizes: {
+    useCanvasWidth: () => void;
+    useCanvasHeight: () => void;
+    useOriginalAspect: () => void;
+  };
+}
+```
+
+### **🎨 User Interface Architecture**
+
+#### **1. Side Panel Integration**
+The import panel slides out from the right side, overlaying the existing right panel while maintaining access to the canvas for real-time preview.
+
+```typescript
+// Panel positioning and animation
+interface ImportPanelState {
+  isOpen: boolean;
+  stage: 'fileSelect' | 'processing' | 'configure' | 'preview';
+  previewMode: boolean;         // Shows conversion result on canvas
+}
+
+// src/components/features/ImportPanel.tsx
+const ImportPanel: React.FC = () => {
+  return (
+    <div className={cn(
+      "fixed top-0 right-0 h-full bg-background border-l border-border",
+      "transition-transform duration-300 ease-out z-[60]",
+      "w-80 shadow-2xl", // Wider than regular panels
+      isOpen ? "translate-x-0" : "translate-x-full"
+    )}>
+      {/* Panel content based on stage */}
+    </div>
+  );
+};
+```
+
+#### **2. Import Menu Integration**
+Add new import options to the existing ExportImportButtons dropdown:
+
+```typescript
+// src/components/features/ExportImportButtons.tsx
+const IMPORT_OPTIONS = [
+  {
+    id: 'session' as ExportFormatId,
+    name: 'Session File',
+    description: 'Load complete project',
+    icon: Save,
+  },
+  // NEW OPTIONS:
+  {
+    id: 'image' as ExportFormatId,
+    name: 'Image to ASCII',
+    description: 'Convert image to ASCII art',
+    icon: FileImage,
+  },
+  {
+    id: 'video' as ExportFormatId,
+    name: 'Video to Animation',
+    description: 'Convert video to ASCII animation',
+    icon: Film,
+  },
+];
+```
+
+#### **3. Configuration Panel Layout**
+The import panel contains four main configuration sections, using established UI patterns:
+
+```typescript
+// Panel sections using existing collapsible pattern
+const ConfigurationSections = [
+  {
+    title: "Sizing",
+    icon: Maximize2,
+    component: SizingControls,
+    defaultOpen: true
+  },
+  {
+    title: "Character Mapping", 
+    icon: Type,
+    component: CharacterMappingControls,
+    defaultOpen: true
+  },
+  {
+    title: "Color Palettes",
+    icon: Palette,
+    component: ColorPaletteControls, 
+    defaultOpen: false
+  },
+  {
+    title: "Image Processing",
+    icon: Settings,
+    component: ImageProcessingControls,
+    defaultOpen: false
+  }
+];
+```
+
+### **🔧 Implementation Plan: 4 Development Sessions**
+
+#### **Session 1: Core Media Processing & UI Foundation**
+**Goal**: Basic image import with simple ASCII conversion
+
+**Tasks:**
+1. **Media Import Infrastructure**
+   - Create `MediaProcessor` class for image/video handling
+   - Implement basic image loading and canvas conversion
+   - Add file validation and error handling
+
+2. **Import Panel UI**
+   - Create sliding import panel component
+   - Implement file drop zone and selection
+   - Add basic configuration sections (collapsed by default)
+
+3. **Basic ASCII Conversion**
+   - Implement brightness-based character mapping
+   - Create simple character palette (space to █ gradient)
+   - Basic sizing controls (width/height inputs)
+
+4. **Integration Points**
+   - Add import options to ExportImportButtons dropdown
+   - Connect to existing import store pattern
+   - Basic preview mode (shows result on canvas)
+
+**Deliverables:**
+- Working image import with basic ASCII conversion
+- Sliding panel UI that doesn't conflict with existing layout
+- Integration with import dropdown menu
+
+#### **Session 2: Advanced Character Mapping & Sizing Controls**
+**Goal**: Professional character mapping with intelligent sizing
+
+**Tasks:**
+1. **Enhanced Character Mapping**
+   - Multiple character gradient presets (minimal, standard, blocks, extended)
+   - Custom character palette editor (following ColorPicker patterns)
+   - Character reordering with drag-and-drop
+   - Character enable/disable toggles
+
+2. **Intelligent Sizing System**
+   - Aspect ratio locking with visual indicators
+   - Quick size buttons (canvas width/height, original aspect)
+   - Real-time size preview with character count display
+   - Resize methods (stretch, crop, letterbox)
+
+3. **Character Mapping Controls**
+   - Character density visualization
+   - Mapping method selection (brightness/luminance/average)
+   - Invert density option
+   - Character-only mode (no background colors)
+
+**Deliverables:**
+- Full character mapping system with presets and custom palettes
+- Professional sizing controls with aspect ratio management
+- Character palette editor following established UI patterns
+
+#### **Session 3: Color Palette System & Preview Integration**
+**Goal**: Dual-palette color mapping with real-time preview
+
+**Tasks:**
+1. **Dual Palette System**
+   - Foreground and background palette management
+   - Palette enable/disable toggles
+   - Integration with existing palette store patterns
+   - Color matching algorithms (nearest color, dithering)
+
+2. **Preview System Enhancement**
+   - Real-time conversion preview on canvas
+   - Preview mode toggle (original vs converted)
+   - Preview zoom controls for detail inspection
+   - Performance optimization for large images
+
+3. **Color Mapping Controls**
+   - Color matching method selection
+   - Palette import/export (following existing patterns)
+   - Color quantization controls
+   - Background transparency handling
+
+**Deliverables:**
+- Complete color palette system with dual palettes
+- Real-time preview system with zoom and comparison
+- Color matching with multiple algorithms
+
+#### **Session 4: Image Processing & Video Support**
+**Goal**: Professional image filters and video-to-animation conversion
+
+**Tasks:**
+1. **Image Processing Pipeline**
+   - Brightness, contrast, highlights, shadows, midtones controls
+   - Blur and sharpen filters
+   - Saturation adjustment
+   - Filter preview system with before/after comparison
+
+2. **Video Processing**
+   - Video file parsing and frame extraction
+   - Frame rate control and sampling
+   - Progress indication for video processing
+   - Integration with animation timeline (add frames)
+
+3. **Advanced Features**
+   - Batch processing for multiple files
+   - Processing queue with progress tracking
+   - Export/import of conversion settings
+   - Conversion history and undo support
+
+**Deliverables:**
+- Complete image processing filter system
+- Video-to-animation conversion pipeline
+- Professional-grade import workflow
+
+### **🏗️ Technical Architecture Details**
+
+#### **1. File Processing Pipeline**
+```typescript
+// src/utils/import/MediaProcessor.ts
+class MediaProcessor {
+  private canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
+  
+  async processImageFile(file: File): Promise<ImageData> {
+    const img = await this.loadImage(file);
+    const imageData = this.extractImageData(img);
+    return imageData;
+  }
+  
+  async processVideoFile(file: File): Promise<ImageData[]> {
+    const video = await this.loadVideo(file);
+    const frames = await this.extractFrames(video);
+    return frames;
+  }
+  
+  private applyFilters(imageData: ImageData, filters: ImageFilterSettings): ImageData {
+    let result = imageData;
+    
+    // Apply filters in optimal order
+    result = this.adjustBrightness(result, filters.brightness);
+    result = this.adjustContrast(result, filters.contrast);
+    result = this.adjustSaturation(result, filters.saturation);
+    // ... additional filters
+    
+    return result;
+  }
+}
+```
+
+#### **2. ASCII Conversion Engine**
+```typescript
+// src/utils/import/ASCIIConverter.ts
+class ASCIIConverter {
+  convertImageToASCII(
+    imageData: ImageData, 
+    settings: ConversionSettings
+  ): Map<string, Cell> {
+    const result = new Map<string, Cell>();
+    
+    for (let y = 0; y < settings.sizing.height; y++) {
+      for (let x = 0; x < settings.sizing.width; x++) {
+        const pixel = this.getPixelAt(imageData, x, y);
+        const cell = this.pixelToCell(pixel, settings);
+        result.set(`${x},${y}`, cell);
+      }
+    }
+    
+    return result;
+  }
+  
+  private pixelToCell(pixel: RGBA, settings: ConversionSettings): Cell {
+    const char = this.getCharacterForPixel(pixel, settings.characters);
+    const fgColor = this.getColorForPixel(pixel, settings.colors.foregroundPalette);
+    const bgColor = this.getBackgroundColor(pixel, settings.colors.backgroundPalette);
+    
+    return { char, color: fgColor, bgColor };
+  }
+}
+```
+
+#### **3. State Management**
+```typescript
+// src/stores/importStore.ts - New store for import operations
+interface ImportState {
+  // Panel state
+  isImportPanelOpen: boolean;
+  currentStage: ImportStage;
+  
+  // Processing state
+  isProcessing: boolean;
+  progress: number;
+  currentFile: File | null;
+  
+  // Configuration
+  sizingSettings: SizingSettings;
+  characterSettings: CharacterMappingSettings;
+  colorSettings: ColorPaletteSettings;
+  filterSettings: ImageFilterSettings;
+  
+  // Preview
+  previewMode: boolean;
+  originalImageData: ImageData | null;
+  convertedData: Map<string, Cell> | null;
+}
+
+// Actions
+interface ImportActions {
+  openImportPanel: (file?: File) => void;
+  closeImportPanel: () => void;
+  setStage: (stage: ImportStage) => void;
+  updateSettings: (settings: Partial<ConversionSettings>) => void;
+  processFile: (file: File) => Promise<void>;
+  importToCanvas: () => void;
+  importToAnimation: () => void;
+}
+```
+
+#### **4. Canvas Integration**
+```typescript
+// Preview mode integration with existing canvas system
+const useImportPreview = () => {
+  const { previewMode, convertedData } = useImportStore();
+  const { setPreviewData, clearPreviewData } = useCanvasContext();
+  
+  useEffect(() => {
+    if (previewMode && convertedData) {
+      setPreviewData(convertedData);
+    } else {
+      clearPreviewData();
+    }
+  }, [previewMode, convertedData]);
+};
+```
+
+### **🎯 Integration Points**
+
+#### **1. Existing Systems Integration**
+- **Canvas System**: Preview mode overlays conversion result on canvas
+- **Animation System**: Video import adds frames to timeline
+- **Palette System**: Reuses existing palette management patterns
+- **Export System**: Follows established modal and progress patterns
+
+#### **2. Performance Considerations**
+- **Web Workers**: Heavy processing operations run in background
+- **Progressive Loading**: Large images processed in chunks
+- **Memory Management**: Canvas cleanup and ImageData disposal
+- **Debounced Updates**: Real-time preview with performance throttling
+
+#### **3. Error Handling**
+- **File Validation**: Type, size, and format checking
+- **Processing Errors**: Graceful handling of corrupt files
+- **Memory Limits**: Detection and handling of oversized media
+- **User Feedback**: Clear error messages and recovery options
+
+### **📱 Responsive Design Considerations**
+
+#### **Mobile Adaptations**
+- Import panel slides in from bottom on mobile devices
+- Touch-friendly sliders and controls
+- Simplified interface with collapsible sections
+- File selection via device camera integration
+
+#### **Performance Optimizations**
+- Lazy loading of preview updates
+- Efficient canvas reuse patterns
+- Memory-conscious image processing
+- Progressive enhancement for advanced features
+
+### **🧪 Testing Strategy**
+
+#### **File Format Support**
+- **Images**: PNG, JPEG, GIF, WEBP, BMP
+- **Videos**: MP4, WEBM, MOV, AVI (using browser capabilities)
+- **Size Limits**: Configurable max dimensions and file sizes
+- **Format Validation**: Proper MIME type and header checking
+
+#### **Conversion Quality Tests**
+- Character mapping accuracy across different image types
+- Color palette performance with various color schemes
+- Aspect ratio preservation in different resize modes
+- Filter accuracy and performance benchmarks
+
+#### **Integration Tests**
+- Canvas preview mode compatibility
+- Animation timeline integration
+- Existing tool compatibility during preview
+- State management consistency
+
+### **🚀 Future Enhancement Opportunities**
+
+#### **Advanced Processing Features**
+- **Edge Detection**: ASCII line art generation
+- **Histogram Analysis**: Intelligent character distribution
+- **Pattern Recognition**: Specialized ASCII art styles
+- **AI Enhancement**: ML-based ASCII art optimization
+
+#### **Workflow Improvements**
+- **Batch Processing**: Multiple file import queues
+- **Template System**: Saved conversion setting presets
+- **Plugin Architecture**: User-defined conversion algorithms
+- **Cloud Processing**: Server-side heavy processing
+
+#### **Output Enhancements**
+- **Multi-frame GIF**: Animated ASCII output
+- **SVG Export**: Vector-based ASCII art
+- **HTML Export**: Web-ready ASCII animations
+- **Print Optimization**: High-resolution ASCII printing
+
+---
+
+This comprehensive Phase 4 plan establishes ASCII Motion as a professional tool for media-to-ASCII conversion while maintaining the architectural consistency and user experience quality of the existing application. The modular design allows for future enhancements while providing immediate value to users seeking to convert visual media into ASCII art.
 
 ## Contributing
 
