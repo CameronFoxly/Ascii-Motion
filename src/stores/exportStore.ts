@@ -47,9 +47,8 @@ const DEFAULT_VIDEO_SETTINGS: VideoExportSettings = {
   quality: 'medium',
   format: 'webm', // Default to WebM format
   includeGrid: false, // Default to no grid in video
-};
-
-const DEFAULT_SESSION_SETTINGS: SessionExportSettings = {
+  loops: 'none', // Default to no looping
+};const DEFAULT_SESSION_SETTINGS: SessionExportSettings = {
   includeMetadata: true,
 };
 

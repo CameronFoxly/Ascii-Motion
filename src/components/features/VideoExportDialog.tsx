@@ -30,7 +30,8 @@ export const VideoExportDialog: React.FC = () => {
     frameRange: 'all',
     quality: 'high',
     format: 'webm',
-    includeGrid: false
+    includeGrid: false,
+    loops: 'none'
   });
   
   const [filename, setFilename] = useState('ascii-motion-video');
@@ -167,6 +168,25 @@ export const VideoExportDialog: React.FC = () => {
                     <SelectItem value="high">High</SelectItem>
                     <SelectItem value="medium">Medium</SelectItem>
                     <SelectItem value="low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="loops">Loop Animation</Label>
+                <Select
+                  value={videoSettings.loops}
+                  onValueChange={(value: 'none' | '2x' | '4x' | '8x') => handleSettingChange('loops', value)}
+                  disabled={isExporting}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Looping</SelectItem>
+                    <SelectItem value="2x">Loop 2x</SelectItem>
+                    <SelectItem value="4x">Loop 4x</SelectItem>
+                    <SelectItem value="8x">Loop 8x</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

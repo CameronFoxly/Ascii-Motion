@@ -484,62 +484,141 @@ export class ExportRenderer {
     data: ExportDataBundle,
     settings: VideoExportSettings
   ): Promise<HTMLCanvasElement[]> {
-    const frames: HTMLCanvasElement[] = [];
-    const totalFrames = data.frames.length;
+    const videoFrames: HTMLCanvasElement[] = [];
+    const originalFrames = data.frames;
     
-    if (totalFrames === 0) {
+    if (originalFrames.length === 0) {
       console.warn('⚠️ No frames found in animation data');
-      return frames;
+      return videoFrames;
     }
+
+    // Calculate how many loops to generate
+    const loopMultiplier = this.getLoopMultiplier(settings.loops);
     
-    console.log(`🎬 Generating ${totalFrames} video frames...`);
+    // Pre-calculate video frame counts for each animation frame
+    const frameVideoFrameCounts = originalFrames.map(frame => 
+      this.calculateVideoFramesForDuration(frame.duration, settings.frameRate)
+    );
     
-    for (let i = 0; i < totalFrames; i++) {
-      const frame = data.frames[i];
-      
-      // Create high-resolution canvas for this frame
-      const frameCanvas = this.createExportCanvas(
-        data.canvasDimensions.width,
-        data.canvasDimensions.height,
-        settings.sizeMultiplier,
-        data.fontMetrics,
-        data.typography
-      );
-      
-      // Render the frame
-      await this.renderFrame(
-        frameCanvas.canvas,
-        frame.data,
-        data.canvasDimensions.width,
-        data.canvasDimensions.height,
-        {
-          backgroundColor: data.canvasBackgroundColor,
-          showGrid: settings.includeGrid && data.showGrid,
-          fontMetrics: data.fontMetrics,
-          typography: data.typography,
-          sizeMultiplier: settings.sizeMultiplier,
-          theme: data.uiState.theme,
-          scale: frameCanvas.scale
+    const totalVideoFrames = frameVideoFrameCounts.reduce((sum, count) => sum + count, 0) * loopMultiplier;
+    
+    console.log(`🎬 Generating ${totalVideoFrames} video frames from ${originalFrames.length} animation frames × ${loopMultiplier} loops`);
+    console.log(`📊 Frame durations: ${originalFrames.map((f, i) => `${i+1}: ${f.duration}ms → ${frameVideoFrameCounts[i]} video frames`).join(', ')}`);
+    
+    let globalVideoFrameIndex = 0;
+    
+    // Generate frames for all loops
+    for (let loop = 0; loop < loopMultiplier; loop++) {
+      for (let animFrameIndex = 0; animFrameIndex < originalFrames.length; animFrameIndex++) {
+        const animationFrame = originalFrames[animFrameIndex];
+        const videoFrameCount = frameVideoFrameCounts[animFrameIndex];
+        
+        // Create high-resolution canvas for this animation frame
+        const frameCanvas = this.createExportCanvas(
+          data.canvasDimensions.width,
+          data.canvasDimensions.height,
+          settings.sizeMultiplier,
+          data.fontMetrics,
+          data.typography
+        );
+        
+        // Render the animation frame once
+        await this.renderFrame(
+          frameCanvas.canvas,
+          animationFrame.data,
+          data.canvasDimensions.width,
+          data.canvasDimensions.height,
+          {
+            backgroundColor: data.canvasBackgroundColor,
+            showGrid: settings.includeGrid && data.showGrid,
+            fontMetrics: data.fontMetrics,
+            typography: data.typography,
+            sizeMultiplier: settings.sizeMultiplier,
+            theme: data.uiState.theme,
+            scale: frameCanvas.scale
+          }
+        );
+        
+        // Debug: Check if frame has content (only for first loop to avoid spam)
+        if (loop === 0) {
+          const ctx = frameCanvas.canvas.getContext('2d');
+          if (ctx) {
+            const imageData = ctx.getImageData(0, 0, frameCanvas.canvas.width, frameCanvas.canvas.height);
+            const hasContent = imageData.data.some((value, index) => index % 4 !== 3 && value !== 0);
+            console.log(`🖼️ Animation frame ${animFrameIndex + 1}: ${animationFrame.duration}ms → ${videoFrameCount} video frames, has content: ${hasContent}`);
+          }
         }
-      );
-      
-      // Debug: Check if frame has content
-      const ctx = frameCanvas.canvas.getContext('2d');
-      if (ctx) {
-        const imageData = ctx.getImageData(0, 0, frameCanvas.canvas.width, frameCanvas.canvas.height);
-        const hasContent = imageData.data.some((value, index) => index % 4 !== 3 && value !== 0); // Check for non-transparent, non-black pixels
-        console.log(`🖼️ Frame ${i + 1}: ${frameCanvas.canvas.width}x${frameCanvas.canvas.height}, has content: ${hasContent}`);
+        
+        // Duplicate this canvas for the required number of video frames
+        for (let videoFrameIndex = 0; videoFrameIndex < videoFrameCount; videoFrameIndex++) {
+          // Clone the canvas for each video frame
+          const clonedCanvas = this.cloneCanvas(frameCanvas.canvas);
+          videoFrames.push(clonedCanvas);
+          
+          globalVideoFrameIndex++;
+          
+          // Update progress (spread across 20-50% range)
+          const progress = 20 + (globalVideoFrameIndex / totalVideoFrames) * 30;
+          this.updateProgress(
+            `Rendering video frame ${globalVideoFrameIndex}/${totalVideoFrames} (anim frame ${animFrameIndex + 1}/${originalFrames.length}, loop ${loop + 1}/${loopMultiplier})...`, 
+            progress
+          );
+        }
+        
+        // Clean up the original canvas
+        frameCanvas.canvas.width = 0;
+        frameCanvas.canvas.height = 0;
       }
-      
-      frames.push(frameCanvas.canvas);
-      
-      // Update progress
-      const progress = 20 + (i / totalFrames) * 30; // 20-50% for frame generation
-      this.updateProgress(`Rendering frame ${i + 1}/${totalFrames}...`, progress);
     }
     
-    console.log(`✅ Generated ${frames.length} frames for video encoding`);
-    return frames;
+    const totalDurationMs = originalFrames.reduce((sum, frame) => sum + frame.duration, 0) * loopMultiplier;
+    const expectedVideoLength = totalVideoFrames / settings.frameRate;
+    
+    console.log(`✅ Generated ${videoFrames.length} video frames for ${totalDurationMs}ms animation`);
+    console.log(`🎥 Video will be ${expectedVideoLength.toFixed(2)}s at ${settings.frameRate} FPS (loops: ${settings.loops})`);
+    
+    return videoFrames;
+  }
+
+  /**
+   * Calculate how many video frames an animation frame should occupy based on its duration
+   */
+  private calculateVideoFramesForDuration(durationMs: number, videoFrameRate: number): number {
+    // Convert duration to seconds, then multiply by frame rate
+    const durationSeconds = durationMs / 1000;
+    const videoFrameCount = Math.max(1, Math.round(durationSeconds * videoFrameRate));
+    return videoFrameCount;
+  }
+
+  /**
+   * Clone a canvas element
+   */
+  private cloneCanvas(originalCanvas: HTMLCanvasElement): HTMLCanvasElement {
+    const clonedCanvas = document.createElement('canvas');
+    clonedCanvas.width = originalCanvas.width;
+    clonedCanvas.height = originalCanvas.height;
+    
+    const clonedCtx = clonedCanvas.getContext('2d');
+    const originalCtx = originalCanvas.getContext('2d');
+    
+    if (clonedCtx && originalCtx) {
+      clonedCtx.drawImage(originalCanvas, 0, 0);
+    }
+    
+    return clonedCanvas;
+  }
+
+  /**
+   * Convert loop setting to numeric multiplier
+   */
+  private getLoopMultiplier(loops: VideoExportSettings['loops']): number {
+    switch (loops) {
+      case 'none': return 1;
+      case '2x': return 2;
+      case '4x': return 4;
+      case '8x': return 8;
+      default: return 1;
+    }
   }
 
   /**

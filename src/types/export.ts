@@ -27,6 +27,7 @@ export interface VideoExportSettings {
   quality: 'high' | 'medium' | 'low';
   format: 'webm' | 'mp4'; // WebM for WebCodecs, MP4 for broader compatibility
   includeGrid: boolean;
+  loops: 'none' | '2x' | '4x' | '8x'; // Number of times to loop the animation
 }
 
 export interface SessionExportSettings {
