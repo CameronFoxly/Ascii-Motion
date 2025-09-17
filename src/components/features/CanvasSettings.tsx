@@ -134,11 +134,7 @@ export const CanvasSettings: React.FC = () => {
     setCanvasBackgroundColor(color);
   };
 
-  const presetColors = [
-    '#000000', 'transparent', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF',
-    '#FFFF00', '#FF00FF', '#00FFFF', '#808080', '#800000',
-    '#008000', '#000080', '#808000', '#800080', '#008080'
-  ];
+  // Removed preset color array (presets no longer shown in advanced dialog)
 
   return (
     <TooltipProvider>
@@ -458,8 +454,6 @@ export const CanvasSettings: React.FC = () => {
           }}
           initialColor={canvasBackgroundColor}
           title="Edit Canvas Background Color"
-          presetColors={presetColors}
-          closeOnPresetSelect={true}
         />
       </div>
     </TooltipProvider>
