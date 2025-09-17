@@ -29,11 +29,8 @@ export const Mp4ExportDialog: React.FC = () => {
   };
 
   const handleExport = () => {
-    console.log('Exporting MP4 with settings:', {
-      filename: `${filename}.mp4`,
-      settings: videoSettings
-    });
-    // Export logic will be implemented later
+    // MP4 export is not yet implemented - show info message
+    alert('MP4 export is not yet implemented. This feature requires FFmpeg integration and will be added in a future update.');
     handleClose();
   };
 

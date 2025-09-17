@@ -6,8 +6,10 @@ import { Label } from '../ui/label';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Switch } from '../ui/switch';
-import { Save, Download, Settings } from 'lucide-react';
+import { Save, Download, Settings, Loader2 } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
+import { useExportDataCollector } from '../../utils/exportDataCollector';
+import { ExportRenderer } from '../../utils/exportRenderer';
 
 /**
  * Session Export Dialog
@@ -19,6 +21,11 @@ export const SessionExportDialog: React.FC = () => {
   const setShowExportModal = useExportStore(state => state.setShowExportModal);
   const sessionSettings = useExportStore(state => state.sessionSettings);
   const setSessionSettings = useExportStore(state => state.setSessionSettings);
+  const setProgress = useExportStore(state => state.setProgress);
+  const setIsExporting = useExportStore(state => state.setIsExporting);
+  const isExporting = useExportStore(state => state.isExporting);
+  
+  const exportData = useExportDataCollector();
 
   const [filename, setFilename] = useState('ascii-motion-project');
 
@@ -28,13 +35,32 @@ export const SessionExportDialog: React.FC = () => {
     setShowExportModal(false);
   };
 
-  const handleExport = () => {
-    console.log('Exporting Session with settings:', {
-      filename: `${filename}.asciimtn`,
-      settings: sessionSettings
-    });
-    // Export logic will be implemented later
-    handleClose();
+  const handleExport = async () => {
+    if (!exportData) {
+      console.error('No export data available');
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+      
+      // Create renderer with progress callback
+      const renderer = new ExportRenderer((progress) => {
+        setProgress(progress);
+      });
+
+      // Perform the export
+      await renderer.exportSession(exportData, sessionSettings, filename);
+      
+      // Close dialog on success
+      handleClose();
+    } catch (error) {
+      console.error('Session export failed:', error);
+      // In a real app, you'd show a toast or error message here
+    } finally {
+      setIsExporting(false);
+      setProgress(null);
+    }
   };
 
   const handleMetadataToggle = (includeMetadata: boolean) => {
@@ -137,12 +163,21 @@ export const SessionExportDialog: React.FC = () => {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
+          <Button variant="outline" onClick={handleClose} disabled={isExporting}>
             Cancel
           </Button>
-          <Button onClick={handleExport}>
-            <Download className="w-4 h-4 mr-2" />
-            Save Session
+          <Button onClick={handleExport} disabled={isExporting}>
+            {isExporting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-2" />
+                Save Session
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

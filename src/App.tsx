@@ -186,16 +186,16 @@ function App() {
               </div>
             </div>
           </div>
+          
+          {/* Export/Import Dialogs - Inside CanvasProvider to access context */}
+          <ImportModal />
+          <PngExportDialog />
+          <Mp4ExportDialog />
+          <SessionExportDialog />
         </CanvasProvider>
         
         {/* Performance Overlay for Development */}
         <PerformanceOverlay />
-        
-        {/* Export/Import Dialogs */}
-        <ImportModal />
-        <PngExportDialog />
-        <Mp4ExportDialog />
-        <SessionExportDialog />
       </div>
     </ThemeProvider>
   )

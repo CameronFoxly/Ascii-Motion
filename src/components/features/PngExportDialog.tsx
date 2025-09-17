@@ -7,8 +7,10 @@ import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Switch } from '../ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { FileImage, Download, Settings } from 'lucide-react';
+import { FileImage, Download, Settings, Loader2 } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
+import { useExportDataCollector } from '../../utils/exportDataCollector';
+import { ExportRenderer } from '../../utils/exportRenderer';
 
 /**
  * PNG Export Dialog
@@ -20,6 +22,11 @@ export const PngExportDialog: React.FC = () => {
   const setShowExportModal = useExportStore(state => state.setShowExportModal);
   const pngSettings = useExportStore(state => state.pngSettings);
   const setPngSettings = useExportStore(state => state.setPngSettings);
+  const setProgress = useExportStore(state => state.setProgress);
+  const setIsExporting = useExportStore(state => state.setIsExporting);
+  const isExporting = useExportStore(state => state.isExporting);
+  
+  const exportData = useExportDataCollector();
 
   const [filename, setFilename] = useState('ascii-motion-frame');
 
@@ -29,13 +36,44 @@ export const PngExportDialog: React.FC = () => {
     setShowExportModal(false);
   };
 
-  const handleExport = () => {
-    console.log('Exporting PNG with settings:', {
-      filename: `${filename}.png`,
-      settings: pngSettings
-    });
-    // Export logic will be implemented later
-    handleClose();
+  const handleExport = async () => {
+    console.log('PNG Export started');
+    console.log('Export data:', exportData);
+    console.log('PNG settings:', pngSettings);
+    
+    if (!exportData) {
+      console.error('No export data available');
+      alert('No export data available. Please make sure you have some content to export.');
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+      
+      console.log('Creating renderer...');
+      
+      // Create renderer with progress callback
+      const renderer = new ExportRenderer((progress) => {
+        console.log('Export progress:', progress);
+        setProgress(progress);
+      });
+
+      console.log('Starting PNG export...');
+      
+      // Perform the export
+      await renderer.exportPng(exportData, pngSettings, filename);
+      
+      console.log('PNG export completed successfully');
+      
+      // Close dialog on success
+      handleClose();
+    } catch (error) {
+      console.error('PNG export failed:', error);
+      alert(`PNG export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsExporting(false);
+      setProgress(null);
+    }
   };
 
   const handleSizeChange = (multiplier: string) => {
@@ -133,12 +171,21 @@ export const PngExportDialog: React.FC = () => {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
+          <Button variant="outline" onClick={handleClose} disabled={isExporting}>
             Cancel
           </Button>
-          <Button onClick={handleExport}>
-            <Download className="w-4 h-4 mr-2" />
-            Export PNG
+          <Button onClick={handleExport} disabled={isExporting}>
+            {isExporting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-2" />
+                Export PNG
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

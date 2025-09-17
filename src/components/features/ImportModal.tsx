@@ -1,9 +1,10 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
-import { Upload, Save, AlertCircle } from 'lucide-react';
+import { Upload, Save, AlertCircle, Loader2 } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
+import { useSessionImporter } from '../../utils/sessionImporter';
 
 /**
  * Session Import Dialog
@@ -14,21 +15,33 @@ export const ImportModal: React.FC = () => {
   const showImportModal = useExportStore(state => state.showImportModal);
   const setShowImportModal = useExportStore(state => state.setShowImportModal);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const { importSession } = useSessionImporter();
+  const [isImporting, setIsImporting] = useState(false);
 
   const isOpen = showImportModal && activeFormat === 'session';
 
-
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    console.log('Selected file:', file.name);
-    // Import logic will be implemented in next phases
-    
-    // Reset input
-    event.target.value = '';
-    setShowImportModal(false);
+    try {
+      setIsImporting(true);
+      console.log('Importing session file:', file.name);
+      
+      await importSession(file);
+      
+      console.log('Session imported successfully');
+      
+      // Reset input and close modal
+      event.target.value = '';
+      setShowImportModal(false);
+    } catch (error) {
+      console.error('Import failed:', error);
+      alert(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const handleClose = () => {
@@ -42,6 +55,7 @@ export const ImportModal: React.FC = () => {
         ref={fileInputRef}
         type="file"
         className="hidden"
+        accept=".asciimtn,application/json"
         onChange={handleFileChange}
       />
 
@@ -65,9 +79,19 @@ export const ImportModal: React.FC = () => {
               <Button
                 onClick={() => fileInputRef.current?.click()}
                 className="gap-2"
+                disabled={isImporting}
               >
-                <Upload className="w-4 h-4" />
-                Browse Files
+                {isImporting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Importing...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4" />
+                    Browse Files
+                  </>
+                )}
               </Button>
             </div>
 
@@ -90,7 +114,7 @@ export const ImportModal: React.FC = () => {
 
             {/* Action Buttons */}
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={handleClose}>
+              <Button variant="outline" onClick={handleClose} disabled={isImporting}>
                 Cancel
               </Button>
             </div>
