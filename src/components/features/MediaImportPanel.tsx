@@ -58,6 +58,7 @@ export function MediaImportPanel() {
   const activePalette = useCharacterPaletteStore(state => state.activePalette);
   const mappingMethod = useCharacterPaletteStore(state => state.mappingMethod);
   const invertDensity = useCharacterPaletteStore(state => state.invertDensity);
+  const characterSpacing = useCharacterPaletteStore(state => state.characterSpacing);
   
   // Canvas and animation stores
   const canvasWidth = useCanvasStore(state => state.width);
@@ -296,6 +297,7 @@ export function MediaImportPanel() {
           characterPalette: activePalette,
           mappingMethod: mappingMethod,
           invertDensity: invertDensity,
+          characterSpacing: characterSpacing,
           useOriginalColors: settings.useOriginalColors,
           colorQuantization: settings.colorQuantization,
           paletteSize: settings.paletteSize,
@@ -330,6 +332,11 @@ export function MediaImportPanel() {
     settings.paletteSize,
     settings.colorMappingMode,
     settings.brightness,
+    // Character palette settings
+    activePalette,
+    mappingMethod,
+    invertDensity,
+    characterSpacing,
     setCanvasData,
     positionCellsOnCanvas,
     startPreview
@@ -558,7 +565,7 @@ export function MediaImportPanel() {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-y-0 right-0 w-80 bg-background border-l border-border shadow-lg z-50 flex flex-col">
+    <div className="fixed inset-y-0 right-0 w-80 bg-background border-l border-border shadow-lg z-50 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border">
         <h2 className="text-sm font-medium flex items-center gap-2">
@@ -576,7 +583,7 @@ export function MediaImportPanel() {
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-3 space-y-3">
+        <div className="p-3 space-y-3" style={{ width: '296px', maxWidth: '296px' }}>
           {/* File Upload Section */}
           {!selectedFile && (
             <div

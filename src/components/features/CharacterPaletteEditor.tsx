@@ -182,8 +182,8 @@ export function CharacterPaletteEditor({ onPaletteChange }: CharacterPaletteEdit
   };
 
   return (
-    <Card className="bg-card/50 border-border/50">
-      <CardHeader className="pb-2">
+    <Card className="bg-card/50 border-border/50 overflow-hidden" style={{ width: '296px', maxWidth: '296px' }}>
+      <CardHeader className="pb-2" style={{ width: '272px', maxWidth: '272px' }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Type className="w-4 h-4 text-muted-foreground" />
@@ -241,12 +241,12 @@ export function CharacterPaletteEditor({ onPaletteChange }: CharacterPaletteEdit
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0 space-y-3">
+      <CardContent className="pt-0 space-y-3" style={{ width: '272px', maxWidth: '272px' }}>
         {/* Character Grid */}
-        <div className="space-y-2">
+        <div className="space-y-2" style={{ width: '272px', maxWidth: '272px' }}>
           <Label className="text-xs font-medium">Characters ({activePalette.characters.length})</Label>
-          <div className="bg-background/50 border border-border rounded p-2 min-h-[60px]" onDragLeave={handleDragLeave}>
-            <div className="flex flex-wrap gap-1 relative">
+          <div className="bg-background/50 border border-border rounded p-2 min-h-[60px] overflow-hidden" style={{ width: '272px', maxWidth: '272px' }} onDragLeave={handleDragLeave}>
+            <div className="flex flex-wrap gap-1 relative max-w-full">
               {activePalette.characters.map((character, index) => (
                 <div key={`${character}-${index}`} className="relative">
                   {/* Drop indicator */}
@@ -305,14 +305,14 @@ export function CharacterPaletteEditor({ onPaletteChange }: CharacterPaletteEdit
 
         {/* Add Character (only for custom palettes) */}
         {activePalette.isCustom && (
-          <div className="space-y-2">
+          <div className="space-y-2" style={{ width: '272px', maxWidth: '272px' }}>
             <Label className="text-xs font-medium">Add Character</Label>
-            <div className="flex gap-2">
+            <div className="flex gap-2" style={{ width: '272px', maxWidth: '272px' }}>
               <Input
                 value={newCharacterInput}
                 onChange={(e) => setNewCharacterInput(e.target.value)}
                 placeholder="Enter character"
-                className="h-8 text-xs font-mono"
+                className="h-8 text-xs font-mono flex-1 min-w-0"
                 maxLength={1}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleAddCharacter();
@@ -335,17 +335,17 @@ export function CharacterPaletteEditor({ onPaletteChange }: CharacterPaletteEdit
         )}
 
         {/* Palette Info */}
-        <div className="bg-muted/30 rounded p-2 text-xs space-y-1">
-          <div className="font-medium">{activePalette.name}</div>
-          <div className="text-muted-foreground">
+        <div className="bg-muted/30 rounded p-2 text-xs space-y-1 overflow-hidden" style={{ width: '272px', maxWidth: '272px' }}>
+          <div className="font-medium break-words">{activePalette.name}</div>
+          <div className="text-muted-foreground break-words">
             {activePalette.characters.length} characters • {activePalette.category.charAt(0).toUpperCase() + activePalette.category.slice(1)} category
           </div>
           {activePalette.isCustom ? (
-            <div className="text-muted-foreground">
+            <div className="text-muted-foreground break-words">
               Custom palette - drag characters to reorder, click X to remove
             </div>
           ) : (
-            <div className="text-muted-foreground">
+            <div className="text-muted-foreground break-words">
               Preset palette - click Edit to create an editable copy
             </div>
           )}
