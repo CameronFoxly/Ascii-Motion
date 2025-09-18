@@ -27,7 +27,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Link
+  Link,
+  RotateCcw
 } from 'lucide-react';
 import { 
   useImportModal, 
@@ -98,6 +99,51 @@ export function MediaImportPanel() {
       updateSettings({ characterHeight: value });
     }
   }, [settings.maintainAspectRatio, originalImageAspectRatio, canvasWidth, updateSettings]);
+
+  // Reset to original aspect ratio with character compensation
+  const handleResetToOriginalAspectRatio = useCallback(() => {
+    if (!originalImageAspectRatio) return;
+    
+    // Keep the current largest dimension as the reference size
+    const currentWidth = settings.characterWidth;
+    const currentHeight = settings.characterHeight;
+    const keepWidth = currentWidth >= currentHeight;
+    
+    // Apply character aspect ratio compensation
+    const CHARACTER_ASPECT_RATIO = 0.6;
+    const characterCompensatedAspectRatio = originalImageAspectRatio / CHARACTER_ASPECT_RATIO;
+    
+    let targetWidth: number;
+    let targetHeight: number;
+    
+    if (keepWidth) {
+      // Keep current width, calculate new height based on aspect ratio
+      targetWidth = currentWidth;
+      targetHeight = Math.round(currentWidth / characterCompensatedAspectRatio);
+    } else {
+      // Keep current height, calculate new width based on aspect ratio
+      targetHeight = currentHeight;
+      targetWidth = Math.round(currentHeight * characterCompensatedAspectRatio);
+    }
+    
+    // Ensure we don't exceed canvas bounds
+    targetWidth = Math.min(targetWidth, canvasWidth);
+    targetHeight = Math.min(targetHeight, canvasHeight);
+    
+    // If we hit canvas bounds, recalculate the other dimension
+    if (targetWidth === canvasWidth && targetWidth < Math.round(targetHeight * characterCompensatedAspectRatio)) {
+      targetHeight = Math.round(targetWidth / characterCompensatedAspectRatio);
+    } else if (targetHeight === canvasHeight && targetHeight < Math.round(targetWidth / characterCompensatedAspectRatio)) {
+      targetWidth = Math.round(targetHeight * characterCompensatedAspectRatio);
+    }
+    
+    // Update settings with calculated dimensions and enable aspect ratio maintenance
+    updateSettings({
+      characterWidth: targetWidth,
+      characterHeight: targetHeight,
+      maintainAspectRatio: true
+    });
+  }, [originalImageAspectRatio, settings.characterWidth, settings.characterHeight, canvasWidth, canvasHeight, updateSettings]);
 
   // Position cells on canvas based on alignment settings
   const positionCellsOnCanvas = useCallback((cells: Map<string, any>, imageWidth: number, imageHeight: number) => {
@@ -581,21 +627,9 @@ export function MediaImportPanel() {
               
               {/* Image Size Controls */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-medium">Image Size (characters)</Label>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="maintain-aspect"
-                      checked={settings.maintainAspectRatio}
-                      onCheckedChange={(checked) => updateSettings({ maintainAspectRatio: !!checked })}
-                    />
-                    <Label htmlFor="maintain-aspect" className="text-xs cursor-pointer">
-                      Maintain aspect ratio
-                    </Label>
-                  </div>
-                </div>
+                <Label className="text-xs font-medium">Image Size (characters)</Label>
                 
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-end">
                   <div className="flex-1">
                     <Label htmlFor="char-width" className="text-xs">Width</Label>
                     <Input
@@ -608,19 +642,6 @@ export function MediaImportPanel() {
                       className="h-8 text-xs"
                     />
                   </div>
-                  <div className="flex items-end">
-                    <Button
-                      type="button"
-                      variant={settings.maintainAspectRatio ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => updateSettings({ maintainAspectRatio: !settings.maintainAspectRatio })}
-                      disabled={!originalImageAspectRatio}
-                      className="h-8 w-8 p-0"
-                      title={settings.maintainAspectRatio ? "Unlink aspect ratio" : "Link aspect ratio"}
-                    >
-                      <Link className="w-3 h-3" />
-                    </Button>
-                  </div>
                   <div className="flex-1">
                     <Label htmlFor="char-height" className="text-xs">Height</Label>
                     <Input
@@ -632,6 +653,30 @@ export function MediaImportPanel() {
                       onChange={(e) => handleHeightChange(parseInt(e.target.value) || 1)}
                       className="h-8 text-xs"
                     />
+                  </div>
+                  <div className="flex items-end gap-1">
+                    <Button
+                      type="button"
+                      variant={settings.maintainAspectRatio ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => updateSettings({ maintainAspectRatio: !settings.maintainAspectRatio })}
+                      disabled={!originalImageAspectRatio}
+                      className="h-8 w-8 p-0"
+                      title={settings.maintainAspectRatio ? "Unlink aspect ratio" : "Link aspect ratio"}
+                    >
+                      <Link className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleResetToOriginalAspectRatio}
+                      disabled={!originalImageAspectRatio}
+                      className="h-8 w-8 p-0"
+                      title="Reset to original aspect ratio"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                    </Button>
                   </div>
                 </div>
                 
