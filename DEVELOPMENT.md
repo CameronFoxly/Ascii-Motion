@@ -3052,6 +3052,251 @@ const useImportPreview = () => {
 };
 ```
 
+### **🎯 Next Phase: Character Mapping System Enhancement**
+
+#### **Character Palette System (Following Color Palette Patterns)**
+The character mapping system should mirror our successful color palette architecture, allowing users to define custom character sets for different artistic styles and conversion needs.
+
+**Core Requirements:**
+```typescript
+// src/types/palette.ts - Extended character palette definitions
+export interface CharacterPalette {
+  id: string;
+  name: string;
+  characters: string[];           // Ordered by density (light to dark)
+  isCustom: boolean;             // User-created vs preset
+  category: 'ascii' | 'unicode' | 'blocks' | 'custom';
+}
+
+export interface CharacterMappingSettings {
+  activePalette: CharacterPalette;
+  mappingMethod: 'brightness' | 'luminance' | 'contrast' | 'edge-detection';
+  invertDensity: boolean;         // Reverse light/dark mapping
+  characterSpacing: number;       // Spacing between characters (1.0 = normal)
+  useCustomOrder: boolean;        // Allow manual character reordering
+}
+```
+
+**Default Character Palettes:**
+```typescript
+// src/constants/defaultCharacterPalettes.ts
+export const DEFAULT_CHARACTER_PALETTES: CharacterPalette[] = [
+  {
+    id: 'minimal',
+    name: 'Minimal ASCII',
+    characters: [' ', '.', ':', '-', '=', '+', '*', '#', '%', '@'],
+    isCustom: false,
+    category: 'ascii'
+  },
+  {
+    id: 'standard', 
+    name: 'Standard ASCII',
+    characters: [' ', '`', '.', "'", ',', ':', ';', 'c', 'l', 'x', 'o', 'k', 'X', 'd', 'O', '0', 'K', 'N'],
+    isCustom: false,
+    category: 'ascii'
+  },
+  {
+    id: 'blocks',
+    name: 'Block Characters',
+    characters: [' ', '░', '▒', '▓', '█'],
+    isCustom: false,
+    category: 'blocks'
+  },
+  {
+    id: 'extended',
+    name: 'Extended Unicode',
+    characters: [' ', '·', '∘', '○', '●', '◐', '◑', '◒', '◓', '⬛'],
+    isCustom: false,
+    category: 'unicode'
+  }
+];
+```
+
+**Character Palette Editor Component:**
+```typescript
+// src/components/features/CharacterPaletteEditor.tsx - Following ColorPicker patterns
+interface CharacterPaletteEditorProps {
+  palette: CharacterPalette;
+  onUpdate: (palette: CharacterPalette) => void;
+  onSave?: () => void;
+  onCancel?: () => void;
+}
+
+const CharacterPaletteEditor: React.FC<CharacterPaletteEditorProps> = ({
+  palette, onUpdate, onSave, onCancel
+}) => {
+  return (
+    <div className="character-palette-editor">
+      {/* Palette Header */}
+      <div className="palette-header">
+        <Input 
+          value={palette.name}
+          onChange={(e) => onUpdate({...palette, name: e.target.value})}
+          placeholder="Palette Name"
+        />
+      </div>
+      
+      {/* Character Grid */}
+      <div className="character-grid">
+        {palette.characters.map((char, index) => (
+          <CharacterCell
+            key={index}
+            character={char}
+            index={index}
+            onEdit={(newChar) => updateCharacterAtIndex(index, newChar)}
+            onDelete={() => removeCharacterAtIndex(index)}
+            onReorder={(fromIndex, toIndex) => reorderCharacters(fromIndex, toIndex)}
+          />
+        ))}
+        <button onClick={addNewCharacter}>+</button>
+      </div>
+      
+      {/* Preview Section */}
+      <div className="palette-preview">
+        <div className="brightness-scale">
+          {palette.characters.map((char, index) => (
+            <span key={index} style={{opacity: (index + 1) / palette.characters.length}}>
+              {char}
+            </span>
+          ))}
+        </div>
+      </div>
+      
+      {/* Actions */}
+      <div className="palette-actions">
+        <Button onClick={onSave}>Save Palette</Button>
+        <Button onClick={onCancel} variant="outline">Cancel</Button>
+      </div>
+    </div>
+  );
+};
+```
+
+**Integration with Import Settings:**
+```typescript
+// Enhanced MediaImportPanel.tsx settings section
+const CharacterMappingControls = () => {
+  const { settings, updateSettings } = useImportSettings();
+  const [showPaletteEditor, setShowPaletteEditor] = useState(false);
+  
+  return (
+    <div className="character-mapping-controls">
+      {/* Palette Selection */}
+      <div className="palette-selector">
+        <Label>Character Palette</Label>
+        <Select 
+          value={settings.characterMapping.activePalette.id}
+          onValueChange={(paletteId) => selectCharacterPalette(paletteId)}
+        >
+          {CHARACTER_PALETTES.map(palette => (
+            <option key={palette.id} value={palette.id}>{palette.name}</option>
+          ))}
+        </Select>
+        <Button onClick={() => setShowPaletteEditor(true)}>Edit Palette</Button>
+      </div>
+      
+      {/* Mapping Method */}
+      <div className="mapping-method">
+        <Label>Mapping Method</Label>
+        <Select value={settings.characterMapping.mappingMethod}>
+          <option value="brightness">Brightness</option>
+          <option value="luminance">Luminance</option>
+          <option value="contrast">Contrast</option>
+          <option value="edge-detection">Edge Detection</option>
+        </Select>
+      </div>
+      
+      {/* Additional Controls */}
+      <Checkbox 
+        checked={settings.characterMapping.invertDensity}
+        onCheckedChange={(checked) => updateCharacterMapping({invertDensity: checked})}
+      >
+        Invert Character Density
+      </Checkbox>
+      
+      {/* Character Preview */}
+      <div className="character-preview">
+        <Label>Character Preview</Label>
+        <div className="preview-grid">
+          {settings.characterMapping.activePalette.characters.map((char, index) => (
+            <span key={index} className="preview-char">{char}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+**Store Integration:**
+```typescript
+// Enhanced src/stores/importStore.ts with character palette management
+interface ImportSettingsState extends BaseImportState {
+  characterPalettes: CharacterPalette[];
+  
+  // Actions
+  addCharacterPalette: (palette: CharacterPalette) => void;
+  updateCharacterPalette: (id: string, updates: Partial<CharacterPalette>) => void;
+  deleteCharacterPalette: (id: string) => void;
+  selectCharacterPalette: (id: string) => void;
+  duplicateCharacterPalette: (id: string) => void;
+}
+```
+
+**ASCII Conversion Integration:**
+```typescript
+// Enhanced src/utils/asciiConverter.ts with character palette support
+export class AsciiConverter {
+  static convertFrame(imageData: ImageFrame, settings: ConversionSettings): ConversionResult {
+    const { characterMapping } = settings;
+    
+    return imageData.pixels.map(pixel => {
+      // Calculate pixel value based on mapping method
+      const pixelValue = this.calculatePixelValue(pixel, characterMapping.mappingMethod);
+      
+      // Map to character based on palette
+      const characterIndex = this.mapValueToCharacterIndex(
+        pixelValue, 
+        characterMapping.activePalette.characters.length,
+        characterMapping.invertDensity
+      );
+      
+      const character = characterMapping.activePalette.characters[characterIndex];
+      
+      return {
+        char: character,
+        color: settings.useOriginalColors ? pixel.color : settings.defaultColor,
+        bgColor: settings.useBackgroundColors ? pixel.bgColor : 'transparent'
+      };
+    });
+  }
+  
+  private static calculatePixelValue(pixel: RGBA, method: MappingMethod): number {
+    switch (method) {
+      case 'brightness':
+        return (pixel.r + pixel.g + pixel.b) / 3;
+      case 'luminance':
+        return 0.299 * pixel.r + 0.587 * pixel.g + 0.114 * pixel.b;
+      case 'contrast':
+        return this.calculateContrast(pixel);
+      case 'edge-detection':
+        return this.calculateEdgeStrength(pixel);
+      default:
+        return (pixel.r + pixel.g + pixel.b) / 3;
+    }
+  }
+}
+```
+
+**Implementation Priority:**
+1. **Character Palette Data Structure** - Extend existing palette types and constants
+2. **Character Palette Editor** - Build UI component following ColorPicker patterns  
+3. **Import Settings Integration** - Add character mapping controls to import panel
+4. **ASCII Converter Enhancement** - Integrate character palette with conversion algorithm
+5. **Palette Management** - Save/load custom character palettes following existing patterns
+
+This system will provide users with the same level of customization for character mapping that they currently have for color palettes, enabling diverse ASCII art styles from minimal terminal-friendly characters to rich Unicode artistic symbols.
+
 ### **🔗 System Integration Results**
 
 #### **Canvas & Animation Integration**
