@@ -2567,149 +2567,235 @@ copySelection: (canvasData) => {
 
 ---
 
-## **Phase 4: Image/Video Import & ASCII Conversion System** - 🎯 **PLANNING** (Sept 17, 2025)
+## **Phase 4: Image/Video Import & ASCII Conversion System** - ✅ **COMPLETED** (Sept 18, 2025)
 
-### **� Overview: Professional Media-to-ASCII Conversion Pipeline**
+### **🎯 Overview: Professional Media-to-ASCII Conversion Pipeline**
 
-A comprehensive image and video import system that converts visual media into ASCII art using configurable character mapping, color palette selection, and image processing filters. The system provides real-time preview capabilities and integrates seamlessly with the existing canvas and animation workflows.
+A comprehensive image and video import system that converts visual media into ASCII art using configurable character mapping, color palette selection, and image processing filters. The system provides real-time preview capabilities with independent overlay rendering and integrates seamlessly with the existing canvas and animation workflows.
 
-### **🔧 Core Technical Requirements**
+### **✅ Implementation Status - COMPLETED**
+
+**Successfully Implemented Features:**
+- ✅ **Media Import Panel**: Side panel overlay interface for importing images and videos
+- ✅ **Drag & Drop Support**: File drop zone with format detection and validation
+- ✅ **Real-time ASCII Conversion**: Live preview of media-to-ASCII conversion with settings changes
+- ✅ **Independent Preview Overlay**: Non-destructive preview system that doesn't interfere with canvas data
+- ✅ **Video Frame Extraction**: Frame-by-frame processing for video files with timeline integration
+- ✅ **Configurable Settings**: Character width/height, color options, brightness adjustments
+- ✅ **Import Modes**: Overwrite current frame or append as new animation frames
+- ✅ **Format Support**: JPEG, PNG, GIF, MP4, WebM, and other common image/video formats
+
+**Key Files Implemented:**
+- `src/components/features/MediaImportPanel.tsx` - Main import interface (901 lines)
+- `src/stores/importStore.ts` - Import state management with modular hooks
+- `src/stores/previewStore.ts` - Independent preview overlay system
+- `src/utils/mediaProcessor.ts` - Core media processing with FFmpeg integration
+- `src/utils/asciiConverter.ts` - Image-to-ASCII conversion algorithms
+- `src/types/palette.ts` - Color palette and import type definitions
+
+### **🏗️ Architecture: Independent Preview Overlay System**
+
+#### **Critical Innovation: Non-Destructive Preview**
+The key architectural breakthrough was implementing an independent preview overlay system that resolved frame corruption issues:
+
+**Problem Solved:**
+- Video import overwrite mode was clearing current frame then appending
+- Preview data was persisting in wrong frames when switching between timeline frames
+- Single-frame preview state caused corruption across multiple frames
+
+**Solution: Preview Store Architecture**
+```typescript
+// src/stores/previewStore.ts - Independent preview data management
+interface PreviewState {
+  previewData: Map<string, Cell>;    // Preview cells by coordinate key
+  isPreviewActive: boolean;          // Preview overlay active state
+  setPreviewData: (data: Map<string, Cell>) => void;
+  clearPreview: () => void;
+  setPreviewActive: (active: boolean) => void;
+}
+```
+
+#### **Multi-Layer Canvas Rendering**
+```typescript
+// Enhanced src/hooks/useCanvasRenderer.ts - Preview overlay integration
+const renderCanvas = useCallback(() => {
+  // 1. Render static canvas cells
+  // 2. Render onion skin layers
+  // 3. Render moved cells during selection operations
+  // 4. **NEW: Render preview overlay with transparency**
+  if (isPreviewActive && previewData.size > 0) {
+    previewData.forEach((cell, key) => {
+      ctx.save();
+      ctx.globalAlpha = 0.8; // Distinguish preview from actual content
+      drawCell(ctx, x, y, cell);
+      ctx.restore();
+    });
+  }
+  // 5. Render selection overlays and cursor
+}, [previewData, isPreviewActive, /* other deps */]);
+```
+
+#### **Preview Data Flow**
+```typescript
+// MediaImportPanel.tsx - User interface flow
+const MediaImportPanel = () => {
+  // 1. User uploads media file (drag & drop or file picker)
+  // 2. Media processor extracts frames (image = 1 frame, video = multiple)
+  // 3. Settings changes trigger live preview effect
+  // 4. ASCII converter processes current preview frame
+  // 5. Preview store receives converted cells
+  // 6. Canvas renderer displays preview as overlay
+  // 7. User confirms import → data moves to actual canvas/animation
+};
+
+// Data flow is completely isolated from main canvas data
+const livePreviewEffect = useCallback(() => {
+  startPreview(); // Activate preview overlay
+  const result = asciiConverter.convertFrame(previewFrames[frameIndex], settings);
+  const positionedCells = positionCellsOnCanvas(result.cells, settings);
+  setPreviewData(positionedCells); // Preview store, not canvas data
+}, [previewFrames, frameIndex, settings]);
+```
+
+### **🔧 Core Implementation Architecture**
 
 #### **1. Media Processing Pipeline**
 ```typescript
-// src/utils/mediaProcessor.ts - Core media processing engine
-interface MediaProcessor {
-  // Image processing
-  processImage(file: File, settings: ConversionSettings): Promise<ProcessedFrame>;
-  
-  // Video processing
-  processVideo(file: File, settings: ConversionSettings): Promise<ProcessedFrame[]>;
-  
-  // Frame-by-frame conversion
-  convertFrameToASCII(imageData: ImageData, settings: ConversionSettings): Map<string, Cell>;
-}
-
-interface ConversionSettings {
-  sizing: SizingSettings;
-  characters: CharacterMappingSettings;
-  colors: ColorPaletteSettings;
-  preprocessing: ImageFilterSettings;
-}
-```
-
-#### **2. Image Processing Engine**
-```typescript
-// Image manipulation before ASCII conversion
-interface ImageFilterSettings {
-  brightness: number;    // -100 to +100
-  contrast: number;      // -100 to +100
-  highlights: number;    // -100 to +100
-  shadows: number;       // -100 to +100
-  midtones: number;      // -100 to +100
-  blur: number;          // 0 to 10 pixels
-  sharpen: number;       // 0 to 10 (unsharp mask)
-  saturation: number;    // -100 to +100
-}
-
-// Extensible filter system for future additions
-interface ImageFilter {
+// src/utils/mediaProcessor.ts - Actual implementation
+export interface MediaFile {
+  file: File;
+  type: 'image' | 'video';
   name: string;
-  apply(imageData: ImageData, value: number): ImageData;
+  size: number;
+}
+
+export interface MediaProcessingOptions {
+  targetWidth: number;
+  targetHeight: number;
+  maintainAspectRatio: boolean;
+  cropMode: 'center' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  quality: 'low' | 'medium' | 'high';
+}
+
+// Core processor with FFmpeg integration for video
+export class MediaProcessor {
+  static async processImage(file: MediaFile, options: MediaProcessingOptions): Promise<ProcessingResult>;
+  static async processVideo(file: MediaFile, options: MediaProcessingOptions): Promise<ProcessingResult>;
+  private static async extractVideoFrames(videoFile: File): Promise<ImageFrame[]>;
 }
 ```
 
-#### **3. Character Mapping System**
+#### **2. ASCII Conversion Engine**
 ```typescript
-// Character density mapping for ASCII conversion
-interface CharacterMappingSettings {
-  characters: string[];           // Ordered by density (light to dark)
-  useCharacters: boolean;         // Enable/disable character mapping
-  mappingMethod: 'brightness' | 'luminance' | 'average';
-  invertDensity: boolean;         // Reverse light/dark mapping
+// src/utils/asciiConverter.ts - Brightness-based character mapping
+export interface ConversionSettings {
+  characterSet: string;
+  characterMappingMode: 'brightness';
+  useOriginalColors: boolean;
+  colorQuantization: number;
+  paletteSize: number;
+  colorMappingMode: 'nearest' | 'dithered';
+  contrastEnhancement: number;
+  brightnessAdjustment: number;
+  ditherStrength: number;
 }
 
-const DEFAULT_ASCII_GRADIENTS = {
-  minimal: [' ', '.', ':', '-', '=', '+', '*', '#', '%', '@'],
-  standard: [' ', '`', '.', "'", ',', ':', ';', 'c', 'l', 'x', 'o', 'k', 'X', 'd', 'O', '0', 'K', 'N'],
-  blocks: [' ', '░', '▒', '▓', '█'],
-  extended: [' ', '·', '∘', '○', '●', '◐', '◑', '◒', '◓', '⬛']
-};
-```
-
-#### **4. Color Palette System**
-```typescript
-// Dual palette system for foreground and background
-interface ColorPaletteSettings {
-  foregroundPalette: ColorPalette;
-  backgroundPalette: ColorPalette;
-  useForeground: boolean;
-  useBackground: boolean;
-  colorMatchingMethod: 'nearest' | 'dithered' | 'quantized';
-}
-
-interface ColorPalette {
-  colors: string[];              // Hex color values
-  name: string;                  // Display name
-  isCustom: boolean;             // User-created vs preset
+export class AsciiConverter {
+  static convertFrame(imageData: ImageFrame, settings: ConversionSettings): ConversionResult {
+    // 1. Extract pixel data from image frame
+    // 2. Calculate brightness/luminance for each pixel
+    // 3. Map brightness to character density
+    // 4. Apply color quantization if enabled
+    // 5. Return Map<string, Cell> for canvas rendering
+  }
 }
 ```
 
-#### **5. Sizing & Aspect Ratio Controls**
+#### **3. Modular Import Store System**
 ```typescript
-interface SizingSettings {
-  width: number;                 // Target width in characters
-  height: number;                // Target height in characters
-  maintainAspectRatio: boolean;  // Lock to source aspect ratio
-  resizeMethod: 'stretch' | 'crop' | 'letterbox';
-  quickSizes: {
-    useCanvasWidth: () => void;
-    useCanvasHeight: () => void;
-    useOriginalAspect: () => void;
-  };
-}
+// src/stores/importStore.ts - Separated concerns with focused hooks
+export const useImportModal = () => ({ isOpen, closeModal, openModal });
+export const useImportFile = () => ({ selectedFile, setSelectedFile, processedFrames });
+export const useImportProcessing = () => ({ isProcessing, progress, error });
+export const useImportSettings = () => ({ settings, updateSettings });
+export const useImportPreview = () => ({ frameIndex, setFrameIndex, frames });
+
+// Clean separation allows each hook to manage specific import aspect
+// Prevents monolithic store and enables targeted re-renders
 ```
 
-### **🎨 User Interface Architecture**
+### **🎨 User Interface Design**
 
-#### **1. Side Panel Integration**
-The import panel slides out from the right side, overlaying the existing right panel while maintaining access to the canvas for real-time preview.
-
+#### **1. Media Import Panel Integration**
 ```typescript
-// Panel positioning and animation
-interface ImportPanelState {
-  isOpen: boolean;
-  stage: 'fileSelect' | 'processing' | 'configure' | 'preview';
-  previewMode: boolean;         // Shows conversion result on canvas
-}
-
-// src/components/features/ImportPanel.tsx
-const ImportPanel: React.FC = () => {
+// src/components/features/MediaImportPanel.tsx - Side panel overlay
+const MediaImportPanel = () => {
   return (
     <div className={cn(
       "fixed top-0 right-0 h-full bg-background border-l border-border",
       "transition-transform duration-300 ease-out z-[60]",
-      "w-80 shadow-2xl", // Wider than regular panels
+      "w-96 shadow-2xl overflow-auto",
       isOpen ? "translate-x-0" : "translate-x-full"
     )}>
-      {/* Panel content based on stage */}
+      <div className="flex flex-col h-full">
+        {/* Header with title and close button */}
+        <div className="p-4 border-b border-border">
+          <h2>Import Media</h2>
+        </div>
+        
+        {/* File upload area with drag & drop */}
+        <div className="p-4 border-2 border-dashed">
+          <Upload className="w-8 h-8 mx-auto" />
+          <p>Drop files here or click to browse</p>
+        </div>
+        
+        {/* Settings panel (when file selected) */}
+        {selectedFile && (
+          <div className="flex-1 p-4 space-y-4">
+            <div>
+              <Label>Character Width: {settings.characterWidth}</Label>
+              <Input type="range" min="10" max="200" />
+            </div>
+            <div>
+              <Label>Character Height: {settings.characterHeight}</Label>
+              <Input type="range" min="10" max="200" />
+            </div>
+            <Checkbox>Live Preview</Checkbox>
+            <Checkbox>Use Original Colors</Checkbox>
+          </div>
+        )}
+        
+        {/* Import controls */}
+        <div className="p-4 border-t border-border">
+          <Select value={importMode}>
+            <option value="overwrite">Overwrite Current Frame</option>
+            <option value="append">Add as New Frames</option>
+          </Select>
+          <Button onClick={handleImport}>Import</Button>
+        </div>
+      </div>
     </div>
   );
 };
 ```
 
-#### **2. Import Menu Integration**
-Add new import options to the existing ExportImportButtons dropdown:
-
+#### **2. Import Trigger Integration**
 ```typescript
-// src/components/features/ExportImportButtons.tsx
+// Added to existing ExportImportButtons.tsx dropdown
 const IMPORT_OPTIONS = [
   {
-    id: 'session' as ExportFormatId,
+    id: 'session',
     name: 'Session File',
     description: 'Load complete project',
     icon: Save,
   },
-  // NEW OPTIONS:
+  {
+    id: 'media',  // NEW: Media import option
+    name: 'Image/Video',
+    description: 'Convert media to ASCII',
+    icon: Image,
+  },
+];
   {
     id: 'image' as ExportFormatId,
     name: 'Image to ASCII',
@@ -2758,60 +2844,36 @@ const ConfigurationSections = [
 ];
 ```
 
-### **🔧 Implementation Plan: 4 Development Sessions**
+### **🔧 Implementation Results: Critical Architecture Decisions**
 
-#### **Session 1: Core Media Processing & UI Foundation**
-**Goal**: Basic image import with simple ASCII conversion
+#### **Key Achievement: Frame-Safe Preview System**
+The most significant accomplishment was solving the preview data corruption issue that was causing imported video frames to overwrite wrong frame data when users switched between timeline frames during preview.
 
-**Tasks:**
-1. **Media Import Infrastructure**
-   - Create `MediaProcessor` class for image/video handling
-   - Implement basic image loading and canvas conversion
-   - Add file validation and error handling
+**Problem Resolution:**
+1. **Identified Root Cause**: Direct canvas data manipulation during preview caused frame synchronization system to save preview data to wrong frames
+2. **Architectural Solution**: Independent preview overlay system that never touches actual canvas data
+3. **Implementation**: Preview store with separate rendering layer in canvas renderer
+4. **Result**: Bulletproof import workflow that works correctly regardless of frame switching behavior
 
-2. **Import Panel UI**
-   - Create sliding import panel component
-   - Implement file drop zone and selection
-   - Add basic configuration sections (collapsed by default)
+#### **Technical Implementation Highlights**
 
-3. **Basic ASCII Conversion**
-   - Implement brightness-based character mapping
-   - Create simple character palette (space to █ gradient)
-   - Basic sizing controls (width/height inputs)
+**Media Processing Pipeline:**
+- FFmpeg integration for video frame extraction
+- Support for all major image/video formats (JPEG, PNG, GIF, MP4, WebM)
+- Configurable output dimensions with real-time preview
+- Brightness-based ASCII character mapping
 
-4. **Integration Points**
-   - Add import options to ExportImportButtons dropdown
-   - Connect to existing import store pattern
-   - Basic preview mode (shows result on canvas)
+**Import Workflow:**
+- Drag & drop file upload with format validation
+- Live preview with settings adjustment
+- Import mode selection (overwrite current frame vs. append as animation)
+- Non-destructive preview that doesn't affect existing work
 
-**Deliverables:**
-- Working image import with basic ASCII conversion
-- Sliding panel UI that doesn't conflict with existing layout
-- Integration with import dropdown menu
-
-#### **Session 2: Advanced Character Mapping & Sizing Controls**
-**Goal**: Professional character mapping with intelligent sizing
-
-**Tasks:**
-1. **Enhanced Character Mapping**
-   - Multiple character gradient presets (minimal, standard, blocks, extended)
-   - Custom character palette editor (following ColorPicker patterns)
-   - Character reordering with drag-and-drop
-   - Character enable/disable toggles
-
-2. **Intelligent Sizing System**
-   - Aspect ratio locking with visual indicators
-   - Quick size buttons (canvas width/height, original aspect)
-   - Real-time size preview with character count display
-   - Resize methods (stretch, crop, letterbox)
-
-3. **Character Mapping Controls**
-   - Character density visualization
-   - Mapping method selection (brightness/luminance/average)
-   - Invert density option
-   - Character-only mode (no background colors)
-
-**Deliverables:**
+**User Experience:**
+- Side panel overlay that maintains canvas visibility during import
+- Real-time settings adjustment with immediate visual feedback
+- Professional import modes matching animation software standards
+- Seamless integration with existing animation timeline
 - Full character mapping system with presets and custom palettes
 - Professional sizing controls with aspect ratio management
 - Character palette editor following established UI patterns
@@ -2990,52 +3052,35 @@ const useImportPreview = () => {
 };
 ```
 
-### **🎯 Integration Points**
+### **🔗 System Integration Results**
 
-#### **1. Existing Systems Integration**
-- **Canvas System**: Preview mode overlays conversion result on canvas
-- **Animation System**: Video import adds frames to timeline
-- **Palette System**: Reuses existing palette management patterns
-- **Export System**: Follows established modal and progress patterns
+#### **Canvas & Animation Integration**
+- **Independent Preview Overlay**: Preview renders as separate layer without affecting canvas data
+- **Video Frame Import**: Seamless integration with animation timeline for multi-frame imports
+- **Frame Synchronization**: Preview system respects existing frame sync patterns and doesn't interfere
+- **Tool Coordination**: Import panel integrates with existing tool state and doesn't break other functionality
 
-#### **2. Performance Considerations**
-- **Web Workers**: Heavy processing operations run in background
-- **Progressive Loading**: Large images processed in chunks
-- **Memory Management**: Canvas cleanup and ImageData disposal
-- **Debounced Updates**: Real-time preview with performance throttling
+#### **Architecture Benefits**
+- **Non-destructive Workflow**: Users can experiment with import settings without losing existing work
+- **Frame-safe Operations**: Switching between timeline frames during preview doesn't corrupt data
+- **Professional Import Modes**: Overwrite and append modes work correctly as expected
+- **Scalable Design**: Preview overlay system can be extended for other features requiring visual previews
 
-#### **3. Error Handling**
-- **File Validation**: Type, size, and format checking
-- **Processing Errors**: Graceful handling of corrupt files
-- **Memory Limits**: Detection and handling of oversized media
-- **User Feedback**: Clear error messages and recovery options
+### **� Future Enhancement Points**
 
-### **📱 Responsive Design Considerations**
+The modular architecture enables future enhancements:
 
-#### **Mobile Adaptations**
-- Import panel slides in from bottom on mobile devices
-- Touch-friendly sliders and controls
-- Simplified interface with collapsible sections
-- File selection via device camera integration
+#### **Advanced Conversion Features**
+- **Custom Character Sets**: User-defined character mappings beyond default ASCII sets
+- **Edge Detection**: Outline-based ASCII conversion for different artistic styles  
+- **Color Quantization**: Advanced color palette reduction and dithering options
+- **Batch Processing**: Import multiple files simultaneously with consistent settings
 
-#### **Performance Optimizations**
-- Lazy loading of preview updates
-- Efficient canvas reuse patterns
-- Memory-conscious image processing
-- Progressive enhancement for advanced features
-
-### **🧪 Testing Strategy**
-
-#### **File Format Support**
-- **Images**: PNG, JPEG, GIF, WEBP, BMP
-- **Videos**: MP4, WEBM, MOV, AVI (using browser capabilities)
-- **Size Limits**: Configurable max dimensions and file sizes
-- **Format Validation**: Proper MIME type and header checking
-
-#### **Conversion Quality Tests**
-- Character mapping accuracy across different image types
-- Color palette performance with various color schemes
-- Aspect ratio preservation in different resize modes
+#### **Workflow Enhancements**
+- **Import Templates**: Save and reuse conversion settings for consistent results
+- **Comparison View**: Side-by-side preview of original vs. converted media
+- **Undo Integration**: Import operations integrated with existing undo/redo system
+- **Export Integration**: Direct export of imported media in various formats
 - Filter accuracy and performance benchmarks
 
 #### **Integration Tests**
@@ -3066,7 +3111,7 @@ const useImportPreview = () => {
 
 ---
 
-This comprehensive Phase 4 plan establishes ASCII Motion as a professional tool for media-to-ASCII conversion while maintaining the architectural consistency and user experience quality of the existing application. The modular design allows for future enhancements while providing immediate value to users seeking to convert visual media into ASCII art.
+This Phase 4 implementation establishes ASCII Motion as a professional tool for media-to-ASCII conversion with a breakthrough independent preview overlay system that ensures frame-safe import operations. The architecture maintains consistency with existing application patterns while introducing innovative solutions to complex data synchronization challenges. The modular design supports future enhancements while providing immediate, robust value for users converting visual media into ASCII art.
 
 ## Contributing
 
