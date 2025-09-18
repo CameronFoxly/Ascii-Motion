@@ -37,10 +37,13 @@ import {
   useImportPreview
 } from '../../stores/importStore';
 import { mediaProcessor, SUPPORTED_IMAGE_FORMATS, SUPPORTED_VIDEO_FORMATS } from '../../utils/mediaProcessor';
-import { asciiConverter, DEFAULT_ASCII_CHARS } from '../../utils/asciiConverter';
+import { asciiConverter } from '../../utils/asciiConverter';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useAnimationStore } from '../../stores/animationStore';
 import { usePreviewStore } from '../../stores/previewStore';
+import { useCharacterPaletteStore } from '../../stores/characterPaletteStore';
+import { CharacterMappingControls } from './CharacterMappingControls';
+import { CharacterPaletteEditor } from './CharacterPaletteEditor';
 import type { MediaFile } from '../../utils/mediaProcessor';
 import type { Cell } from '../../types';
 
@@ -50,6 +53,11 @@ export function MediaImportPanel() {
   const { isProcessing, progress, error, setProcessing, setProgress, setError } = useImportProcessing();
   const { settings, updateSettings } = useImportSettings();
   const { frameIndex, setFrameIndex, frames: previewFrames } = useImportPreview();
+  
+  // Character palette integration
+  const activePalette = useCharacterPaletteStore(state => state.activePalette);
+  const mappingMethod = useCharacterPaletteStore(state => state.mappingMethod);
+  const invertDensity = useCharacterPaletteStore(state => state.invertDensity);
   
   // Canvas and animation stores
   const canvasWidth = useCanvasStore(state => state.width);
@@ -285,8 +293,9 @@ export function MediaImportPanel() {
         startPreview();
         
         const conversionSettings = {
-          characterSet: DEFAULT_ASCII_CHARS,
-          characterMappingMode: 'brightness' as const,
+          characterPalette: activePalette,
+          mappingMethod: mappingMethod,
+          invertDensity: invertDensity,
           useOriginalColors: settings.useOriginalColors,
           colorQuantization: settings.colorQuantization,
           paletteSize: settings.paletteSize,
@@ -461,8 +470,9 @@ export function MediaImportPanel() {
     setIsImporting(true);
     try {
       const conversionSettings = {
-        characterSet: DEFAULT_ASCII_CHARS,
-        characterMappingMode: 'brightness' as const,
+        characterPalette: activePalette,
+        mappingMethod: mappingMethod,
+        invertDensity: invertDensity,
         useOriginalColors: settings.useOriginalColors,
         colorQuantization: settings.colorQuantization,
         paletteSize: settings.paletteSize,
@@ -792,6 +802,13 @@ export function MediaImportPanel() {
                     })}
                   </div>
                 </div>
+              </div>
+
+              {/* Character Mapping Controls */}
+              <div className="space-y-3">
+                <Separator />
+                <CharacterMappingControls onSettingsChange={() => setLivePreviewEnabled(true)} />
+                <CharacterPaletteEditor onPaletteChange={() => setLivePreviewEnabled(true)} />
               </div>
               
               {/* Processing Progress */}

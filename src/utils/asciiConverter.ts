@@ -10,32 +10,18 @@
 
 import type { Cell } from '../types';
 import type { ProcessedFrame } from './mediaProcessor';
+import type { CharacterPalette, CharacterMappingSettings } from '../types/palette';
 
-// Default ASCII character set for brightness mapping (darkest to lightest)
+// Legacy support - kept for backward compatibility
 export const DEFAULT_ASCII_CHARS = [
   '@', '#', 'S', '%', '?', '*', '+', ';', ':', ',', '.', ' '
 ];
 
-// Extended ASCII character set for more detail
-export const EXTENDED_ASCII_CHARS = [
-  '█', '▉', '▊', '▋', '▌', '▍', '▎', '▏', '▓', '▒', '░', '■', '□', 
-  '@', '#', 'S', '%', '?', '*', '+', ';', ':', ',', '.', ' '
-];
-
-// Character sets by density for different artistic effects
-export const ASCII_CHARACTER_SETS = {
-  minimal: [' ', '.', ':', ';', '+', '*', '#', '@'],
-  standard: DEFAULT_ASCII_CHARS,
-  extended: EXTENDED_ASCII_CHARS,
-  blocks: ['█', '▓', '▒', '░', ' '],
-  custom: [] as string[] // Will be populated by user selection
-};
-
 export interface ConversionSettings {
-  // Character mapping
-  characterSet: string[];
-  characterMappingMode: 'brightness' | 'edge' | 'custom';
-  customCharacterMapping?: { [brightness: string]: string };
+  // Character mapping - Enhanced with palette support
+  characterPalette: CharacterPalette;
+  mappingMethod: CharacterMappingSettings['mappingMethod'];
+  invertDensity: boolean;
   
   // Color settings
   useOriginalColors: boolean;
@@ -48,6 +34,106 @@ export interface ConversionSettings {
   brightnessAdjustment: number; // -100 to 100
   ditherStrength: number; // 0-1 for dithering algorithms
 }
+
+/**
+ * Mapping algorithm interface for extensibility
+ */
+export interface MappingAlgorithm {
+  name: string;
+  description: string;
+  mapPixelToCharacter: (r: number, g: number, b: number, characters: string[], options?: any) => string;
+}
+
+/**
+ * Brightness-based mapping algorithm
+ */
+export const brightnessAlgorithm: MappingAlgorithm = {
+  name: 'brightness',
+  description: 'Maps characters based on pixel brightness/luminance',
+  mapPixelToCharacter: (r: number, g: number, b: number, characters: string[]) => {
+    // Using relative luminance formula (Rec. 709)
+    const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const charIndex = Math.floor((brightness / 255) * (characters.length - 1));
+    return characters[Math.max(0, Math.min(characters.length - 1, charIndex))];
+  }
+};
+
+/**
+ * Luminance-based mapping algorithm (alternative weighting)
+ */
+export const luminanceAlgorithm: MappingAlgorithm = {
+  name: 'luminance',
+  description: 'Maps characters based on perceptual luminance',
+  mapPixelToCharacter: (r: number, g: number, b: number, characters: string[]) => {
+    // Perceptual luminance with gamma correction
+    const luminance = Math.pow(0.299 * Math.pow(r/255, 2.2) + 0.587 * Math.pow(g/255, 2.2) + 0.114 * Math.pow(b/255, 2.2), 1/2.2) * 255;
+    const charIndex = Math.floor((luminance / 255) * (characters.length - 1));
+    return characters[Math.max(0, Math.min(characters.length - 1, charIndex))];
+  }
+};
+
+/**
+ * Contrast-based mapping algorithm
+ */
+export const contrastAlgorithm: MappingAlgorithm = {
+  name: 'contrast',
+  description: 'Maps characters based on local contrast detection',
+  mapPixelToCharacter: (r: number, g: number, b: number, characters: string[], options?: { neighborValues?: number[] }) => {
+    const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    
+    // If neighbor values are provided, calculate local contrast
+    if (options?.neighborValues && options.neighborValues.length > 0) {
+      const avgNeighbor = options.neighborValues.reduce((sum, val) => sum + val, 0) / options.neighborValues.length;
+      const contrast = Math.abs(brightness - avgNeighbor) / 255;
+      
+      // Use contrast to influence character selection
+      const baseIndex = Math.floor((brightness / 255) * (characters.length - 1));
+      const contrastOffset = Math.floor(contrast * (characters.length * 0.3));
+      const charIndex = Math.min(characters.length - 1, baseIndex + contrastOffset);
+      return characters[charIndex];
+    }
+    
+    // Fallback to brightness if no neighbors
+    const charIndex = Math.floor((brightness / 255) * (characters.length - 1));
+    return characters[Math.max(0, Math.min(characters.length - 1, charIndex))];
+  }
+};
+
+/**
+ * Edge detection mapping algorithm
+ */
+export const edgeDetectionAlgorithm: MappingAlgorithm = {
+  name: 'edge-detection',
+  description: 'Maps characters based on edge detection for line art',
+  mapPixelToCharacter: (r: number, g: number, b: number, characters: string[], options?: { gradientMagnitude?: number }) => {
+    const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    
+    // If gradient magnitude is provided (from edge detection), use it
+    if (options?.gradientMagnitude !== undefined) {
+      const edgeStrength = options.gradientMagnitude / 255;
+      
+      // For edges, prefer characters with more visual weight
+      if (edgeStrength > 0.3) {
+        const edgeCharIndex = Math.floor(edgeStrength * (characters.length - 1));
+        return characters[Math.max(characters.length * 0.5, edgeCharIndex)];
+      }
+    }
+    
+    // For non-edges, use brightness-based selection
+    const charIndex = Math.floor((brightness / 255) * (characters.length - 1));
+    return characters[Math.max(0, Math.min(characters.length - 1, charIndex))];
+  }
+};
+
+/**
+ * Registry of available mapping algorithms
+ */
+export const MAPPING_ALGORITHMS: Record<CharacterMappingSettings['mappingMethod'], MappingAlgorithm> = {
+  'brightness': brightnessAlgorithm,
+  'luminance': luminanceAlgorithm,
+  'contrast': contrastAlgorithm,
+  'edge-detection': edgeDetectionAlgorithm
+};
 
 export interface ConversionResult {
   cells: Map<string, Cell>;
@@ -96,23 +182,28 @@ export class ASCIIConverter {
         // Skip transparent pixels
         if (a < 128) continue;
         
-        // Calculate brightness for character selection
-        const brightness = this.calculateBrightness(r, g, b);
+        // Apply brightness and contrast adjustments to RGB values
+        let adjustedR = r, adjustedG = g, adjustedB = b;
         
-        // Apply brightness adjustment
-        const adjustedBrightness = Math.max(0, Math.min(255, 
-          brightness + (settings.brightnessAdjustment * 2.55)
-        ));
+        if (settings.brightnessAdjustment !== 0) {
+          const adjustment = settings.brightnessAdjustment * 2.55;
+          adjustedR = Math.max(0, Math.min(255, r + adjustment));
+          adjustedG = Math.max(0, Math.min(255, g + adjustment));
+          adjustedB = Math.max(0, Math.min(255, b + adjustment));
+        }
         
-        // Apply contrast enhancement
-        const enhancedBrightness = this.applyContrast(adjustedBrightness, settings.contrastEnhancement);
+        if (settings.contrastEnhancement !== 1) {
+          adjustedR = this.applyContrastToChannel(adjustedR, settings.contrastEnhancement);
+          adjustedG = this.applyContrastToChannel(adjustedG, settings.contrastEnhancement);
+          adjustedB = this.applyContrastToChannel(adjustedB, settings.contrastEnhancement);
+        }
         
-        // Select character based on brightness
-        const character = this.selectCharacter(
-          enhancedBrightness, 
-          settings.characterSet, 
-          settings.characterMappingMode,
-          settings.customCharacterMapping
+        // Select character using the chosen algorithm
+        const character = this.selectCharacterWithAlgorithm(
+          adjustedR, adjustedG, adjustedB,
+          settings.characterPalette,
+          settings.mappingMethod,
+          settings.invertDensity
         );
         
         // Determine color
@@ -158,40 +249,41 @@ export class ASCIIConverter {
   }
   
   /**
-   * Calculate luminance-based brightness
+   * Apply contrast enhancement to individual color channel
    */
-  private calculateBrightness(r: number, g: number, b: number): number {
-    // Using relative luminance formula (Rec. 709)
-    return Math.round(0.2126 * r + 0.7152 * g + 0.0722 * b);
-  }
-  
-  /**
-   * Apply contrast enhancement
-   */
-  private applyContrast(brightness: number, enhancement: number): number {
-    // Sigmoid contrast curve
-    const normalized = brightness / 255;
+  private applyContrastToChannel(channelValue: number, enhancement: number): number {
+    // Sigmoid contrast curve applied to individual channel
+    const normalized = channelValue / 255;
     const enhanced = 1 / (1 + Math.exp(-enhancement * (normalized - 0.5) * 6));
-    return Math.round(enhanced * 255);
+    return Math.round(Math.max(0, Math.min(255, enhanced * 255)));
   }
   
   /**
-   * Select character based on brightness and mapping mode
+   * Select character using the specified algorithm
    */
-  private selectCharacter(
-    brightness: number,
-    characterSet: string[],
-    mappingMode: ConversionSettings['characterMappingMode'],
-    customMapping?: { [brightness: string]: string }
+  private selectCharacterWithAlgorithm(
+    r: number,
+    g: number,
+    b: number,
+    characterPalette: CharacterPalette,
+    mappingMethod: CharacterMappingSettings['mappingMethod'],
+    invertDensity: boolean
   ): string {
-    if (mappingMode === 'custom' && customMapping) {
-      const key = Math.round(brightness / 16) * 16; // Group into ranges
-      return customMapping[key.toString()] || characterSet[0];
+    const algorithm = MAPPING_ALGORITHMS[mappingMethod];
+    if (!algorithm) {
+      console.warn(`Unknown mapping algorithm: ${mappingMethod}, falling back to brightness`);
+      return MAPPING_ALGORITHMS.brightness.mapPixelToCharacter(r, g, b, characterPalette.characters);
     }
     
-    // Standard brightness mapping
-    const charIndex = Math.floor((brightness / 255) * (characterSet.length - 1));
-    return characterSet[Math.max(0, Math.min(characterSet.length - 1, charIndex))];
+    let characters = [...characterPalette.characters];
+    
+    // Invert character order if requested (light to dark becomes dark to light)
+    if (invertDensity) {
+      characters = characters.reverse();
+    }
+    
+    // Use the algorithm to map pixel to character
+    return algorithm.mapPixelToCharacter(r, g, b, characters);
   }
   
   /**

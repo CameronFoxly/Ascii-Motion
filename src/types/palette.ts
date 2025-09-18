@@ -88,6 +88,68 @@ export const isPaletteExportFormat = (obj: any): obj is PaletteExportFormat => {
   );
 };
 
+// Character Palette System Types (similar to color palettes but for ASCII characters)
+
+export interface CharacterPalette {
+  id: string;
+  name: string;
+  characters: string[];           // Ordered by density (light to dark)
+  isPreset: boolean;             // System preset vs user created
+  isCustom: boolean;            // User-created custom palette
+  category: 'ascii' | 'unicode' | 'blocks' | 'custom';
+}
+
+export interface CharacterMappingSettings {
+  activePalette: CharacterPalette;
+  mappingMethod: 'brightness' | 'luminance' | 'contrast' | 'edge-detection';
+  invertDensity: boolean;         // Reverse light/dark mapping
+  characterSpacing: number;       // Spacing between characters (1.0 = normal)
+  useCustomOrder: boolean;        // Allow manual character reordering
+}
+
+// Character palette editor state
+export interface CharacterPaletteEditorState {
+  isEditing: boolean;
+  editingPaletteId: string | null;
+  draggedCharacterIndex: number | null;
+  dropTargetIndex: number | null;
+}
+
+// Export format for JSON import/export (future feature)
+export interface CharacterPaletteExportFormat {
+  name: string;
+  characters: string[];
+  category: CharacterPalette['category'];
+}
+
+// Type guards for character palettes
+export const isValidCharacter = (char: string): boolean => {
+  return typeof char === 'string' && char.length === 1;
+};
+
+export const isCharacterPalette = (obj: any): obj is CharacterPalette => {
+  return (
+    typeof obj === 'object' &&
+    typeof obj.id === 'string' &&
+    typeof obj.name === 'string' &&
+    Array.isArray(obj.characters) &&
+    obj.characters.every(isValidCharacter) &&
+    typeof obj.isPreset === 'boolean' &&
+    typeof obj.isCustom === 'boolean' &&
+    ['ascii', 'unicode', 'blocks', 'custom'].includes(obj.category)
+  );
+};
+
+export const isCharacterPaletteExportFormat = (obj: any): obj is CharacterPaletteExportFormat => {
+  return (
+    typeof obj === 'object' &&
+    typeof obj.name === 'string' &&
+    Array.isArray(obj.characters) &&
+    obj.characters.every(isValidCharacter) &&
+    ['ascii', 'unicode', 'blocks', 'custom'].includes(obj.category)
+  );
+};
+
 // Utility functions for ID generation
 export const generateColorId = (): string => {
   return `color_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -95,4 +157,8 @@ export const generateColorId = (): string => {
 
 export const generatePaletteId = (): string => {
   return `palette_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
+export const generateCharacterPaletteId = (): string => {
+  return `char_palette_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
