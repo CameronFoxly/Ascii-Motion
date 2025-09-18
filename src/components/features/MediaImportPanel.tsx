@@ -27,8 +27,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Link,
-  RotateCcw
+  Link
 } from 'lucide-react';
 import { 
   useImportModal, 
@@ -72,15 +71,15 @@ export function MediaImportPanel() {
       const characterCompensatedAspectRatio = originalImageAspectRatio / CHARACTER_ASPECT_RATIO;
       
       const newHeight = Math.ceil(value / characterCompensatedAspectRatio);
-      const constrainedHeight = Math.min(newHeight, canvasHeight);
+      // Don't constrain to canvas - allow larger dimensions for proper aspect ratio
       updateSettings({ 
         characterWidth: value,
-        characterHeight: constrainedHeight
+        characterHeight: newHeight
       });
     } else {
       updateSettings({ characterWidth: value });
     }
-  }, [settings.maintainAspectRatio, originalImageAspectRatio, canvasHeight, updateSettings]);
+  }, [settings.maintainAspectRatio, originalImageAspectRatio, updateSettings]);
 
   const handleHeightChange = useCallback((value: number) => {
     if (settings.maintainAspectRatio && originalImageAspectRatio) {
@@ -90,60 +89,15 @@ export function MediaImportPanel() {
       const characterCompensatedAspectRatio = originalImageAspectRatio / CHARACTER_ASPECT_RATIO;
       
       const newWidth = Math.ceil(value * characterCompensatedAspectRatio);
-      const constrainedWidth = Math.min(newWidth, canvasWidth);
+      // Don't constrain to canvas - allow larger dimensions for proper aspect ratio
       updateSettings({ 
-        characterWidth: constrainedWidth,
+        characterWidth: newWidth,
         characterHeight: value
       });
     } else {
       updateSettings({ characterHeight: value });
     }
-  }, [settings.maintainAspectRatio, originalImageAspectRatio, canvasWidth, updateSettings]);
-
-  // Reset to original aspect ratio with character compensation
-  const handleResetToOriginalAspectRatio = useCallback(() => {
-    if (!originalImageAspectRatio) return;
-    
-    // Keep the current largest dimension as the reference size
-    const currentWidth = settings.characterWidth;
-    const currentHeight = settings.characterHeight;
-    const keepWidth = currentWidth >= currentHeight;
-    
-    // Apply character aspect ratio compensation
-    const CHARACTER_ASPECT_RATIO = 0.6;
-    const characterCompensatedAspectRatio = originalImageAspectRatio / CHARACTER_ASPECT_RATIO;
-    
-    let targetWidth: number;
-    let targetHeight: number;
-    
-    if (keepWidth) {
-      // Keep current width, calculate new height based on aspect ratio
-      targetWidth = currentWidth;
-      targetHeight = Math.round(currentWidth / characterCompensatedAspectRatio);
-    } else {
-      // Keep current height, calculate new width based on aspect ratio
-      targetHeight = currentHeight;
-      targetWidth = Math.round(currentHeight * characterCompensatedAspectRatio);
-    }
-    
-    // Ensure we don't exceed canvas bounds
-    targetWidth = Math.min(targetWidth, canvasWidth);
-    targetHeight = Math.min(targetHeight, canvasHeight);
-    
-    // If we hit canvas bounds, recalculate the other dimension
-    if (targetWidth === canvasWidth && targetWidth < Math.round(targetHeight * characterCompensatedAspectRatio)) {
-      targetHeight = Math.round(targetWidth / characterCompensatedAspectRatio);
-    } else if (targetHeight === canvasHeight && targetHeight < Math.round(targetWidth / characterCompensatedAspectRatio)) {
-      targetWidth = Math.round(targetHeight * characterCompensatedAspectRatio);
-    }
-    
-    // Update settings with calculated dimensions and enable aspect ratio maintenance
-    updateSettings({
-      characterWidth: targetWidth,
-      characterHeight: targetHeight,
-      maintainAspectRatio: true
-    });
-  }, [originalImageAspectRatio, settings.characterWidth, settings.characterHeight, canvasWidth, canvasHeight, updateSettings]);
+  }, [settings.maintainAspectRatio, originalImageAspectRatio, updateSettings]);
 
   // Position cells on canvas based on alignment settings
   const positionCellsOnCanvas = useCallback((cells: Map<string, any>, imageWidth: number, imageHeight: number) => {
@@ -196,11 +150,20 @@ export function MediaImportPanel() {
         offsetY = 0;
     }
     
-    // Ensure offset doesn't place image outside canvas bounds
-    offsetX = Math.max(0, Math.min(offsetX, canvasWidth - imageWidth));
-    offsetY = Math.max(0, Math.min(offsetY, canvasHeight - imageHeight));
+    console.log('Calculated offset (before bounds check):', { offsetX, offsetY });
     
-    console.log('Using offset:', { offsetX, offsetY });
+    // For images larger than canvas, we need different logic
+    // Don't constrain offset to positive values - allow negative offsets to show center portions
+    if (imageWidth > canvasWidth || imageHeight > canvasHeight) {
+      // For oversized images, positioning shows different parts of the image
+      // No additional constraints needed - let the cell bounds check below handle visibility
+    } else {
+      // For images smaller than canvas, ensure they stay within bounds
+      offsetX = Math.max(0, Math.min(offsetX, canvasWidth - imageWidth));
+      offsetY = Math.max(0, Math.min(offsetY, canvasHeight - imageHeight));
+    }
+    
+    console.log('Final offset:', { offsetX, offsetY });
     
     const positionedCells = new Map();
     cells.forEach((cell, originalKey) => {
@@ -632,29 +595,71 @@ export function MediaImportPanel() {
                 <div className="flex gap-2 items-end">
                   <div className="flex-1">
                     <Label htmlFor="char-width" className="text-xs">Width</Label>
-                    <Input
-                      id="char-width"
-                      type="number"
-                      min="1"
-                      max={canvasWidth}
-                      value={settings.characterWidth}
-                      onChange={(e) => handleWidthChange(parseInt(e.target.value) || 1)}
-                      className="h-8 text-xs"
-                    />
+                    <div className="flex">
+                      <Input
+                        id="char-width"
+                        type="number"
+                        min="1"
+                        value={settings.characterWidth}
+                        onChange={(e) => handleWidthChange(parseInt(e.target.value) || 1)}
+                        className="h-8 text-xs rounded-r-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <div className="flex flex-col">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleWidthChange(settings.characterWidth + 1)}
+                          className="h-4 w-6 p-0 rounded-l-none rounded-br-none border-l-0 text-xs"
+                        >
+                          +
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleWidthChange(Math.max(1, settings.characterWidth - 1))}
+                          className="h-4 w-6 p-0 rounded-l-none rounded-tr-none border-l-0 border-t-0 text-xs"
+                        >
+                          −
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                   <div className="flex-1">
                     <Label htmlFor="char-height" className="text-xs">Height</Label>
-                    <Input
-                      id="char-height"
-                      type="number"
-                      min="1"
-                      max={canvasHeight}
-                      value={settings.characterHeight}
-                      onChange={(e) => handleHeightChange(parseInt(e.target.value) || 1)}
-                      className="h-8 text-xs"
-                    />
+                    <div className="flex">
+                      <Input
+                        id="char-height"
+                        type="number"
+                        min="1"
+                        value={settings.characterHeight}
+                        onChange={(e) => handleHeightChange(parseInt(e.target.value) || 1)}
+                        className="h-8 text-xs rounded-r-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <div className="flex flex-col">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleHeightChange(settings.characterHeight + 1)}
+                          className="h-4 w-6 p-0 rounded-l-none rounded-br-none border-l-0 text-xs"
+                        >
+                          +
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleHeightChange(Math.max(1, settings.characterHeight - 1))}
+                          className="h-4 w-6 p-0 rounded-l-none rounded-tr-none border-l-0 border-t-0 text-xs"
+                        >
+                          −
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-end gap-1">
+                  <div className="flex items-end">
                     <Button
                       type="button"
                       variant={settings.maintainAspectRatio ? "default" : "outline"}
@@ -662,20 +667,9 @@ export function MediaImportPanel() {
                       onClick={() => updateSettings({ maintainAspectRatio: !settings.maintainAspectRatio })}
                       disabled={!originalImageAspectRatio}
                       className="h-8 w-8 p-0"
-                      title={settings.maintainAspectRatio ? "Unlink aspect ratio" : "Link aspect ratio"}
+                      title={settings.maintainAspectRatio ? "Unlink aspect ratio" : "Maintain original image aspect ratio"}
                     >
                       <Link className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleResetToOriginalAspectRatio}
-                      disabled={!originalImageAspectRatio}
-                      className="h-8 w-8 p-0"
-                      title="Reset to original aspect ratio"
-                    >
-                      <RotateCcw className="w-3 h-3" />
                     </Button>
                   </div>
                 </div>
@@ -685,56 +679,50 @@ export function MediaImportPanel() {
                 </div>
               </div>
               
-              {/* Canvas Position Grid */}
+              {/* Alignment Grid */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-medium">Canvas Position</Label>
-                  <span className="text-xs text-muted-foreground italic">
-                    (Where to place image)
-                  </span>
+                <Label className="text-xs font-medium">Alignment</Label>
+                <div className="flex justify-center">
+                  <div className="grid grid-cols-3 gap-[3px]">
+                    {[
+                      { mode: 'top-left', tooltip: 'Top Left' },
+                      { mode: 'top', tooltip: 'Top Center' },
+                      { mode: 'top-right', tooltip: 'Top Right' },
+                      { mode: 'left', tooltip: 'Center Left' },
+                      { mode: 'center', tooltip: 'Center' },
+                      { mode: 'right', tooltip: 'Center Right' },
+                      { mode: 'bottom-left', tooltip: 'Bottom Left' },
+                      { mode: 'bottom', tooltip: 'Bottom Center' },
+                      { mode: 'bottom-right', tooltip: 'Bottom Right' }
+                    ].map(({ mode, tooltip }) => {
+                      const isActive = settings.cropMode === mode;
+                      return (
+                        <Button
+                          key={mode}
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => updateSettings({ cropMode: mode as any })}
+                          className={`h-6 w-6 p-0 transition-colors ${
+                            isActive 
+                              ? 'bg-purple-500 text-white hover:bg-purple-600' 
+                              : 'bg-background hover:bg-muted border border-border'
+                          }`}
+                          title={tooltip}
+                        >
+                          {isActive ? (
+                            <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          ) : (
+                            <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </Button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-1 p-1 bg-muted/30 rounded">
-                  {[
-                    { mode: 'top-left', tooltip: 'Top Left' },
-                    { mode: 'top', tooltip: 'Top Center' },
-                    { mode: 'top-right', tooltip: 'Top Right' },
-                    { mode: 'left', tooltip: 'Center Left' },
-                    { mode: 'center', tooltip: 'Center' },
-                    { mode: 'right', tooltip: 'Center Right' },
-                    { mode: 'bottom-left', tooltip: 'Bottom Left' },
-                    { mode: 'bottom', tooltip: 'Bottom Center' },
-                    { mode: 'bottom-right', tooltip: 'Bottom Right' }
-                  ].map(({ mode, tooltip }) => {
-                    const isActive = settings.cropMode === mode;
-                    return (
-                      <Button
-                        key={mode}
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => updateSettings({ cropMode: mode as any })}
-                        className={`h-6 w-6 p-0 transition-colors ${
-                          isActive 
-                            ? 'bg-purple-500 text-white hover:bg-purple-600' 
-                            : 'bg-background hover:bg-muted border border-border'
-                        }`}
-                        title={tooltip}
-                      >
-                        {isActive ? (
-                          <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        ) : (
-                          <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                      </Button>
-                    );
-                  })}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Position the processed image on the canvas. Image is resized to exact width × height with no cropping.
-                </p>
               </div>
               
               {/* Processing Progress */}
