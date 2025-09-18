@@ -29,6 +29,10 @@ interface AnimationState extends Animation {
   updateFrameName: (index: number, name: string) => void;
   reorderFrames: (fromIndex: number, toIndex: number) => void;
   
+  // Bulk import operations
+  importFramesOverwrite: (frames: Array<{ data: Map<string, Cell>, duration: number }>, startIndex: number) => void;
+  importFramesAppend: (frames: Array<{ data: Map<string, Cell>, duration: number }>) => void;
+  
   // Drag controls
   setDraggingFrame: (isDragging: boolean) => void;
   
@@ -432,5 +436,57 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
         enabled
       }
     }));
+  },
+
+  // Bulk import operations
+  importFramesOverwrite: (frames: Array<{ data: Map<string, Cell>, duration: number }>, startIndex: number) => {
+    set((state) => {
+      const newFrames = [...state.frames];
+      
+      // Replace frames starting from startIndex
+      frames.forEach((frameData, i) => {
+        const targetIndex = startIndex + i;
+        const newFrame = createEmptyFrame();
+        newFrame.data = new Map(frameData.data);
+        newFrame.duration = frameData.duration;
+        newFrame.name = `Frame ${targetIndex + 1}`;
+        
+        if (targetIndex < newFrames.length) {
+          // Replace existing frame
+          newFrames[targetIndex] = newFrame;
+        } else {
+          // Add new frame if beyond current length
+          newFrames.push(newFrame);
+        }
+      });
+      
+      return {
+        frames: newFrames,
+        currentFrameIndex: startIndex,
+        totalDuration: get().calculateTotalDuration()
+      };
+    });
+  },
+
+  importFramesAppend: (frames: Array<{ data: Map<string, Cell>, duration: number }>) => {
+    set((state) => {
+      const newFrames = [...state.frames];
+      const startIndex = newFrames.length;
+      
+      // Append all frames to the end
+      frames.forEach((frameData, i) => {
+        const newFrame = createEmptyFrame();
+        newFrame.data = new Map(frameData.data);
+        newFrame.duration = frameData.duration;
+        newFrame.name = `Frame ${startIndex + i + 1}`;
+        newFrames.push(newFrame);
+      });
+      
+      return {
+        frames: newFrames,
+        currentFrameIndex: startIndex, // Jump to first imported frame
+        totalDuration: get().calculateTotalDuration()
+      };
+    });
   }
 }));

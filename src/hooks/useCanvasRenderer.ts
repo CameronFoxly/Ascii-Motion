@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useToolStore } from '../stores/toolStore';
+import { usePreviewStore } from '../stores/previewStore';
 import { useCanvasContext } from '../contexts/CanvasContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCanvasState } from './useCanvasState';
@@ -81,6 +82,7 @@ export const useCanvasRenderer = () => {
   } = useCanvasStore();
 
   const { activeTool, rectangleFilled, lassoSelection, magicWandSelection, textToolState, linePreview } = useToolStore();
+  const { previewData, isPreviewActive } = usePreviewStore();
   const { getEllipsePoints } = useDrawingTool();
 
   // Use onion skin renderer for frame overlays
@@ -572,6 +574,24 @@ export const useCanvasRenderer = () => {
       );
     }
 
+    // Draw preview overlay (for video import previews)
+    if (isPreviewActive && previewData.size > 0) {
+      previewData.forEach((cell, key) => {
+        const [x, y] = key.split(',').map(Number);
+        
+        // Only draw if within canvas bounds
+        if (x >= 0 && x < canvasConfig.width && y >= 0 && y < canvasConfig.height) {
+          // Draw preview cell with slight transparency to distinguish from actual content
+          ctx.save();
+          ctx.globalAlpha = 0.8; // Make preview slightly transparent
+          
+          drawCell(ctx, x, y, cell);
+          
+          ctx.restore();
+        }
+      });
+    }
+
     // Draw text cursor overlay
     if (textToolState.isTyping && textToolState.cursorVisible && textToolState.cursorPosition) {
       const { x, y } = textToolState.cursorPosition;
@@ -605,7 +625,10 @@ export const useCanvasRenderer = () => {
     canvasRef,
     drawingStyles,
     getEllipsePoints,
-    renderOnionSkins
+    renderOnionSkins,
+    // Preview store values
+    previewData,
+    isPreviewActive
   ]);
 
   // Throttled render function that uses requestAnimationFrame

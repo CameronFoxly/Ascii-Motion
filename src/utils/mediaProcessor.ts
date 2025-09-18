@@ -301,7 +301,7 @@ export class MediaProcessor {
     // Extract all frames, but limit to reasonable maximum
     const maxFrames = Math.min(300, Math.floor(video.duration * estimatedFrameRate)); // Cap at 300 frames
     
-    console.log(`Video processing: duration=${video.duration}s, estimatedFPS=${estimatedFrameRate}, maxFrames=${maxFrames}, frameDuration=${frameDuration}ms`);
+
     
     for (let i = 0; i < maxFrames; i++) {
       const timestamp = i / estimatedFrameRate;
@@ -328,7 +328,7 @@ export class MediaProcessor {
       frames.push(processedFrame);
     }
     
-    console.log(`Video processing complete: extracted ${frames.length} frames`);
+
     
     return { frames, detectedFrameRate: estimatedFrameRate };
   }
@@ -341,15 +341,15 @@ export class MediaProcessor {
       // Attempt to get frame rate from video metadata
       const frameRate = await this.extractFrameRateFromMetadata(video, originalFile);
       if (frameRate > 0) {
-        console.log(`Extracted frame rate from metadata: ${frameRate} fps`);
+
         return frameRate;
       }
     } catch (error) {
-      console.warn('Failed to extract frame rate from metadata:', error);
+
     }
 
     // Fallback to common frame rate
-    console.log('Using default frame rate: 30 fps');
+
     return 30;
   }
 
@@ -363,7 +363,7 @@ export class MediaProcessor {
       
       return await this.parseMP4FrameRate(arrayBuffer);
     } catch (error) {
-      console.warn('Failed to parse MP4 metadata:', error);
+
       return 0;
     }
   }
@@ -377,7 +377,7 @@ export class MediaProcessor {
       
       // Set up event handlers
       mp4boxFile.onReady = (info: any) => {
-        console.log('MP4Box info:', info);
+
         
         // Look for video tracks
         const videoTrack = info.videoTracks?.[0];
@@ -411,16 +411,16 @@ export class MediaProcessor {
             }
           }
           
-          console.log(`Detected frame rate from MP4 metadata: ${frameRate} fps`);
+
           resolve(frameRate > 0 && frameRate <= 120 ? frameRate : 0);
         } else {
-          console.warn('No video tracks found in MP4 file');
+
           resolve(0);
         }
       };
       
-      mp4boxFile.onError = (error: any) => {
-        console.warn('MP4Box parsing error:', error);
+      mp4boxFile.onError = () => {
+        // MP4Box parsing failed, use default framerate
         resolve(0);
       };
       

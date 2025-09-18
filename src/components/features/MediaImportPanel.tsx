@@ -40,7 +40,9 @@ import { mediaProcessor, SUPPORTED_IMAGE_FORMATS, SUPPORTED_VIDEO_FORMATS } from
 import { asciiConverter, DEFAULT_ASCII_CHARS } from '../../utils/asciiConverter';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useAnimationStore } from '../../stores/animationStore';
+import { usePreviewStore } from '../../stores/previewStore';
 import type { MediaFile } from '../../utils/mediaProcessor';
+import type { Cell } from '../../types';
 
 export function MediaImportPanel() {
   const { isOpen, closeModal } = useImportModal();
@@ -57,11 +59,21 @@ export function MediaImportPanel() {
   const addFrame = useAnimationStore(state => state.addFrame);
   const setCurrentFrame = useAnimationStore(state => state.setCurrentFrame);
   const updateFrameDuration = useAnimationStore(state => state.updateFrameDuration);
+  const importFramesOverwrite = useAnimationStore(state => state.importFramesOverwrite);
+  const importFramesAppend = useAnimationStore(state => state.importFramesAppend);
+  const currentFrameIndex = useAnimationStore(state => state.currentFrameIndex);
+  
+  // Preview store for independent preview overlay
+  const { setPreviewData, clearPreview, setPreviewActive } = usePreviewStore();
   
   const [dragActive, setDragActive] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [livePreviewEnabled, setLivePreviewEnabled] = useState(true); // Default to enabled
   const [originalImageAspectRatio, setOriginalImageAspectRatio] = useState<number | null>(null);
+  const [importMode, setImportMode] = useState<'overwrite' | 'append'>('append');
+  
+  // Preview state management
+  const [isPreviewActive, setIsPreviewActive] = useState(false);
 
   // Handle linked sizing when maintain aspect ratio is enabled
   const handleWidthChange = useCallback((value: number) => {
@@ -100,10 +112,28 @@ export function MediaImportPanel() {
     }
   }, [settings.maintainAspectRatio, originalImageAspectRatio, updateSettings]);
 
+  // Preview management functions
+  const startPreview = useCallback(() => {
+    if (!isPreviewActive) {
+      setIsPreviewActive(true);
+      // Activate preview overlay
+      setPreviewActive(true);
+    }
+  }, [isPreviewActive, setPreviewActive]);
+
+  const endPreview = useCallback(() => {
+    if (isPreviewActive) {
+      // Clear preview overlay
+      clearPreview();
+      setPreviewActive(false);
+      // Clear local state
+      setIsPreviewActive(false);
+    }
+  }, [isPreviewActive, clearPreview, setPreviewActive]);
+
   // Position cells on canvas based on alignment settings
   const positionCellsOnCanvas = useCallback((cells: Map<string, any>, imageWidth: number, imageHeight: number) => {
-    console.log('Positioning image:', { imageWidth, imageHeight, canvasWidth, canvasHeight, cellsCount: cells.size });
-    console.log('First few original cells:', Array.from(cells.entries()).slice(0, 3));
+
     
     // Calculate offset based on alignment
     let offsetX = 0;
@@ -151,7 +181,7 @@ export function MediaImportPanel() {
         offsetY = 0;
     }
     
-    console.log('Calculated offset (before bounds check):', { offsetX, offsetY });
+
     
     // For images larger than canvas, we need different logic
     // Don't constrain offset to positive values - allow negative offsets to show center portions
@@ -164,7 +194,7 @@ export function MediaImportPanel() {
       offsetY = Math.max(0, Math.min(offsetY, canvasHeight - imageHeight));
     }
     
-    console.log('Final offset:', { offsetX, offsetY });
+
     
     const positionedCells = new Map();
     cells.forEach((cell, originalKey) => {
@@ -184,8 +214,7 @@ export function MediaImportPanel() {
       }
     });
     
-    console.log('Positioned cells count:', positionedCells.size);
-    console.log('First few positioned cells:', Array.from(positionedCells.entries()).slice(0, 3));
+
     
     return positionedCells;
   }, [canvasWidth, canvasHeight, settings.cropMode]);
@@ -252,6 +281,9 @@ export function MediaImportPanel() {
     
     const updateLivePreview = async () => {
       try {
+        // Start preview mode (stores original data if not already started)
+        startPreview();
+        
         const conversionSettings = {
           characterSet: DEFAULT_ASCII_CHARS,
           characterMappingMode: 'brightness' as const,
@@ -266,9 +298,9 @@ export function MediaImportPanel() {
 
         const result = asciiConverter.convertFrame(previewFrames[frameIndex], conversionSettings);
         
-        // Show preview on canvas (positioned based on alignment)
+        // Show preview on canvas overlay (positioned based on alignment)
         const positionedCells = positionCellsOnCanvas(result.cells, settings.characterWidth, settings.characterHeight);
-        setCanvasData(positionedCells);
+        setPreviewData(positionedCells);
       } catch (err) {
         console.error('Live preview error:', err);
       }
@@ -290,8 +322,30 @@ export function MediaImportPanel() {
     settings.colorMappingMode,
     settings.brightness,
     setCanvasData,
-    positionCellsOnCanvas
+    positionCellsOnCanvas,
+    startPreview
   ]);
+
+  // End preview when live preview is disabled or component unmounts
+  useEffect(() => {
+    if (!livePreviewEnabled && isPreviewActive) {
+      endPreview();
+    }
+  }, [livePreviewEnabled, isPreviewActive, endPreview]);
+
+  // End preview when modal is closed
+  useEffect(() => {
+    if (!isOpen && isPreviewActive) {
+      endPreview();
+    }
+  }, [isOpen, isPreviewActive, endPreview]);
+
+  // End preview when modal closes
+  useEffect(() => {
+    if (!isOpen && isPreviewActive) {
+      endPreview();
+    }
+  }, [isOpen, isPreviewActive, endPreview]);
 
   // File drop handlers
   const handleFileSelect = useCallback(async (file: File) => {
@@ -362,7 +416,7 @@ export function MediaImportPanel() {
       });
       
     } catch (error) {
-      console.warn('Could not determine image dimensions, using default sizing');
+
     }
     
     setSelectedFile(mediaFile);
@@ -401,6 +455,9 @@ export function MediaImportPanel() {
   const handleImportToCanvas = useCallback(async () => {
     if (previewFrames.length === 0) return;
     
+    // End preview mode before importing (restores original canvas data)
+    endPreview();
+    
     setIsImporting(true);
     try {
       const conversionSettings = {
@@ -416,38 +473,43 @@ export function MediaImportPanel() {
       };
 
       if (previewFrames.length === 1) {
-        // Single image - convert and position on canvas
+        // Single image - always replace current frame
         const result = asciiConverter.convertFrame(previewFrames[0], conversionSettings);
         const positionedCells = positionCellsOnCanvas(result.cells, settings.characterWidth, settings.characterHeight);
         clearCanvas();
         setCanvasData(positionedCells);
         setLivePreviewEnabled(false);
       } else {
-        // Multiple frames - create animation
-        clearCanvas();
+        // Multiple frames - use import mode
         
-        // Add frames for each processed frame
+        // Convert all frames first
+        const frameData: Array<{ data: Map<string, Cell>, duration: number }> = [];
         for (let i = 0; i < previewFrames.length; i++) {
           const result = asciiConverter.convertFrame(previewFrames[i], conversionSettings);
           const positionedCells = positionCellsOnCanvas(result.cells, settings.characterWidth, settings.characterHeight);
+          const frameDuration = previewFrames[i].frameDuration || 100; // Default duration if not available
           
-          // Get frame duration from processed frame (if available)
-          const frameDuration = previewFrames[i].frameDuration;
-          
-          if (i === 0) {
-            // First frame - replace current frame data and update its duration
-            setCanvasData(positionedCells);
-            if (frameDuration !== undefined) {
-              updateFrameDuration(0, frameDuration);
-            }
-          } else {
-            // Additional frames - add new frames with correct duration
-            addFrame(undefined, positionedCells, frameDuration);
-          }
+          frameData.push({
+            data: positionedCells,
+            duration: frameDuration
+          });
         }
         
-        // Go to first frame
-        setCurrentFrame(0);
+        // Apply import mode
+        if (importMode === 'overwrite') {
+          // Overwrite mode - replace frames starting from current position
+          importFramesOverwrite(frameData, currentFrameIndex);
+          // Manually update canvas with first imported frame data after store update
+          setTimeout(() => {
+            setCanvasData(frameData[0].data);
+          }, 0);
+        } else {
+          // Append mode - clear canvas and add frames to end
+          clearCanvas();
+          importFramesAppend(frameData);
+          // Canvas will be updated by the animation store when it changes current frame
+        }
+        
         setLivePreviewEnabled(false);
       }
       
@@ -458,7 +520,7 @@ export function MediaImportPanel() {
     } finally {
       setIsImporting(false);
     }
-  }, [previewFrames, settings, clearCanvas, setCanvasData, addFrame, setCurrentFrame, updateFrameDuration, closeModal, setError, positionCellsOnCanvas]);
+  }, [previewFrames, settings, clearCanvas, setCanvasData, addFrame, setCurrentFrame, updateFrameDuration, closeModal, setError, positionCellsOnCanvas, importMode, importFramesOverwrite, importFramesAppend, currentFrameIndex, endPreview]);
 
   // Get file icon based on type
   const getFileIcon = (mediaFile: MediaFile) => {
@@ -801,9 +863,38 @@ export function MediaImportPanel() {
         </div>
       </ScrollArea>
 
-      {/* Footer with Import Button */}
+      {/* Footer with Import Mode and Button */}
       {previewFrames.length > 0 && (
-        <div className="p-3 border-t border-border">
+        <div className="p-3 border-t border-border space-y-3">
+          {/* Import Mode Selection */}
+          <div className="space-y-2">
+            <Label className="text-xs font-medium">Import Mode</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant={importMode === 'overwrite' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setImportMode('overwrite')}
+                className="h-8 text-xs"
+              >
+                Overwrite
+              </Button>
+              <Button
+                variant={importMode === 'append' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setImportMode('append')}
+                className="h-8 text-xs"
+              >
+                Append
+              </Button>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {importMode === 'overwrite' 
+                ? 'Replace frames starting from current frame'
+                : 'Add frames after the last existing frame'
+              }
+            </div>
+          </div>
+          
           <Button 
             onClick={handleImportToCanvas}
             disabled={isImporting}
