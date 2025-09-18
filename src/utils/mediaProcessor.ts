@@ -76,6 +76,7 @@ export const SUPPORTED_VIDEO_FORMATS = [
   'video/ogg',
   'video/avi',
   'video/mov',
+  'video/quicktime', // MOV files typically use this MIME type
   'video/wmv'
 ];
 
