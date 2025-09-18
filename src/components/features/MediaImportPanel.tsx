@@ -26,7 +26,8 @@ import {
   Download,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Link
 } from 'lucide-react';
 import { 
   useImportModal, 
@@ -49,7 +50,8 @@ export function MediaImportPanel() {
   const { frameIndex, setFrameIndex, frames: previewFrames } = useImportPreview();
   
   // Canvas and animation stores
-  const setCanvasSize = useCanvasStore(state => state.setCanvasSize);
+  const canvasWidth = useCanvasStore(state => state.width);
+  const canvasHeight = useCanvasStore(state => state.height);
   const setCanvasData = useCanvasStore(state => state.setCanvasData);
   const clearCanvas = useCanvasStore(state => state.clearCanvas);
   const addFrame = useAnimationStore(state => state.addFrame);
@@ -58,6 +60,125 @@ export function MediaImportPanel() {
   const [dragActive, setDragActive] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [livePreviewEnabled, setLivePreviewEnabled] = useState(true); // Default to enabled
+  const [originalImageAspectRatio, setOriginalImageAspectRatio] = useState<number | null>(null);
+
+  // Handle linked sizing when maintain aspect ratio is enabled
+  const handleWidthChange = useCallback((value: number) => {
+    if (settings.maintainAspectRatio && originalImageAspectRatio) {
+      // Apply character aspect ratio compensation (characters are 0.6x as wide as tall)
+      // To make image appear with correct aspect ratio, we need MORE width in character count
+      const CHARACTER_ASPECT_RATIO = 0.6;
+      const characterCompensatedAspectRatio = originalImageAspectRatio / CHARACTER_ASPECT_RATIO;
+      
+      const newHeight = Math.ceil(value / characterCompensatedAspectRatio);
+      const constrainedHeight = Math.min(newHeight, canvasHeight);
+      updateSettings({ 
+        characterWidth: value,
+        characterHeight: constrainedHeight
+      });
+    } else {
+      updateSettings({ characterWidth: value });
+    }
+  }, [settings.maintainAspectRatio, originalImageAspectRatio, canvasHeight, updateSettings]);
+
+  const handleHeightChange = useCallback((value: number) => {
+    if (settings.maintainAspectRatio && originalImageAspectRatio) {
+      // Apply character aspect ratio compensation (characters are 0.6x as wide as tall)
+      // To make image appear with correct aspect ratio, we need MORE width in character count
+      const CHARACTER_ASPECT_RATIO = 0.6;
+      const characterCompensatedAspectRatio = originalImageAspectRatio / CHARACTER_ASPECT_RATIO;
+      
+      const newWidth = Math.ceil(value * characterCompensatedAspectRatio);
+      const constrainedWidth = Math.min(newWidth, canvasWidth);
+      updateSettings({ 
+        characterWidth: constrainedWidth,
+        characterHeight: value
+      });
+    } else {
+      updateSettings({ characterHeight: value });
+    }
+  }, [settings.maintainAspectRatio, originalImageAspectRatio, canvasWidth, updateSettings]);
+
+  // Position cells on canvas based on alignment settings
+  const positionCellsOnCanvas = useCallback((cells: Map<string, any>, imageWidth: number, imageHeight: number) => {
+    console.log('Positioning image:', { imageWidth, imageHeight, canvasWidth, canvasHeight, cellsCount: cells.size });
+    console.log('First few original cells:', Array.from(cells.entries()).slice(0, 3));
+    
+    // Calculate offset based on alignment
+    let offsetX = 0;
+    let offsetY = 0;
+    
+    switch (settings.cropMode) {
+      case 'top-left':
+        offsetX = 0;
+        offsetY = 0;
+        break;
+      case 'top':
+        offsetX = Math.floor((canvasWidth - imageWidth) / 2);
+        offsetY = 0;
+        break;
+      case 'top-right':
+        offsetX = canvasWidth - imageWidth;
+        offsetY = 0;
+        break;
+      case 'left':
+        offsetX = 0;
+        offsetY = Math.floor((canvasHeight - imageHeight) / 2);
+        break;
+      case 'center':
+        offsetX = Math.floor((canvasWidth - imageWidth) / 2);
+        offsetY = Math.floor((canvasHeight - imageHeight) / 2);
+        break;
+      case 'right':
+        offsetX = canvasWidth - imageWidth;
+        offsetY = Math.floor((canvasHeight - imageHeight) / 2);
+        break;
+      case 'bottom-left':
+        offsetX = 0;
+        offsetY = canvasHeight - imageHeight;
+        break;
+      case 'bottom':
+        offsetX = Math.floor((canvasWidth - imageWidth) / 2);
+        offsetY = canvasHeight - imageHeight;
+        break;
+      case 'bottom-right':
+        offsetX = canvasWidth - imageWidth;
+        offsetY = canvasHeight - imageHeight;
+        break;
+      default:
+        offsetX = 0;
+        offsetY = 0;
+    }
+    
+    // Ensure offset doesn't place image outside canvas bounds
+    offsetX = Math.max(0, Math.min(offsetX, canvasWidth - imageWidth));
+    offsetY = Math.max(0, Math.min(offsetY, canvasHeight - imageHeight));
+    
+    console.log('Using offset:', { offsetX, offsetY });
+    
+    const positionedCells = new Map();
+    cells.forEach((cell, originalKey) => {
+      // Parse original coordinates from the key (format: "x,y")
+      const [origX, origY] = originalKey.split(',').map(Number);
+      
+      const newCell = {
+        ...cell,
+        x: origX + offsetX,
+        y: origY + offsetY
+      };
+      
+      // Only add cell if it's within canvas bounds
+      if (newCell.x >= 0 && newCell.x < canvasWidth && newCell.y >= 0 && newCell.y < canvasHeight) {
+        const newKey = `${newCell.x},${newCell.y}`;
+        positionedCells.set(newKey, newCell);
+      }
+    });
+    
+    console.log('Positioned cells count:', positionedCells.size);
+    console.log('First few positioned cells:', Array.from(positionedCells.entries()).slice(0, 3));
+    
+    return positionedCells;
+  }, [canvasWidth, canvasHeight, settings.cropMode]);
 
   // Auto-process file when settings change
   useEffect(() => {
@@ -71,8 +192,8 @@ export function MediaImportPanel() {
         const options = {
           targetWidth: settings.characterWidth,
           targetHeight: settings.characterHeight,
-          maintainAspectRatio: settings.maintainAspectRatio,
-          cropMode: settings.cropMode,
+          maintainAspectRatio: false, // Never crop - just resize to exact dimensions
+          cropMode: 'center' as const, // Not used since maintainAspectRatio is false
           quality: 'medium' as const
         };
         
@@ -108,8 +229,7 @@ export function MediaImportPanel() {
     livePreviewEnabled,
     settings.characterWidth,
     settings.characterHeight,
-    settings.maintainAspectRatio,
-    settings.cropMode,
+    // Removed maintainAspectRatio and cropMode since they don't affect processing anymore
     setProcessing,
     setProgress,
     setProcessedFrames,
@@ -136,11 +256,9 @@ export function MediaImportPanel() {
 
         const result = asciiConverter.convertFrame(previewFrames[frameIndex], conversionSettings);
         
-        // Update canvas size if needed
-        setCanvasSize(settings.characterWidth, settings.characterHeight);
-        
-        // Show preview on canvas
-        setCanvasData(result.cells);
+        // Show preview on canvas (positioned based on alignment)
+        const positionedCells = positionCellsOnCanvas(result.cells, settings.characterWidth, settings.characterHeight);
+        setCanvasData(positionedCells);
       } catch (err) {
         console.error('Live preview error:', err);
       }
@@ -155,16 +273,93 @@ export function MediaImportPanel() {
     frameIndex, 
     settings.characterWidth, 
     settings.characterHeight,
+    settings.cropMode, // Added back since it affects positioning
     settings.useOriginalColors,
     settings.colorQuantization,
     settings.paletteSize,
     settings.colorMappingMode,
     settings.brightness,
-    setCanvasSize,
-    setCanvasData
+    setCanvasData,
+    positionCellsOnCanvas
   ]);
 
   // File drop handlers
+  const handleFileSelect = useCallback(async (file: File) => {
+    const mediaFile = mediaProcessor.validateFile(file);
+    
+    if (!mediaFile) {
+      setError(`Unsupported file format: ${file.type}`);
+      return;
+    }
+    
+    // Calculate optimal image size based on canvas dimensions and file dimensions
+    try {
+      let imageWidth = 0;
+      let imageHeight = 0;
+      
+      if (mediaFile.type === 'image') {
+        // Get image dimensions
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        await new Promise((resolve, reject) => {
+          img.onload = () => {
+            imageWidth = img.width;
+            imageHeight = img.height;
+            resolve(void 0);
+          };
+          img.onerror = reject;
+        });
+        URL.revokeObjectURL(img.src);
+      } else {
+        // For videos, we'll use default sizing for now
+        // TODO: Get video dimensions from first frame
+        imageWidth = 1920;
+        imageHeight = 1080;
+      }
+      
+      // Calculate optimal character dimensions
+      const imageAspectRatio = imageWidth / imageHeight;
+      setOriginalImageAspectRatio(imageAspectRatio);
+      
+      // Apply character aspect ratio compensation for initial sizing
+      // Characters are 0.6x as wide as tall, so we need MORE width to maintain visual aspect ratio
+      const CHARACTER_ASPECT_RATIO = 0.6;
+      const characterCompensatedAspectRatio = imageAspectRatio / CHARACTER_ASPECT_RATIO;
+      const canvasAspectRatio = canvasWidth / canvasHeight;
+      
+      let targetWidth: number;
+      let targetHeight: number;
+      
+      if (characterCompensatedAspectRatio > canvasAspectRatio) {
+        // Image is wider than canvas - fit to canvas width
+        targetWidth = canvasWidth;
+        targetHeight = Math.round(canvasWidth / characterCompensatedAspectRatio);
+      } else {
+        // Image is taller than canvas - fit to canvas height  
+        targetHeight = canvasHeight;
+        targetWidth = Math.round(canvasHeight * characterCompensatedAspectRatio);
+      }
+      
+      // Ensure we don't exceed canvas bounds
+      targetWidth = Math.min(targetWidth, canvasWidth);
+      targetHeight = Math.min(targetHeight, canvasHeight);
+      
+      // Update settings with calculated dimensions
+      updateSettings({
+        characterWidth: targetWidth,
+        characterHeight: targetHeight,
+        maintainAspectRatio: true // Ensure aspect ratio is maintained
+      });
+      
+    } catch (error) {
+      console.warn('Could not determine image dimensions, using default sizing');
+    }
+    
+    setSelectedFile(mediaFile);
+    setError(null);
+    // Live preview enabled by default will trigger auto-processing
+  }, [setSelectedFile, setError, canvasWidth, canvasHeight, updateSettings, setOriginalImageAspectRatio]);
+
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -177,36 +372,20 @@ export function MediaImportPanel() {
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
     setDragActive(false);
     
     const files = e.dataTransfer.files;
     if (files && files[0]) {
       handleFileSelect(files[0]);
     }
-  }, []);
+  }, [handleFileSelect]);
 
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files[0]) {
       handleFileSelect(files[0]);
     }
-  }, []);
-
-  const handleFileSelect = useCallback((file: File) => {
-    const mediaFile = mediaProcessor.validateFile(file);
-    
-    if (!mediaFile) {
-      setError(`Unsupported file format: ${file.type}`);
-      return;
-    }
-    
-    setSelectedFile(mediaFile);
-    setError(null);
-    // Live preview enabled by default will trigger auto-processing
-  }, [setSelectedFile, setError]);
-
-
+  }, [handleFileSelect]);
 
   // Import frames to canvas
   const handleImportToCanvas = useCallback(async () => {
@@ -227,8 +406,11 @@ export function MediaImportPanel() {
       };
 
       if (previewFrames.length === 1) {
-        // Single image - already on canvas from live preview
-        // Just disable live preview mode
+        // Single image - convert and position on canvas
+        const result = asciiConverter.convertFrame(previewFrames[0], conversionSettings);
+        const positionedCells = positionCellsOnCanvas(result.cells, settings.characterWidth, settings.characterHeight);
+        clearCanvas();
+        setCanvasData(positionedCells);
         setLivePreviewEnabled(false);
       } else {
         // Multiple frames - create animation
@@ -237,13 +419,14 @@ export function MediaImportPanel() {
         // Add frames for each processed frame
         for (let i = 0; i < previewFrames.length; i++) {
           const result = asciiConverter.convertFrame(previewFrames[i], conversionSettings);
+          const positionedCells = positionCellsOnCanvas(result.cells, settings.characterWidth, settings.characterHeight);
           
           if (i === 0) {
             // First frame - replace current frame
-            setCanvasData(result.cells);
+            setCanvasData(positionedCells);
           } else {
             // Additional frames - add new frames
-            addFrame(undefined, result.cells);
+            addFrame(undefined, positionedCells);
           }
         }
         
@@ -259,7 +442,7 @@ export function MediaImportPanel() {
     } finally {
       setIsImporting(false);
     }
-  }, [previewFrames, settings, clearCanvas, setCanvasData, addFrame, setCurrentFrame, closeModal, setError]);
+  }, [previewFrames, settings, clearCanvas, setCanvasData, addFrame, setCurrentFrame, closeModal, setError, positionCellsOnCanvas]);
 
   // Get file icon based on type
   const getFileIcon = (mediaFile: MediaFile) => {
@@ -289,9 +472,9 @@ export function MediaImportPanel() {
   return (
     <div className="fixed inset-y-0 right-0 w-80 bg-background border-l border-border shadow-lg z-50 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        <h2 className="font-semibold flex items-center gap-2">
-          <Upload className="w-4 h-4" />
+      <div className="flex items-center justify-between p-3 border-b border-border">
+        <h2 className="text-sm font-medium flex items-center gap-2">
+          <Upload className="w-3 h-3" />
           Import Media
         </h2>
         <Button
@@ -300,16 +483,16 @@ export function MediaImportPanel() {
           onClick={closeModal}
           className="h-6 w-6 p-0"
         >
-          <X className="w-4 h-4" />
+          <X className="w-3 h-3" />
         </Button>
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-4 space-y-4">
+        <div className="p-3 space-y-3">
           {/* File Upload Section */}
           {!selectedFile && (
             <div
-              className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+              className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
                 dragActive 
                   ? 'border-primary bg-primary/10' 
                   : 'border-muted-foreground/25 hover:border-primary/50'
@@ -319,16 +502,16 @@ export function MediaImportPanel() {
               onDragOver={handleDrag}
               onDrop={handleDrop}
             >
-              <Upload className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
-              <h3 className="font-medium mb-2">
+              <Upload className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+              <h3 className="text-sm font-medium mb-1">
                 {dragActive ? 'Drop file here' : 'Upload Media'}
               </h3>
-              <p className="text-xs text-muted-foreground mb-3">
+              <p className="text-xs text-muted-foreground mb-2">
                 Drag and drop or click to browse
               </p>
               
-              <Button variant="outline" size="sm" className="mb-3">
-                <label htmlFor="media-file-input" className="cursor-pointer">
+              <Button variant="outline" size="sm" className="h-8 mb-2">
+                <label htmlFor="media-file-input" className="cursor-pointer text-xs">
                   Choose File
                 </label>
               </Button>
@@ -341,7 +524,7 @@ export function MediaImportPanel() {
                 onChange={handleFileInput}
               />
               
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs text-muted-foreground space-y-0">
                 <p>Images: JPG, PNG, GIF, BMP, WebP, SVG</p>
                 <p>Videos: MP4, WebM, OGG, AVI, MOV, WMV</p>
               </div>
@@ -350,11 +533,11 @@ export function MediaImportPanel() {
 
           {/* Selected File Info */}
           {selectedFile && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 border rounded-lg">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 p-2 border rounded-lg">
                 {getFileIcon(selectedFile)}
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-sm truncate">{selectedFile.name}</h3>
+                  <h3 className="text-xs font-medium truncate">{selectedFile.name}</h3>
                   <p className="text-xs text-muted-foreground">
                     {selectedFile.type} • {formatFileSize(selectedFile.size)}
                   </p>
@@ -378,14 +561,14 @@ export function MediaImportPanel() {
               </div>
               
               {/* Live Preview Toggle - prominent position */}
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="live-preview-main"
                     checked={livePreviewEnabled}
                     onCheckedChange={(checked) => setLivePreviewEnabled(!!checked)}
                   />
-                  <Label htmlFor="live-preview-main" className="text-sm font-medium">
+                  <Label htmlFor="live-preview-main" className="text-xs">
                     Auto-process & Preview
                   </Label>
                 </div>
@@ -396,83 +579,127 @@ export function MediaImportPanel() {
                 )}
               </div>
               
-              {/* Size Controls */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Canvas Size</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
+              {/* Image Size Controls */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium">Image Size (characters)</Label>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="maintain-aspect"
+                      checked={settings.maintainAspectRatio}
+                      onCheckedChange={(checked) => updateSettings({ maintainAspectRatio: !!checked })}
+                    />
+                    <Label htmlFor="maintain-aspect" className="text-xs cursor-pointer">
+                      Maintain aspect ratio
+                    </Label>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <div className="flex-1">
                     <Label htmlFor="char-width" className="text-xs">Width</Label>
                     <Input
                       id="char-width"
                       type="number"
-                      min="10"
-                      max="200"
+                      min="1"
+                      max={canvasWidth}
                       value={settings.characterWidth}
-                      onChange={(e) => updateSettings({ characterWidth: parseInt(e.target.value) || 80 })}
-                      className="h-8"
+                      onChange={(e) => handleWidthChange(parseInt(e.target.value) || 1)}
+                      className="h-8 text-xs"
                     />
                   </div>
-                  <div>
+                  <div className="flex items-end">
+                    <Button
+                      type="button"
+                      variant={settings.maintainAspectRatio ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => updateSettings({ maintainAspectRatio: !settings.maintainAspectRatio })}
+                      disabled={!originalImageAspectRatio}
+                      className="h-8 w-8 p-0"
+                      title={settings.maintainAspectRatio ? "Unlink aspect ratio" : "Link aspect ratio"}
+                    >
+                      <Link className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <div className="flex-1">
                     <Label htmlFor="char-height" className="text-xs">Height</Label>
                     <Input
                       id="char-height"
                       type="number"
-                      min="5"
-                      max="100"
+                      min="1"
+                      max={canvasHeight}
                       value={settings.characterHeight}
-                      onChange={(e) => updateSettings({ characterHeight: parseInt(e.target.value) || 24 })}
-                      className="h-8"
+                      onChange={(e) => handleHeightChange(parseInt(e.target.value) || 1)}
+                      className="h-8 text-xs"
                     />
                   </div>
                 </div>
-              </div>
-              
-              {/* Aspect Ratio Control */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="maintain-aspect"
-                  checked={settings.maintainAspectRatio}
-                  onCheckedChange={(checked) => updateSettings({ maintainAspectRatio: !!checked })}
-                />
-                <Label htmlFor="maintain-aspect" className="text-xs">
-                  Maintain aspect ratio
-                </Label>
-              </div>
-              
-              {/* Crop Mode Selection */}
-              <div className="space-y-2">
-                <Label className="text-xs">Crop Mode</Label>
-                <div className="grid grid-cols-2 gap-1">
-                  {['center', 'top', 'left', 'right'].map((mode) => (
-                    <Button
-                      key={mode}
-                      variant={settings.cropMode === mode ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => updateSettings({ cropMode: mode as any })}
-                      className="h-7 text-xs"
-                    >
-                      {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                    </Button>
-                  ))}
-                  <Button
-                    variant={settings.cropMode === 'bottom' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => updateSettings({ cropMode: 'bottom' })}
-                    className="h-7 text-xs col-span-2"
-                  >
-                    Bottom
-                  </Button>
+                
+                <div className="text-xs text-muted-foreground">
+                  Canvas: {canvasWidth} × {canvasHeight} characters
                 </div>
+              </div>
+              
+              {/* Canvas Position Grid */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium">Canvas Position</Label>
+                  <span className="text-xs text-muted-foreground italic">
+                    (Where to place image)
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-1 p-1 bg-muted/30 rounded">
+                  {[
+                    { mode: 'top-left', tooltip: 'Top Left' },
+                    { mode: 'top', tooltip: 'Top Center' },
+                    { mode: 'top-right', tooltip: 'Top Right' },
+                    { mode: 'left', tooltip: 'Center Left' },
+                    { mode: 'center', tooltip: 'Center' },
+                    { mode: 'right', tooltip: 'Center Right' },
+                    { mode: 'bottom-left', tooltip: 'Bottom Left' },
+                    { mode: 'bottom', tooltip: 'Bottom Center' },
+                    { mode: 'bottom-right', tooltip: 'Bottom Right' }
+                  ].map(({ mode, tooltip }) => {
+                    const isActive = settings.cropMode === mode;
+                    return (
+                      <Button
+                        key={mode}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => updateSettings({ cropMode: mode as any })}
+                        className={`h-6 w-6 p-0 transition-colors ${
+                          isActive 
+                            ? 'bg-purple-500 text-white hover:bg-purple-600' 
+                            : 'bg-background hover:bg-muted border border-border'
+                        }`}
+                        title={tooltip}
+                      >
+                        {isActive ? (
+                          <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        ) : (
+                          <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Position the processed image on the canvas. Image is resized to exact width × height with no cropping.
+                </p>
               </div>
               
               {/* Processing Progress */}
               {isProcessing && (
                 <div>
-                  <div className="flex justify-between text-xs mb-2">
+                  <div className="flex justify-between text-xs mb-1">
                     <span>Processing...</span>
                     <span>{progress}%</span>
                   </div>
-                  <Progress value={progress} className="h-2" />
+                  <Progress value={progress} className="h-1" />
                 </div>
               )}
             </div>
@@ -487,12 +714,12 @@ export function MediaImportPanel() {
 
           {/* Preview Controls */}
           {previewFrames.length > 0 && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <Separator />
               
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">
+                  <Label className="text-xs font-medium">
                     Preview ({previewFrames.length} frame{previewFrames.length !== 1 ? 's' : ''})
                   </Label>
                   {livePreviewEnabled && (
@@ -510,7 +737,7 @@ export function MediaImportPanel() {
                       size="sm"
                       onClick={() => setFrameIndex(Math.max(0, frameIndex - 1))}
                       disabled={frameIndex === 0}
-                      className="h-7 w-7 p-0"
+                      className="h-6 w-6 p-0"
                     >
                       <ChevronLeft className="w-3 h-3" />
                     </Button>
@@ -522,7 +749,7 @@ export function MediaImportPanel() {
                       size="sm"
                       onClick={() => setFrameIndex(Math.min(previewFrames.length - 1, frameIndex + 1))}
                       disabled={frameIndex === previewFrames.length - 1}
-                      className="h-7 w-7 p-0"
+                      className="h-6 w-6 p-0"
                     >
                       <ChevronRight className="w-3 h-3" />
                     </Button>
@@ -536,11 +763,11 @@ export function MediaImportPanel() {
 
       {/* Footer with Import Button */}
       {previewFrames.length > 0 && (
-        <div className="p-4 border-t border-border">
+        <div className="p-3 border-t border-border">
           <Button 
             onClick={handleImportToCanvas}
             disabled={isImporting}
-            className="w-full"
+            className="w-full h-8"
             size="sm"
           >
             <Download className="w-3 h-3 mr-2" />

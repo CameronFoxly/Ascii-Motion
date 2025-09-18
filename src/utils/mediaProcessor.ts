@@ -25,7 +25,7 @@ export interface ProcessingOptions {
   
   // Basic processing options
   maintainAspectRatio: boolean;
-  cropMode: 'center' | 'top' | 'bottom' | 'left' | 'right';
+  cropMode: 'center' | 'top' | 'bottom' | 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   
   // Quality settings
   quality: 'high' | 'medium' | 'low';
@@ -220,44 +220,50 @@ export class MediaProcessor {
   private processImageToCanvas(img: HTMLImageElement, options: ProcessingOptions): ProcessedFrame {
     const { targetWidth, targetHeight, maintainAspectRatio, cropMode } = options;
     
-    // Calculate dimensions
-    const dimensions = this.calculateDimensions(
-      img.width, 
-      img.height, 
-      targetWidth, 
-      targetHeight, 
-      maintainAspectRatio
-    );
-    
-    // Set canvas size
-    this.canvas.width = dimensions.outputWidth;
-    this.canvas.height = dimensions.outputHeight;
+    // Set canvas to target size (this is what the user wants)
+    this.canvas.width = targetWidth;
+    this.canvas.height = targetHeight;
     
     // Clear canvas
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     
-    // Apply crop settings
-    const sourceRect = this.calculateSourceRect(
-      img.width,
-      img.height,
-      dimensions.outputWidth,
-      dimensions.outputHeight,
-      cropMode,
-      maintainAspectRatio
-    );
-    
-    // Draw image to canvas
-    this.ctx.drawImage(
-      img,
-      sourceRect.x,
-      sourceRect.y,
-      sourceRect.width,
-      sourceRect.height,
-      0,
-      0,
-      this.canvas.width,
-      this.canvas.height
-    );
+    if (maintainAspectRatio) {
+      // Apply crop settings to fill the canvas while maintaining aspect ratio
+      const sourceRect = this.calculateSourceRect(
+        img.width,
+        img.height,
+        targetWidth,
+        targetHeight,
+        cropMode,
+        maintainAspectRatio
+      );
+      
+      // Draw cropped image to fill the entire canvas
+      this.ctx.drawImage(
+        img,
+        sourceRect.x,
+        sourceRect.y,
+        sourceRect.width,
+        sourceRect.height,
+        0,
+        0,
+        targetWidth,
+        targetHeight
+      );
+    } else {
+      // Stretch to fit without maintaining aspect ratio
+      this.ctx.drawImage(
+        img,
+        0,
+        0,
+        img.width,
+        img.height,
+        0,
+        0,
+        targetWidth,
+        targetHeight
+      );
+    }
     
     // Get image data
     const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
@@ -311,44 +317,50 @@ export class MediaProcessor {
   ): ProcessedFrame {
     const { targetWidth, targetHeight, maintainAspectRatio, cropMode } = options;
     
-    // Calculate dimensions
-    const dimensions = this.calculateDimensions(
-      video.videoWidth, 
-      video.videoHeight, 
-      targetWidth, 
-      targetHeight, 
-      maintainAspectRatio
-    );
-    
-    // Set canvas size
-    this.canvas.width = dimensions.outputWidth;
-    this.canvas.height = dimensions.outputHeight;
+    // Set canvas to target size (this is what the user wants)
+    this.canvas.width = targetWidth;
+    this.canvas.height = targetHeight;
     
     // Clear canvas
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     
-    // Apply crop settings
-    const sourceRect = this.calculateSourceRect(
-      video.videoWidth,
-      video.videoHeight,
-      dimensions.outputWidth,
-      dimensions.outputHeight,
-      cropMode,
-      maintainAspectRatio
-    );
-    
-    // Draw video frame to canvas
-    this.ctx.drawImage(
-      video,
-      sourceRect.x,
-      sourceRect.y,
-      sourceRect.width,
-      sourceRect.height,
-      0,
-      0,
-      this.canvas.width,
-      this.canvas.height
-    );
+    if (maintainAspectRatio) {
+      // Apply crop settings to fill the canvas while maintaining aspect ratio
+      const sourceRect = this.calculateSourceRect(
+        video.videoWidth,
+        video.videoHeight,
+        targetWidth,
+        targetHeight,
+        cropMode,
+        maintainAspectRatio
+      );
+      
+      // Draw cropped video frame to fill the entire canvas
+      this.ctx.drawImage(
+        video,
+        sourceRect.x,
+        sourceRect.y,
+        sourceRect.width,
+        sourceRect.height,
+        0,
+        0,
+        targetWidth,
+        targetHeight
+      );
+    } else {
+      // Stretch to fit without maintaining aspect ratio
+      this.ctx.drawImage(
+        video,
+        0,
+        0,
+        video.videoWidth,
+        video.videoHeight,
+        0,
+        0,
+        targetWidth,
+        targetHeight
+      );
+    }
     
     // Get image data
     const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
@@ -366,42 +378,6 @@ export class MediaProcessor {
       timestamp,
       frameIndex
     };
-  }
-
-  /**
-   * Calculate output dimensions based on target size and aspect ratio options
-   */
-  private calculateDimensions(
-    sourceWidth: number,
-    sourceHeight: number,
-    targetWidth: number,
-    targetHeight: number,
-    maintainAspectRatio: boolean
-  ) {
-    if (!maintainAspectRatio) {
-      return {
-        outputWidth: targetWidth,
-        outputHeight: targetHeight
-      };
-    }
-    
-    const sourceAspectRatio = sourceWidth / sourceHeight;
-    const targetAspectRatio = targetWidth / targetHeight;
-    
-    let outputWidth: number;
-    let outputHeight: number;
-    
-    if (sourceAspectRatio > targetAspectRatio) {
-      // Source is wider - fit to width
-      outputWidth = targetWidth;
-      outputHeight = Math.round(targetWidth / sourceAspectRatio);
-    } else {
-      // Source is taller - fit to height
-      outputHeight = targetHeight;
-      outputWidth = Math.round(targetHeight * sourceAspectRatio);
-    }
-    
-    return { outputWidth, outputHeight };
   }
 
   /**
@@ -432,49 +408,63 @@ export class MediaProcessor {
     let cropX: number;
     let cropY: number;
     
+    // Calculate crop dimensions to fill target while maintaining aspect ratio
     if (sourceAspectRatio > targetAspectRatio) {
-      // Source is wider - crop width
+      // Source is wider - crop width, fit height
       cropHeight = sourceHeight;
       cropWidth = sourceHeight * targetAspectRatio;
-      cropY = 0;
-      
-      switch (cropMode) {
-        case 'left':
-          cropX = 0;
-          break;
-        case 'right':
-          cropX = sourceWidth - cropWidth;
-          break;
-        case 'center':
-        default:
-          cropX = (sourceWidth - cropWidth) / 2;
-          break;
-      }
     } else {
-      // Source is taller - crop height
+      // Source is taller - crop height, fit width
       cropWidth = sourceWidth;
       cropHeight = sourceWidth / targetAspectRatio;
-      cropX = 0;
-      
-      switch (cropMode) {
-        case 'top':
-          cropY = 0;
-          break;
-        case 'bottom':
-          cropY = sourceHeight - cropHeight;
-          break;
-        case 'center':
-        default:
-          cropY = (sourceHeight - cropHeight) / 2;
-          break;
-      }
+    }
+    
+    // Calculate crop position based on alignment mode
+    switch (cropMode) {
+      case 'top-left':
+        cropX = 0;
+        cropY = 0;
+        break;
+      case 'top':
+        cropX = (sourceWidth - cropWidth) / 2;
+        cropY = 0;
+        break;
+      case 'top-right':
+        cropX = sourceWidth - cropWidth;
+        cropY = 0;
+        break;
+      case 'left':
+        cropX = 0;
+        cropY = (sourceHeight - cropHeight) / 2;
+        break;
+      case 'center':
+      default:
+        cropX = (sourceWidth - cropWidth) / 2;
+        cropY = (sourceHeight - cropHeight) / 2;
+        break;
+      case 'right':
+        cropX = sourceWidth - cropWidth;
+        cropY = (sourceHeight - cropHeight) / 2;
+        break;
+      case 'bottom-left':
+        cropX = 0;
+        cropY = sourceHeight - cropHeight;
+        break;
+      case 'bottom':
+        cropX = (sourceWidth - cropWidth) / 2;
+        cropY = sourceHeight - cropHeight;
+        break;
+      case 'bottom-right':
+        cropX = sourceWidth - cropWidth;
+        cropY = sourceHeight - cropHeight;
+        break;
     }
     
     return {
-      x: cropX,
-      y: cropY,
-      width: cropWidth,
-      height: cropHeight
+      x: Math.max(0, cropX),
+      y: Math.max(0, cropY),
+      width: Math.min(cropWidth, sourceWidth),
+      height: Math.min(cropHeight, sourceHeight)
     };
   }
 

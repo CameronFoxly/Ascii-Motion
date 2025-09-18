@@ -48,7 +48,7 @@ export interface ImportSettings {
   characterWidth: number;   // Target width in characters
   characterHeight: number;  // Target height in characters
   maintainAspectRatio: boolean;
-  cropMode: 'center' | 'top' | 'bottom' | 'left' | 'right';
+  cropMode: 'center' | 'top' | 'bottom' | 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   
   // Character selection settings (Phase 4.2 - Session 2)
   characterSet: string[];   // Selected ASCII characters for mapping
