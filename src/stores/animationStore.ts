@@ -21,7 +21,7 @@ interface AnimationState extends Animation {
   };
   
   // Actions (enhanced with history support)
-  addFrame: (atIndex?: number, canvasData?: Map<string, Cell>) => void;
+  addFrame: (atIndex?: number, canvasData?: Map<string, Cell>, duration?: number) => void;
   removeFrame: (index: number) => void;
   duplicateFrame: (index: number) => void;
   setCurrentFrame: (index: number) => void;
@@ -99,13 +99,18 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   },
 
   // Actions (return data for history recording)
-  addFrame: (atIndex?: number, canvasData?: Map<string, Cell>) => {
+  addFrame: (atIndex?: number, canvasData?: Map<string, Cell>, duration?: number) => {
     set((state) => {
       const newFrame = createEmptyFrame();
       
       // If canvas data provided, use it, otherwise use empty frame
       if (canvasData) {
         newFrame.data = new Map(canvasData);
+      }
+      
+      // If duration provided, use it instead of default
+      if (duration !== undefined) {
+        newFrame.duration = duration;
       }
       
       const insertIndex = atIndex !== undefined ? atIndex : state.frames.length;

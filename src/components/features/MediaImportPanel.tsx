@@ -56,6 +56,7 @@ export function MediaImportPanel() {
   const clearCanvas = useCanvasStore(state => state.clearCanvas);
   const addFrame = useAnimationStore(state => state.addFrame);
   const setCurrentFrame = useAnimationStore(state => state.setCurrentFrame);
+  const updateFrameDuration = useAnimationStore(state => state.updateFrameDuration);
   
   const [dragActive, setDragActive] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -430,12 +431,18 @@ export function MediaImportPanel() {
           const result = asciiConverter.convertFrame(previewFrames[i], conversionSettings);
           const positionedCells = positionCellsOnCanvas(result.cells, settings.characterWidth, settings.characterHeight);
           
+          // Get frame duration from processed frame (if available)
+          const frameDuration = previewFrames[i].frameDuration;
+          
           if (i === 0) {
-            // First frame - replace current frame
+            // First frame - replace current frame data and update its duration
             setCanvasData(positionedCells);
+            if (frameDuration !== undefined) {
+              updateFrameDuration(0, frameDuration);
+            }
           } else {
-            // Additional frames - add new frames
-            addFrame(undefined, positionedCells);
+            // Additional frames - add new frames with correct duration
+            addFrame(undefined, positionedCells, frameDuration);
           }
         }
         
@@ -451,7 +458,7 @@ export function MediaImportPanel() {
     } finally {
       setIsImporting(false);
     }
-  }, [previewFrames, settings, clearCanvas, setCanvasData, addFrame, setCurrentFrame, closeModal, setError, positionCellsOnCanvas]);
+  }, [previewFrames, settings, clearCanvas, setCanvasData, addFrame, setCurrentFrame, updateFrameDuration, closeModal, setError, positionCellsOnCanvas]);
 
   // Get file icon based on type
   const getFileIcon = (mediaFile: MediaFile) => {

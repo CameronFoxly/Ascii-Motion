@@ -9,6 +9,9 @@
  * - Error handling for unsupported formats
  */
 
+// @ts-ignore - mp4box doesn't have proper TypeScript definitions
+import * as MP4Box from 'mp4box';
+
 export interface MediaFile {
   file: File;
   type: 'image' | 'video';
@@ -36,6 +39,7 @@ export interface ProcessedFrame {
   imageData: ImageData;
   timestamp?: number; // For video frames
   frameIndex?: number; // For video frames
+  frameDuration?: number; // Duration in milliseconds (for video frames)
 }
 
 export interface ProcessingResult {
@@ -48,6 +52,7 @@ export interface ProcessingResult {
     processedHeight: number;
     frameCount: number;
     duration?: number;
+    frameRate?: number; // Original video frame rate
   };
   error?: string;
 }
@@ -152,7 +157,7 @@ export class MediaProcessor {
   async processVideo(mediaFile: MediaFile, options: ProcessingOptions): Promise<ProcessingResult> {
     try {
       const video = await this.loadVideo(mediaFile.file);
-      const frames = await this.extractVideoFrames(video, options);
+      const { frames, detectedFrameRate } = await this.extractVideoFrames(video, options, mediaFile.file);
       
       return {
         success: true,
@@ -163,7 +168,8 @@ export class MediaProcessor {
           processedWidth: frames[0]?.canvas.width || 0,
           processedHeight: frames[0]?.canvas.height || 0,
           frameCount: frames.length,
-          duration: video.duration
+          duration: video.duration,
+          frameRate: detectedFrameRate
         }
       };
     } catch (error) {
@@ -282,28 +288,149 @@ export class MediaProcessor {
   }
 
   /**
-   * Extract frames from video at regular intervals
+   * Extract frames from video using original frame rate
    */
-  private async extractVideoFrames(video: HTMLVideoElement, options: ProcessingOptions): Promise<ProcessedFrame[]> {
+  private async extractVideoFrames(video: HTMLVideoElement, options: ProcessingOptions, originalFile: File): Promise<{ frames: ProcessedFrame[], detectedFrameRate: number }> {
     const frames: ProcessedFrame[] = [];
-    const frameRate = 10; // Extract 10 frames per second for now
-    const totalFrames = Math.min(100, Math.floor(video.duration * frameRate)); // Cap at 100 frames
     
-    for (let i = 0; i < totalFrames; i++) {
-      const timestamp = (i / frameRate);
+    // Try to detect frame rate or use common defaults
+    const estimatedFrameRate = await this.estimateVideoFrameRate(video, originalFile);
+    const frameDuration = Math.round(1000 / estimatedFrameRate); // Convert to milliseconds
+    
+    // Extract all frames, but limit to reasonable maximum
+    const maxFrames = Math.min(300, Math.floor(video.duration * estimatedFrameRate)); // Cap at 300 frames
+    
+    console.log(`Video processing: duration=${video.duration}s, estimatedFPS=${estimatedFrameRate}, maxFrames=${maxFrames}, frameDuration=${frameDuration}ms`);
+    
+    for (let i = 0; i < maxFrames; i++) {
+      const timestamp = i / estimatedFrameRate;
+      
+      // Stop if we exceed video duration
+      if (timestamp >= video.duration) break;
+      
       video.currentTime = timestamp;
       
-      // Wait for video to seek to the correct time
+      // Wait for video to seek to the correct time with timeout
       await new Promise<void>((resolve) => {
-        video.onseeked = () => resolve();
+        const timeout = setTimeout(() => resolve(), 200); // 200ms timeout
+        video.onseeked = () => {
+          clearTimeout(timeout);
+          resolve();
+        };
       });
       
+      // Small delay to ensure frame is ready
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
       // Process current frame
-      const processedFrame = this.processVideoFrameToCanvas(video, options, timestamp, i);
+      const processedFrame = this.processVideoFrameToCanvas(video, options, timestamp, i, frameDuration);
       frames.push(processedFrame);
     }
     
-    return frames;
+    console.log(`Video processing complete: extracted ${frames.length} frames`);
+    
+    return { frames, detectedFrameRate: estimatedFrameRate };
+  }
+
+  /**
+   * Extract frame rate from video file metadata
+   */
+  private async estimateVideoFrameRate(video: HTMLVideoElement, originalFile: File): Promise<number> {
+    try {
+      // Attempt to get frame rate from video metadata
+      const frameRate = await this.extractFrameRateFromMetadata(video, originalFile);
+      if (frameRate > 0) {
+        console.log(`Extracted frame rate from metadata: ${frameRate} fps`);
+        return frameRate;
+      }
+    } catch (error) {
+      console.warn('Failed to extract frame rate from metadata:', error);
+    }
+
+    // Fallback to common frame rate
+    console.log('Using default frame rate: 30 fps');
+    return 30;
+  }
+
+  /**
+   * Extract frame rate from video file metadata using MP4Box
+   */
+  private async extractFrameRateFromMetadata(_video: HTMLVideoElement, originalFile: File): Promise<number> {
+    try {
+      // Use the original file directly instead of fetching from blob URL
+      const arrayBuffer = await originalFile.arrayBuffer();
+      
+      return await this.parseMP4FrameRate(arrayBuffer);
+    } catch (error) {
+      console.warn('Failed to parse MP4 metadata:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Parse MP4 file to extract framerate using MP4Box
+   */
+  private parseMP4FrameRate(arrayBuffer: ArrayBuffer): Promise<number> {
+    return new Promise((resolve) => {
+      const mp4boxFile = (MP4Box as any).createFile();
+      
+      // Set up event handlers
+      mp4boxFile.onReady = (info: any) => {
+        console.log('MP4Box info:', info);
+        
+        // Look for video tracks
+        const videoTrack = info.videoTracks?.[0];
+        if (videoTrack) {
+          // Calculate frame rate from track info
+          let frameRate = 0;
+          
+          if (videoTrack.movie_timescale && videoTrack.movie_duration) {
+            const durationInSeconds = videoTrack.movie_duration / videoTrack.movie_timescale;
+            if (videoTrack.nb_samples && durationInSeconds > 0) {
+              frameRate = videoTrack.nb_samples / durationInSeconds;
+            }
+          }
+          
+          // Alternative: use timescale if available
+          if (!frameRate && videoTrack.timescale) {
+            // Many videos store frame rate info in the timescale
+            const commonRates = [23.976, 24, 25, 29.97, 30, 50, 59.94, 60];
+            
+            // Check if timescale matches common frame rates
+            for (const rate of commonRates) {
+              if (Math.abs(videoTrack.timescale / 1000 - rate) < 1) {
+                frameRate = rate;
+                break;
+              }
+            }
+            
+            // If no match, try direct calculation
+            if (!frameRate && videoTrack.timescale > 1000) {
+              frameRate = videoTrack.timescale / 1000;
+            }
+          }
+          
+          console.log(`Detected frame rate from MP4 metadata: ${frameRate} fps`);
+          resolve(frameRate > 0 && frameRate <= 120 ? frameRate : 0);
+        } else {
+          console.warn('No video tracks found in MP4 file');
+          resolve(0);
+        }
+      };
+      
+      mp4boxFile.onError = (error: any) => {
+        console.warn('MP4Box parsing error:', error);
+        resolve(0);
+      };
+      
+      // Convert ArrayBuffer to the format MP4Box expects
+      const buffer = arrayBuffer as any;
+      buffer.fileStart = 0;
+      
+      // Append data and flush
+      mp4boxFile.appendBuffer(buffer);
+      mp4boxFile.flush();
+    });
   }
 
   /**
@@ -313,7 +440,8 @@ export class MediaProcessor {
     video: HTMLVideoElement, 
     options: ProcessingOptions, 
     timestamp: number, 
-    frameIndex: number
+    frameIndex: number,
+    frameDuration: number
   ): ProcessedFrame {
     const { targetWidth, targetHeight, maintainAspectRatio, cropMode } = options;
     
@@ -376,7 +504,8 @@ export class MediaProcessor {
       canvas: resultCanvas,
       imageData,
       timestamp,
-      frameIndex
+      frameIndex,
+      frameDuration
     };
   }
 
