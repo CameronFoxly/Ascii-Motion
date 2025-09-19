@@ -867,10 +867,11 @@ export function MediaImportPanel() {
                       </div>
                     </div>
                     
-                    {/* Alignment Grid */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-medium">Alignment</Label>
-                      <div className="flex justify-center">
+                    {/* Alignment & Nudge Controls - Two Equal Columns */}
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Alignment Section */}
+                      <div className="flex flex-col items-center space-y-2">
+                        <Label className="text-xs font-medium">Alignment</Label>
                         <div className="grid grid-cols-3 gap-[3px]">
                           {[
                             { mode: 'top-left', tooltip: 'Top Left' },
@@ -911,12 +912,10 @@ export function MediaImportPanel() {
                           })}
                         </div>
                       </div>
-                    </div>
-                    
-                    {/* Nudge Controls */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-medium">Nudge</Label>
-                      <div className="flex justify-center gap-3">
+                      
+                      {/* Nudge Section */}
+                      <div className="flex flex-col items-center space-y-2">
+                        <Label className="text-xs font-medium">Nudge</Label>
                         <div className="grid grid-cols-3 gap-[3px]">
                           {/* Top row */}
                           <div></div>
@@ -973,14 +972,6 @@ export function MediaImportPanel() {
                             <ArrowDown className="w-3 h-3" />
                           </Button>
                           <div></div>
-                        </div>
-                        
-                        {/* Nudge values display */}
-                        <div className="flex flex-col justify-center items-center min-w-[4rem]">
-                          <div className="text-xs text-muted-foreground">Offset</div>
-                          <div className="text-xs font-mono">
-                            {settings.nudgeX >= 0 ? '+' : ''}{settings.nudgeX}, {settings.nudgeY >= 0 ? '+' : ''}{settings.nudgeY}
-                          </div>
                         </div>
                       </div>
                     </div>
