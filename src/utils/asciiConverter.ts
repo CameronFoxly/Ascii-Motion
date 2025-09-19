@@ -285,8 +285,8 @@ export class ASCIIConverter {
             settings.invertDensity
           );
         } else {
-          // Use default character if character mapping is disabled
-          character = '#';
+          // Use space character if character mapping is disabled (for pixel-art style effects)
+          character = ' ';
         }
         
         // Determine text (foreground) color
