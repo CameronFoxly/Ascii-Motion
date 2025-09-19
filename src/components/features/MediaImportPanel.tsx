@@ -19,6 +19,11 @@ import { Alert, AlertDescription } from '../ui/alert';
 import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '../ui/separator';
 import { 
+  Collapsible,
+  CollapsibleContent,
+} from '../ui/collapsible';
+import { CollapsibleHeader } from '../common/CollapsibleHeader';
+import { 
   Upload, 
   Image as ImageIcon, 
   Video, 
@@ -27,7 +32,11 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Link
+  ChevronsLeft,
+  ChevronsRight,
+  Link,
+  Eye,
+  Move3D
 } from 'lucide-react';
 import { 
   useImportModal, 
@@ -42,8 +51,7 @@ import { useCanvasStore } from '../../stores/canvasStore';
 import { useAnimationStore } from '../../stores/animationStore';
 import { usePreviewStore } from '../../stores/previewStore';
 import { useCharacterPaletteStore } from '../../stores/characterPaletteStore';
-import { CharacterMappingControls } from './CharacterMappingControls';
-import { CharacterPaletteEditor } from './CharacterPaletteEditor';
+import { CharacterMappingSection } from './CharacterMappingSection';
 import type { MediaFile } from '../../utils/mediaProcessor';
 import type { Cell } from '../../types';
 
@@ -80,6 +88,10 @@ export function MediaImportPanel() {
   const [livePreviewEnabled, setLivePreviewEnabled] = useState(true); // Default to enabled
   const [originalImageAspectRatio, setOriginalImageAspectRatio] = useState<number | null>(null);
   const [importMode, setImportMode] = useState<'overwrite' | 'append'>('append');
+  
+  // Collapsible section states
+  const [previewSectionOpen, setPreviewSectionOpen] = useState(true);
+  const [positionSectionOpen, setPositionSectionOpen] = useState(true);
   
   // Preview state management
   const [isPreviewActive, setIsPreviewActive] = useState(false);
@@ -655,167 +667,252 @@ export function MediaImportPanel() {
                 </Button>
               </div>
               
-              {/* Live Preview Toggle - prominent position */}
-              <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="live-preview-main"
-                    checked={livePreviewEnabled}
-                    onCheckedChange={(checked) => setLivePreviewEnabled(!!checked)}
-                  />
-                  <Label htmlFor="live-preview-main" className="text-xs">
-                    Auto-process & Preview
-                  </Label>
-                </div>
-                {livePreviewEnabled && (
-                  <span className="text-xs text-green-500 font-medium">
-                    Live
-                  </span>
-                )}
-              </div>
-              
-              {/* Image Size Controls */}
-              <div className="space-y-2">
-                <Label className="text-xs font-medium">Image Size (characters)</Label>
+              {/* Preview Section */}
+              <Collapsible open={previewSectionOpen} onOpenChange={setPreviewSectionOpen}>
+                <CollapsibleHeader isOpen={previewSectionOpen}>
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-muted-foreground" />
+                    <span>Preview</span>
+                  </div>
+                </CollapsibleHeader>
                 
-                <div className="flex gap-2 items-end">
-                  <div className="flex-1">
-                    <Label htmlFor="char-width" className="text-xs">Width</Label>
-                    <div className="flex">
-                      <Input
-                        id="char-width"
-                        type="number"
-                        min="1"
-                        value={settings.characterWidth}
-                        onChange={(e) => handleWidthChange(parseInt(e.target.value) || 1)}
-                        className="h-8 text-xs rounded-r-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                      <div className="flex flex-col">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleWidthChange(settings.characterWidth + 1)}
-                          className="h-4 w-6 p-0 rounded-l-none rounded-br-none border-l-0 text-xs"
-                        >
-                          +
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleWidthChange(Math.max(1, settings.characterWidth - 1))}
-                          className="h-4 w-6 p-0 rounded-l-none rounded-tr-none border-l-0 border-t-0 text-xs"
-                        >
-                          −
-                        </Button>
+                <CollapsibleContent className="collapsible-content">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="live-preview-main"
+                          checked={livePreviewEnabled}
+                          onCheckedChange={(checked) => setLivePreviewEnabled(!!checked)}
+                        />
+                        <Label htmlFor="live-preview-main" className="text-xs">
+                          Auto-process & Preview
+                        </Label>
                       </div>
+                      {livePreviewEnabled && (
+                        <span className="text-xs text-green-500 font-medium">
+                          Live
+                        </span>
+                      )}
                     </div>
-                  </div>
-                  <div className="flex-1">
-                    <Label htmlFor="char-height" className="text-xs">Height</Label>
-                    <div className="flex">
-                      <Input
-                        id="char-height"
-                        type="number"
-                        min="1"
-                        value={settings.characterHeight}
-                        onChange={(e) => handleHeightChange(parseInt(e.target.value) || 1)}
-                        className="h-8 text-xs rounded-r-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                      <div className="flex flex-col">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleHeightChange(settings.characterHeight + 1)}
-                          className="h-4 w-6 p-0 rounded-l-none rounded-br-none border-l-0 text-xs"
-                        >
-                          +
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleHeightChange(Math.max(1, settings.characterHeight - 1))}
-                          className="h-4 w-6 p-0 rounded-l-none rounded-tr-none border-l-0 border-t-0 text-xs"
-                        >
-                          −
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-end">
-                    <Button
-                      type="button"
-                      variant={settings.maintainAspectRatio ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => updateSettings({ maintainAspectRatio: !settings.maintainAspectRatio })}
-                      disabled={!originalImageAspectRatio}
-                      className="h-8 w-8 p-0"
-                      title={settings.maintainAspectRatio ? "Unlink aspect ratio" : "Maintain original image aspect ratio"}
-                    >
-                      <Link className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="text-xs text-muted-foreground">
-                  Canvas: {canvasWidth} × {canvasHeight} characters
-                </div>
-              </div>
-              
-              {/* Alignment Grid */}
-              <div className="space-y-2">
-                <Label className="text-xs font-medium">Alignment</Label>
-                <div className="flex justify-center">
-                  <div className="grid grid-cols-3 gap-[3px]">
-                    {[
-                      { mode: 'top-left', tooltip: 'Top Left' },
-                      { mode: 'top', tooltip: 'Top Center' },
-                      { mode: 'top-right', tooltip: 'Top Right' },
-                      { mode: 'left', tooltip: 'Center Left' },
-                      { mode: 'center', tooltip: 'Center' },
-                      { mode: 'right', tooltip: 'Center Right' },
-                      { mode: 'bottom-left', tooltip: 'Bottom Left' },
-                      { mode: 'bottom', tooltip: 'Bottom Center' },
-                      { mode: 'bottom-right', tooltip: 'Bottom Right' }
-                    ].map(({ mode, tooltip }) => {
-                      const isActive = settings.cropMode === mode;
-                      return (
-                        <Button
-                          key={mode}
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => updateSettings({ cropMode: mode as any })}
-                          className={`h-6 w-6 p-0 transition-colors ${
-                            isActive 
-                              ? 'bg-purple-500 text-white hover:bg-purple-600' 
-                              : 'bg-background hover:bg-muted border border-border'
-                          }`}
-                          title={tooltip}
-                        >
-                          {isActive ? (
-                            <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          ) : (
-                            <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                            </svg>
-                          )}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
 
-              {/* Character Mapping Controls */}
+                    {/* Frame Navigation */}
+                    {previewFrames.length > 0 && (
+                      <div className="space-y-2 p-2 bg-muted/30 rounded-lg">
+                        <div className="flex items-center justify-center">
+                          <Label className="text-xs font-medium">
+                            Preview ({previewFrames.length} frame{previewFrames.length !== 1 ? 's' : ''})
+                          </Label>
+                        </div>
+                        
+                        {previewFrames.length > 1 && (
+                          <div className="flex items-center justify-between gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setFrameIndex(0)}
+                              disabled={frameIndex === 0}
+                              className="h-6 w-6 p-0"
+                              title="First frame"
+                            >
+                              <ChevronsLeft className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setFrameIndex(Math.max(0, frameIndex - 1))}
+                              disabled={frameIndex === 0}
+                              className="h-6 w-6 p-0"
+                              title="Previous frame"
+                            >
+                              <ChevronLeft className="w-3 h-3" />
+                            </Button>
+                            <span className="text-xs flex-1 text-center">
+                              Frame {frameIndex + 1} of {previewFrames.length}
+                            </span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setFrameIndex(Math.min(previewFrames.length - 1, frameIndex + 1))}
+                              disabled={frameIndex === previewFrames.length - 1}
+                              className="h-6 w-6 p-0"
+                              title="Next frame"
+                            >
+                              <ChevronRight className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setFrameIndex(previewFrames.length - 1)}
+                              disabled={frameIndex === previewFrames.length - 1}
+                              className="h-6 w-6 p-0"
+                              title="Last frame"
+                            >
+                              <ChevronsRight className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+              
+              {/* Position & Size Section */}
+              <Collapsible open={positionSectionOpen} onOpenChange={setPositionSectionOpen}>
+                <CollapsibleHeader isOpen={positionSectionOpen}>
+                  <div className="flex items-center gap-2">
+                    <Move3D className="w-4 h-4 text-muted-foreground" />
+                    <span>Position & Size</span>
+                  </div>
+                </CollapsibleHeader>
+                
+                <CollapsibleContent className="collapsible-content">
+                  <div className="space-y-3">
+                    {/* Image Size Controls */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium">Image Size (characters)</Label>
+                      
+                      <div className="flex gap-2 items-end">
+                        <div className="flex-1">
+                          <Label htmlFor="char-width" className="text-xs">Width</Label>
+                          <div className="flex">
+                            <Input
+                              id="char-width"
+                              type="number"
+                              min="1"
+                              value={settings.characterWidth}
+                              onChange={(e) => handleWidthChange(parseInt(e.target.value) || 1)}
+                              className="h-8 text-xs rounded-r-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                            <div className="flex flex-col">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleWidthChange(settings.characterWidth + 1)}
+                                className="h-4 w-6 p-0 rounded-l-none rounded-br-none border-l-0 text-xs"
+                              >
+                                +
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleWidthChange(Math.max(1, settings.characterWidth - 1))}
+                                className="h-4 w-6 p-0 rounded-l-none rounded-tr-none border-l-0 border-t-0 text-xs"
+                              >
+                                −
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <Label htmlFor="char-height" className="text-xs">Height</Label>
+                          <div className="flex">
+                            <Input
+                              id="char-height"
+                              type="number"
+                              min="1"
+                              value={settings.characterHeight}
+                              onChange={(e) => handleHeightChange(parseInt(e.target.value) || 1)}
+                              className="h-8 text-xs rounded-r-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                            <div className="flex flex-col">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleHeightChange(settings.characterHeight + 1)}
+                                className="h-4 w-6 p-0 rounded-l-none rounded-br-none border-l-0 text-xs"
+                              >
+                                +
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleHeightChange(Math.max(1, settings.characterHeight - 1))}
+                                className="h-4 w-6 p-0 rounded-l-none rounded-tr-none border-l-0 border-t-0 text-xs"
+                              >
+                                −
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-end">
+                          <Button
+                            type="button"
+                            variant={settings.maintainAspectRatio ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => updateSettings({ maintainAspectRatio: !settings.maintainAspectRatio })}
+                            disabled={!originalImageAspectRatio}
+                            className="h-8 w-8 p-0"
+                            title={settings.maintainAspectRatio ? "Unlink aspect ratio" : "Maintain original image aspect ratio"}
+                          >
+                            <Link className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="text-xs text-muted-foreground">
+                        Canvas: {canvasWidth} × {canvasHeight} characters
+                      </div>
+                    </div>
+                    
+                    {/* Alignment Grid */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium">Alignment</Label>
+                      <div className="flex justify-center">
+                        <div className="grid grid-cols-3 gap-[3px]">
+                          {[
+                            { mode: 'top-left', tooltip: 'Top Left' },
+                            { mode: 'top', tooltip: 'Top Center' },
+                            { mode: 'top-right', tooltip: 'Top Right' },
+                            { mode: 'left', tooltip: 'Center Left' },
+                            { mode: 'center', tooltip: 'Center' },
+                            { mode: 'right', tooltip: 'Center Right' },
+                            { mode: 'bottom-left', tooltip: 'Bottom Left' },
+                            { mode: 'bottom', tooltip: 'Bottom Center' },
+                            { mode: 'bottom-right', tooltip: 'Bottom Right' }
+                          ].map(({ mode, tooltip }) => {
+                            const isActive = settings.cropMode === mode;
+                            return (
+                              <Button
+                                key={mode}
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => updateSettings({ cropMode: mode as any })}
+                                className={`h-6 w-6 p-0 transition-colors ${
+                                  isActive 
+                                    ? 'bg-purple-500 text-white hover:bg-purple-600' 
+                                    : 'bg-background hover:bg-muted border border-border'
+                                }`}
+                                title={tooltip}
+                              >
+                                {isActive ? (
+                                  <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Character Mapping Section */}
               <div className="space-y-3">
                 <Separator />
-                <CharacterMappingControls onSettingsChange={() => setLivePreviewEnabled(true)} />
-                <CharacterPaletteEditor onPaletteChange={() => setLivePreviewEnabled(true)} />
+                <CharacterMappingSection onSettingsChange={() => setLivePreviewEnabled(true)} />
               </div>
               
               {/* Processing Progress */}
@@ -838,52 +935,7 @@ export function MediaImportPanel() {
             </Alert>
           )}
 
-          {/* Preview Controls */}
-          {previewFrames.length > 0 && (
-            <div className="space-y-3">
-              <Separator />
-              
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-medium">
-                    Preview ({previewFrames.length} frame{previewFrames.length !== 1 ? 's' : ''})
-                  </Label>
-                  {livePreviewEnabled && (
-                    <span className="text-xs text-green-500 font-medium">
-                      Auto-updating
-                    </span>
-                  )}
-                </div>
-                
-                {/* Frame Navigation */}
-                {previewFrames.length > 1 && (
-                  <div className="flex items-center justify-between">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setFrameIndex(Math.max(0, frameIndex - 1))}
-                      disabled={frameIndex === 0}
-                      className="h-6 w-6 p-0"
-                    >
-                      <ChevronLeft className="w-3 h-3" />
-                    </Button>
-                    <span className="text-xs">
-                      Frame {frameIndex + 1} of {previewFrames.length}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setFrameIndex(Math.min(previewFrames.length - 1, frameIndex + 1))}
-                      disabled={frameIndex === previewFrames.length - 1}
-                      className="h-6 w-6 p-0"
-                    >
-                      <ChevronRight className="w-3 h-3" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+
         </div>
       </ScrollArea>
 

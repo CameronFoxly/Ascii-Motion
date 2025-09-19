@@ -153,6 +153,43 @@ export const useKeyboardShortcuts = () => {
       return;
     }
 
+    // If any input field is focused, block specific canvas hotkeys that conflict with typing
+    // But allow text editing shortcuts (Cmd+A, arrow keys, etc.) to work normally
+    const activeElement = document.activeElement as HTMLElement;
+    const isInputFocused = activeElement && (
+      activeElement.tagName === 'INPUT' ||
+      activeElement.tagName === 'TEXTAREA' ||
+      activeElement.contentEditable === 'true' ||
+      activeElement.getAttribute('role') === 'textbox'
+    );
+    
+    if (isInputFocused) {
+      // Allow all modifier-based shortcuts (Cmd+A, Cmd+C, etc.) - these are text editing commands
+      if (event.metaKey || event.ctrlKey) {
+        return; // Let the input field handle text editing shortcuts
+      }
+      
+      // Allow navigation keys that are essential for text editing
+      const allowedKeys = [
+        'Escape', 'Tab', 'Enter', 'Backspace', 'Delete',
+        'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+        'Home', 'End', 'PageUp', 'PageDown'
+      ];
+      
+      if (allowedKeys.includes(event.key)) {
+        // For Escape, still handle our canvas logic after the input handles it
+        if (event.key === 'Escape') {
+          // Don't return yet - let canvas logic handle Escape below
+        } else {
+          return; // Let the input field handle navigation keys
+        }
+      } else {
+        // Block tool hotkeys and other single-key shortcuts that conflict with typing
+        // This includes letters (b, p, e, etc.), numbers, space, etc.
+        return;
+      }
+    }
+
     // If text tool is actively typing, only allow Escape and modifier-based shortcuts
     // This prevents conflicts with single-key tool hotkeys and the space bar
     if (textToolState.isTyping && !event.metaKey && !event.ctrlKey && event.key !== 'Escape') {
