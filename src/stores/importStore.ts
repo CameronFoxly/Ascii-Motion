@@ -66,13 +66,11 @@ export interface ImportSettings {
   enableTextColorMapping: boolean;
   textColorPaletteId: string | null;     // Active palette ID from paletteStore
   textColorMappingMode: 'closest' | 'dithering';
-  textColorQuantization: number;         // Number of colors to use from palette
   
   // Background Color Mapping settings (NEW)  
   enableBackgroundColorMapping: boolean;
   backgroundColorPaletteId: string | null; // Active palette ID from paletteStore
   backgroundColorMappingMode: 'closest' | 'dithering';
-  backgroundColorQuantization: number;   // Number of colors to use from palette
   
   // Legacy color palette settings (Phase 4.3 - Session 3) 
   useOriginalColors: boolean;
@@ -120,13 +118,11 @@ const DEFAULT_IMPORT_SETTINGS: ImportSettings = {
   enableTextColorMapping: false,
   textColorPaletteId: null,
   textColorMappingMode: 'closest',
-  textColorQuantization: 16,
   
   // Background Color Mapping (NEW)
   enableBackgroundColorMapping: false,
   backgroundColorPaletteId: null,
   backgroundColorMappingMode: 'closest',
-  backgroundColorQuantization: 8,
   
   // Legacy color palette (simplified for Session 1)
   useOriginalColors: true,

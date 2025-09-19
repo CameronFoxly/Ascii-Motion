@@ -28,14 +28,12 @@ export interface ConversionSettings {
   enableTextColorMapping: boolean;
   textColorPalette: string[]; // Array of hex colors from selected palette
   textColorMappingMode: 'closest' | 'dithering';
-  textColorQuantization: number;
   defaultTextColor: string; // Default color when text color mapping is disabled
   
   // Background color mapping - NEW
   enableBackgroundColorMapping: boolean;
   backgroundColorPalette: string[]; // Array of hex colors from selected palette
   backgroundColorMappingMode: 'closest' | 'dithering';
-  backgroundColorQuantization: number;
   
   // Legacy color settings (keep for backward compatibility)
   useOriginalColors: boolean;

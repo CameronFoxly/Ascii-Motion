@@ -259,10 +259,10 @@ export function MediaImportPanel() {
     // Get color palettes if enabled (use getState to avoid dependency issues)
     const allPalettes = usePaletteStore.getState().getAllPalettes();
     const textColorPalette = settings.enableTextColorMapping && settings.textColorPaletteId 
-      ? allPalettes.find((p: any) => p.id === settings.textColorPaletteId)?.colors.slice(0, settings.textColorQuantization).map((c: any) => c.value) || []
+      ? allPalettes.find((p: any) => p.id === settings.textColorPaletteId)?.colors.map((c: any) => c.value) || []
       : [];
     const backgroundColorPalette = settings.enableBackgroundColorMapping && settings.backgroundColorPaletteId 
-      ? allPalettes.find((p: any) => p.id === settings.backgroundColorPaletteId)?.colors.slice(0, settings.backgroundColorQuantization).map((c: any) => c.value) || []
+      ? allPalettes.find((p: any) => p.id === settings.backgroundColorPaletteId)?.colors.map((c: any) => c.value) || []
       : [];
 
     return {
@@ -276,14 +276,12 @@ export function MediaImportPanel() {
       enableTextColorMapping: settings.enableTextColorMapping,
       textColorPalette: textColorPalette,
       textColorMappingMode: settings.textColorMappingMode,
-      textColorQuantization: settings.textColorQuantization,
       defaultTextColor: selectedColor,
       
       // Background color mapping
       enableBackgroundColorMapping: settings.enableBackgroundColorMapping,
       backgroundColorPalette: backgroundColorPalette,
       backgroundColorMappingMode: settings.backgroundColorMappingMode,
-      backgroundColorQuantization: settings.backgroundColorQuantization,
       
       // Legacy settings
       useOriginalColors: settings.useOriginalColors,
@@ -299,11 +297,9 @@ export function MediaImportPanel() {
     settings.enableTextColorMapping, 
     settings.textColorPaletteId,
     settings.textColorMappingMode,
-    settings.textColorQuantization,
     settings.enableBackgroundColorMapping,
     settings.backgroundColorPaletteId,
     settings.backgroundColorMappingMode,
-    settings.backgroundColorQuantization,
     settings.useOriginalColors,
     settings.colorQuantization,
     settings.paletteSize,
@@ -417,11 +413,9 @@ export function MediaImportPanel() {
     settings.enableTextColorMapping,
     settings.textColorPaletteId,
     settings.textColorMappingMode,
-    settings.textColorQuantization,
     settings.enableBackgroundColorMapping,
     settings.backgroundColorPaletteId,
     settings.backgroundColorMappingMode,
-    settings.backgroundColorQuantization,
     selectedColor,
     setCanvasData,
     positionCellsOnCanvas,

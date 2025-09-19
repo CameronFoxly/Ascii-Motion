@@ -47,6 +47,7 @@ interface PaletteStore {
   reorderColors: (paletteId: string, fromIndex: number, toIndex: number) => void;
   moveColorLeft: (paletteId: string, colorId: string) => void;
   moveColorRight: (paletteId: string, colorId: string) => void;
+  reversePalette: (paletteId: string) => void;
   
   // Palette management
   createCustomCopy: (paletteId: string) => string | null;
@@ -400,6 +401,32 @@ export const usePaletteStore = create<PaletteStore>()((set, get) => ({
         if (colorIndex === -1 || colorIndex >= palette.colors.length - 1) return;
 
         get().reorderColors(paletteId, colorIndex, colorIndex + 1);
+      },
+
+      reversePalette: (paletteId: string) => {
+        const { palettes, createCustomCopy } = get();
+        
+        // Check if this is a preset palette
+        const isPresetPalette = palettes.some(p => p.id === paletteId);
+        let targetPaletteId = paletteId;
+        
+        if (isPresetPalette) {
+          // Create custom copy first
+          const newPaletteId = createCustomCopy(paletteId);
+          if (!newPaletteId) return;
+          targetPaletteId = newPaletteId;
+        }
+
+        set(state => ({
+          customPalettes: state.customPalettes.map(palette => {
+            if (palette.id === targetPaletteId) {
+              const reversedColors = [...palette.colors].reverse();
+              return { ...palette, colors: reversedColors };
+            }
+            return palette;
+          }),
+          activePaletteId: targetPaletteId
+        }));
       },
 
       // Selection management

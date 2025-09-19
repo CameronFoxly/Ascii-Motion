@@ -1,16 +1,20 @@
 /**
  * BackgroundColorMappingSection - Collapsible section for background color palette mapping controls
  * 
- * Features:
+ * Enhanced Features:
  * - Collapsible header with enable/disable toggle
- * - Integrated color palette selector from main paletteStore
- * - Color quantization and mapping algorithm selection
- * - Consistent UI patterns following CharacterMappingSection and TextColorMappingSection
+ * - Full palette editing capabilities with color swatches
+ * - Inline color editing, reordering, adding/removing colors
+ * - Reverse palette order functionality
+ * - Integrated palette manager access
+ * - Import/export palette functionality
+ * - Consistent with main app palette component functionality
  */
 
 import { useState, useMemo } from 'react';
 import { Label } from '../ui/label';
 import { Card, CardContent } from '../ui/card';
+import { Button } from '../ui/button';
 import { 
   Select,
   SelectContent,
@@ -24,9 +28,29 @@ import {
 } from '../ui/collapsible';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
 import { Checkbox } from '../ui/checkbox';
-import { Square } from 'lucide-react';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../ui/tooltip';
+import { 
+  Square,
+  Settings,
+  Download,
+  Upload,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  X,
+  RotateCcw
+} from 'lucide-react';
 import { usePaletteStore } from '../../stores/paletteStore';
 import { useImportSettings } from '../../stores/importStore';
+import { ColorPickerOverlay } from './ColorPickerOverlay';
+import { ManagePalettesDialog } from './ManagePalettesDialog';
+import { ImportPaletteDialog } from './ImportPaletteDialog';
+import { ExportPaletteDialog } from './ExportPaletteDialog';
 
 interface BackgroundColorMappingSectionProps {
   onSettingsChange?: () => void;
@@ -34,24 +58,34 @@ interface BackgroundColorMappingSectionProps {
 
 export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundColorMappingSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [editingColorId, setEditingColorId] = useState<string | null>(null);
+  const [colorPickerInitialColor, setColorPickerInitialColor] = useState('#ffffff');
+  const [showManagePalettes, setShowManagePalettes] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
   
   // Import settings
   const { settings, updateSettings } = useImportSettings();
   const {
     enableBackgroundColorMapping,
     backgroundColorPaletteId,
-    backgroundColorMappingMode,
-    backgroundColorQuantization
+    backgroundColorMappingMode
   } = settings;
   
-  // Color palette store integration - access state directly to avoid infinite loops
+  // Color palette store integration
   const palettes = usePaletteStore(state => state.palettes);
   const customPalettes = usePaletteStore(state => state.customPalettes);
+  const updateColor = usePaletteStore(state => state.updateColor);
+  const reorderColors = usePaletteStore(state => state.reorderColors);
+  const addColor = usePaletteStore(state => state.addColor);
+  const removeColor = usePaletteStore(state => state.removeColor);
+  const reversePalette = usePaletteStore(state => state.reversePalette);
   
-  // Find currently selected palette (memoized to prevent infinite loops)
+  // Find currently selected palette
   const selectedPalette = useMemo(() => {
     const allPalettes = [...palettes, ...customPalettes];
-    return allPalettes.find(p => p.id === backgroundColorPaletteId);
+    return allPalettes.find(p => p.id === (backgroundColorPaletteId ?? ''));
   }, [palettes, customPalettes, backgroundColorPaletteId]);
   
   const handleToggleEnabled = (enabled: boolean) => {
@@ -68,154 +102,341 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
     updateSettings({ backgroundColorMappingMode: mode });
     onSettingsChange?.();
   };
-  
-  const handleQuantizationChange = (value: string) => {
-    const quantization = parseInt(value, 10);
-    updateSettings({ backgroundColorQuantization: quantization });
+
+  // Color palette editing handlers
+  const handleColorDoubleClick = (color: string) => {
+    if (!selectedPalette || selectedPalette.isPreset) return;
+    const colorObj = selectedPalette.colors.find(c => c.value === color);
+    if (colorObj) {
+      setEditingColorId(colorObj.id);
+      setColorPickerInitialColor(color);
+      setIsColorPickerOpen(true);
+    }
+  };
+
+  const handleColorPickerSelect = (newColor: string) => {
+    if (editingColorId && selectedPalette) {
+      updateColor(selectedPalette.id, editingColorId, newColor);
+      setEditingColorId(null);
+      onSettingsChange?.();
+    }
+  };
+
+  const handleMoveColorLeft = (colorIndex: number) => {
+    if (!selectedPalette || colorIndex <= 0 || selectedPalette.isPreset) return;
+    reorderColors(selectedPalette.id, colorIndex, colorIndex - 1);
+    onSettingsChange?.();
+  };
+
+  const handleMoveColorRight = (colorIndex: number) => {
+    if (!selectedPalette || colorIndex >= selectedPalette.colors.length - 1 || selectedPalette.isPreset) return;
+    reorderColors(selectedPalette.id, colorIndex, colorIndex + 1);
+    onSettingsChange?.();
+  };
+
+  const handleAddColor = () => {
+    if (!selectedPalette || selectedPalette.isPreset) return;
+    addColor(selectedPalette.id, '#ffffff');
+    onSettingsChange?.();
+  };
+
+  const handleRemoveColor = (colorId: string) => {
+    if (!selectedPalette || selectedPalette.colors.length <= 1 || selectedPalette.isPreset) return;
+    removeColor(selectedPalette.id, colorId);
+    onSettingsChange?.();
+  };
+
+  const handleReversePalette = () => {
+    if (!selectedPalette || selectedPalette.isPreset) return;
+    reversePalette(selectedPalette.id);
     onSettingsChange?.();
   };
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div className="flex items-center justify-between">
-        <CollapsibleHeader isOpen={isOpen}>
-          <div className="flex items-center gap-2">
-            <Square className="w-4 h-4 text-muted-foreground" />
-            <span>Background Color Mapping</span>
-          </div>
-        </CollapsibleHeader>
-        <div className="flex items-center space-x-2 pr-2">
-          <Checkbox
-            id="enable-background-color-mapping"
-            checked={enableBackgroundColorMapping}
-            onCheckedChange={handleToggleEnabled}
-          />
-          <Label htmlFor="enable-background-color-mapping" className="text-xs">
-            Enable
-          </Label>
-        </div>
-      </div>
-      
-      <CollapsibleContent className="collapsible-content">
-        <div className="space-y-3 w-full">
-          {!enableBackgroundColorMapping && (
-            <div className="p-3 border border-border/50 rounded-lg bg-muted/20">
-              <p className="text-xs text-muted-foreground text-center">
-                Background color mapping is disabled. Characters will use transparent backgrounds.
-              </p>
+    <TooltipProvider>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <div className="flex items-center justify-between">
+          <CollapsibleHeader isOpen={isOpen}>
+            <div className="flex items-center gap-2">
+              <Square className="w-4 h-4 text-muted-foreground" />
+              <span>Background Color Mapping</span>
             </div>
-          )}
-          
-          {enableBackgroundColorMapping && (
-            <Card className="bg-card/50 border-border/50 overflow-hidden w-full">
-              <CardContent className="p-3 space-y-3 w-full">
-                
-                {/* Header */}
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium">Background Color Palette</Label>
-                </div>
-                
-                {/* Color Palette Selector */}
-                <div className="space-y-2 w-full">
-                  <Label className="text-xs font-medium">Color Palette</Label>
-                  <div className="flex items-center gap-2 w-full">
-                    <div className="flex-1 min-w-0">
-                      <Select 
-                        value={backgroundColorPaletteId || ''} 
-                        onValueChange={handlePaletteChange}
-                        disabled={!enableBackgroundColorMapping}
-                      >
-                        <SelectTrigger className="h-8 text-xs w-full">
-                          <div className="truncate">
-                            <SelectValue placeholder="Select color palette" />
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent className="border-border/50">
-                          {/* Custom Palettes First */}
-                          {customPalettes.length > 0 && (
-                            <div>
-                              <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b border-border/30">
-                                Custom
-                              </div>
-                              {customPalettes.map(palette => (
-                                <SelectItem key={palette.id} value={palette.id} className="text-xs">
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <span className="truncate flex-1">{palette.name}</span>
-                                    <span className="text-muted-foreground flex-shrink-0">({palette.colors.length} colors)</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </div>
-                          )}
-                          
-                          {/* Preset Palettes */}
-                          {palettes.length > 0 && (
-                            <div>
-                              <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b border-border/30">
-                                Presets
-                              </div>
-                              {palettes.map((palette: any) => (
-                                <SelectItem key={palette.id} value={palette.id} className="text-xs">
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <span className="truncate flex-1">{palette.name}</span>
-                                    <span className="text-muted-foreground flex-shrink-0">({palette.colors.length} colors)</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </div>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
+          </CollapsibleHeader>
+          <div className="flex items-center space-x-2 pr-2">
+            <Checkbox
+              id="enable-background-color-mapping"
+              checked={enableBackgroundColorMapping}
+              onCheckedChange={handleToggleEnabled}
+            />
+            <Label htmlFor="enable-background-color-mapping" className="text-xs">
+              Enable
+            </Label>
+          </div>
+        </div>
+        
+        <CollapsibleContent className="collapsible-content">
+          <div className="space-y-3 w-full">
+            {!enableBackgroundColorMapping && (
+              <div className="p-3 border border-border/50 rounded-lg bg-muted/20">
+                <p className="text-xs text-muted-foreground text-center">
+                  Background color mapping is disabled. Characters will use transparent backgrounds.
+                </p>
+              </div>
+            )}
+            
+            {enableBackgroundColorMapping && (
+              <Card className="bg-card/50 border-border/50 overflow-hidden w-full">
+                <CardContent className="p-3 space-y-3 w-full">
+                  
+                  {/* Header */}
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm font-medium">Background Color Palette</Label>
                   </div>
-                </div>
-                
-                {/* Selected Palette Preview */}
-                {selectedPalette && (
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium">Preview ({selectedPalette.colors.length} colors)</Label>
-                    <div className="bg-background/50 border border-border rounded p-2 min-h-[40px]">
-                      <div className="flex flex-wrap gap-1">
-                        {selectedPalette.colors.slice(0, backgroundColorQuantization).map((color) => (
-                          <div
-                            key={color.id}
-                            className="w-6 h-6 border border-border/50 rounded flex-shrink-0"
-                            style={{ backgroundColor: color.value }}
-                            title={color.name || color.value}
-                          />
-                        ))}
-                        {selectedPalette.colors.length > backgroundColorQuantization && (
-                          <div className="flex items-center justify-center w-6 h-6 border border-border/50 rounded text-xs text-muted-foreground bg-muted/50">
-                            +{selectedPalette.colors.length - backgroundColorQuantization}
-                          </div>
-                        )}
+                  
+                  {/* Color Palette Selector */}
+                  <div className="space-y-2 w-full">
+                    <Label className="text-xs font-medium">Color Palette</Label>
+                    <div className="flex items-center gap-2 w-full">
+                      <div className="flex-1 min-w-0">
+                        <Select 
+                          value={backgroundColorPaletteId || ''} 
+                          onValueChange={handlePaletteChange}
+                          disabled={!enableBackgroundColorMapping}
+                        >
+                          <SelectTrigger className="h-8 text-xs w-full">
+                            <div className="truncate">
+                              <SelectValue placeholder="Select color palette" />
+                            </div>
+                          </SelectTrigger>
+                          <SelectContent className="border-border/50">
+                            {/* Custom Palettes First */}
+                            {customPalettes.length > 0 && (
+                              <div>
+                                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b border-border/30">
+                                  Custom
+                                </div>
+                                {customPalettes.map(palette => (
+                                  <SelectItem key={palette.id} value={palette.id} className="text-xs">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <span className="truncate flex-1">{palette.name}</span>
+                                      <span className="text-muted-foreground flex-shrink-0">({palette.colors.length} colors)</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {/* Preset Palettes */}
+                            {palettes.length > 0 && (
+                              <div>
+                                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b border-border/30">
+                                  Presets
+                                </div>
+                                {palettes.map((palette: any) => (
+                                  <SelectItem key={palette.id} value={palette.id} className="text-xs">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <span className="truncate flex-1">{palette.name}</span>
+                                      <span className="text-muted-foreground flex-shrink-0">({palette.colors.length} colors)</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </div>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {/* Palette Management Controls */}
+                      <div className="flex items-center gap-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => setShowManagePalettes(true)}
+                            >
+                              <Settings className="h-3 w-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Manage Palettes</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => setShowImportDialog(true)}
+                            >
+                              <Upload className="h-3 w-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Import Palette</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => setShowExportDialog(true)}
+                              disabled={!selectedPalette}
+                            >
+                              <Download className="h-3 w-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Export Palette</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     </div>
                   </div>
-                )}
-                
-                {/* Mapping Controls */}
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Color Quantization */}
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium">Colors to Use</Label>
-                    <Select 
-                      value={backgroundColorQuantization.toString()} 
-                      onValueChange={handleQuantizationChange}
-                      disabled={!enableBackgroundColorMapping}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="4">4 colors</SelectItem>
-                        <SelectItem value="8">8 colors</SelectItem>
-                        <SelectItem value="16">16 colors</SelectItem>
-                        <SelectItem value="32">32 colors</SelectItem>
-                        <SelectItem value="64">64 colors</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+
+                  {/* Color Swatches Grid */}
+                  {selectedPalette && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-medium">
+                          Colors ({selectedPalette.colors.length})
+                        </Label>
+                        <div className="flex items-center gap-1">
+                          {!selectedPalette.isPreset && (
+                            <>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={handleReversePalette}
+                                  >
+                                    <RotateCcw className="h-3 w-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Reverse palette order</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={handleAddColor}
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Add color</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="bg-background/50 border border-border rounded p-2">
+                        <div className="grid grid-cols-8 gap-1">
+                          {selectedPalette.colors.map((color, colorIndex) => (
+                            <div key={`${color.id}-${colorIndex}`} className="relative group">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div
+                                    className={`w-8 h-8 border border-border/50 rounded cursor-pointer transition-all ${
+                                      !selectedPalette.isPreset ? 'hover:scale-110 hover:border-primary' : ''
+                                    }`}
+                                    style={{ backgroundColor: color.value }}
+                                    onDoubleClick={() => handleColorDoubleClick(color.value)}
+                                  />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{color.name || color.value}</p>
+                                  {!selectedPalette.isPreset && <p className="text-xs">Click to edit</p>}
+                                </TooltipContent>
+                              </Tooltip>
+                              
+                              {/* Color Control Buttons */}
+                              {!selectedPalette.isPreset && (
+                                <div className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-4 w-4 p-0 bg-background border-border/50"
+                                        onClick={() => handleMoveColorLeft(colorIndex)}
+                                        disabled={colorIndex === 0}
+                                      >
+                                        <ChevronLeft className="h-2 w-2" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Move left</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-4 w-4 p-0 bg-background border-border/50"
+                                        onClick={() => handleMoveColorRight(colorIndex)}
+                                        disabled={colorIndex === selectedPalette.colors.length - 1}
+                                      >
+                                        <ChevronRight className="h-2 w-2" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Move right</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                              )}
+                              
+                              {/* Remove Button */}
+                              {!selectedPalette.isPreset && selectedPalette.colors.length > 1 && (
+                                <div className="absolute -bottom-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-4 w-4 p-0 bg-background border-border/50 hover:bg-destructive hover:text-destructive-foreground"
+                                        onClick={() => handleRemoveColor(color.id)}
+                                      >
+                                        <X className="h-2 w-2" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Remove color</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {selectedPalette.isPreset && (
+                        <p className="text-xs text-muted-foreground">
+                          This is a preset palette. Create a custom palette to edit colors.
+                        </p>
+                      )}
+                    </div>
+                  )}
                   
                   {/* Mapping Algorithm */}
                   <div className="space-y-2">
@@ -234,18 +455,44 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-                
-                {/* Help Text */}
-                <div className="text-xs text-muted-foreground bg-muted/20 p-2 rounded">
-                  <p>Maps image colors to the selected palette for ASCII character backgrounds. Creates colorful pixel art effects.</p>
-                </div>
-                
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
+                  
+                  {/* Help Text */}
+                  <div className="text-xs text-muted-foreground bg-muted/20 p-2 rounded">
+                    <p>Maps image colors to the selected palette for ASCII character backgrounds. All colors in the palette will be used for mapping.</p>
+                  </div>
+                  
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Color Picker Overlay */}
+      <ColorPickerOverlay
+        isOpen={isColorPickerOpen}
+        onOpenChange={setIsColorPickerOpen}
+        initialColor={colorPickerInitialColor}
+        onColorSelect={handleColorPickerSelect}
+        title="Edit Color"
+      />
+
+      {/* Palette Management Dialog */}
+      <ManagePalettesDialog
+        isOpen={showManagePalettes}
+        onOpenChange={setShowManagePalettes}
+      />
+
+      {/* Import/Export Dialogs */}
+      <ImportPaletteDialog
+        isOpen={showImportDialog}
+        onOpenChange={setShowImportDialog}
+      />
+
+      <ExportPaletteDialog
+        isOpen={showExportDialog}
+        onOpenChange={setShowExportDialog}
+      />
+    </TooltipProvider>
   );
 }
