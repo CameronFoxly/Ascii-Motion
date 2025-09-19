@@ -12,7 +12,7 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent } from '../ui/card';
 import { Input } from '../ui/input';
 import { 
   Select,
@@ -28,12 +28,8 @@ import {
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
 import { 
   Type, 
-  RotateCcw,
-  Edit3,
-  Copy,
   Plus,
   Trash2,
-  Save,
   X,
   GripVertical,
   ArrowUpDown,
@@ -45,7 +41,7 @@ import { ManageCharacterPalettesDialog } from './ManageCharacterPalettesDialog';
 import { 
   useCharacterPaletteStore 
 } from '../../stores/characterPaletteStore';
-import { MAPPING_ALGORITHMS } from '../../utils/asciiConverter';
+
 
 interface CharacterMappingSectionProps {
   onSettingsChange?: () => void; // Callback for triggering preview updates
@@ -54,7 +50,7 @@ interface CharacterMappingSectionProps {
 export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSectionProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [newCharacterInput, setNewCharacterInput] = useState('');
-  const [editingName, setEditingName] = useState('');
+
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
@@ -67,19 +63,16 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
   const allPalettes = useMemo(() => [...availablePalettes, ...customPalettes], [availablePalettes, customPalettes]);
   const activePalette = useCharacterPaletteStore(state => state.activePalette);
   const setActivePalette = useCharacterPaletteStore(state => state.setActivePalette);
-  const mappingMethod = useCharacterPaletteStore(state => state.mappingMethod);
-  const setMappingMethod = useCharacterPaletteStore(state => state.setMappingMethod);
-  const isEditing = useCharacterPaletteStore(state => state.isEditing);
-  const editingPaletteId = useCharacterPaletteStore(state => state.editingPaletteId);
+
+
   const startEditing = useCharacterPaletteStore(state => state.startEditing);
-  const stopEditing = useCharacterPaletteStore(state => state.stopEditing);
   const addCharacterToPalette = useCharacterPaletteStore(state => state.addCharacterToPalette);
   const removeCharacterFromPalette = useCharacterPaletteStore(state => state.removeCharacterFromPalette);
   const reorderCharactersInPalette = useCharacterPaletteStore(state => state.reorderCharactersInPalette);
+
   const updateCustomPalette = useCharacterPaletteStore(state => state.updateCustomPalette);
   const createCustomPalette = useCharacterPaletteStore(state => state.createCustomPalette);
-  const duplicatePalette = useCharacterPaletteStore(state => state.duplicatePalette);
-  const deleteCustomPalette = useCharacterPaletteStore(state => state.deleteCustomPalette);
+
 
   // Handle palette selection
   const handlePaletteChange = (paletteId: string) => {
@@ -90,12 +83,6 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
       // reset selected index when switching palettes
       setSelectedIndex(null);
     }
-  };
-
-  // Handle mapping method change
-  const handleMappingMethodChange = (method: string) => {
-    setMappingMethod(method as keyof typeof MAPPING_ALGORITHMS);
-    onSettingsChange?.();
   };
 
   // Handle reverse character order
@@ -143,42 +130,10 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
     addCharInputRef.current?.focus();
   };
 
-  // Reset to defaults
-  const handleResetToDefaults = () => {
-    const minimalPalette = allPalettes.find(p => p.id === 'minimal-ascii');
-    if (minimalPalette) {
-      setActivePalette(minimalPalette);
-    }
-    setMappingMethod('brightness');
-    onSettingsChange?.();
-  };
+
 
   // Character editing handlers
-  const handleStartEditing = () => {
-    if (!activePalette.isCustom) {
-      // Create a copy of preset palette for editing
-      const duplicated = duplicatePalette(activePalette.id, `${activePalette.name} (Custom)`);
-      setActivePalette(duplicated);
-      startEditing(duplicated.id);
-      setEditingName(duplicated.name);
-    } else {
-      startEditing(activePalette.id);
-      setEditingName(activePalette.name);
-    }
-  };
 
-  const handleSaveEditing = () => {
-    if (editingPaletteId && editingName.trim()) {
-      updateCustomPalette(editingPaletteId, { name: editingName.trim() });
-      onSettingsChange?.();
-    }
-    stopEditing();
-  };
-
-  const handleCancelEditing = () => {
-    stopEditing();
-    setEditingName('');
-  };
 
   const handleAddCharacter = () => {
     if (newCharacterInput.trim() && activePalette.isCustom) {
@@ -249,153 +204,73 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
       
       <CollapsibleContent className="collapsible-content">
         <div className="space-y-3 w-full">
+          {/* Character Palette Editor */}
           <Card className="bg-card/50 border-border/50 overflow-hidden w-full">
             <CardContent className="p-3 space-y-3 w-full">
               
-              {/* Header with Reset Button */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium">Settings</Label>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleResetToDefaults}
-                  className="h-6 w-6 p-0"
-                  title="Reset to defaults"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                </Button>
+              {/* Header */}
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-medium">Character Palette Editor</Label>
               </div>
-
               {/* Character Palette Selector */}
               <div className="space-y-2 w-full">
                 <Label className="text-xs font-medium">Character Palette</Label>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1">
+                <div className="flex items-center gap-2 w-full">
+                  <div className="flex-1 min-w-0 max-w-[calc(100%-80px)]">
                     <Select value={activePalette.id} onValueChange={handlePaletteChange}>
                       <SelectTrigger className="h-8 text-xs w-full">
-                        <SelectValue placeholder="Select character palette" />
+                        <div className="truncate">
+                          <SelectValue placeholder="Select character palette" />
+                        </div>
                       </SelectTrigger>
-                      <SelectContent className="w-full">
-                        {/* Group by category */}
-                        {['ascii', 'blocks', 'unicode', 'custom'].map(category => {
-                          const categoryPalettes = allPalettes.filter(p => p.category === category);
-                          if (categoryPalettes.length === 0) return null;
-                          
-                          return (
-                            <div key={category}>
-                              <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground capitalize border-b">
-                                {category === 'ascii' ? 'ASCII' : category === 'unicode' ? 'Unicode' : category.charAt(0).toUpperCase() + category.slice(1)}
-                              </div>
-                              {categoryPalettes.map(palette => (
-                                <SelectItem key={palette.id} value={palette.id} className="text-xs">
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <span className="truncate flex-1">{palette.name}</span>
-                                    <span className="text-muted-foreground flex-shrink-0">({palette.characters.length} chars)</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
+                      <SelectContent className="border-border/50">
+                        {/* Custom Palettes First */}
+                        {customPalettes.length > 0 && (
+                          <div>
+                            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b border-border/30">
+                              Custom
                             </div>
-                          );
-                        })}
+                            {customPalettes.map(palette => (
+                              <SelectItem key={palette.id} value={palette.id} className="text-xs">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="truncate flex-1">{palette.name}</span>
+                                  <span className="text-muted-foreground flex-shrink-0">({palette.characters.length} chars)</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Preset Palettes */}
+                        {availablePalettes.length > 0 && (
+                          <div>
+                            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b border-border/30">
+                              Presets
+                            </div>
+                            {availablePalettes.map(palette => (
+                              <SelectItem key={palette.id} value={palette.id} className="text-xs">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="truncate flex-1">{palette.name}</span>
+                                  <span className="text-muted-foreground flex-shrink-0">({palette.characters.length} chars)</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => { const p = createCustomPalette('New Palette', [' ']); setActivePalette(p); startEditing(p.id); setSelectedIndex(0);}} title="Create palette">
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <Button size="sm" variant="outline" className="h-8 w-8 p-0 flex-shrink-0" onClick={() => { const p = createCustomPalette('New Palette', [' ']); setActivePalette(p); startEditing(p.id); setSelectedIndex(0);}} title="Create palette">
                       <Plus className="w-3 h-3" />
                     </Button>
-                    <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => setIsManagePalettesOpen(true)} title="Manage palettes">
+                    <Button size="sm" variant="outline" className="h-8 w-8 p-0 flex-shrink-0" onClick={() => setIsManagePalettesOpen(true)} title="Manage palettes">
                       <Settings className="w-3 h-3" />
                     </Button>
                   </div>
                 </div>
               </div>
-
-              {/* Mapping Algorithm */}
-              <div className="space-y-2 w-full">
-                <Label className="text-xs font-medium">Mapping Algorithm</Label>
-                <Select value={mappingMethod} onValueChange={handleMappingMethodChange}>
-                  <SelectTrigger className="h-8 text-xs w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="w-full">
-                    {Object.entries(MAPPING_ALGORITHMS).map(([key, algorithm]) => (
-                      <SelectItem key={key} value={key} className="text-xs">
-                        <div className="space-y-1 min-w-0">
-                          <div className="font-medium capitalize truncate">{algorithm.name.replace('-', ' ')}</div>
-                          <div className="text-muted-foreground text-xs break-words">{algorithm.description}</div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-            </CardContent>
-          </Card>
-
-          {/* Character Palette Editor */}
-          <Card className="bg-card/50 border-border/50 overflow-hidden w-full">
-            <CardHeader className="pb-2 w-full">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Type className="w-4 h-4 text-muted-foreground" />
-                  <CardTitle className="text-sm">
-                    {isEditing && editingPaletteId === activePalette.id ? (
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          className="h-6 text-sm font-medium"
-                          placeholder="Palette name"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleSaveEditing();
-                            if (e.key === 'Escape') handleCancelEditing();
-                          }}
-                        />
-                        <Button variant="ghost" size="sm" onClick={handleSaveEditing} className="h-6 w-6 p-0">
-                          <Save className="w-3 h-3" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={handleCancelEditing} className="h-6 w-6 p-0">
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span>Character Palette Editor</span>
-                      </div>
-                    )}
-                  </CardTitle>
-                </div>
-                <div className="flex items-center gap-1">
-                  {!isEditing ? (
-                    <>
-                      <Button variant="ghost" size="sm" onClick={handleStartEditing} className="h-6 w-6 p-0" title="Edit palette">
-                        <Edit3 className="w-3 h-3" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => duplicatePalette(activePalette.id)} className="h-6 w-6 p-0" title="Duplicate palette">
-                        <Copy className="w-3 h-3" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => createCustomPalette('New Palette', ['.', ':', ';', '+', '*', '#', '@'])} className="h-6 w-6 p-0" title="Create new palette">
-                        <Plus className="w-3 h-3" />
-                      </Button>
-                      {activePalette.isCustom && (
-                        <Button variant="ghost" size="sm" onClick={() => deleteCustomPalette(activePalette.id)} className="h-6 w-6 p-0 text-destructive" title="Delete palette">
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="sm" onClick={handleReverseOrder} className="h-6 w-6 p-0" title="Reverse character order" disabled={!activePalette.isCustom}>
-                        <ArrowUpDown className="w-3 h-3" />
-                      </Button>
-                    </>
-                  ) : null}
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="pt-0 space-y-3 w-full">
+              
               {/* Character Grid */}
               <div className="space-y-2 w-full">
                 <Label className="text-xs font-medium">Characters ({activePalette.characters.length})</Label>

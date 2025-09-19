@@ -52,6 +52,7 @@ import { useAnimationStore } from '../../stores/animationStore';
 import { usePreviewStore } from '../../stores/previewStore';
 import { useCharacterPaletteStore } from '../../stores/characterPaletteStore';
 import { CharacterMappingSection } from './CharacterMappingSection';
+import { PreprocessingSection } from './PreprocessingSection';
 import type { MediaFile } from '../../utils/mediaProcessor';
 import type { Cell } from '../../types';
 
@@ -908,6 +909,12 @@ export function MediaImportPanel() {
                   </div>
                 </CollapsibleContent>
               </Collapsible>
+
+              {/* Pre-processing Section */}
+              <div className="space-y-3">
+                <Separator />
+                <PreprocessingSection onSettingsChange={() => setLivePreviewEnabled(true)} />
+              </div>
 
               {/* Character Mapping Section */}
               <div className="space-y-3">
