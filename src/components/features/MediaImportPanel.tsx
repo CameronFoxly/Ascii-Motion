@@ -36,7 +36,12 @@ import {
   ChevronsRight,
   Link,
   Eye,
-  Move3D
+  Move3D,
+  ArrowUp,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  RotateCcw
 } from 'lucide-react';
 import { 
   useImportModal, 
@@ -198,10 +203,11 @@ export function MediaImportPanel() {
         offsetX = canvasWidth - imageWidth;
         offsetY = canvasHeight - imageHeight;
         break;
-      default:
-        offsetX = 0;
-        offsetY = 0;
     }
+    
+    // Apply nudge adjustments
+    offsetX += settings.nudgeX;
+    offsetY += settings.nudgeY;
     
 
     
@@ -239,7 +245,7 @@ export function MediaImportPanel() {
 
     
     return positionedCells;
-  }, [canvasWidth, canvasHeight, settings.cropMode]);
+  }, [canvasWidth, canvasHeight, settings.cropMode, settings.nudgeX, settings.nudgeY]);
 
   // Auto-process file when settings change
   useEffect(() => {
@@ -903,6 +909,78 @@ export function MediaImportPanel() {
                               </Button>
                             );
                           })}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Nudge Controls */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium">Nudge</Label>
+                      <div className="flex justify-center gap-3">
+                        <div className="grid grid-cols-3 gap-[3px]">
+                          {/* Top row */}
+                          <div></div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateSettings({ nudgeY: settings.nudgeY - 1 })}
+                            className="h-6 w-6 p-0"
+                            title="Nudge up"
+                          >
+                            <ArrowUp className="w-3 h-3" />
+                          </Button>
+                          <div></div>
+                          
+                          {/* Middle row */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateSettings({ nudgeX: settings.nudgeX - 1 })}
+                            className="h-6 w-6 p-0"
+                            title="Nudge left"
+                          >
+                            <ArrowLeft className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateSettings({ nudgeX: 0, nudgeY: 0 })}
+                            className="h-6 w-6 p-0"
+                            title="Reset nudge"
+                            disabled={settings.nudgeX === 0 && settings.nudgeY === 0}
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateSettings({ nudgeX: settings.nudgeX + 1 })}
+                            className="h-6 w-6 p-0"
+                            title="Nudge right"
+                          >
+                            <ArrowRight className="w-3 h-3" />
+                          </Button>
+                          
+                          {/* Bottom row */}
+                          <div></div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateSettings({ nudgeY: settings.nudgeY + 1 })}
+                            className="h-6 w-6 p-0"
+                            title="Nudge down"
+                          >
+                            <ArrowDown className="w-3 h-3" />
+                          </Button>
+                          <div></div>
+                        </div>
+                        
+                        {/* Nudge values display */}
+                        <div className="flex flex-col justify-center items-center min-w-[4rem]">
+                          <div className="text-xs text-muted-foreground">Offset</div>
+                          <div className="text-xs font-mono">
+                            {settings.nudgeX >= 0 ? '+' : ''}{settings.nudgeX}, {settings.nudgeY >= 0 ? '+' : ''}{settings.nudgeY}
+                          </div>
                         </div>
                       </div>
                     </div>

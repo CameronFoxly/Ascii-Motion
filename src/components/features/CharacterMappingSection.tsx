@@ -36,12 +36,13 @@ import {
   ArrowLeft,
   ArrowRight,
   Settings,
-  Palette
+  Palette,
+  Edit
 } from 'lucide-react';
 import { ManageCharacterPalettesDialog } from './ManageCharacterPalettesDialog';
 import { CharacterPicker } from './CharacterPicker';
 import { 
-  useCharacterPaletteStore 
+  useCharacterPaletteStore
 } from '../../stores/characterPaletteStore';
 import type { CharacterPalette } from '../../types/palette';
 
@@ -59,8 +60,12 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
   const [isManagePalettesOpen, setIsManagePalettesOpen] = useState(false);
   const [isCharacterPickerOpen, setIsCharacterPickerOpen] = useState(false);
+  const [pickerTriggerSource, setPickerTriggerSource] = useState<'edit-button' | 'palette-icon'>('palette-icon');
+  const [editingCharacterIndex, setEditingCharacterIndex] = useState<number | null>(null);
   const addCharInputRef = React.useRef<HTMLInputElement | null>(null);
   const characterPickerTriggerRef = React.useRef<HTMLButtonElement>(null);
+  const editButtonRef = React.useRef<HTMLButtonElement>(null);
+  const paletteContainerRef = React.useRef<HTMLDivElement>(null);
 
   // Character palette store access
   const availablePalettes = useCharacterPaletteStore(state => state.availablePalettes);
@@ -133,9 +138,14 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
     onSettingsChange?.();
   };
   
-  const handleAddButton = () => {
-    // focus the add character input so user can type a new character
-    addCharInputRef.current?.focus();
+  const handleEditCharacters = () => {
+    // Only allow editing if a character is selected
+    if (selectedIndex === null) return;
+    
+    // Open character picker in edit mode
+    setPickerTriggerSource('edit-button');
+    setEditingCharacterIndex(selectedIndex);
+    setIsCharacterPickerOpen(true);
   };
 
 
@@ -156,9 +166,22 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
   };
 
   const handleCharacterSelect = (character: string) => {
-    if (!activePalette.characters.includes(character)) {
-      setNewCharacterInput(character);
-      addCharInputRef.current?.focus();
+    if (pickerTriggerSource === 'edit-button' && editingCharacterIndex !== null) {
+      // Edit mode: replace the character at the selected index
+      const targetPalette = ensureCustomPalette();
+      const newCharacters = [...targetPalette.characters];
+      newCharacters[editingCharacterIndex] = character;
+      
+      updateCustomPalette(targetPalette.id, { characters: newCharacters });
+      setEditingCharacterIndex(null);
+      setIsCharacterPickerOpen(false);
+      onSettingsChange?.();
+    } else {
+      // Add mode: add to input field
+      if (!activePalette.characters.includes(character)) {
+        setNewCharacterInput(character);
+        addCharInputRef.current?.focus();
+      }
     }
   };
 
@@ -302,7 +325,7 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
               </div>
               
               {/* Character Grid */}
-              <div className="space-y-2 w-full">
+              <div className="space-y-2 w-full" ref={paletteContainerRef}>
                 <Label className="text-xs font-medium">Characters ({activePalette.characters.length})</Label>
                 <div className="bg-background/50 border border-border rounded p-2 min-h-[60px] overflow-auto w-full" onDragLeave={handleDragLeave}>
                   <div className="flex flex-wrap gap-1 relative max-w-full">
@@ -370,8 +393,8 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                       <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleMoveSelectedRight} disabled={selectedIndex === null || selectedIndex === activePalette.characters.length - 1} title="Move right">
                         <ArrowRight className="w-3 h-3" />
                       </Button>
-                      <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleAddButton} title="Add character">
-                        <Plus className="w-3 h-3" />
+                      <Button ref={editButtonRef} size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleEditCharacters} title="Edit character">
+                        <Edit className="w-3 h-3" />
                       </Button>
                       <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-destructive" onClick={handleDeleteSelected} disabled={selectedIndex === null} title="Delete character">
                         <Trash2 className="w-3 h-3" />
@@ -392,7 +415,8 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                     isOpen={isCharacterPickerOpen}
                     onClose={() => setIsCharacterPickerOpen(false)}
                     onSelectCharacter={handleCharacterSelect}
-                    triggerRef={characterPickerTriggerRef}
+                    triggerRef={pickerTriggerSource === 'edit-button' ? editButtonRef : characterPickerTriggerRef}
+                    anchorPosition={pickerTriggerSource === 'edit-button' ? 'left-bottom-aligned' : 'left-bottom'}
                   />
 
                 </div>
@@ -402,36 +426,47 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
               <div className="space-y-2 w-full">
                 <Label className="text-xs font-medium">Add Character</Label>
                 <div className="flex gap-2 w-full relative">
-                  <Input
-                    ref={(el) => { addCharInputRef.current = el; }}
-                    value={newCharacterInput}
-                    onChange={(e) => setNewCharacterInput(e.target.value)}
-                    placeholder="Enter character"
-                    className="h-8 text-xs font-mono flex-1 min-w-0"
-                    maxLength={1}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleAddCharacter();
-                    }}
-                  />
                   <Button
                     ref={characterPickerTriggerRef}
                     variant="outline"
                     size="sm"
-                    onClick={() => setIsCharacterPickerOpen(!isCharacterPickerOpen)}
+                    onClick={() => {
+                      if (isCharacterPickerOpen && pickerTriggerSource === 'palette-icon') {
+                        // If already open from palette button, close it
+                        setIsCharacterPickerOpen(false);
+                      } else {
+                        // Open it from palette button
+                        setPickerTriggerSource('palette-icon');
+                        setIsCharacterPickerOpen(true);
+                      }
+                    }}
                     className="h-8 w-8 p-0 flex-shrink-0"
                     title="Character picker"
                   >
                     <Palette className="w-3 h-3" />
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddCharacter}
-                    disabled={!newCharacterInput.trim() || activePalette.characters.includes(newCharacterInput.trim()[0])}
-                    className="h-8 px-3 flex-shrink-0"
-                  >
-                    <Plus className="w-3 h-3" />
-                  </Button>
+                  <div className="flex flex-1 min-w-0">
+                    <Input
+                      ref={(el) => { addCharInputRef.current = el; }}
+                      value={newCharacterInput}
+                      onChange={(e) => setNewCharacterInput(e.target.value)}
+                      placeholder="Enter character"
+                      className="h-8 text-xs font-mono flex-1 min-w-0 rounded-r-none border-r-0"
+                      maxLength={1}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleAddCharacter();
+                      }}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddCharacter}
+                      disabled={!newCharacterInput.trim() || activePalette.characters.includes(newCharacterInput.trim()[0])}
+                      className="h-8 px-3 flex-shrink-0 rounded-l-none"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </Button>
+                  </div>
                 </div>
               </div>
 

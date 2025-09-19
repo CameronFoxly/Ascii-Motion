@@ -50,6 +50,10 @@ export interface ImportSettings {
   maintainAspectRatio: boolean;
   cropMode: 'center' | 'top' | 'bottom' | 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   
+  // Nudge controls - fine positioning adjustments
+  nudgeX: number;          // Horizontal nudge offset in characters
+  nudgeY: number;          // Vertical nudge offset in characters
+  
   // Character selection settings (Phase 4.2 - Session 2)
   characterSet: string[];   // Selected ASCII characters for mapping
   characterMappingMode: 'brightness' | 'edge' | 'custom';
@@ -84,6 +88,10 @@ const DEFAULT_IMPORT_SETTINGS: ImportSettings = {
   characterHeight: 24,
   maintainAspectRatio: true,
   cropMode: 'center',
+  
+  // Nudge controls
+  nudgeX: 0,
+  nudgeY: 0,
   
   // Character selection (simplified for Session 1)
   characterSet: [' ', '.', ':', ';', 'o', 'O', '#', '@'], // Basic brightness mapping
