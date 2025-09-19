@@ -57,6 +57,7 @@ import { useAnimationStore } from '../../stores/animationStore';
 import { usePreviewStore } from '../../stores/previewStore';
 import { useCharacterPaletteStore } from '../../stores/characterPaletteStore';
 import { usePaletteStore } from '../../stores/paletteStore';
+import { useToolStore } from '../../stores/toolStore';
 import { CharacterMappingSection } from './CharacterMappingSection';
 import { TextColorMappingSection } from './TextColorMappingSection';
 import { BackgroundColorMappingSection } from './BackgroundColorMappingSection';
@@ -76,6 +77,9 @@ export function MediaImportPanel() {
   const mappingMethod = useCharacterPaletteStore(state => state.mappingMethod);
   const invertDensity = useCharacterPaletteStore(state => state.invertDensity);
   const characterSpacing = useCharacterPaletteStore(state => state.characterSpacing);
+  
+  // Tool store integration for default colors
+  const selectedColor = useToolStore(state => state.selectedColor);
   
   // Canvas and animation stores
   const canvasWidth = useCanvasStore(state => state.width);
@@ -273,6 +277,7 @@ export function MediaImportPanel() {
       textColorPalette: textColorPalette,
       textColorMappingMode: settings.textColorMappingMode,
       textColorQuantization: settings.textColorQuantization,
+      defaultTextColor: selectedColor,
       
       // Background color mapping
       enableBackgroundColorMapping: settings.enableBackgroundColorMapping,
@@ -306,7 +311,8 @@ export function MediaImportPanel() {
     settings.brightness,
     activePalette,
     mappingMethod,
-    invertDensity
+    invertDensity,
+    selectedColor
   ]);
 
   // Auto-process file when settings change
@@ -416,6 +422,7 @@ export function MediaImportPanel() {
     settings.backgroundColorPaletteId,
     settings.backgroundColorMappingMode,
     settings.backgroundColorQuantization,
+    selectedColor,
     setCanvasData,
     positionCellsOnCanvas,
     startPreview

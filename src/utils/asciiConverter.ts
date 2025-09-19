@@ -29,6 +29,7 @@ export interface ConversionSettings {
   textColorPalette: string[]; // Array of hex colors from selected palette
   textColorMappingMode: 'closest' | 'dithering';
   textColorQuantization: number;
+  defaultTextColor: string; // Default color when text color mapping is disabled
   
   // Background color mapping - NEW
   enableBackgroundColorMapping: boolean;
@@ -298,15 +299,19 @@ export class ASCIIConverter {
           } else {
             color = ColorMatcher.findClosestColor(adjustedR, adjustedG, adjustedB, settings.textColorPalette);
           }
+        } else if (!settings.enableTextColorMapping) {
+          // Use default text color when text color mapping is explicitly disabled
+          color = settings.defaultTextColor;
         } else if (settings.useOriginalColors) {
-          // Legacy color handling
+          // Legacy color handling (only when text color mapping is not explicitly controlled)
           if (settings.colorQuantization === 'none') {
             color = ColorMatcher.rgbToHex(r, g, b);
           } else {
             color = this.quantizeColor(r, g, b, quantizedColors);
           }
         } else {
-          color = '#ffffff'; // Default white for simple ASCII
+          // Fallback to default text color
+          color = settings.defaultTextColor;
         }
         
         // Determine background color
