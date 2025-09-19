@@ -36,8 +36,12 @@ import {
   Save,
   X,
   GripVertical,
-  ArrowUpDown
+  ArrowUpDown,
+  ArrowLeft,
+  ArrowRight,
+  Settings
 } from 'lucide-react';
+import { ManageCharacterPalettesDialog } from './ManageCharacterPalettesDialog';
 import { 
   useCharacterPaletteStore 
 } from '../../stores/characterPaletteStore';
@@ -51,8 +55,11 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
   const [isOpen, setIsOpen] = useState(true);
   const [newCharacterInput, setNewCharacterInput] = useState('');
   const [editingName, setEditingName] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
+  const [isManagePalettesOpen, setIsManagePalettesOpen] = useState(false);
+  const addCharInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Character palette store access
   const availablePalettes = useCharacterPaletteStore(state => state.availablePalettes);
@@ -80,6 +87,8 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
     if (selectedPalette) {
       setActivePalette(selectedPalette);
       onSettingsChange?.();
+      // reset selected index when switching palettes
+      setSelectedIndex(null);
     }
   };
 
@@ -95,7 +104,43 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
       const reversedCharacters = [...activePalette.characters].reverse();
       updateCustomPalette(activePalette.id, { characters: reversedCharacters });
       onSettingsChange?.();
+      if (selectedIndex !== null) {
+        setSelectedIndex(activePalette.characters.length - 1 - selectedIndex);
+      }
     }
+  };
+
+  const handleSelectCharacter = (index: number) => {
+    setSelectedIndex(index === selectedIndex ? null : index);
+  };
+  
+  const handleMoveSelectedLeft = () => {
+    if (selectedIndex === null || !activePalette.isCustom) return;
+    if (selectedIndex <= 0) return;
+    reorderCharactersInPalette(activePalette.id, selectedIndex, selectedIndex - 1);
+    setSelectedIndex(selectedIndex - 1);
+    onSettingsChange?.();
+  };
+  
+  const handleMoveSelectedRight = () => {
+    if (selectedIndex === null || !activePalette.isCustom) return;
+    if (selectedIndex >= activePalette.characters.length - 1) return;
+    reorderCharactersInPalette(activePalette.id, selectedIndex, selectedIndex + 1);
+    setSelectedIndex(selectedIndex + 1);
+    onSettingsChange?.();
+  };
+  
+  const handleDeleteSelected = () => {
+    if (selectedIndex === null || !activePalette.isCustom) return;
+    removeCharacterFromPalette(activePalette.id, selectedIndex);
+    const newIndex = Math.max(0, selectedIndex - 1);
+    setSelectedIndex(activePalette.characters.length > 1 ? newIndex : null);
+    onSettingsChange?.();
+  };
+  
+  const handleAddButton = () => {
+    // focus the add character input so user can type a new character
+    addCharInputRef.current?.focus();
   };
 
   // Reset to defaults
@@ -226,34 +271,46 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
               {/* Character Palette Selector */}
               <div className="space-y-2 w-full">
                 <Label className="text-xs font-medium">Character Palette</Label>
-                <Select value={activePalette.id} onValueChange={handlePaletteChange}>
-                  <SelectTrigger className="h-8 text-xs w-full">
-                    <SelectValue placeholder="Select character palette" />
-                  </SelectTrigger>
-                  <SelectContent className="w-full">
-                    {/* Group by category */}
-                    {['ascii', 'blocks', 'unicode', 'custom'].map(category => {
-                      const categoryPalettes = allPalettes.filter(p => p.category === category);
-                      if (categoryPalettes.length === 0) return null;
-                      
-                      return (
-                        <div key={category}>
-                          <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground capitalize border-b">
-                            {category === 'ascii' ? 'ASCII' : category === 'unicode' ? 'Unicode' : category.charAt(0).toUpperCase() + category.slice(1)}
-                          </div>
-                          {categoryPalettes.map(palette => (
-                            <SelectItem key={palette.id} value={palette.id} className="text-xs">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className="truncate flex-1">{palette.name}</span>
-                                <span className="text-muted-foreground flex-shrink-0">({palette.characters.length} chars)</span>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Select value={activePalette.id} onValueChange={handlePaletteChange}>
+                      <SelectTrigger className="h-8 text-xs w-full">
+                        <SelectValue placeholder="Select character palette" />
+                      </SelectTrigger>
+                      <SelectContent className="w-full">
+                        {/* Group by category */}
+                        {['ascii', 'blocks', 'unicode', 'custom'].map(category => {
+                          const categoryPalettes = allPalettes.filter(p => p.category === category);
+                          if (categoryPalettes.length === 0) return null;
+                          
+                          return (
+                            <div key={category}>
+                              <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground capitalize border-b">
+                                {category === 'ascii' ? 'ASCII' : category === 'unicode' ? 'Unicode' : category.charAt(0).toUpperCase() + category.slice(1)}
                               </div>
-                            </SelectItem>
-                          ))}
-                        </div>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                              {categoryPalettes.map(palette => (
+                                <SelectItem key={palette.id} value={palette.id} className="text-xs">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="truncate flex-1">{palette.name}</span>
+                                    <span className="text-muted-foreground flex-shrink-0">({palette.characters.length} chars)</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => { const p = createCustomPalette('New Palette', [' ']); setActivePalette(p); startEditing(p.id); setSelectedIndex(0);}} title="Create palette">
+                      <Plus className="w-3 h-3" />
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => setIsManagePalettesOpen(true)} title="Manage palettes">
+                      <Settings className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               {/* Mapping Algorithm */}
@@ -353,11 +410,14 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                         
                         <div
                           className={`relative flex items-center justify-center w-8 h-8 bg-muted/50 border border-border rounded transition-all hover:bg-muted ${
-                            draggedIndex === index ? 'opacity-50 scale-95' : ''
-                          } ${
-                            activePalette.isCustom ? 'cursor-move hover:border-primary/50' : 'cursor-default'
-                          }`}
+                              draggedIndex === index ? 'opacity-50 scale-95' : ''
+                            } ${
+                              activePalette.isCustom ? 'cursor-move hover:border-primary/50' : 'cursor-default'
+                            } ${
+                              selectedIndex === index ? 'ring-2 ring-primary' : ''
+                            } cursor-pointer`}
                           draggable={activePalette.isCustom}
+                          onClick={() => handleSelectCharacter(index)}
                           onDragStart={(e) => handleDragStart(e, index)}
                           onDragOver={(e) => handleDragOver(e, index)}
                           onDrop={(e) => handleDrop(e, index)}
@@ -382,7 +442,7 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleRemoveCharacter(index)}
+                              onClick={(e) => { e.stopPropagation(); handleRemoveCharacter(index); setSelectedIndex(null); onSettingsChange?.(); }}
                               className="absolute -top-1 -right-1 h-4 w-4 p-0 bg-destructive text-destructive-foreground hover:bg-destructive/80 rounded-full opacity-0 hover:opacity-100 transition-opacity"
                             >
                               <X className="w-2 h-2" />
@@ -397,15 +457,43 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                       </div>
                     ))}
                   </div>
+
+                  {/* Bottom controls: move, add, delete, reverse */}
+                  <div className="flex items-center justify-between pt-2">
+                    <div className="flex items-center gap-1">
+                      <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleMoveSelectedLeft} disabled={selectedIndex === null || selectedIndex === 0} title="Move left">
+                        <ArrowLeft className="w-3 h-3" />
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleMoveSelectedRight} disabled={selectedIndex === null || selectedIndex === activePalette.characters.length - 1} title="Move right">
+                        <ArrowRight className="w-3 h-3" />
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleAddButton} title="Add character">
+                        <Plus className="w-3 h-3" />
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-destructive" onClick={handleDeleteSelected} disabled={selectedIndex === null} title="Delete character">
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    <div>
+                      <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleReverseOrder} title="Reverse order">
+                        <ArrowUpDown className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Manage Palettes Dialog */}
+                  <ManageCharacterPalettesDialog isOpen={isManagePalettesOpen} onOpenChange={setIsManagePalettesOpen} />
+
                 </div>
               </div>
-
+              
               {/* Add Character (only for custom palettes) */}
               {activePalette.isCustom && (
                 <div className="space-y-2 w-full">
                   <Label className="text-xs font-medium">Add Character</Label>
                   <div className="flex gap-2 w-full">
                     <Input
+                      ref={(el) => { addCharInputRef.current = el; }}
                       value={newCharacterInput}
                       onChange={(e) => setNewCharacterInput(e.target.value)}
                       placeholder="Enter character"
