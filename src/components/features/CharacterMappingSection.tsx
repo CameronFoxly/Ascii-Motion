@@ -35,12 +35,15 @@ import {
   ArrowUpDown,
   ArrowLeft,
   ArrowRight,
-  Settings
+  Settings,
+  Palette
 } from 'lucide-react';
 import { ManageCharacterPalettesDialog } from './ManageCharacterPalettesDialog';
+import { CharacterPicker } from './CharacterPicker';
 import { 
   useCharacterPaletteStore 
 } from '../../stores/characterPaletteStore';
+import type { CharacterPalette } from '../../types/palette';
 
 
 interface CharacterMappingSectionProps {
@@ -55,7 +58,9 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
   const [isManagePalettesOpen, setIsManagePalettesOpen] = useState(false);
+  const [isCharacterPickerOpen, setIsCharacterPickerOpen] = useState(false);
   const addCharInputRef = React.useRef<HTMLInputElement | null>(null);
+  const characterPickerTriggerRef = React.useRef<HTMLButtonElement>(null);
 
   // Character palette store access
   const availablePalettes = useCharacterPaletteStore(state => state.availablePalettes);
@@ -72,6 +77,7 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
 
   const updateCustomPalette = useCharacterPaletteStore(state => state.updateCustomPalette);
   const createCustomPalette = useCharacterPaletteStore(state => state.createCustomPalette);
+  const duplicatePalette = useCharacterPaletteStore(state => state.duplicatePalette);
 
 
   // Handle palette selection
@@ -87,13 +93,12 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
 
   // Handle reverse character order
   const handleReverseOrder = () => {
-    if (activePalette.isCustom) {
-      const reversedCharacters = [...activePalette.characters].reverse();
-      updateCustomPalette(activePalette.id, { characters: reversedCharacters });
-      onSettingsChange?.();
-      if (selectedIndex !== null) {
-        setSelectedIndex(activePalette.characters.length - 1 - selectedIndex);
-      }
+    const targetPalette = ensureCustomPalette();
+    const reversedCharacters = [...activePalette.characters].reverse();
+    updateCustomPalette(targetPalette.id, { characters: reversedCharacters });
+    onSettingsChange?.();
+    if (selectedIndex !== null) {
+      setSelectedIndex(activePalette.characters.length - 1 - selectedIndex);
     }
   };
 
@@ -102,24 +107,27 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
   };
   
   const handleMoveSelectedLeft = () => {
-    if (selectedIndex === null || !activePalette.isCustom) return;
+    if (selectedIndex === null) return;
     if (selectedIndex <= 0) return;
-    reorderCharactersInPalette(activePalette.id, selectedIndex, selectedIndex - 1);
+    const targetPalette = ensureCustomPalette();
+    reorderCharactersInPalette(targetPalette.id, selectedIndex, selectedIndex - 1);
     setSelectedIndex(selectedIndex - 1);
     onSettingsChange?.();
   };
   
   const handleMoveSelectedRight = () => {
-    if (selectedIndex === null || !activePalette.isCustom) return;
+    if (selectedIndex === null) return;
     if (selectedIndex >= activePalette.characters.length - 1) return;
-    reorderCharactersInPalette(activePalette.id, selectedIndex, selectedIndex + 1);
+    const targetPalette = ensureCustomPalette();
+    reorderCharactersInPalette(targetPalette.id, selectedIndex, selectedIndex + 1);
     setSelectedIndex(selectedIndex + 1);
     onSettingsChange?.();
   };
   
   const handleDeleteSelected = () => {
-    if (selectedIndex === null || !activePalette.isCustom) return;
-    removeCharacterFromPalette(activePalette.id, selectedIndex);
+    if (selectedIndex === null) return;
+    const targetPalette = ensureCustomPalette();
+    removeCharacterFromPalette(targetPalette.id, selectedIndex);
     const newIndex = Math.max(0, selectedIndex - 1);
     setSelectedIndex(activePalette.characters.length > 1 ? newIndex : null);
     onSettingsChange?.();
@@ -136,32 +144,53 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
 
 
   const handleAddCharacter = () => {
-    if (newCharacterInput.trim() && activePalette.isCustom) {
+    if (newCharacterInput.trim()) {
       const character = newCharacterInput.trim()[0]; // Take only first character
       if (!activePalette.characters.includes(character)) {
-        addCharacterToPalette(activePalette.id, character);
+        const targetPalette = ensureCustomPalette();
+        addCharacterToPalette(targetPalette.id, character);
         setNewCharacterInput('');
-        onSettingsChange?.();
+        addCharInputRef.current?.focus();
       }
     }
   };
 
+  const handleCharacterSelect = (character: string) => {
+    if (!activePalette.characters.includes(character)) {
+      setNewCharacterInput(character);
+      addCharInputRef.current?.focus();
+    }
+  };
+
+  // Helper function to ensure we're working with a custom palette for editing
+  const ensureCustomPalette = (): CharacterPalette => {
+    if (activePalette.isCustom) {
+      return activePalette;
+    } else {
+      // Create a duplicate with "Custom" prefix
+      const newPalette = duplicatePalette(activePalette.id, `Custom ${activePalette.name}`);
+      setActivePalette(newPalette);
+      onSettingsChange?.();
+      return newPalette;
+    }
+  };
+
   const handleRemoveCharacter = (index: number) => {
-    if (activePalette.isCustom && activePalette.characters.length > 1) {
-      removeCharacterFromPalette(activePalette.id, index);
+    if (activePalette.characters.length > 1) {
+      const targetPalette = ensureCustomPalette();
+      removeCharacterFromPalette(targetPalette.id, index);
       onSettingsChange?.();
     }
   };
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, index: number) => {
-    if (!activePalette.isCustom) return;
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = 'move';
   };
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
-    if (!activePalette.isCustom || draggedIndex === null) return;
+    if (draggedIndex === null) return;
     e.preventDefault();
     
     const rect = (e.target as HTMLElement).getBoundingClientRect();
@@ -172,7 +201,7 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
   };
 
   const handleDrop = (e: React.DragEvent, index: number) => {
-    if (!activePalette.isCustom || draggedIndex === null) return;
+    if (draggedIndex === null) return;
     e.preventDefault();
     
     const rect = (e.target as HTMLElement).getBoundingClientRect();
@@ -181,7 +210,8 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
     const actualTargetIndex = isAfter ? index + 1 : index;
     
     if (draggedIndex !== actualTargetIndex && draggedIndex !== actualTargetIndex - 1) {
-      reorderCharactersInPalette(activePalette.id, draggedIndex, actualTargetIndex);
+      const targetPalette = ensureCustomPalette();
+      reorderCharactersInPalette(targetPalette.id, draggedIndex, actualTargetIndex);
       onSettingsChange?.();
     }
     
@@ -287,11 +317,11 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                           className={`relative flex items-center justify-center w-8 h-8 bg-muted/50 border border-border rounded transition-all hover:bg-muted ${
                               draggedIndex === index ? 'opacity-50 scale-95' : ''
                             } ${
-                              activePalette.isCustom ? 'cursor-move hover:border-primary/50' : 'cursor-default'
+                              'cursor-move hover:border-primary/50'
                             } ${
                               selectedIndex === index ? 'ring-2 ring-primary' : ''
                             } cursor-pointer`}
-                          draggable={activePalette.isCustom}
+                          draggable={true}
                           onClick={() => handleSelectCharacter(index)}
                           onDragStart={(e) => handleDragStart(e, index)}
                           onDragOver={(e) => handleDragOver(e, index)}
@@ -308,12 +338,10 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                           </span>
                           
                           {/* Drag handle */}
-                          {activePalette.isCustom && (
-                            <GripVertical className="absolute top-0 right-0 w-2 h-2 text-muted-foreground/50" />
-                          )}
+                          <GripVertical className="absolute top-0 right-0 w-2 h-2 text-muted-foreground/50" />
                           
                           {/* Remove button */}
-                          {activePalette.isCustom && activePalette.characters.length > 1 && (
+                          {activePalette.characters.length > 1 && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -359,37 +387,53 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                   {/* Manage Palettes Dialog */}
                   <ManageCharacterPalettesDialog isOpen={isManagePalettesOpen} onOpenChange={setIsManagePalettesOpen} />
 
+                  {/* Character Picker */}
+                  <CharacterPicker
+                    isOpen={isCharacterPickerOpen}
+                    onClose={() => setIsCharacterPickerOpen(false)}
+                    onSelectCharacter={handleCharacterSelect}
+                    triggerRef={characterPickerTriggerRef}
+                  />
+
                 </div>
               </div>
               
-              {/* Add Character (only for custom palettes) */}
-              {activePalette.isCustom && (
-                <div className="space-y-2 w-full">
-                  <Label className="text-xs font-medium">Add Character</Label>
-                  <div className="flex gap-2 w-full">
-                    <Input
-                      ref={(el) => { addCharInputRef.current = el; }}
-                      value={newCharacterInput}
-                      onChange={(e) => setNewCharacterInput(e.target.value)}
-                      placeholder="Enter character"
-                      className="h-8 text-xs font-mono flex-1 min-w-0"
-                      maxLength={1}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleAddCharacter();
-                      }}
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAddCharacter}
-                      disabled={!newCharacterInput.trim() || activePalette.characters.includes(newCharacterInput.trim()[0])}
-                      className="h-8 px-3"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </Button>
-                  </div>
+              {/* Add Character */}
+              <div className="space-y-2 w-full">
+                <Label className="text-xs font-medium">Add Character</Label>
+                <div className="flex gap-2 w-full relative">
+                  <Input
+                    ref={(el) => { addCharInputRef.current = el; }}
+                    value={newCharacterInput}
+                    onChange={(e) => setNewCharacterInput(e.target.value)}
+                    placeholder="Enter character"
+                    className="h-8 text-xs font-mono flex-1 min-w-0"
+                    maxLength={1}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleAddCharacter();
+                    }}
+                  />
+                  <Button
+                    ref={characterPickerTriggerRef}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsCharacterPickerOpen(!isCharacterPickerOpen)}
+                    className="h-8 w-8 p-0 flex-shrink-0"
+                    title="Character picker"
+                  >
+                    <Palette className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddCharacter}
+                    disabled={!newCharacterInput.trim() || activePalette.characters.includes(newCharacterInput.trim()[0])}
+                    className="h-8 px-3 flex-shrink-0"
+                  >
+                    <Plus className="w-3 h-3" />
+                  </Button>
                 </div>
-              )}
+              </div>
 
               {/* Palette Info */}
               <div className="bg-muted/30 rounded p-2 text-xs space-y-1 w-full">

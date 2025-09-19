@@ -72,58 +72,6 @@ export const ManageCharacterPalettesDialog: React.FC<ManageCharacterPalettesDial
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-6">
-          {/* Preset Palettes */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-muted-foreground">Preset Palettes</h3>
-            </div>
-
-            <div className="space-y-2">
-              {availablePalettes.map((palette) => (
-                <div
-                  key={palette.id}
-                  className={`flex items-center gap-2 p-2 rounded-md border ${
-                    palette.id === activePalette.id
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border hover:bg-muted/50'
-                  }`}
-                >
-                  <div className="flex gap-1">
-                    {palette.characters.slice(0, 8).map((ch, idx) => (
-                      <div key={idx} className="w-5 h-5 rounded-sm border border-border/50 flex items-center justify-center font-mono text-xs">
-                        {ch === ' ' ? '␣' : ch}
-                      </div>
-                    ))}
-                    {palette.characters.length > 8 && (
-                      <div className="w-5 h-5 rounded-sm border border-border/50 bg-muted flex items-center justify-center">
-                        <span className="text-[10px] text-muted-foreground">+</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium truncate">{palette.name}</span>
-                      <span className="text-xs text-muted-foreground">({palette.characters.length} chars)</span>
-                      {palette.id === activePalette.id && (
-                        <span className="text-xs text-primary">• Active</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-1">
-                    <Button size="sm" variant="ghost" onClick={() => setActivePalette(palette)} className="h-6 w-6 p-0" disabled={palette.id === activePalette.id} title="Set active">
-                      <Type className="h-3 w-3" />
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => handleDuplicate(palette.id)} className="h-6 w-6 p-0" title="Duplicate to custom palette">
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Custom Palettes */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -209,6 +157,58 @@ export const ManageCharacterPalettesDialog: React.FC<ManageCharacterPalettesDial
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Preset Palettes */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-muted-foreground">Preset Palettes</h3>
+            </div>
+
+            <div className="space-y-2">
+              {availablePalettes.map((palette) => (
+                <div
+                  key={palette.id}
+                  className={`flex items-center gap-2 p-2 rounded-md border ${
+                    palette.id === activePalette.id
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:bg-muted/50'
+                  }`}
+                >
+                  <div className="flex gap-1">
+                    {palette.characters.slice(0, 8).map((ch, idx) => (
+                      <div key={idx} className="w-5 h-5 rounded-sm border border-border/50 flex items-center justify-center font-mono text-xs">
+                        {ch === ' ' ? '␣' : ch}
+                      </div>
+                    ))}
+                    {palette.characters.length > 8 && (
+                      <div className="w-5 h-5 rounded-sm border border-border/50 bg-muted flex items-center justify-center">
+                        <span className="text-[10px] text-muted-foreground">+</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium truncate">{palette.name}</span>
+                      <span className="text-xs text-muted-foreground">({palette.characters.length} chars)</span>
+                      {palette.id === activePalette.id && (
+                        <span className="text-xs text-primary">• Active</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="ghost" onClick={() => setActivePalette(palette)} className="h-6 w-6 p-0" disabled={palette.id === activePalette.id} title="Set active">
+                      <Type className="h-3 w-3" />
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => handleDuplicate(palette.id)} className="h-6 w-6 p-0" title="Duplicate to custom palette">
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </DialogContent>
