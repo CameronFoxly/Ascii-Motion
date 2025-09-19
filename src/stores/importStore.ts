@@ -59,7 +59,22 @@ export interface ImportSettings {
   characterMappingMode: 'brightness' | 'edge' | 'custom';
   customCharacterMapping: { [brightness: string]: string }; // Custom brightness-to-character mapping
   
-  // Color palette settings (Phase 4.3 - Session 3) 
+  // Character mapping enable/disable
+  enableCharacterMapping: boolean;
+  
+  // Text Color Mapping settings (NEW)
+  enableTextColorMapping: boolean;
+  textColorPaletteId: string | null;     // Active palette ID from paletteStore
+  textColorMappingMode: 'closest' | 'dithering';
+  textColorQuantization: number;         // Number of colors to use from palette
+  
+  // Background Color Mapping settings (NEW)  
+  enableBackgroundColorMapping: boolean;
+  backgroundColorPaletteId: string | null; // Active palette ID from paletteStore
+  backgroundColorMappingMode: 'closest' | 'dithering';
+  backgroundColorQuantization: number;   // Number of colors to use from palette
+  
+  // Legacy color palette settings (Phase 4.3 - Session 3) 
   useOriginalColors: boolean;
   colorQuantization: 'none' | 'basic' | 'advanced';
   paletteSize: number;      // Number of colors to extract (8, 16, 32, 64)
@@ -98,7 +113,22 @@ const DEFAULT_IMPORT_SETTINGS: ImportSettings = {
   characterMappingMode: 'brightness',
   customCharacterMapping: {},
   
-  // Color palette (simplified for Session 1)
+  // Character mapping control
+  enableCharacterMapping: true,
+  
+  // Text Color Mapping (NEW)
+  enableTextColorMapping: false,
+  textColorPaletteId: null,
+  textColorMappingMode: 'closest',
+  textColorQuantization: 16,
+  
+  // Background Color Mapping (NEW)
+  enableBackgroundColorMapping: false,
+  backgroundColorPaletteId: null,
+  backgroundColorMappingMode: 'closest',
+  backgroundColorQuantization: 8,
+  
+  // Legacy color palette (simplified for Session 1)
   useOriginalColors: true,
   colorQuantization: 'basic',
   paletteSize: 16,

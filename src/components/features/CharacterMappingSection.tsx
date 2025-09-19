@@ -39,11 +39,13 @@ import {
   Palette,
   Edit
 } from 'lucide-react';
+import { Checkbox } from '../ui/checkbox';
 import { ManageCharacterPalettesDialog } from './ManageCharacterPalettesDialog';
 import { CharacterPicker } from './CharacterPicker';
 import { 
   useCharacterPaletteStore
 } from '../../stores/characterPaletteStore';
+import { useImportSettings } from '../../stores/importStore';
 import type { CharacterPalette } from '../../types/palette';
 
 
@@ -66,6 +68,10 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
   const characterPickerTriggerRef = React.useRef<HTMLButtonElement>(null);
   const editButtonRef = React.useRef<HTMLButtonElement>(null);
   const paletteContainerRef = React.useRef<HTMLDivElement>(null);
+
+  // Import settings for enable/disable toggle
+  const { settings, updateSettings } = useImportSettings();
+  const { enableCharacterMapping } = settings;
 
   // Character palette store access
   const availablePalettes = useCharacterPaletteStore(state => state.availablePalettes);
@@ -146,6 +152,11 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
     setPickerTriggerSource('edit-button');
     setEditingCharacterIndex(selectedIndex);
     setIsCharacterPickerOpen(true);
+  };
+  
+  const handleToggleEnabled = (enabled: boolean) => {
+    updateSettings({ enableCharacterMapping: enabled });
+    onSettingsChange?.();
   };
 
 
@@ -248,17 +259,39 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleHeader isOpen={isOpen}>
-        <div className="flex items-center gap-2">
-          <Type className="w-4 h-4 text-muted-foreground" />
-          <span>Character Mapping</span>
+      <div className="flex items-center justify-between">
+        <CollapsibleHeader isOpen={isOpen}>
+          <div className="flex items-center gap-2">
+            <Type className="w-4 h-4 text-muted-foreground" />
+            <span>Character Mapping</span>
+          </div>
+        </CollapsibleHeader>
+        <div className="flex items-center space-x-2 pr-2">
+          <Checkbox
+            id="enable-character-mapping"
+            checked={enableCharacterMapping}
+            onCheckedChange={handleToggleEnabled}
+          />
+          <Label htmlFor="enable-character-mapping" className="text-xs">
+            Enable
+          </Label>
         </div>
-      </CollapsibleHeader>
+      </div>
       
       <CollapsibleContent className="collapsible-content">
         <div className="space-y-3 w-full">
-          {/* Character Palette Editor */}
-          <Card className="bg-card/50 border-border/50 overflow-hidden w-full">
+          {!enableCharacterMapping && (
+            <div className="p-3 border border-border/50 rounded-lg bg-muted/20">
+              <p className="text-xs text-muted-foreground text-center">
+                Character mapping is disabled. Images will be converted using a default character set.
+              </p>
+            </div>
+          )}
+          
+          {enableCharacterMapping && (
+            <>
+              {/* Character Palette Editor */}
+              <Card className="bg-card/50 border-border/50 overflow-hidden w-full">
             <CardContent className="p-3 space-y-3 w-full">
               
               {/* Header */}
@@ -488,6 +521,8 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
               </div>
             </CardContent>
           </Card>
+          </>
+          )}
         </div>
       </CollapsibleContent>
     </Collapsible>

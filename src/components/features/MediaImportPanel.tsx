@@ -56,7 +56,10 @@ import { useCanvasStore } from '../../stores/canvasStore';
 import { useAnimationStore } from '../../stores/animationStore';
 import { usePreviewStore } from '../../stores/previewStore';
 import { useCharacterPaletteStore } from '../../stores/characterPaletteStore';
+import { usePaletteStore } from '../../stores/paletteStore';
 import { CharacterMappingSection } from './CharacterMappingSection';
+import { TextColorMappingSection } from './TextColorMappingSection';
+import { BackgroundColorMappingSection } from './BackgroundColorMappingSection';
 import { PreprocessingSection } from './PreprocessingSection';
 import type { MediaFile } from '../../utils/mediaProcessor';
 import type { Cell } from '../../types';
@@ -247,6 +250,65 @@ export function MediaImportPanel() {
     return positionedCells;
   }, [canvasWidth, canvasHeight, settings.cropMode, settings.nudgeX, settings.nudgeY]);
 
+  // Create conversion settings helper function
+  const createConversionSettings = useCallback(() => {
+    // Get color palettes if enabled (use getState to avoid dependency issues)
+    const allPalettes = usePaletteStore.getState().getAllPalettes();
+    const textColorPalette = settings.enableTextColorMapping && settings.textColorPaletteId 
+      ? allPalettes.find((p: any) => p.id === settings.textColorPaletteId)?.colors.slice(0, settings.textColorQuantization).map((c: any) => c.value) || []
+      : [];
+    const backgroundColorPalette = settings.enableBackgroundColorMapping && settings.backgroundColorPaletteId 
+      ? allPalettes.find((p: any) => p.id === settings.backgroundColorPaletteId)?.colors.slice(0, settings.backgroundColorQuantization).map((c: any) => c.value) || []
+      : [];
+
+    return {
+      // Character mapping
+      enableCharacterMapping: settings.enableCharacterMapping,
+      characterPalette: activePalette,
+      mappingMethod: mappingMethod,
+      invertDensity: invertDensity,
+      
+      // Text color mapping 
+      enableTextColorMapping: settings.enableTextColorMapping,
+      textColorPalette: textColorPalette,
+      textColorMappingMode: settings.textColorMappingMode,
+      textColorQuantization: settings.textColorQuantization,
+      
+      // Background color mapping
+      enableBackgroundColorMapping: settings.enableBackgroundColorMapping,
+      backgroundColorPalette: backgroundColorPalette,
+      backgroundColorMappingMode: settings.backgroundColorMappingMode,
+      backgroundColorQuantization: settings.backgroundColorQuantization,
+      
+      // Legacy settings
+      useOriginalColors: settings.useOriginalColors,
+      colorQuantization: settings.colorQuantization,
+      paletteSize: settings.paletteSize,
+      colorMappingMode: settings.colorMappingMode,
+      contrastEnhancement: 1,
+      brightnessAdjustment: settings.brightness,
+      ditherStrength: 0.5
+    };
+  }, [
+    settings.enableCharacterMapping,
+    settings.enableTextColorMapping, 
+    settings.textColorPaletteId,
+    settings.textColorMappingMode,
+    settings.textColorQuantization,
+    settings.enableBackgroundColorMapping,
+    settings.backgroundColorPaletteId,
+    settings.backgroundColorMappingMode,
+    settings.backgroundColorQuantization,
+    settings.useOriginalColors,
+    settings.colorQuantization,
+    settings.paletteSize,
+    settings.colorMappingMode,
+    settings.brightness,
+    activePalette,
+    mappingMethod,
+    invertDensity
+  ]);
+
   // Auto-process file when settings change
   useEffect(() => {
     if (!selectedFile || !livePreviewEnabled) return;
@@ -312,19 +374,7 @@ export function MediaImportPanel() {
         // Start preview mode (stores original data if not already started)
         startPreview();
         
-        const conversionSettings = {
-          characterPalette: activePalette,
-          mappingMethod: mappingMethod,
-          invertDensity: invertDensity,
-          characterSpacing: characterSpacing,
-          useOriginalColors: settings.useOriginalColors,
-          colorQuantization: settings.colorQuantization,
-          paletteSize: settings.paletteSize,
-          colorMappingMode: settings.colorMappingMode,
-          contrastEnhancement: 1,
-          brightnessAdjustment: settings.brightness,
-          ditherStrength: 0.5
-        };
+        const conversionSettings = createConversionSettings();
 
         const result = asciiConverter.convertFrame(previewFrames[frameIndex], conversionSettings);
         
@@ -351,11 +401,21 @@ export function MediaImportPanel() {
     settings.paletteSize,
     settings.colorMappingMode,
     settings.brightness,
-    // Character palette settings
+    // Character mapping settings
+    settings.enableCharacterMapping,
     activePalette,
     mappingMethod,
     invertDensity,
     characterSpacing,
+    // Color mapping settings
+    settings.enableTextColorMapping,
+    settings.textColorPaletteId,
+    settings.textColorMappingMode,
+    settings.textColorQuantization,
+    settings.enableBackgroundColorMapping,
+    settings.backgroundColorPaletteId,
+    settings.backgroundColorMappingMode,
+    settings.backgroundColorQuantization,
     setCanvasData,
     positionCellsOnCanvas,
     startPreview
@@ -495,18 +555,7 @@ export function MediaImportPanel() {
     
     setIsImporting(true);
     try {
-      const conversionSettings = {
-        characterPalette: activePalette,
-        mappingMethod: mappingMethod,
-        invertDensity: invertDensity,
-        useOriginalColors: settings.useOriginalColors,
-        colorQuantization: settings.colorQuantization,
-        paletteSize: settings.paletteSize,
-        colorMappingMode: settings.colorMappingMode,
-        contrastEnhancement: 1,
-        brightnessAdjustment: settings.brightness,
-        ditherStrength: 0.5
-      };
+      const conversionSettings = createConversionSettings();
 
       if (previewFrames.length === 1) {
         // Single image - always replace current frame
@@ -989,6 +1038,18 @@ export function MediaImportPanel() {
               <div className="space-y-3">
                 <Separator />
                 <CharacterMappingSection onSettingsChange={() => setLivePreviewEnabled(true)} />
+              </div>
+
+              {/* Text Color Mapping Section */}
+              <div className="space-y-3">
+                <Separator />
+                <TextColorMappingSection onSettingsChange={() => setLivePreviewEnabled(true)} />
+              </div>
+
+              {/* Background Color Mapping Section */}
+              <div className="space-y-3">
+                <Separator />
+                <BackgroundColorMappingSection onSettingsChange={() => setLivePreviewEnabled(true)} />
               </div>
               
               {/* Processing Progress */}

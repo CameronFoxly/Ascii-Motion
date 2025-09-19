@@ -19,11 +19,24 @@ export const DEFAULT_ASCII_CHARS = [
 
 export interface ConversionSettings {
   // Character mapping - Enhanced with palette support
+  enableCharacterMapping: boolean;
   characterPalette: CharacterPalette;
   mappingMethod: CharacterMappingSettings['mappingMethod'];
   invertDensity: boolean;
   
-  // Color settings
+  // Text (foreground) color mapping - NEW
+  enableTextColorMapping: boolean;
+  textColorPalette: string[]; // Array of hex colors from selected palette
+  textColorMappingMode: 'closest' | 'dithering';
+  textColorQuantization: number;
+  
+  // Background color mapping - NEW
+  enableBackgroundColorMapping: boolean;
+  backgroundColorPalette: string[]; // Array of hex colors from selected palette
+  backgroundColorMappingMode: 'closest' | 'dithering';
+  backgroundColorQuantization: number;
+  
+  // Legacy color settings (keep for backward compatibility)
   useOriginalColors: boolean;
   colorQuantization: 'none' | 'basic' | 'advanced';
   paletteSize: number;
@@ -135,6 +148,70 @@ export const MAPPING_ALGORITHMS: Record<CharacterMappingSettings['mappingMethod'
   'edge-detection': edgeDetectionAlgorithm
 };
 
+/**
+ * Color distance calculation utility functions
+ */
+export class ColorMatcher {
+  /**
+   * Calculate Euclidean distance between two RGB colors
+   */
+  static calculateColorDistance(r1: number, g1: number, b1: number, r2: number, g2: number, b2: number): number {
+    return Math.sqrt(Math.pow(r2 - r1, 2) + Math.pow(g2 - g1, 2) + Math.pow(b2 - b1, 2));
+  }
+
+  /**
+   * Find closest color from palette to given RGB values
+   */
+  static findClosestColor(r: number, g: number, b: number, palette: string[]): string {
+    let closestColor = palette[0];
+    let minDistance = Infinity;
+    
+    for (const hexColor of palette) {
+      const { r: pr, g: pg, b: pb } = this.hexToRgb(hexColor);
+      const distance = this.calculateColorDistance(r, g, b, pr, pg, pb);
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestColor = hexColor;
+      }
+    }
+    
+    return closestColor;
+  }
+
+  /**
+   * Convert hex color to RGB values
+   */
+  static hexToRgb(hex: string): { r: number; g: number; b: number } {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : { r: 0, g: 0, b: 0 };
+  }
+
+  /**
+   * Convert RGB to hex color
+   */
+  static rgbToHex(r: number, g: number, b: number): string {
+    return `#${[r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')}`;
+  }
+
+  /**
+   * Simple dithering algorithm for color mapping
+   */
+  static ditherColor(r: number, g: number, b: number, palette: string[], ditherStrength: number = 0.1): string {
+    // Add some noise for dithering effect
+    const noise = () => (Math.random() - 0.5) * ditherStrength * 255;
+    const ditheredR = Math.max(0, Math.min(255, r + noise()));
+    const ditheredG = Math.max(0, Math.min(255, g + noise()));
+    const ditheredB = Math.max(0, Math.min(255, b + noise()));
+    
+    return this.findClosestColor(ditheredR, ditheredG, ditheredB, palette);
+  }
+}
+
 export interface ConversionResult {
   cells: Map<string, Cell>;
   colorPalette: string[];
@@ -198,24 +275,51 @@ export class ASCIIConverter {
           adjustedB = this.applyContrastToChannel(adjustedB, settings.contrastEnhancement);
         }
         
-        // Select character using the chosen algorithm
-        const character = this.selectCharacterWithAlgorithm(
-          adjustedR, adjustedG, adjustedB,
-          settings.characterPalette,
-          settings.mappingMethod,
-          settings.invertDensity
-        );
+        // Select character using the chosen algorithm (if character mapping is enabled)
+        let character: string;
+        if (settings.enableCharacterMapping) {
+          character = this.selectCharacterWithAlgorithm(
+            adjustedR, adjustedG, adjustedB,
+            settings.characterPalette,
+            settings.mappingMethod,
+            settings.invertDensity
+          );
+        } else {
+          // Use default character if character mapping is disabled
+          character = '#';
+        }
         
-        // Determine color
+        // Determine text (foreground) color
         let color: string;
-        if (settings.useOriginalColors) {
+        if (settings.enableTextColorMapping && settings.textColorPalette.length > 0) {
+          // Use palette-based color mapping
+          if (settings.textColorMappingMode === 'dithering') {
+            color = ColorMatcher.ditherColor(adjustedR, adjustedG, adjustedB, settings.textColorPalette, settings.ditherStrength);
+          } else {
+            color = ColorMatcher.findClosestColor(adjustedR, adjustedG, adjustedB, settings.textColorPalette);
+          }
+        } else if (settings.useOriginalColors) {
+          // Legacy color handling
           if (settings.colorQuantization === 'none') {
-            color = this.rgbToHex(r, g, b);
+            color = ColorMatcher.rgbToHex(r, g, b);
           } else {
             color = this.quantizeColor(r, g, b, quantizedColors);
           }
         } else {
-          color = '#ffffff'; // White for simple ASCII
+          color = '#ffffff'; // Default white for simple ASCII
+        }
+        
+        // Determine background color
+        let bgColor: string;
+        if (settings.enableBackgroundColorMapping && settings.backgroundColorPalette.length > 0) {
+          // Use palette-based background color mapping
+          if (settings.backgroundColorMappingMode === 'dithering') {
+            bgColor = ColorMatcher.ditherColor(adjustedR, adjustedG, adjustedB, settings.backgroundColorPalette, settings.ditherStrength);
+          } else {
+            bgColor = ColorMatcher.findClosestColor(adjustedR, adjustedG, adjustedB, settings.backgroundColorPalette);
+          }
+        } else {
+          bgColor = 'transparent'; // Default transparent background
         }
         
         // Create cell
@@ -223,7 +327,7 @@ export class ASCIIConverter {
         cells.set(cellKey, {
           char: character,
           color,
-          bgColor: 'transparent'
+          bgColor
         });
         
         // Track usage
