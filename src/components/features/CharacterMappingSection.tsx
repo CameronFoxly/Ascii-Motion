@@ -267,6 +267,16 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
           </div>
         </CollapsibleHeader>
         <div className="flex items-center space-x-2 pr-2">
+          {enableCharacterMapping && (
+            <div className="flex gap-1 mr-2">
+              <Button size="sm" variant="outline" className="h-6 w-6 p-0 flex-shrink-0" onClick={() => { const p = createCustomPalette('New Palette', [' ']); setActivePalette(p); startEditing(p.id); setSelectedIndex(0);}} title="Create palette">
+                <Plus className="w-3 h-3" />
+              </Button>
+              <Button size="sm" variant="outline" className="h-6 w-6 p-0 flex-shrink-0" onClick={() => setIsManagePalettesOpen(true)} title="Manage palettes">
+                <Settings className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
           <Checkbox
             id="enable-character-mapping"
             checked={enableCharacterMapping}
@@ -345,14 +355,6 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                         )}
                       </SelectContent>
                     </Select>
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <Button size="sm" variant="outline" className="h-8 w-8 p-0 flex-shrink-0" onClick={() => { const p = createCustomPalette('New Palette', [' ']); setActivePalette(p); startEditing(p.id); setSelectedIndex(0);}} title="Create palette">
-                      <Plus className="w-3 h-3" />
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-8 w-8 p-0 flex-shrink-0" onClick={() => setIsManagePalettesOpen(true)} title="Manage palettes">
-                      <Settings className="w-3 h-3" />
-                    </Button>
                   </div>
                 </div>
               </div>

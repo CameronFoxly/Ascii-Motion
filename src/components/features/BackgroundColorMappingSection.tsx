@@ -36,7 +36,8 @@ import {
   ArrowUpDown,
   Settings,
   Upload,
-  Download
+  Download,
+  Edit
 } from 'lucide-react';
 import { usePaletteStore } from '../../stores/paletteStore';
 import { useImportSettings } from '../../stores/importStore';
@@ -146,6 +147,38 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
       setEditingColorId(null);
       onSettingsChange?.();
     }
+  };
+
+  const handleEditColor = () => {
+    if (!selectedColorId || !selectedPalette) return;
+    
+    const colorObj = selectedPalette.colors.find(c => c.id === selectedColorId);
+    if (!colorObj) return;
+    
+    // If it's a preset palette, create a custom copy first
+    if (selectedPalette.isPreset) {
+      const newPaletteId = createCustomCopy(selectedPalette.id);
+      if (newPaletteId) {
+        updateSettings({ backgroundColorPaletteId: newPaletteId });
+        // Find the color in the new palette and edit it
+        const newPalette = customPalettes.find(p => p.id === newPaletteId);
+        if (newPalette) {
+          const newColorObj = newPalette.colors.find(c => c.value === colorObj.value);
+          if (newColorObj) {
+            setEditingColorId(newColorObj.id);
+            setColorPickerInitialColor(colorObj.value);
+            setIsColorPickerOpen(true);
+          }
+        }
+        onSettingsChange?.();
+      }
+      return;
+    }
+    
+    // For custom palettes, edit directly
+    setEditingColorId(colorObj.id);
+    setColorPickerInitialColor(colorObj.value);
+    setIsColorPickerOpen(true);
   };
 
   const handleAddColor = () => {
@@ -373,6 +406,23 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
                                 className="h-6 w-6 p-0"
                                 onClick={() => setIsManagePalettesOpen(true)}
                               >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Add new palette</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 w-6 p-0"
+                                onClick={() => setIsManagePalettesOpen(true)}
+                              >
                                 <Settings className="h-3 w-3" />
                               </Button>
                             </TooltipTrigger>
@@ -435,7 +485,46 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
                 {/* Color Palette Editor */}
                 {selectedPalette && enableBackgroundColorMapping && (
                   <div className="space-y-2">
-                    <Label className="text-xs font-medium">Colors</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-medium">Colors</Label>
+                      <div className="flex gap-0.5">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 w-6 p-0"
+                                onClick={() => setIsImportDialogOpen(true)}
+                              >
+                                <Upload className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Import palette</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 w-6 p-0"
+                                onClick={() => setIsExportDialogOpen(true)}
+                              >
+                                <Download className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Export palette</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </div>
                     
                     {/* Color swatches grid */}
                     <Card className="bg-card/50 border-border/50">
@@ -545,6 +634,25 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
                                     size="sm"
                                     variant="outline"
                                     className="h-6 w-6 p-0"
+                                    onClick={handleEditColor}
+                                    disabled={!selectedColorId}
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Edit color</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 w-6 p-0"
                                     onClick={() => selectedColorId && handleRemoveColor(selectedColorId)}
                                     disabled={!selectedColorId || selectedPalette.colors.length <= 1}
                                   >
@@ -557,6 +665,10 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
                               </Tooltip>
                             </TooltipProvider>
 
+                          </div>
+                          
+                          {/* Reverse button (right-aligned) */}
+                          <div>
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -571,45 +683,6 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <p>Reverse palette order</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-
-                          {/* Import/Export buttons */}
-                          <div className="flex gap-0.5">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-6 w-6 p-0"
-                                    onClick={() => setIsImportDialogOpen(true)}
-                                  >
-                                    <Upload className="h-3 w-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Import palette</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-6 w-6 p-0"
-                                    onClick={() => setIsExportDialogOpen(true)}
-                                  >
-                                    <Download className="h-3 w-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Export palette</p>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
