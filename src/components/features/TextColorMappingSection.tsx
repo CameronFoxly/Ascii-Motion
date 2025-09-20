@@ -23,8 +23,9 @@ import {
 import { 
   Collapsible,
   CollapsibleContent,
+  CollapsibleTrigger,
 } from '../ui/collapsible';
-import { CollapsibleHeader } from '../common/CollapsibleHeader';
+
 import { Checkbox } from '../ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { 
@@ -37,7 +38,8 @@ import {
   Settings,
   Upload,
   Download,
-  Edit
+  Edit,
+  ChevronDown
 } from 'lucide-react';
 import { usePaletteStore } from '../../stores/paletteStore';
 import { useImportSettings } from '../../stores/importStore';
@@ -368,24 +370,29 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
   return (
     <>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <div className="flex items-center justify-between">
-          <CollapsibleHeader isOpen={isOpen}>
+        <CollapsibleTrigger asChild>
+          <Button 
+            variant="ghost" 
+            className="w-full h-auto text-xs justify-between py-1 px-1 my-1"
+          >
             <div className="flex items-center gap-2">
               <Type className="w-4 h-4" />
               <span>Text Color Mapping</span>
+              <Checkbox
+                id="enable-text-color-mapping"
+                checked={enableTextColorMapping}
+                onCheckedChange={handleToggleEnabled}
+                className="ml-2"
+                onClick={(e) => e.stopPropagation()}
+              />
             </div>
-          </CollapsibleHeader>
-          <div className="flex items-center space-x-2 pr-2">
-            <Checkbox
-              id="enable-text-color-mapping"
-              checked={enableTextColorMapping}
-              onCheckedChange={handleToggleEnabled}
+            <ChevronDown 
+              className={`h-3 w-3 transition-transform duration-200 ${
+                isOpen ? 'rotate-180' : ''
+              }`}
             />
-            <Label htmlFor="enable-text-color-mapping" className="text-xs">
-              Enable
-            </Label>
-          </div>
-        </div>
+          </Button>
+        </CollapsibleTrigger>
         
         <CollapsibleContent className="collapsible-content">
           <div className="space-y-3 w-full">

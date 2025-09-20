@@ -24,8 +24,9 @@ import {
 import { 
   Collapsible,
   CollapsibleContent,
+  CollapsibleTrigger,
 } from '../ui/collapsible';
-import { CollapsibleHeader } from '../common/CollapsibleHeader';
+
 import { 
   Type, 
   Plus,
@@ -37,7 +38,8 @@ import {
   ArrowRight,
   Settings,
   Palette,
-  Edit
+  Edit,
+  ChevronDown
 } from 'lucide-react';
 import { Checkbox } from '../ui/checkbox';
 import { ManageCharacterPalettesDialog } from './ManageCharacterPalettesDialog';
@@ -260,32 +262,29 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <div className="flex items-center justify-between">
-        <CollapsibleHeader isOpen={isOpen}>
-          <div className="flex items-center gap-2">
-            <Type className="w-4 h-4 text-muted-foreground" />
-            <span>Character Mapping</span>
-          </div>
-        </CollapsibleHeader>
-        <div className="flex items-center space-x-2 pr-2">
-          {enableCharacterMapping && (
-            <div className="flex gap-1 mr-2">
-              <Button size="sm" variant="outline" className="h-6 w-6 p-0 flex-shrink-0" onClick={() => { const p = createCustomPalette('New Palette', [' ']); setActivePalette(p); startEditing(p.id); setSelectedIndex(0);}} title="Create palette">
-                <Plus className="w-3 h-3" />
-              </Button>
-              <Button size="sm" variant="outline" className="h-6 w-6 p-0 flex-shrink-0" onClick={() => setIsManagePalettesOpen(true)} title="Manage palettes">
-                <Settings className="w-3 h-3" />
-              </Button>
+        <CollapsibleTrigger asChild>
+          <Button 
+            variant="ghost" 
+            className="w-full h-auto text-xs justify-between py-1 px-1 my-1"
+          >
+            <div className="flex items-center gap-2">
+              <Type className="w-4 h-4 text-muted-foreground" />
+              <span>Character Mapping</span>
+              <Checkbox
+                id="enable-character-mapping"
+                checked={enableCharacterMapping}
+                onCheckedChange={handleToggleEnabled}
+                className="ml-2"
+                onClick={(e) => e.stopPropagation()}
+              />
             </div>
-          )}
-          <Checkbox
-            id="enable-character-mapping"
-            checked={enableCharacterMapping}
-            onCheckedChange={handleToggleEnabled}
-          />
-          <Label htmlFor="enable-character-mapping" className="text-xs">
-            Enable
-          </Label>
-        </div>
+            <ChevronDown 
+              className={`h-3 w-3 transition-transform duration-200 ${
+                isOpen ? 'rotate-180' : ''
+              }`}
+            />
+          </Button>
+        </CollapsibleTrigger>
       </div>
       
       <CollapsibleContent className="collapsible-content">
@@ -310,15 +309,24 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
               </div>
               {/* Character Palette Selector */}
               <div className="space-y-2 w-full">
-                <Label className="text-xs font-medium">Character Palette</Label>
-                <div className="flex items-center gap-2 w-full">
-                  <div className="flex-1 min-w-0 max-w-[calc(100%-80px)]">
-                    <Select value={activePalette.id} onValueChange={handlePaletteChange}>
-                      <SelectTrigger className="h-8 text-xs w-full">
-                        <div className="truncate">
-                          <SelectValue placeholder="Select character palette" />
-                        </div>
-                      </SelectTrigger>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium">Character Palette</Label>
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="outline" className="h-6 w-6 p-0 flex-shrink-0" onClick={() => { const p = createCustomPalette('New Palette', [' ']); setActivePalette(p); startEditing(p.id); setSelectedIndex(0);}} title="Create palette">
+                      <Plus className="w-3 h-3" />
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-6 w-6 p-0 flex-shrink-0" onClick={() => setIsManagePalettesOpen(true)} title="Manage palettes">
+                      <Settings className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="w-full">
+                  <Select value={activePalette.id} onValueChange={handlePaletteChange}>
+                    <SelectTrigger className="h-8 text-xs w-full">
+                      <div className="truncate">
+                        <SelectValue placeholder="Select character palette" />
+                      </div>
+                    </SelectTrigger>
                       <SelectContent className="border-border/50">
                         {/* Custom Palettes First */}
                         {customPalettes.length > 0 && (
@@ -355,7 +363,6 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                         )}
                       </SelectContent>
                     </Select>
-                  </div>
                 </div>
               </div>
               

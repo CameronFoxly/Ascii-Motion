@@ -822,6 +822,8 @@ export function MediaImportPanel() {
                 </CollapsibleContent>
               </Collapsible>
               
+              <Separator className="my-4 -mx-3" />
+              
               {/* Position & Size Section */}
               <Collapsible open={positionSectionOpen} onOpenChange={setPositionSectionOpen}>
                 <CollapsibleHeader isOpen={positionSectionOpen}>
@@ -1038,25 +1040,25 @@ export function MediaImportPanel() {
 
               {/* Pre-processing Section */}
               <div className="space-y-3">
-                <Separator />
+                <Separator className="-mx-3" />
                 <PreprocessingSection onSettingsChange={() => setLivePreviewEnabled(true)} />
               </div>
 
               {/* Character Mapping Section */}
               <div className="space-y-3">
-                <Separator />
+                <Separator className="-mx-3" />
                 <CharacterMappingSection onSettingsChange={() => setLivePreviewEnabled(true)} />
               </div>
 
               {/* Text Color Mapping Section */}
               <div className="space-y-3">
-                <Separator />
+                <Separator className="-mx-3" />
                 <TextColorMappingSection onSettingsChange={() => setLivePreviewEnabled(true)} />
               </div>
 
               {/* Background Color Mapping Section */}
               <div className="space-y-3">
-                <Separator />
+                <Separator className="-mx-3" />
                 <BackgroundColorMappingSection onSettingsChange={() => setLivePreviewEnabled(true)} />
               </div>
               
