@@ -78,6 +78,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
     moveColorLeft,
     moveColorRight,
     reversePalette,
+    createCustomCopy,
   } = usePaletteStore();
   
   // Get the currently selected palette for text color mapping
@@ -96,7 +97,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
     onSettingsChange?.();
   };
   
-  const handleMappingModeChange = (mode: 'closest' | 'dithering') => {
+  const handleMappingModeChange = (mode: 'closest' | 'dithering' | 'by-index') => {
     updateSettings({ textColorMappingMode: mode });
     onSettingsChange?.();
   };
@@ -104,6 +105,29 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
   // Color palette editing handlers
   const handleColorDoubleClick = (color: string) => {
     if (!selectedPalette) return;
+    
+    // If it's a preset palette, create a custom copy first
+    if (selectedPalette.isPreset) {
+      const newPaletteId = createCustomCopy(selectedPalette.id);
+      if (newPaletteId) {
+        // Switch to the new custom palette
+        updateSettings({ textColorPaletteId: newPaletteId });
+        // Find the color in the new palette and edit it
+        const newPalette = customPalettes.find(p => p.id === newPaletteId);
+        if (newPalette) {
+          const colorObj = newPalette.colors.find(c => c.value === color);
+          if (colorObj) {
+            setEditingColorId(colorObj.id);
+            setColorPickerInitialColor(color);
+            setIsColorPickerOpen(true);
+          }
+        }
+        onSettingsChange?.();
+      }
+      return;
+    }
+    
+    // For custom palettes, edit directly
     const colorObj = selectedPalette.colors.find(c => c.value === color);
     if (colorObj) {
       setEditingColorId(colorObj.id);
@@ -122,30 +146,90 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
 
   const handleAddColor = () => {
     if (!selectedPalette) return;
+    
+    // If it's a preset palette, create a custom copy first
+    if (selectedPalette.isPreset) {
+      const newPaletteId = createCustomCopy(selectedPalette.id);
+      if (newPaletteId) {
+        updateSettings({ textColorPaletteId: newPaletteId });
+        addColor(newPaletteId, '#ffffff');
+        onSettingsChange?.();
+      }
+      return;
+    }
+    
     addColor(selectedPalette.id, '#ffffff');
     onSettingsChange?.();
   };
 
   const handleRemoveColor = (colorId: string) => {
     if (!selectedPalette || selectedPalette.colors.length <= 1) return;
+    
+    // If it's a preset palette, create a custom copy first
+    if (selectedPalette.isPreset) {
+      const newPaletteId = createCustomCopy(selectedPalette.id);
+      if (newPaletteId) {
+        updateSettings({ textColorPaletteId: newPaletteId });
+        removeColor(newPaletteId, colorId);
+        onSettingsChange?.();
+      }
+      return;
+    }
+    
     removeColor(selectedPalette.id, colorId);
     onSettingsChange?.();
   };
 
   const handleMoveColorLeft = (colorId: string) => {
     if (!selectedPalette) return;
+    
+    // If it's a preset palette, create a custom copy first
+    if (selectedPalette.isPreset) {
+      const newPaletteId = createCustomCopy(selectedPalette.id);
+      if (newPaletteId) {
+        updateSettings({ textColorPaletteId: newPaletteId });
+        moveColorLeft(newPaletteId, colorId);
+        onSettingsChange?.();
+      }
+      return;
+    }
+    
     moveColorLeft(selectedPalette.id, colorId);
     onSettingsChange?.();
   };
 
   const handleMoveColorRight = (colorId: string) => {
     if (!selectedPalette) return;
+    
+    // If it's a preset palette, create a custom copy first
+    if (selectedPalette.isPreset) {
+      const newPaletteId = createCustomCopy(selectedPalette.id);
+      if (newPaletteId) {
+        updateSettings({ textColorPaletteId: newPaletteId });
+        moveColorRight(newPaletteId, colorId);
+        onSettingsChange?.();
+      }
+      return;
+    }
+    
     moveColorRight(selectedPalette.id, colorId);
     onSettingsChange?.();
   };
 
   const handleReversePalette = () => {
     if (!selectedPalette) return;
+    
+    // If it's a preset palette, create a custom copy first
+    if (selectedPalette.isPreset) {
+      const newPaletteId = createCustomCopy(selectedPalette.id);
+      if (newPaletteId) {
+        updateSettings({ textColorPaletteId: newPaletteId });
+        reversePalette(newPaletteId);
+        onSettingsChange?.();
+      }
+      return;
+    }
+    
     reversePalette(selectedPalette.id);
     onSettingsChange?.();
   };
@@ -434,6 +518,9 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                       </SelectItem>
                       <SelectItem value="dithering" className="text-xs">
                         Dithering
+                      </SelectItem>
+                      <SelectItem value="by-index" className="text-xs">
+                        By Index
                       </SelectItem>
                     </SelectContent>
                   </Select>

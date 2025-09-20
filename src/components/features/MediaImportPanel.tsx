@@ -254,10 +254,13 @@ export function MediaImportPanel() {
     return positionedCells;
   }, [canvasWidth, canvasHeight, settings.cropMode, settings.nudgeX, settings.nudgeY]);
 
+  // Get palette data for dependencies (use individual arrays to avoid getAllPalettes() caching issues)
+  const palettes = usePaletteStore(state => state.palettes);
+  const customPalettes = usePaletteStore(state => state.customPalettes);
+  
   // Create conversion settings helper function
   const createConversionSettings = useCallback(() => {
-    // Get color palettes if enabled (use getState to avoid dependency issues)
-    const allPalettes = usePaletteStore.getState().getAllPalettes();
+    const allPalettes = [...palettes, ...customPalettes];
     const textColorPalette = settings.enableTextColorMapping && settings.textColorPaletteId 
       ? allPalettes.find((p: any) => p.id === settings.textColorPaletteId)?.colors.map((c: any) => c.value) || []
       : [];
@@ -308,7 +311,9 @@ export function MediaImportPanel() {
     activePalette,
     mappingMethod,
     invertDensity,
-    selectedColor
+    selectedColor,
+    palettes,
+    customPalettes
   ]);
 
   // Auto-process file when settings change
@@ -417,6 +422,8 @@ export function MediaImportPanel() {
     settings.backgroundColorPaletteId,
     settings.backgroundColorMappingMode,
     selectedColor,
+    palettes,
+    customPalettes,
     setCanvasData,
     positionCellsOnCanvas,
     startPreview

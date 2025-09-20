@@ -27,13 +27,13 @@ export interface ConversionSettings {
   // Text (foreground) color mapping - NEW
   enableTextColorMapping: boolean;
   textColorPalette: string[]; // Array of hex colors from selected palette
-  textColorMappingMode: 'closest' | 'dithering';
+  textColorMappingMode: 'closest' | 'dithering' | 'by-index';
   defaultTextColor: string; // Default color when text color mapping is disabled
   
   // Background color mapping - NEW
   enableBackgroundColorMapping: boolean;
   backgroundColorPalette: string[]; // Array of hex colors from selected palette
-  backgroundColorMappingMode: 'closest' | 'dithering';
+  backgroundColorMappingMode: 'closest' | 'dithering' | 'by-index';
   
   // Legacy color settings (keep for backward compatibility)
   useOriginalColors: boolean;
@@ -209,6 +209,22 @@ export class ColorMatcher {
     
     return this.findClosestColor(ditheredR, ditheredG, ditheredB, palette);
   }
+
+  /**
+   * Map color by brightness to palette index (like character mapping)
+   */
+  static mapColorByIndex(r: number, g: number, b: number, palette: string[]): string {
+    if (palette.length === 0) return '#000000';
+    
+    // Calculate brightness using the same formula as character mapping
+    const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    
+    // Map brightness (0-255) to palette index (0 to palette.length-1)
+    const paletteIndex = Math.floor((brightness / 255) * (palette.length - 1));
+    const clampedIndex = Math.max(0, Math.min(palette.length - 1, paletteIndex));
+    
+    return palette[clampedIndex];
+  }
 }
 
 export interface ConversionResult {
@@ -294,6 +310,8 @@ export class ASCIIConverter {
           // Use palette-based color mapping
           if (settings.textColorMappingMode === 'dithering') {
             color = ColorMatcher.ditherColor(adjustedR, adjustedG, adjustedB, settings.textColorPalette, settings.ditherStrength);
+          } else if (settings.textColorMappingMode === 'by-index') {
+            color = ColorMatcher.mapColorByIndex(adjustedR, adjustedG, adjustedB, settings.textColorPalette);
           } else {
             color = ColorMatcher.findClosestColor(adjustedR, adjustedG, adjustedB, settings.textColorPalette);
           }
@@ -318,6 +336,8 @@ export class ASCIIConverter {
           // Use palette-based background color mapping
           if (settings.backgroundColorMappingMode === 'dithering') {
             bgColor = ColorMatcher.ditherColor(adjustedR, adjustedG, adjustedB, settings.backgroundColorPalette, settings.ditherStrength);
+          } else if (settings.backgroundColorMappingMode === 'by-index') {
+            bgColor = ColorMatcher.mapColorByIndex(adjustedR, adjustedG, adjustedB, settings.backgroundColorPalette);
           } else {
             bgColor = ColorMatcher.findClosestColor(adjustedR, adjustedG, adjustedB, settings.backgroundColorPalette);
           }

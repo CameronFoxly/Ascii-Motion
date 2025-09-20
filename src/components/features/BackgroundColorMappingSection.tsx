@@ -77,10 +77,12 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
   const palettes = usePaletteStore(state => state.palettes);
   const customPalettes = usePaletteStore(state => state.customPalettes);
   const updateColor = usePaletteStore(state => state.updateColor);
-  const reorderColors = usePaletteStore(state => state.reorderColors);
   const addColor = usePaletteStore(state => state.addColor);
   const removeColor = usePaletteStore(state => state.removeColor);
   const reversePalette = usePaletteStore(state => state.reversePalette);
+  const createCustomCopy = usePaletteStore(state => state.createCustomCopy);
+  const moveColorLeft = usePaletteStore(state => state.moveColorLeft);
+  const moveColorRight = usePaletteStore(state => state.moveColorRight);
   
   // Find currently selected palette
   const selectedPalette = useMemo(() => {
@@ -98,14 +100,37 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
     onSettingsChange?.();
   };
   
-  const handleMappingModeChange = (mode: 'closest' | 'dithering') => {
+  const handleMappingModeChange = (mode: 'closest' | 'dithering' | 'by-index') => {
     updateSettings({ backgroundColorMappingMode: mode });
     onSettingsChange?.();
   };
 
   // Color palette editing handlers
   const handleColorDoubleClick = (color: string) => {
-    if (!selectedPalette || selectedPalette.isPreset) return;
+    if (!selectedPalette) return;
+    
+    // If it's a preset palette, create a custom copy first
+    if (selectedPalette.isPreset) {
+      const newPaletteId = createCustomCopy(selectedPalette.id);
+      if (newPaletteId) {
+        // Switch to the new custom palette
+        updateSettings({ backgroundColorPaletteId: newPaletteId });
+        // Find the color in the new palette and edit it
+        const newPalette = customPalettes.find(p => p.id === newPaletteId);
+        if (newPalette) {
+          const colorObj = newPalette.colors.find(c => c.value === color);
+          if (colorObj) {
+            setEditingColorId(colorObj.id);
+            setColorPickerInitialColor(color);
+            setIsColorPickerOpen(true);
+          }
+        }
+        onSettingsChange?.();
+      }
+      return;
+    }
+    
+    // For custom palettes, edit directly
     const colorObj = selectedPalette.colors.find(c => c.value === color);
     if (colorObj) {
       setEditingColorId(colorObj.id);
@@ -123,31 +148,105 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
   };
 
   const handleMoveColorLeft = (colorIndex: number) => {
-    if (!selectedPalette || colorIndex <= 0 || selectedPalette.isPreset) return;
-    reorderColors(selectedPalette.id, colorIndex, colorIndex - 1);
+    if (!selectedPalette || colorIndex <= 0) return;
+    
+    // If it's a preset palette, create a custom copy first
+    if (selectedPalette.isPreset) {
+      const newPaletteId = createCustomCopy(selectedPalette.id);
+      if (newPaletteId) {
+        updateSettings({ backgroundColorPaletteId: newPaletteId });
+        // Use moveColorLeft with the color ID instead of reorderColors
+        const colorId = selectedPalette.colors[colorIndex]?.id;
+        if (colorId) {
+          moveColorLeft(newPaletteId, colorId);
+        }
+        onSettingsChange?.();
+      }
+      return;
+    }
+    
+    const colorId = selectedPalette.colors[colorIndex]?.id;
+    if (colorId) {
+      moveColorLeft(selectedPalette.id, colorId);
+    }
     onSettingsChange?.();
   };
 
   const handleMoveColorRight = (colorIndex: number) => {
-    if (!selectedPalette || colorIndex >= selectedPalette.colors.length - 1 || selectedPalette.isPreset) return;
-    reorderColors(selectedPalette.id, colorIndex, colorIndex + 1);
+    if (!selectedPalette || colorIndex >= selectedPalette.colors.length - 1) return;
+    
+    // If it's a preset palette, create a custom copy first
+    if (selectedPalette.isPreset) {
+      const newPaletteId = createCustomCopy(selectedPalette.id);
+      if (newPaletteId) {
+        updateSettings({ backgroundColorPaletteId: newPaletteId });
+        // Use moveColorRight with the color ID instead of reorderColors
+        const colorId = selectedPalette.colors[colorIndex]?.id;
+        if (colorId) {
+          moveColorRight(newPaletteId, colorId);
+        }
+        onSettingsChange?.();
+      }
+      return;
+    }
+    
+    const colorId = selectedPalette.colors[colorIndex]?.id;
+    if (colorId) {
+      moveColorRight(selectedPalette.id, colorId);
+    }
     onSettingsChange?.();
   };
 
   const handleAddColor = () => {
-    if (!selectedPalette || selectedPalette.isPreset) return;
+    if (!selectedPalette) return;
+    
+    // If it's a preset palette, create a custom copy first
+    if (selectedPalette.isPreset) {
+      const newPaletteId = createCustomCopy(selectedPalette.id);
+      if (newPaletteId) {
+        updateSettings({ backgroundColorPaletteId: newPaletteId });
+        addColor(newPaletteId, '#ffffff');
+        onSettingsChange?.();
+      }
+      return;
+    }
+    
     addColor(selectedPalette.id, '#ffffff');
     onSettingsChange?.();
   };
 
   const handleRemoveColor = (colorId: string) => {
-    if (!selectedPalette || selectedPalette.colors.length <= 1 || selectedPalette.isPreset) return;
+    if (!selectedPalette || selectedPalette.colors.length <= 1) return;
+    
+    // If it's a preset palette, create a custom copy first
+    if (selectedPalette.isPreset) {
+      const newPaletteId = createCustomCopy(selectedPalette.id);
+      if (newPaletteId) {
+        updateSettings({ backgroundColorPaletteId: newPaletteId });
+        removeColor(newPaletteId, colorId);
+        onSettingsChange?.();
+      }
+      return;
+    }
+    
     removeColor(selectedPalette.id, colorId);
     onSettingsChange?.();
   };
 
   const handleReversePalette = () => {
-    if (!selectedPalette || selectedPalette.isPreset) return;
+    if (!selectedPalette) return;
+    
+    // If it's a preset palette, create a custom copy first
+    if (selectedPalette.isPreset) {
+      const newPaletteId = createCustomCopy(selectedPalette.id);
+      if (newPaletteId) {
+        updateSettings({ backgroundColorPaletteId: newPaletteId });
+        reversePalette(newPaletteId);
+        onSettingsChange?.();
+      }
+      return;
+    }
+    
     reversePalette(selectedPalette.id);
     onSettingsChange?.();
   };
@@ -452,6 +551,7 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
                       <SelectContent>
                         <SelectItem value="closest">Closest Match</SelectItem>
                         <SelectItem value="dithering">Dithered</SelectItem>
+                        <SelectItem value="by-index">By Index</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
