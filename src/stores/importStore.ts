@@ -10,6 +10,7 @@
 
 import { create } from 'zustand';
 import type { MediaFile, ProcessedFrame } from '../utils/mediaProcessor';
+import { usePaletteStore } from './paletteStore';
 
 export interface ImportState {
   // Modal state
@@ -115,13 +116,13 @@ const DEFAULT_IMPORT_SETTINGS: ImportSettings = {
   enableCharacterMapping: true,
   
   // Text Color Mapping (NEW)
-  enableTextColorMapping: false,
-  textColorPaletteId: null,
+  enableTextColorMapping: true,
+  textColorPaletteId: null, // Will be set to active palette on first load
   textColorMappingMode: 'closest',
   
   // Background Color Mapping (NEW)
   enableBackgroundColorMapping: false,
-  backgroundColorPaletteId: null,
+  backgroundColorPaletteId: null, // Will be set to active palette on first load
   backgroundColorMappingMode: 'closest',
   
   // Legacy color palette (simplified for Session 1)
@@ -160,6 +161,9 @@ export const useImportStore = create<ImportState>((set, get) => ({
   
   // Modal actions
   openImportModal: () => {
+    // Get the active palette ID from the main app
+    const activePaletteId = usePaletteStore.getState().activePaletteId;
+    
     set({ 
       isImportModalOpen: true,
       // Reset state when opening modal
@@ -169,7 +173,13 @@ export const useImportStore = create<ImportState>((set, get) => ({
       processingProgress: 0,
       processingError: null,
       previewFrameIndex: 0,
-      isPreviewMode: false
+      isPreviewMode: false,
+      // Initialize palette IDs with the main app's active palette
+      settings: {
+        ...DEFAULT_IMPORT_SETTINGS,
+        textColorPaletteId: activePaletteId,
+        backgroundColorPaletteId: activePaletteId,
+      }
     });
   },
   

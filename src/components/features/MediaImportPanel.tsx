@@ -659,20 +659,21 @@ export function MediaImportPanel() {
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-3 space-y-3" style={{ width: '296px', maxWidth: '296px' }}>
+        <div className={`p-3 ${!selectedFile ? 'min-h-[calc(100vh-120px)] flex items-center justify-center' : 'space-y-3'}`} style={{ width: '296px', maxWidth: '296px' }}>
           {/* File Upload Section */}
           {!selectedFile && (
-            <div
-              className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
-                dragActive 
-                  ? 'border-primary bg-primary/10' 
-                  : 'border-muted-foreground/25 hover:border-primary/50'
-              }`}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-            >
+            <div className="w-full">
+              <div
+                className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+                  dragActive 
+                    ? 'border-primary bg-primary/10' 
+                    : 'border-muted-foreground/25 hover:border-primary/50'
+                }`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+              >
               <Upload className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
               <h3 className="text-sm font-medium mb-1">
                 {dragActive ? 'Drop file here' : 'Upload Media'}
@@ -698,6 +699,7 @@ export function MediaImportPanel() {
               <div className="text-xs text-muted-foreground space-y-0">
                 <p>Images: JPG, PNG, GIF, BMP, WebP, SVG</p>
                 <p>Videos: MP4, WebM, OGG, AVI, MOV, WMV</p>
+              </div>
               </div>
             </div>
           )}

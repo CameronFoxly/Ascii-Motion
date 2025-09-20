@@ -56,7 +56,7 @@ interface CharacterMappingSectionProps {
 }
 
 export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSectionProps) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [newCharacterInput, setNewCharacterInput] = useState('');
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
