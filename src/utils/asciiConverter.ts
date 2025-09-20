@@ -65,8 +65,9 @@ export const brightnessAlgorithm: MappingAlgorithm = {
   mapPixelToCharacter: (r: number, g: number, b: number, characters: string[]) => {
     // Using relative luminance formula (Rec. 709)
     const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    const charIndex = Math.floor((brightness / 255) * (characters.length - 1));
-    return characters[Math.max(0, Math.min(characters.length - 1, charIndex))];
+    // Fixed mapping: ensures all characters are used by mapping brightness 0-255 to indices 0-(length-1)
+    const charIndex = Math.min(Math.floor((brightness / 256) * characters.length), characters.length - 1);
+    return characters[charIndex];
   }
 };
 
@@ -79,8 +80,9 @@ export const luminanceAlgorithm: MappingAlgorithm = {
   mapPixelToCharacter: (r: number, g: number, b: number, characters: string[]) => {
     // Perceptual luminance with gamma correction
     const luminance = Math.pow(0.299 * Math.pow(r/255, 2.2) + 0.587 * Math.pow(g/255, 2.2) + 0.114 * Math.pow(b/255, 2.2), 1/2.2) * 255;
-    const charIndex = Math.floor((luminance / 255) * (characters.length - 1));
-    return characters[Math.max(0, Math.min(characters.length - 1, charIndex))];
+    // Fixed mapping: ensures all characters are used by mapping luminance 0-255 to indices 0-(length-1)
+    const charIndex = Math.min(Math.floor((luminance / 256) * characters.length), characters.length - 1);
+    return characters[charIndex];
   }
 };
 
@@ -99,15 +101,15 @@ export const contrastAlgorithm: MappingAlgorithm = {
       const contrast = Math.abs(brightness - avgNeighbor) / 255;
       
       // Use contrast to influence character selection
-      const baseIndex = Math.floor((brightness / 255) * (characters.length - 1));
+      const baseIndex = Math.min(Math.floor((brightness / 256) * characters.length), characters.length - 1);
       const contrastOffset = Math.floor(contrast * (characters.length * 0.3));
       const charIndex = Math.min(characters.length - 1, baseIndex + contrastOffset);
       return characters[charIndex];
     }
     
-    // Fallback to brightness if no neighbors
-    const charIndex = Math.floor((brightness / 255) * (characters.length - 1));
-    return characters[Math.max(0, Math.min(characters.length - 1, charIndex))];
+    // Fallback to brightness if no neighbors - fixed mapping
+    const charIndex = Math.min(Math.floor((brightness / 256) * characters.length), characters.length - 1);
+    return characters[charIndex];
   }
 };
 
@@ -126,14 +128,14 @@ export const edgeDetectionAlgorithm: MappingAlgorithm = {
       
       // For edges, prefer characters with more visual weight
       if (edgeStrength > 0.3) {
-        const edgeCharIndex = Math.floor(edgeStrength * (characters.length - 1));
-        return characters[Math.max(characters.length * 0.5, edgeCharIndex)];
+        const edgeCharIndex = Math.min(Math.floor((edgeStrength / 256) * characters.length), characters.length - 1);
+        return characters[Math.max(Math.floor(characters.length * 0.5), edgeCharIndex)];
       }
     }
     
-    // For non-edges, use brightness-based selection
-    const charIndex = Math.floor((brightness / 255) * (characters.length - 1));
-    return characters[Math.max(0, Math.min(characters.length - 1, charIndex))];
+    // For non-edges, use brightness-based selection - fixed mapping
+    const charIndex = Math.min(Math.floor((brightness / 256) * characters.length), characters.length - 1);
+    return characters[charIndex];
   }
 };
 
@@ -219,11 +221,10 @@ export class ColorMatcher {
     // Calculate brightness using the same formula as character mapping
     const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     
-    // Map brightness (0-255) to palette index (0 to palette.length-1)
-    const paletteIndex = Math.floor((brightness / 255) * (palette.length - 1));
-    const clampedIndex = Math.max(0, Math.min(palette.length - 1, paletteIndex));
+    // Fixed mapping: ensures all colors are used by mapping brightness 0-255 to indices 0-(length-1)
+    const paletteIndex = Math.min(Math.floor((brightness / 256) * palette.length), palette.length - 1);
     
-    return palette[clampedIndex];
+    return palette[paletteIndex];
   }
 }
 

@@ -58,6 +58,10 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   
+  // Drag and drop state
+  const [draggedColorId, setDraggedColorId] = useState<string | null>(null);
+  const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
+  
   // Import settings
   const { settings, updateSettings } = useImportSettings();
   const {
@@ -234,6 +238,100 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
     onSettingsChange?.();
   };
 
+  // Handle drag start
+  const handleDragStart = (e: React.DragEvent, colorId: string) => {
+    if (!selectedPalette) {
+      e.preventDefault();
+      return;
+    }
+    setDraggedColorId(colorId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  // Handle drag over
+  const handleDragOver = (e: React.DragEvent, targetColorId?: string) => {
+    if (!selectedPalette || !draggedColorId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    if (targetColorId) {
+      const targetIndex = selectedPalette.colors.findIndex(c => c.id === targetColorId);
+      if (targetIndex !== -1) {
+        // Determine if we should show indicator before or after based on mouse position
+        const rect = (e.target as HTMLElement).getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const isAfter = mouseX > rect.width / 2;
+        setDropIndicatorIndex(isAfter ? targetIndex + 1 : targetIndex);
+      }
+    }
+  };
+
+  // Handle drop
+  const handleDrop = (e: React.DragEvent, targetColorId: string) => {
+    e.preventDefault();
+    if (!selectedPalette || !draggedColorId || draggedColorId === targetColorId) {
+      setDraggedColorId(null);
+      setDropIndicatorIndex(null);
+      return;
+    }
+
+    // Find indices of source and target colors
+    const sourceIndex = selectedPalette.colors.findIndex(c => c.id === draggedColorId);
+    const targetIndex = selectedPalette.colors.findIndex(c => c.id === targetColorId);
+    
+    if (sourceIndex === -1 || targetIndex === -1) {
+      setDraggedColorId(null);
+      setDropIndicatorIndex(null);
+      return;
+    }
+
+    // If it's a preset palette, create a custom copy first
+    let paletteId = selectedPalette.id;
+    if (selectedPalette.isPreset) {
+      const newPaletteId = createCustomCopy(selectedPalette.id);
+      if (newPaletteId) {
+        paletteId = newPaletteId;
+        updateSettings({ textColorPaletteId: newPaletteId });
+      } else {
+        setDraggedColorId(null);
+        setDropIndicatorIndex(null);
+        return;
+      }
+    }
+
+    // Determine final position based on drop indicator
+    let finalTargetIndex = targetIndex;
+    if (dropIndicatorIndex === targetIndex + 1) {
+      finalTargetIndex = targetIndex + 1;
+    }
+
+    // Move the colors
+    let currentIndex = sourceIndex;
+    if (currentIndex < finalTargetIndex) {
+      // Moving right - use moveColorRight
+      for (let i = 0; i < finalTargetIndex - sourceIndex; i++) {
+        moveColorRight(paletteId, draggedColorId);
+      }
+    } else if (currentIndex > finalTargetIndex) {
+      // Moving left - use moveColorLeft
+      for (let i = 0; i < sourceIndex - finalTargetIndex; i++) {
+        moveColorLeft(paletteId, draggedColorId);
+      }
+    }
+
+    setDraggedColorId(null);
+    setDropIndicatorIndex(null);
+    onSettingsChange?.();
+  };
+
+  // Handle drag leave
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear if leaving the grid container
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDropIndicatorIndex(null);
+    }
+  };
+
   return (
     <>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -342,20 +440,41 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                     {/* Color swatches grid */}
                     <Card className="bg-card/50 border-border/50">
                       <CardContent className="p-2">
-                        <div className="grid grid-cols-8 gap-0.5 mb-2">
-                          {selectedPalette.colors.map((color) => (
-                            <div
-                              key={color.id}
-                              className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 cursor-pointer ${
-                                selectedColorId === color.id
-                                  ? 'border-primary ring-2 ring-primary/20 shadow-lg'
-                                  : 'border-border hover:border-border/80'
-                              }`}
-                              style={{ backgroundColor: color.value }}
-                              onClick={() => setSelectedColor(color.id)}
-                              onDoubleClick={() => handleColorDoubleClick(color.value)}
-                              title={`${color.name || 'Unnamed'}: ${color.value} (double-click to edit)`}
-                            />
+                        <div className="grid grid-cols-8 gap-0.5 mb-2" onDragLeave={handleDragLeave}>
+                          {selectedPalette.colors.map((color, index) => (
+                            <div key={color.id} className="relative flex items-center justify-center">
+                              {/* Drop indicator line */}
+                              {dropIndicatorIndex === index && (
+                                <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
+                              )}
+                              
+                              <div
+                                className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 cursor-pointer ${
+                                  draggedColorId === color.id ? 'opacity-50 scale-95' : ''
+                                } ${
+                                  selectedColorId === color.id
+                                    ? 'border-primary ring-2 ring-primary/20 shadow-lg'
+                                    : 'border-border hover:border-border/80'
+                                } cursor-move`}
+                                style={{ backgroundColor: color.value }}
+                                draggable={!selectedPalette.isPreset}
+                                onClick={() => setSelectedColor(color.id)}
+                                onDoubleClick={() => handleColorDoubleClick(color.value)}
+                                onDragStart={(e) => handleDragStart(e, color.id)}
+                                onDragOver={(e) => handleDragOver(e, color.id)}
+                                onDrop={(e) => handleDrop(e, color.id)}
+                                title={
+                                  selectedPalette.isPreset 
+                                    ? `${color.name || 'Unnamed'}: ${color.value} (double-click to edit)` 
+                                    : `${color.name || 'Unnamed'}: ${color.value} (drag to reorder, double-click to edit)`
+                                }
+                              />
+                              
+                              {/* Drop indicator line after last item */}
+                              {dropIndicatorIndex === index + 1 && (
+                                <div className="absolute -right-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
+                              )}
+                            </div>
                           ))}
                         </div>
                         

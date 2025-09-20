@@ -65,6 +65,10 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
   
+  // Drag and drop state
+  const [draggedColorId, setDraggedColorId] = useState<string | null>(null);
+  const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
+  
   // Import settings
   const { settings, updateSettings } = useImportSettings();
   const {
@@ -249,6 +253,100 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
     
     reversePalette(selectedPalette.id);
     onSettingsChange?.();
+  };
+
+  // Handle drag start
+  const handleDragStart = (e: React.DragEvent, colorId: string) => {
+    if (!selectedPalette) {
+      e.preventDefault();
+      return;
+    }
+    setDraggedColorId(colorId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  // Handle drag over
+  const handleDragOver = (e: React.DragEvent, targetColorId?: string) => {
+    if (!selectedPalette || !draggedColorId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    if (targetColorId) {
+      const targetIndex = selectedPalette.colors.findIndex(c => c.id === targetColorId);
+      if (targetIndex !== -1) {
+        // Determine if we should show indicator before or after based on mouse position
+        const rect = (e.target as HTMLElement).getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const isAfter = mouseX > rect.width / 2;
+        setDropIndicatorIndex(isAfter ? targetIndex + 1 : targetIndex);
+      }
+    }
+  };
+
+  // Handle drop
+  const handleDrop = (e: React.DragEvent, targetColorId: string) => {
+    e.preventDefault();
+    if (!selectedPalette || !draggedColorId || draggedColorId === targetColorId) {
+      setDraggedColorId(null);
+      setDropIndicatorIndex(null);
+      return;
+    }
+
+    // Find indices of source and target colors
+    const sourceIndex = selectedPalette.colors.findIndex(c => c.id === draggedColorId);
+    const targetIndex = selectedPalette.colors.findIndex(c => c.id === targetColorId);
+    
+    if (sourceIndex === -1 || targetIndex === -1) {
+      setDraggedColorId(null);
+      setDropIndicatorIndex(null);
+      return;
+    }
+
+    // If it's a preset palette, create a custom copy first
+    let paletteId = selectedPalette.id;
+    if (selectedPalette.isPreset) {
+      const newPaletteId = createCustomCopy(selectedPalette.id);
+      if (newPaletteId) {
+        paletteId = newPaletteId;
+        updateSettings({ backgroundColorPaletteId: newPaletteId });
+      } else {
+        setDraggedColorId(null);
+        setDropIndicatorIndex(null);
+        return;
+      }
+    }
+
+    // Determine final position based on drop indicator
+    let finalTargetIndex = targetIndex;
+    if (dropIndicatorIndex === targetIndex + 1) {
+      finalTargetIndex = targetIndex + 1;
+    }
+
+    // Move the colors
+    let currentIndex = sourceIndex;
+    if (currentIndex < finalTargetIndex) {
+      // Moving right - use moveColorRight
+      for (let i = 0; i < finalTargetIndex - sourceIndex; i++) {
+        moveColorRight(paletteId, draggedColorId);
+      }
+    } else if (currentIndex > finalTargetIndex) {
+      // Moving left - use moveColorLeft
+      for (let i = 0; i < sourceIndex - finalTargetIndex; i++) {
+        moveColorLeft(paletteId, draggedColorId);
+      }
+    }
+
+    setDraggedColorId(null);
+    setDropIndicatorIndex(null);
+    onSettingsChange?.();
+  };
+
+  // Handle drag leave
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear if leaving the grid container
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDropIndicatorIndex(null);
+    }
   };
 
   return (
@@ -446,24 +544,43 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
                       </div>
                       
                       <div className="bg-background/50 border border-border rounded p-2">
-                        <div className="grid grid-cols-8 gap-1">
+                        <div className="grid grid-cols-8 gap-1" onDragLeave={handleDragLeave}>
                           {selectedPalette.colors.map((color, colorIndex) => (
-                            <div key={`${color.id}-${colorIndex}`} className="relative group">
+                            <div key={`${color.id}-${colorIndex}`} className="relative group flex items-center justify-center">
+                              {/* Drop indicator line */}
+                              {dropIndicatorIndex === colorIndex && (
+                                <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
+                              )}
+                              
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div
                                     className={`w-8 h-8 border border-border/50 rounded cursor-pointer transition-all ${
-                                      !selectedPalette.isPreset ? 'hover:scale-110 hover:border-primary' : ''
+                                      draggedColorId === color.id ? 'opacity-50 scale-95' : ''
+                                    } ${
+                                      !selectedPalette.isPreset ? 'hover:scale-110 hover:border-primary cursor-move' : ''
                                     }`}
                                     style={{ backgroundColor: color.value }}
+                                    draggable={!selectedPalette.isPreset}
                                     onDoubleClick={() => handleColorDoubleClick(color.value)}
+                                    onDragStart={(e) => handleDragStart(e, color.id)}
+                                    onDragOver={(e) => handleDragOver(e, color.id)}
+                                    onDrop={(e) => handleDrop(e, color.id)}
                                   />
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <p>{color.name || color.value}</p>
-                                  {!selectedPalette.isPreset && <p className="text-xs">Click to edit</p>}
+                                  {selectedPalette.isPreset 
+                                    ? <p className="text-xs">Double-click to edit</p>
+                                    : <p className="text-xs">Drag to reorder, double-click to edit</p>
+                                  }
                                 </TooltipContent>
                               </Tooltip>
+                              
+                              {/* Drop indicator line after last item */}
+                              {dropIndicatorIndex === colorIndex + 1 && (
+                                <div className="absolute -right-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
+                              )}
                               
                               {/* Color Control Buttons */}
                               {!selectedPalette.isPreset && (
