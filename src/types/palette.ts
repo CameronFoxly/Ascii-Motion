@@ -101,7 +101,7 @@ export interface CharacterPalette {
 
 export interface CharacterMappingSettings {
   activePalette: CharacterPalette;
-  mappingMethod: 'brightness' | 'luminance' | 'contrast' | 'edge-detection';
+  mappingMethod: 'brightness' | 'luminance' | 'contrast' | 'edge-detection' | 'saturation' | 'red-channel' | 'green-channel' | 'blue-channel';
   invertDensity: boolean;         // Reverse light/dark mapping
   characterSpacing: number;       // Spacing between characters (1.0 = normal)
   useCustomOrder: boolean;        // Allow manual character reordering

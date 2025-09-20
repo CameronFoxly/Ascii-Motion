@@ -44,6 +44,12 @@ export interface ConversionSettings {
   // Processing options
   contrastEnhancement: number; // 0-2 multiplier
   brightnessAdjustment: number; // -100 to 100
+  saturationAdjustment: number; // -100 to 100
+  highlightsAdjustment: number; // -100 to 100
+  shadowsAdjustment: number; // -100 to 100
+  midtonesAdjustment: number; // -100 to 100
+  blurAmount: number; // 0-10
+  sharpenAmount: number; // 0-10
   ditherStrength: number; // 0-1 for dithering algorithms
 }
 
@@ -98,13 +104,29 @@ export const contrastAlgorithm: MappingAlgorithm = {
     // If neighbor values are provided, calculate local contrast
     if (options?.neighborValues && options.neighborValues.length > 0) {
       const avgNeighbor = options.neighborValues.reduce((sum, val) => sum + val, 0) / options.neighborValues.length;
-      const contrast = Math.abs(brightness - avgNeighbor) / 255;
+      const localContrast = Math.abs(brightness - avgNeighbor) / 255;
       
-      // Use contrast to influence character selection
-      const baseIndex = Math.min(Math.floor((brightness / 256) * characters.length), characters.length - 1);
-      const contrastOffset = Math.floor(contrast * (characters.length * 0.3));
-      const charIndex = Math.min(characters.length - 1, baseIndex + contrastOffset);
-      return characters[charIndex];
+      // Calculate standard deviation for better contrast measurement
+      const variance = options.neighborValues.reduce((sum, val) => {
+        const diff = val - avgNeighbor;
+        return sum + (diff * diff);
+      }, 0) / options.neighborValues.length;
+      const stdDev = Math.sqrt(variance) / 255;
+      
+      // Combine local contrast with neighborhood variance for better contrast detection
+      const contrastScore = (localContrast * 0.7) + (stdDev * 0.3);
+      
+      // Map contrast score to character index - higher contrast gets denser characters
+      const contrastBasedIndex = Math.min(
+        Math.floor(contrastScore * characters.length * 1.5), 
+        characters.length - 1
+      );
+      
+      // Blend contrast-based selection with brightness-based selection
+      const brightnessIndex = Math.min(Math.floor((brightness / 256) * characters.length), characters.length - 1);
+      const blendedIndex = Math.floor((contrastBasedIndex * 0.6) + (brightnessIndex * 0.4));
+      
+      return characters[Math.min(blendedIndex, characters.length - 1)];
     }
     
     // Fallback to brightness if no neighbors - fixed mapping
@@ -119,14 +141,37 @@ export const contrastAlgorithm: MappingAlgorithm = {
 export const edgeDetectionAlgorithm: MappingAlgorithm = {
   name: 'edge-detection',
   description: 'Maps characters based on edge detection for line art',
-  mapPixelToCharacter: (r: number, g: number, b: number, characters: string[], options?: { gradientMagnitude?: number }) => {
+  mapPixelToCharacter: (r: number, g: number, b: number, characters: string[], options?: { 
+    gradientMagnitude?: number,
+    sobelX?: number,
+    sobelY?: number 
+  }) => {
     const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     
-    // If gradient magnitude is provided (from edge detection), use it
+    // If Sobel gradient values are provided, calculate proper edge strength
+    if (options?.sobelX !== undefined && options?.sobelY !== undefined) {
+      const gradientMagnitude = Math.sqrt(options.sobelX * options.sobelX + options.sobelY * options.sobelY);
+      const edgeStrength = Math.min(gradientMagnitude / 765, 1); // Normalize to 0-1 (765 = max possible gradient)
+      
+      // For strong edges, prefer characters with more visual density
+      if (edgeStrength > 0.2) {
+        // Map edge strength to higher-density characters
+        const edgeCharIndex = Math.floor(edgeStrength * characters.length);
+        const minIndex = Math.floor(characters.length * 0.4); // Prefer at least medium-density chars for edges
+        return characters[Math.min(Math.max(edgeCharIndex, minIndex), characters.length - 1)];
+      }
+      
+      // For weak edges, blend with brightness
+      const brightnessIndex = Math.min(Math.floor((brightness / 256) * characters.length), characters.length - 1);
+      const edgeInfluence = edgeStrength * 0.5; // Moderate influence for weak edges
+      const blendedIndex = Math.floor((brightnessIndex * (1 - edgeInfluence)) + (characters.length * 0.6 * edgeInfluence));
+      return characters[Math.min(blendedIndex, characters.length - 1)];
+    }
+    
+    // Fallback using gradient magnitude (legacy support)
     if (options?.gradientMagnitude !== undefined) {
       const edgeStrength = options.gradientMagnitude / 255;
       
-      // For edges, prefer characters with more visual weight
       if (edgeStrength > 0.3) {
         const edgeCharIndex = Math.min(Math.floor((edgeStrength / 256) * characters.length), characters.length - 1);
         return characters[Math.max(Math.floor(characters.length * 0.5), edgeCharIndex)];
@@ -140,13 +185,79 @@ export const edgeDetectionAlgorithm: MappingAlgorithm = {
 };
 
 /**
+ * Saturation-based mapping algorithm
+ */
+export const saturationAlgorithm: MappingAlgorithm = {
+  name: 'saturation',
+  description: 'Maps characters based on color saturation intensity',
+  mapPixelToCharacter: (r: number, g: number, b: number, characters: string[]) => {
+    // Calculate HSV saturation
+    const rNorm = r / 255;
+    const gNorm = g / 255;
+    const bNorm = b / 255;
+    
+    const max = Math.max(rNorm, gNorm, bNorm);
+    const min = Math.min(rNorm, gNorm, bNorm);
+    
+    const saturation = max === 0 ? 0 : (max - min) / max;
+    
+    // Map saturation (0-1) to character index - higher saturation gets denser characters
+    const charIndex = Math.min(Math.floor(saturation * characters.length), characters.length - 1);
+    return characters[charIndex];
+  }
+};
+
+/**
+ * Red channel mapping algorithm
+ */
+export const redChannelAlgorithm: MappingAlgorithm = {
+  name: 'red-channel',
+  description: 'Maps characters based on red color channel intensity',
+  mapPixelToCharacter: (r: number, _g: number, _b: number, characters: string[]) => {
+    // Use red channel value directly
+    const charIndex = Math.min(Math.floor((r / 256) * characters.length), characters.length - 1);
+    return characters[charIndex];
+  }
+};
+
+/**
+ * Green channel mapping algorithm
+ */
+export const greenChannelAlgorithm: MappingAlgorithm = {
+  name: 'green-channel',
+  description: 'Maps characters based on green color channel intensity',
+  mapPixelToCharacter: (_r: number, g: number, _b: number, characters: string[]) => {
+    // Use green channel value directly
+    const charIndex = Math.min(Math.floor((g / 256) * characters.length), characters.length - 1);
+    return characters[charIndex];
+  }
+};
+
+/**
+ * Blue channel mapping algorithm
+ */
+export const blueChannelAlgorithm: MappingAlgorithm = {
+  name: 'blue-channel',
+  description: 'Maps characters based on blue color channel intensity',
+  mapPixelToCharacter: (_r: number, _g: number, b: number, characters: string[]) => {
+    // Use blue channel value directly
+    const charIndex = Math.min(Math.floor((b / 256) * characters.length), characters.length - 1);
+    return characters[charIndex];
+  }
+};
+
+/**
  * Registry of available mapping algorithms
  */
 export const MAPPING_ALGORITHMS: Record<CharacterMappingSettings['mappingMethod'], MappingAlgorithm> = {
   'brightness': brightnessAlgorithm,
   'luminance': luminanceAlgorithm,
   'contrast': contrastAlgorithm,
-  'edge-detection': edgeDetectionAlgorithm
+  'edge-detection': edgeDetectionAlgorithm,
+  'saturation': saturationAlgorithm,
+  'red-channel': redChannelAlgorithm,
+  'green-channel': greenChannelAlgorithm,
+  'blue-channel': blueChannelAlgorithm
 };
 
 /**
@@ -250,7 +361,18 @@ export class ASCIIConverter {
   convertFrame(frame: ProcessedFrame, settings: ConversionSettings): ConversionResult {
     const startTime = performance.now();
     
-    const { imageData } = frame;
+    let { imageData } = frame;
+    
+    // Apply blur filter if specified
+    if (settings.blurAmount > 0) {
+      imageData = this.applyBlurFilter(imageData, settings.blurAmount);
+    }
+    
+    // Apply sharpen filter if specified
+    if (settings.sharpenAmount > 0) {
+      imageData = this.applySharpenFilter(imageData, settings.sharpenAmount);
+    }
+    
     const { data, width, height } = imageData;
     
     const cells = new Map<string, Cell>();
@@ -275,9 +397,10 @@ export class ASCIIConverter {
         // Skip transparent pixels
         if (a < 128) continue;
         
-        // Apply brightness and contrast adjustments to RGB values
+        // Apply preprocessing adjustments to RGB values
         let adjustedR = r, adjustedG = g, adjustedB = b;
         
+        // Apply brightness adjustment
         if (settings.brightnessAdjustment !== 0) {
           const adjustment = settings.brightnessAdjustment * 2.55;
           adjustedR = Math.max(0, Math.min(255, r + adjustment));
@@ -285,20 +408,53 @@ export class ASCIIConverter {
           adjustedB = Math.max(0, Math.min(255, b + adjustment));
         }
         
+        // Apply contrast enhancement
         if (settings.contrastEnhancement !== 1) {
           adjustedR = this.applyContrastToChannel(adjustedR, settings.contrastEnhancement);
           adjustedG = this.applyContrastToChannel(adjustedG, settings.contrastEnhancement);
           adjustedB = this.applyContrastToChannel(adjustedB, settings.contrastEnhancement);
         }
         
+        // Apply saturation adjustment
+        if (settings.saturationAdjustment !== 0) {
+          [adjustedR, adjustedG, adjustedB] = this.applySaturationAdjustment(adjustedR, adjustedG, adjustedB, settings.saturationAdjustment);
+        }
+        
+        // Apply tonal adjustments (highlights, shadows, midtones)
+        if (settings.highlightsAdjustment !== 0 || settings.shadowsAdjustment !== 0 || settings.midtonesAdjustment !== 0) {
+          [adjustedR, adjustedG, adjustedB] = this.applyTonalAdjustments(
+            adjustedR, adjustedG, adjustedB,
+            settings.highlightsAdjustment,
+            settings.shadowsAdjustment,
+            settings.midtonesAdjustment
+          );
+        }
+        
         // Select character using the chosen algorithm (if character mapping is enabled)
         let character: string;
         if (settings.enableCharacterMapping) {
+          // Calculate additional data for advanced algorithms
+          let algorithmOptions: any = {};
+          
+          if (settings.mappingMethod === 'contrast' || settings.mappingMethod === 'edge-detection') {
+            // Calculate neighbor values for contrast and edge detection
+            const neighbors = this.getNeighborValues(data, width, height, x, y);
+            algorithmOptions.neighborValues = neighbors;
+            
+            // For edge detection, calculate Sobel gradients
+            if (settings.mappingMethod === 'edge-detection') {
+              const { sobelX, sobelY } = this.calculateSobelGradients(data, width, height, x, y);
+              algorithmOptions.sobelX = sobelX;
+              algorithmOptions.sobelY = sobelY;
+            }
+          }
+          
           character = this.selectCharacterWithAlgorithm(
             adjustedR, adjustedG, adjustedB,
             settings.characterPalette,
             settings.mappingMethod,
-            settings.invertDensity
+            settings.invertDensity,
+            algorithmOptions
           );
         } else {
           // Use space character if character mapping is disabled (for pixel-art style effects)
@@ -385,7 +541,313 @@ export class ASCIIConverter {
     const enhanced = 1 / (1 + Math.exp(-enhancement * (normalized - 0.5) * 6));
     return Math.round(Math.max(0, Math.min(255, enhanced * 255)));
   }
+
+  /**
+   * Apply saturation adjustment to RGB values
+   */
+  private applySaturationAdjustment(r: number, g: number, b: number, saturationAdjustment: number): [number, number, number] {
+    // Convert RGB to HSL
+    const rNorm = r / 255;
+    const gNorm = g / 255;
+    const bNorm = b / 255;
+    
+    const max = Math.max(rNorm, gNorm, bNorm);
+    const min = Math.min(rNorm, gNorm, bNorm);
+    const delta = max - min;
+    
+    // Calculate lightness
+    const lightness = (max + min) / 2;
+    
+    // If no saturation (grayscale), return original
+    if (delta === 0) {
+      return [r, g, b];
+    }
+    
+    // Calculate current saturation
+    const saturation = lightness > 0.5 ? delta / (2 - max - min) : delta / (max + min);
+    
+    // Apply saturation adjustment (-100 to 100 -> 0 to 2 multiplier)
+    const saturationMultiplier = 1 + (saturationAdjustment / 100);
+    const newSaturation = Math.max(0, Math.min(1, saturation * saturationMultiplier));
+    
+    // Calculate hue
+    let hue = 0;
+    if (max === rNorm) {
+      hue = ((gNorm - bNorm) / delta + (gNorm < bNorm ? 6 : 0)) / 6;
+    } else if (max === gNorm) {
+      hue = ((bNorm - rNorm) / delta + 2) / 6;
+    } else {
+      hue = ((rNorm - gNorm) / delta + 4) / 6;
+    }
+    
+    // Convert HSL back to RGB
+    const c = (1 - Math.abs(2 * lightness - 1)) * newSaturation;
+    const x = c * (1 - Math.abs(((hue * 6) % 2) - 1));
+    const m = lightness - c / 2;
+    
+    let rPrime = 0, gPrime = 0, bPrime = 0;
+    const hueSegment = hue * 6;
+    
+    if (hueSegment < 1) {
+      rPrime = c; gPrime = x; bPrime = 0;
+    } else if (hueSegment < 2) {
+      rPrime = x; gPrime = c; bPrime = 0;
+    } else if (hueSegment < 3) {
+      rPrime = 0; gPrime = c; bPrime = x;
+    } else if (hueSegment < 4) {
+      rPrime = 0; gPrime = x; bPrime = c;
+    } else if (hueSegment < 5) {
+      rPrime = x; gPrime = 0; bPrime = c;
+    } else {
+      rPrime = c; gPrime = 0; bPrime = x;
+    }
+    
+    const newR = Math.round((rPrime + m) * 255);
+    const newG = Math.round((gPrime + m) * 255);
+    const newB = Math.round((bPrime + m) * 255);
+    
+    return [
+      Math.max(0, Math.min(255, newR)),
+      Math.max(0, Math.min(255, newG)),
+      Math.max(0, Math.min(255, newB))
+    ];
+  }
+
+  /**
+   * Apply tonal adjustments (highlights, shadows, midtones)
+   */
+  private applyTonalAdjustments(
+    r: number, g: number, b: number,
+    highlightsAdjustment: number,
+    shadowsAdjustment: number,
+    midtonesAdjustment: number
+  ): [number, number, number] {
+    // Calculate luminance to determine which tonal range this pixel belongs to
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const normalizedLuminance = luminance / 255;
+    
+    // Calculate weights for each tonal range using smooth transitions
+    const shadowWeight = Math.max(0, 1 - normalizedLuminance * 2); // Strong in dark areas
+    const highlightWeight = Math.max(0, (normalizedLuminance - 0.5) * 2); // Strong in bright areas
+    const midtoneWeight = 1 - Math.abs(normalizedLuminance - 0.5) * 2; // Strong in middle areas
+    
+    // Apply adjustments based on tonal range weights
+    const shadowAdjust = (shadowsAdjustment / 100) * shadowWeight;
+    const highlightAdjust = (highlightsAdjustment / 100) * highlightWeight;
+    const midtoneAdjust = (midtonesAdjustment / 100) * midtoneWeight;
+    
+    // Combine adjustments
+    const totalAdjustment = (shadowAdjust + highlightAdjust + midtoneAdjust) * 2.55;
+    
+    const newR = Math.max(0, Math.min(255, r + totalAdjustment));
+    const newG = Math.max(0, Math.min(255, g + totalAdjustment));
+    const newB = Math.max(0, Math.min(255, b + totalAdjustment));
+    
+    return [newR, newG, newB];
+  }
+
+  /**
+   * Apply blur filter to image data
+   */
+  private applyBlurFilter(imageData: ImageData, blurAmount: number): ImageData {
+    if (blurAmount <= 0) return imageData;
+    
+    const { data, width, height } = imageData;
+    const result = new ImageData(width, height);
+    const resultData = result.data;
+    
+    // Gaussian blur approximation using box blur passes
+    // Number of passes increases with blur amount for better quality
+    const passes = Math.ceil(blurAmount / 2);
+    let currentData = new Uint8ClampedArray(data);
+    let tempData = new Uint8ClampedArray(data.length);
+    
+    for (let pass = 0; pass < passes; pass++) {
+      // Horizontal pass
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const centerIndex = (y * width + x) * 4;
+          let r = 0, g = 0, b = 0, a = 0;
+          let count = 0;
+          
+          // Box blur kernel size based on blur amount
+          const kernelRadius = Math.max(1, Math.floor(blurAmount / Math.max(1, passes)));
+          
+          for (let i = -kernelRadius; i <= kernelRadius; i++) {
+            const sampleX = Math.max(0, Math.min(width - 1, x + i));
+            const sampleIndex = (y * width + sampleX) * 4;
+            
+            r += currentData[sampleIndex];
+            g += currentData[sampleIndex + 1];
+            b += currentData[sampleIndex + 2];
+            a += currentData[sampleIndex + 3];
+            count++;
+          }
+          
+          tempData[centerIndex] = r / count;
+          tempData[centerIndex + 1] = g / count;
+          tempData[centerIndex + 2] = b / count;
+          tempData[centerIndex + 3] = a / count;
+        }
+      }
+      
+      // Vertical pass
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const centerIndex = (y * width + x) * 4;
+          let r = 0, g = 0, b = 0, a = 0;
+          let count = 0;
+          
+          const kernelRadius = Math.max(1, Math.floor(blurAmount / Math.max(1, passes)));
+          
+          for (let i = -kernelRadius; i <= kernelRadius; i++) {
+            const sampleY = Math.max(0, Math.min(height - 1, y + i));
+            const sampleIndex = (sampleY * width + x) * 4;
+            
+            r += tempData[sampleIndex];
+            g += tempData[sampleIndex + 1];
+            b += tempData[sampleIndex + 2];
+            a += tempData[sampleIndex + 3];
+            count++;
+          }
+          
+          currentData[centerIndex] = r / count;
+          currentData[centerIndex + 1] = g / count;
+          currentData[centerIndex + 2] = b / count;
+          currentData[centerIndex + 3] = a / count;
+        }
+      }
+    }
+    
+    // Copy result back
+    resultData.set(currentData);
+    return result;
+  }
+
+  /**
+   * Apply sharpen filter to image data
+   */
+  private applySharpenFilter(imageData: ImageData, sharpenAmount: number): ImageData {
+    if (sharpenAmount <= 0) return imageData;
+    
+    const { data, width, height } = imageData;
+    const result = new ImageData(width, height);
+    const resultData = result.data;
+    
+    // Unsharp mask kernel - center weight increases with sharpen amount
+    const centerWeight = 1 + (sharpenAmount * 0.8);
+    const neighborWeight = -(sharpenAmount * 0.2);
+    
+    // Sharpen kernel: neighbor values are negative, center is positive
+    // This enhances edges by subtracting the blur from the original
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const centerIndex = (y * width + x) * 4;
+        
+        let r = data[centerIndex] * centerWeight;
+        let g = data[centerIndex + 1] * centerWeight;
+        let b = data[centerIndex + 2] * centerWeight;
+        const a = data[centerIndex + 3]; // Alpha unchanged
+        
+        // Apply 3x3 kernel with neighbor weights
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue; // Skip center pixel
+            
+            const neighborX = Math.max(0, Math.min(width - 1, x + dx));
+            const neighborY = Math.max(0, Math.min(height - 1, y + dy));
+            const neighborIndex = (neighborY * width + neighborX) * 4;
+            
+            r += data[neighborIndex] * neighborWeight;
+            g += data[neighborIndex + 1] * neighborWeight;
+            b += data[neighborIndex + 2] * neighborWeight;
+          }
+        }
+        
+        // Clamp values and apply
+        resultData[centerIndex] = Math.max(0, Math.min(255, Math.round(r)));
+        resultData[centerIndex + 1] = Math.max(0, Math.min(255, Math.round(g)));
+        resultData[centerIndex + 2] = Math.max(0, Math.min(255, Math.round(b)));
+        resultData[centerIndex + 3] = a;
+      }
+    }
+    
+    return result;
+  }
   
+  /**
+   * Get neighbor brightness values for contrast calculation
+   */
+  private getNeighborValues(data: Uint8ClampedArray, width: number, height: number, x: number, y: number): number[] {
+    const neighbors: number[] = [];
+    
+    // Check 8-connected neighbors
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue; // Skip center pixel
+        
+        const nx = x + dx;
+        const ny = y + dy;
+        
+        // Check bounds
+        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+          const pixelIndex = (ny * width + nx) * 4;
+          const r = data[pixelIndex];
+          const g = data[pixelIndex + 1];
+          const b = data[pixelIndex + 2];
+          
+          // Calculate brightness using same formula as brightness algorithm
+          const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          neighbors.push(brightness);
+        }
+      }
+    }
+    
+    return neighbors;
+  }
+
+  /**
+   * Calculate Sobel gradients for edge detection
+   */
+  private calculateSobelGradients(data: Uint8ClampedArray, width: number, height: number, x: number, y: number): { sobelX: number, sobelY: number } {
+    // Sobel X kernel: [-1, 0, 1; -2, 0, 2; -1, 0, 1]
+    // Sobel Y kernel: [-1, -2, -1; 0, 0, 0; 1, 2, 1]
+    
+    let sobelX = 0;
+    let sobelY = 0;
+    
+    const sobelXKernel = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]];
+    const sobelYKernel = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]];
+    
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx;
+        const ny = y + dy;
+        
+        // Use edge pixel values for out-of-bounds pixels
+        const boundedX = Math.max(0, Math.min(width - 1, nx));
+        const boundedY = Math.max(0, Math.min(height - 1, ny));
+        
+        const pixelIndex = (boundedY * width + boundedX) * 4;
+        const r = data[pixelIndex];
+        const g = data[pixelIndex + 1];
+        const b = data[pixelIndex + 2];
+        
+        // Convert to grayscale
+        const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        
+        // Apply Sobel kernels
+        const kernelY = dy + 1;
+        const kernelX = dx + 1;
+        
+        sobelX += gray * sobelXKernel[kernelY][kernelX];
+        sobelY += gray * sobelYKernel[kernelY][kernelX];
+      }
+    }
+    
+    return { sobelX, sobelY };
+  }
+
   /**
    * Select character using the specified algorithm
    */
@@ -395,7 +857,8 @@ export class ASCIIConverter {
     b: number,
     characterPalette: CharacterPalette,
     mappingMethod: CharacterMappingSettings['mappingMethod'],
-    invertDensity: boolean
+    invertDensity: boolean,
+    options?: any
   ): string {
     const algorithm = MAPPING_ALGORITHMS[mappingMethod];
     if (!algorithm) {
@@ -411,7 +874,7 @@ export class ASCIIConverter {
     }
     
     // Use the algorithm to map pixel to character
-    return algorithm.mapPixelToCharacter(r, g, b, characters);
+    return algorithm.mapPixelToCharacter(r, g, b, characters, options);
   }
   
   /**

@@ -291,8 +291,16 @@ export function MediaImportPanel() {
       colorQuantization: settings.colorQuantization,
       paletteSize: settings.paletteSize,
       colorMappingMode: settings.colorMappingMode,
-      contrastEnhancement: 1,
+      
+      // Preprocessing settings
+      contrastEnhancement: 1 + (settings.contrast / 100), // Convert -100-100 to 0-2
       brightnessAdjustment: settings.brightness,
+      saturationAdjustment: settings.saturation,
+      highlightsAdjustment: settings.highlights,
+      shadowsAdjustment: settings.shadows,
+      midtonesAdjustment: settings.midtones,
+      blurAmount: settings.blur,
+      sharpenAmount: settings.sharpen,
       ditherStrength: 0.5
     };
   }, [
@@ -308,6 +316,13 @@ export function MediaImportPanel() {
     settings.paletteSize,
     settings.colorMappingMode,
     settings.brightness,
+    settings.contrast,
+    settings.saturation,
+    settings.highlights,
+    settings.shadows,
+    settings.midtones,
+    settings.blur,
+    settings.sharpen,
     activePalette,
     mappingMethod,
     invertDensity,
@@ -408,6 +423,13 @@ export function MediaImportPanel() {
     settings.paletteSize,
     settings.colorMappingMode,
     settings.brightness,
+    settings.contrast,
+    settings.saturation,
+    settings.highlights,
+    settings.shadows,
+    settings.midtones,
+    settings.blur,
+    settings.sharpen,
     // Character mapping settings
     settings.enableCharacterMapping,
     activePalette,
