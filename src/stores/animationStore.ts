@@ -32,6 +32,7 @@ interface AnimationState extends Animation {
   // Bulk import operations
   importFramesOverwrite: (frames: Array<{ data: Map<string, Cell>, duration: number }>, startIndex: number) => void;
   importFramesAppend: (frames: Array<{ data: Map<string, Cell>, duration: number }>) => void;
+  importSessionFrames: (frames: Array<{ id: string, name: string, duration: number, data: Map<string, Cell>, thumbnail?: string }>) => void;
   
   // Drag controls
   setDraggingFrame: (isDragging: boolean) => void;
@@ -486,6 +487,26 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
         frames: newFrames,
         currentFrameIndex: startIndex, // Jump to first imported frame
         totalDuration: get().calculateTotalDuration()
+      };
+    });
+  },
+
+  // Session-specific import that preserves all frame properties
+  importSessionFrames: (frames: Array<{ id: string, name: string, duration: number, data: Map<string, Cell>, thumbnail?: string }>) => {
+    set((state) => {
+      // Completely replace the frames array with the imported frames
+      // This ensures exact order preservation and no interference from existing frames
+      return {
+        ...state,
+        frames: frames.map(frameData => ({
+          id: frameData.id as FrameId, // Cast to proper type
+          name: frameData.name,
+          duration: frameData.duration,
+          data: new Map(frameData.data), // Deep copy the cell data
+          thumbnail: frameData.thumbnail
+        })),
+        currentFrameIndex: 0, // Start at first frame
+        totalDuration: frames.reduce((total, frame) => total + frame.duration, 0)
       };
     });
   }

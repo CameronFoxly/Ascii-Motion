@@ -109,8 +109,8 @@ export class SessionImporter {
     
     // Restore animation frames
     if (sessionData.animation.frames && sessionData.animation.frames.length > 0) {
-      // Convert session frame data to the format expected by the animation store
-      const importFrameData = sessionData.animation.frames.map((frameData: any) => {
+      // Convert session frame data preserving ALL original properties
+      const importedFrames = sessionData.animation.frames.map((frameData: any) => {
         // Convert frame data object back to Map
         const frameMap = new Map<string, Cell>();
         if (frameData.data && typeof frameData.data === 'object') {
@@ -121,22 +121,19 @@ export class SessionImporter {
           });
         }
         
+        // Preserve ALL original frame properties from the export
         return {
+          id: frameData.id, // Preserve original frame ID
+          name: frameData.name || 'Untitled Frame', // Preserve original name
+          duration: frameData.duration || DEFAULT_FRAME_DURATION,
           data: frameMap,
-          duration: frameData.duration || DEFAULT_FRAME_DURATION
+          thumbnail: frameData.thumbnail // Preserve thumbnail if exists
         };
       });
       
-      // Use the bulk import method to replace all frames at once
-      // This preserves the exact order from the export file
-      animationStore.importFramesOverwrite(importFrameData, 0);
-      
-      // Update frame names to match the original export
-      sessionData.animation.frames.forEach((frameData: any, index: number) => {
-        if (frameData.name) {
-          animationStore.updateFrameName(index, frameData.name);
-        }
-      });
+      // Use the new session-specific import method that preserves all frame properties
+      // This is the most reliable way to ensure exact frame order preservation
+      animationStore.importSessionFrames(importedFrames);
       
       // Set animation properties
       if (sessionData.animation.frameRate !== undefined) {
@@ -146,21 +143,19 @@ export class SessionImporter {
         animationStore.setLooping(sessionData.animation.looping);
       }
       
-      // Set current frame and load its data into canvas
-      if (sessionData.animation.currentFrameIndex >= 0 && 
-          sessionData.animation.currentFrameIndex < sessionData.animation.frames.length) {
-        animationStore.setCurrentFrame(sessionData.animation.currentFrameIndex);
-        
-        // Load the current frame's data into the canvas from the animation store
-        const animationState = useAnimationStore.getState();
-        const currentFrame = animationState.frames[animationState.currentFrameIndex];
-        if (currentFrame && currentFrame.data) {
-          canvasStore.clearCanvas();
-          currentFrame.data.forEach((cell, key) => {
-            const [x, y] = key.split(',').map(Number);
-            canvasStore.setCell(x, y, cell as Cell);
-          });
-        }
+      // Always start at the first frame (index 0) when importing
+      // This ensures the user sees frame 1 content, not the original currentFrameIndex content
+      animationStore.setCurrentFrame(0);
+      
+      // Load the first frame's data into the canvas
+      const animationState = useAnimationStore.getState();
+      const firstFrame = animationState.frames[0];
+      if (firstFrame && firstFrame.data) {
+        canvasStore.clearCanvas();
+        firstFrame.data.forEach((cell, key) => {
+          const [x, y] = key.split(',').map(Number);
+          canvasStore.setCell(x, y, cell as Cell);
+        });
       }
     }
     
