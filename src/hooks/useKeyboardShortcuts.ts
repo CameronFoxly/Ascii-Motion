@@ -5,6 +5,8 @@ import { useAnimationStore } from '../stores/animationStore';
 import { useCanvasContext } from '../contexts/CanvasContext';
 import { getToolForHotkey } from '../constants/hotkeys';
 import { useZoomControls } from '../components/features/ZoomControls';
+import { useFrameNavigation } from './useFrameNavigation';
+import { useAnimationHistory } from './useAnimationHistory';
 import type { AnyHistoryAction, CanvasHistoryAction } from '../types';
 
 /**
@@ -104,12 +106,29 @@ const processHistoryAction = (
 
 /**
  * Custom hook for handling keyboard shortcuts
+ * 
+ * Frame Navigation:
+ * - Comma (,) - Previous frame
+ * - Period (.) - Next frame
+ * 
+ * Frame Management:
+ * - Ctrl+N - Add new frame after current frame
+ * - Ctrl+Delete - Delete current frame (if more than one frame exists)
+ * 
+ * Other shortcuts:
+ * - Tool hotkeys (P, E, G, M, L, W, etc.)
+ * - Canvas operations (Cmd/Ctrl+A, C, V, Z)
+ * - Zoom (+/-, =)
  */
 export const useKeyboardShortcuts = () => {
   const { cells, setCanvasData, width, height } = useCanvasStore();
   const { startPasteMode, commitPaste, pasteMode } = useCanvasContext();
-  const { toggleOnionSkin, currentFrameIndex } = useAnimationStore();
+  const { toggleOnionSkin, currentFrameIndex, frames } = useAnimationStore();
   const { zoomIn, zoomOut } = useZoomControls();
+  
+  // Frame navigation and management hooks
+  const { navigateNext, navigatePrevious, canNavigate } = useFrameNavigation();
+  const { addFrame, removeFrame } = useAnimationHistory();
 
   // Helper function to handle different types of history actions
   const handleHistoryAction = useCallback((action: AnyHistoryAction, isRedo: boolean) => {
@@ -215,7 +234,7 @@ export const useKeyboardShortcuts = () => {
     }
 
     // Handle Delete/Backspace key (without modifier) - Clear selected cells
-    if (event.key === 'Delete' || event.key === 'Backspace') {
+    if ((event.key === 'Delete' || event.key === 'Backspace') && !event.metaKey && !event.ctrlKey) {
       // Check if any selection is active and clear the selected cells
       if (magicWandSelection.active && magicWandSelection.selectedCells.size > 0) {
         event.preventDefault();
@@ -296,6 +315,20 @@ export const useKeyboardShortcuts = () => {
         return;
       }
       
+      // Handle frame navigation shortcuts (comma and period keys)
+      if (event.key === ',' && canNavigate) {
+        event.preventDefault();
+        console.log('Previous frame navigation triggered');
+        navigatePrevious();
+        return;
+      }
+      if (event.key === '.' && canNavigate) {
+        event.preventDefault();
+        console.log('Next frame navigation triggered');
+        navigateNext();
+        return;
+      }
+      
       const targetTool = getToolForHotkey(event.key);
       if (targetTool) {
         event.preventDefault();
@@ -308,8 +341,32 @@ export const useKeyboardShortcuts = () => {
     const isModifierPressed = event.metaKey || event.ctrlKey;
     
     if (!isModifierPressed) return;
+    
+    // Handle Ctrl+Delete or Ctrl+Backspace for frame deletion (before the switch statement)
+    if ((event.key === 'Delete' || event.key === 'Backspace') && (event.metaKey || event.ctrlKey)) {
+      console.log(`Ctrl+${event.key} detected, frames.length:`, frames.length, 'currentFrameIndex:', currentFrameIndex);
+      if (frames.length > 1) {
+        event.preventDefault();
+        removeFrame(currentFrameIndex);
+        console.log('Frame removed successfully');
+      } else {
+        console.log('Cannot delete frame - only one frame remaining');
+      }
+      return;
+    }
 
     switch (event.key.toLowerCase()) {
+      case 'n':
+        // Ctrl+N = Add new frame after current frame
+        if (!event.shiftKey) {
+          event.preventDefault();
+          console.log('Ctrl+N detected, adding frame after index:', currentFrameIndex);
+          addFrame(currentFrameIndex + 1);
+        }
+        break;
+        
+
+        
       case 'a':
         // Select All - activate selection tool and select entire canvas
         event.preventDefault();
@@ -477,8 +534,14 @@ export const useKeyboardShortcuts = () => {
     setActiveTool,
     toggleOnionSkin,
     currentFrameIndex,
+    frames,
     zoomIn,
-    zoomOut
+    zoomOut,
+    navigateNext,
+    navigatePrevious,
+    canNavigate,
+    addFrame,
+    removeFrame
   ]);
 
   useEffect(() => {
