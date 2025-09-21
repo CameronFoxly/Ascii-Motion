@@ -35,6 +35,51 @@ npm run dev
 npm run build
 ```
 
+### Deployment
+
+#### Vercel Deployment (Recommended)
+This project is configured for deployment on Vercel with support for FFmpeg and media processing features.
+
+**Initial Setup:**
+1. Install Vercel CLI:
+   ```bash
+   npm install -g vercel
+   ```
+
+2. Link your project to Vercel:
+   ```bash
+   vercel
+   ```
+   Follow the prompts to create a new project or link to an existing one.
+
+**Deployment Commands:**
+```bash
+# Deploy to preview environment
+npm run deploy:preview
+
+# Deploy to production
+npm run deploy
+
+# Build and deploy with linting
+npm run build:prod && npm run deploy
+```
+
+**Configuration:**
+- `vercel.json`: Handles SPA routing, COOP/COEP headers for FFmpeg, and static asset serving
+- `vite.config.ts`: Optimized build settings with code splitting for better performance
+- FFmpeg WASM files are served with extended timeout limits for video processing
+
+**Features Supported:**
+- ✅ ASCII art creation and editing
+- ✅ Animation timeline and playback  
+- ✅ Image/video import with FFmpeg processing
+- ✅ Export functionality (GIF, MP4, PNG, TXT, JSON)
+- ✅ All drawing tools and selection modes
+- ✅ Responsive design for various screen sizes
+
+**Environment Variables:**
+No environment variables required for basic deployment. Future auth and database features will require additional configuration.
+
 ```
 src/
 ├── components/
