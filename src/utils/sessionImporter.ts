@@ -2,6 +2,7 @@ import { useCanvasStore } from '../stores/canvasStore';
 import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
 import type { Cell } from '../types';
+import { DEFAULT_FRAME_DURATION } from '../constants';
 
 /**
  * Session Import Utility
@@ -108,16 +109,8 @@ export class SessionImporter {
     
     // Restore animation frames
     if (sessionData.animation.frames && sessionData.animation.frames.length > 0) {
-      // Get current animation state
-      const currentState = useAnimationStore.getState();
-      
-      // Remove all existing frames except the first one (can't remove last frame)
-      while (currentState.frames.length > 1) {
-        animationStore.removeFrame(currentState.frames.length - 1);
-      }
-      
-      // Clear the first frame and restore session frames
-      sessionData.animation.frames.forEach((frameData: any, index: number) => {
+      // Convert session frame data to the format expected by the animation store
+      const importFrameData = sessionData.animation.frames.map((frameData: any) => {
         // Convert frame data object back to Map
         const frameMap = new Map<string, Cell>();
         if (frameData.data && typeof frameData.data === 'object') {
@@ -128,41 +121,42 @@ export class SessionImporter {
           });
         }
         
-        if (index === 0) {
-          // Update the first existing frame
-          animationStore.setFrameData(0, frameMap);
-          if (frameData.name) {
-            animationStore.updateFrameName(0, frameData.name);
-          }
-          if (frameData.duration !== undefined) {
-            animationStore.updateFrameDuration(0, frameData.duration);
-          }
-        } else {
-          // Add new frames
-          animationStore.addFrame(undefined, frameMap);
-          // Update the newly added frame's properties
-          const newFrameIndex = useAnimationStore.getState().frames.length - 1;
-          if (frameData.name) {
-            animationStore.updateFrameName(newFrameIndex, frameData.name);
-          }
-          if (frameData.duration !== undefined) {
-            animationStore.updateFrameDuration(newFrameIndex, frameData.duration);
-          }
+        return {
+          data: frameMap,
+          duration: frameData.duration || DEFAULT_FRAME_DURATION
+        };
+      });
+      
+      // Use the bulk import method to replace all frames at once
+      // This preserves the exact order from the export file
+      animationStore.importFramesOverwrite(importFrameData, 0);
+      
+      // Update frame names to match the original export
+      sessionData.animation.frames.forEach((frameData: any, index: number) => {
+        if (frameData.name) {
+          animationStore.updateFrameName(index, frameData.name);
         }
       });
       
-      // Set current frame
+      // Set animation properties
+      if (sessionData.animation.frameRate !== undefined) {
+        animationStore.setFrameRate(sessionData.animation.frameRate);
+      }
+      if (sessionData.animation.looping !== undefined) {
+        animationStore.setLooping(sessionData.animation.looping);
+      }
+      
+      // Set current frame and load its data into canvas
       if (sessionData.animation.currentFrameIndex >= 0 && 
           sessionData.animation.currentFrameIndex < sessionData.animation.frames.length) {
         animationStore.setCurrentFrame(sessionData.animation.currentFrameIndex);
         
-        // Load the current frame's data into the canvas
-        const currentFrame = sessionData.animation.frames[sessionData.animation.currentFrameIndex];
+        // Load the current frame's data into the canvas from the animation store
+        const animationState = useAnimationStore.getState();
+        const currentFrame = animationState.frames[animationState.currentFrameIndex];
         if (currentFrame && currentFrame.data) {
           canvasStore.clearCanvas();
-          // Convert the object back to Map and load into canvas
-          const frameDataMap = new Map(Object.entries(currentFrame.data));
-          frameDataMap.forEach((cell, key) => {
+          currentFrame.data.forEach((cell, key) => {
             const [x, y] = key.split(',').map(Number);
             canvasStore.setCell(x, y, cell as Cell);
           });
