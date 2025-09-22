@@ -1,4 +1,5 @@
 import './App.css'
+import { Analytics } from '@vercel/analytics/react'
 import { Separator } from '@/components/ui/separator'
 import { CanvasWithShortcuts } from './components/features/CanvasWithShortcuts'
 import { CanvasProvider } from './contexts/CanvasContext'
@@ -203,6 +204,9 @@ function App() {
         {/* Performance Overlay for Development */}
         <PerformanceOverlay />
       </div>
+      
+      {/* Vercel Analytics */}
+      <Analytics />
     </ThemeProvider>
   )
 }
