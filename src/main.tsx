@@ -1,10 +1,8 @@
-import { StrictMode, Suspense } from 'react'
+import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import { LazyApp } from './LazyApp'
-import { LoadingScreen } from './components/common/LoadingScreen'
-import { LoadingProvider } from './contexts/LoadingContext'
 import { AppReveal } from './components/common/AppReveal'
+import App from './App'
 
 // Set initial theme from localStorage or default to dark
 const storedTheme = localStorage.getItem('ascii-motion-theme') || 'dark'
@@ -12,12 +10,8 @@ document.documentElement.classList.add(storedTheme)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <LoadingProvider>
-      <Suspense fallback={<LoadingScreen />}>
-        <AppReveal>
-          <LazyApp />
-        </AppReveal>
-      </Suspense>
-    </LoadingProvider>
+    <AppReveal>
+      <App />
+    </AppReveal>
   </StrictMode>,
 )

@@ -15,7 +15,163 @@
     <title>ASCII Motion</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Pure HTML loading screen - shows immediately, no React needed -->
+      <div id="initial-loader" style="
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: hsl(0, 0%, 3.9%);
+        color: hsl(0, 0%, 98%);
+        font-family: 'Courier New', monospace;
+        z-index: 9999;
+      ">
+        <div style="text-align: center;">
+          <!-- Top corner brackets -->
+          <pre style="
+            font-size: 14px;
+            line-height: 1;
+            margin: 0 0 24px 0;
+            color: hsl(215.4, 16.3%, 46.9%);
+          ">┌                                           ┐</pre>
+          
+          <!-- Loading text -->
+          <pre style="
+            font-size: 18px;
+            line-height: 1;
+            margin: 0 0 24px 0;
+            color: hsl(0, 0%, 98%);
+          ">     Loading ASCII Motion<span id="loading-dots">...</span></pre>
+          
+          <!-- Loading bar -->
+          <pre style="
+            font-size: 16px;
+            line-height: 1;
+            margin: 0 0 24px 0;
+          ">    <span id="loading-bar-filled" style="color: hsl(270, 95%, 60%);"></span><span id="loading-bar-empty" style="color: hsl(0, 0%, 40%);"></span></pre>
+          
+          <!-- Bottom corner brackets -->
+          <pre style="
+            font-size: 14px;
+            line-height: 1;
+            margin: 0;
+            color: hsl(215.4, 16.3%, 46.9%);
+          ">└                                           ┘</pre>
+        </div>
+      </div>
+    </div>
+    
+    <script>
+      // Theme detection - check localStorage or system preference
+      const getInitialTheme = () => {
+        const stored = localStorage.getItem('ascii-motion-theme');
+        if (stored) return stored;
+        
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      };
+      
+      // Apply theme to initial loader
+      const theme = getInitialTheme();
+      const loader = document.getElementById('initial-loader');
+      
+      if (theme === 'light') {
+        loader.style.backgroundColor = 'hsl(0, 0%, 100%)';
+        loader.style.color = 'hsl(0, 0%, 3.9%)';
+        // Update bracket colors for light theme
+        const brackets = loader.querySelectorAll('pre');
+        brackets[0].style.color = 'hsl(215.4, 16.3%, 46.9%)'; // top bracket
+        brackets[3].style.color = 'hsl(215.4, 16.3%, 46.9%)'; // bottom bracket
+      }
+      
+      // Simple loading animation
+      let dotCount = 0;
+      let barProgress = 0;
+      const maxBarWidth = 25; // Match original design width
+      
+      // Initialize the loading bar
+      document.getElementById('loading-bar-filled').textContent = '';
+      document.getElementById('loading-bar-empty').textContent = '░'.repeat(maxBarWidth);
+      
+      const animateLoader = () => {
+        // Check if elements still exist before animating
+        const dotsElement = document.getElementById('loading-dots');
+        const filledElement = document.getElementById('loading-bar-filled');
+        const emptyElement = document.getElementById('loading-bar-empty');
+        
+        if (!dotsElement || !filledElement || !emptyElement) {
+          console.log('Animation stopped - elements missing');
+          return; // Elements gone, stop animating
+        }
+        
+        // Animate dots
+        dotCount = (dotCount + 1) % 4;
+        const dots = '.'.repeat(dotCount).padEnd(3, ' ');
+        dotsElement.textContent = dots;
+        
+        // Animate progress bar (realistic progress that doesn't complete)
+        if (barProgress < maxBarWidth - 5) {
+          barProgress += Math.random() * 1.5 + 0.5;
+          console.log('Animating progress:', Math.floor(barProgress), '/', maxBarWidth);
+        }
+        
+        const filled = Math.floor(barProgress);
+        const empty = maxBarWidth - filled;
+        
+        filledElement.textContent = '█'.repeat(filled);
+        emptyElement.textContent = '░'.repeat(empty);
+      };
+      
+      // Start animation immediately and then set interval
+      animateLoader();
+      const animationInterval = setInterval(animateLoader, 150);
+      
+      // Run HTML animation for fixed duration, then hand off to React
+      setTimeout(() => {
+        console.log('Starting completion animation from:', barProgress);
+        clearInterval(animationInterval);
+        
+        // Animate to 100% completion over 500ms
+        const startProgress = barProgress;
+        const animStartTime = Date.now();
+        const fillDuration = 500;
+        
+        const completeAnimation = () => {
+          const animElapsed = Date.now() - animStartTime;
+          const progress = Math.min(1, animElapsed / fillDuration);
+          
+          const filledElement = document.getElementById('loading-bar-filled');
+          const emptyElement = document.getElementById('loading-bar-empty');
+          const loader = document.getElementById('initial-loader');
+          
+          if (!filledElement || !emptyElement || !loader) {
+            console.log('Elements gone during completion');
+            return;
+          }
+          
+          const currentProgress = startProgress + (maxBarWidth - startProgress) * progress;
+          const filled = Math.floor(currentProgress);
+          const empty = maxBarWidth - filled;
+          
+          filledElement.textContent = '█'.repeat(filled);
+          emptyElement.textContent = '░'.repeat(empty);
+          console.log('Completion progress:', filled, '/', maxBarWidth);
+          
+          if (progress < 1) {
+            requestAnimationFrame(completeAnimation);
+          } else {
+            console.log('HTML animation complete, removing loader');
+            loader.remove();
+          }
+        };
+        
+        completeAnimation();
+      }, 1200); // Fixed 1200ms total duration
+      
+      
+    </script>
+    
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
