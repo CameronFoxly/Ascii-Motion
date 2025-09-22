@@ -41,6 +41,14 @@ export type ExportSettings = PngExportSettings | VideoExportSettings | SessionEx
 
 // Export data bundle - all data needed for any export
 export interface ExportDataBundle {
+  // Version metadata
+  metadata: {
+    version: string;
+    buildDate: string;
+    buildHash: string;
+    exportDate: string;
+  };
+  
   // Animation data
   frames: Frame[];
   currentFrameIndex: number;

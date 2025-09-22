@@ -4,6 +4,7 @@ import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
 import { useCanvasContext } from '../contexts/CanvasContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { VERSION, BUILD_DATE, BUILD_HASH } from '../constants/version';
 
 /**
  * Collects all data needed for export operations
@@ -48,6 +49,14 @@ export class ExportDataCollector {
     // This will be handled by the calling component
 
     return {
+      // Version metadata
+      metadata: {
+        version: VERSION,
+        buildDate: BUILD_DATE,
+        buildHash: BUILD_HASH,
+        exportDate: new Date().toISOString()
+      },
+      
       // Animation data
       frames: frames.map(frame => ({
         ...frame,
@@ -143,6 +152,14 @@ export const useExportDataCollector = (): ExportDataBundle => {
   const { theme } = useTheme();
 
   return {
+    // Version metadata
+    metadata: {
+      version: VERSION,
+      buildDate: BUILD_DATE,
+      buildHash: BUILD_HASH,
+      exportDate: new Date().toISOString()
+    },
+    
     // Animation data
     frames: frames.map(frame => ({
       ...frame,

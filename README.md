@@ -55,6 +55,58 @@ To monitor rendering performance:
 npm run build
 ```
 
+## 🚀 Deployment
+
+ASCII Motion is configured for seamless deployment to Vercel with automated versioning.
+
+### Available Deployment Commands
+
+| Command | Version Increment | Use Case |
+|---------|------------------|----------|
+| `npm run deploy` | **Patch** (0.1.23 → 0.1.24) | Bug fixes, small updates, content changes |
+| `npm run deploy:major` | **Minor** (0.1.23 → 0.2.0) | New features, significant improvements |
+| `npm run deploy:preview` | **None** | Testing deployments, preview branches |
+
+### Deployment Workflow
+
+Each deployment automatically:
+1. **📈 Increments version number** based on deployment type
+2. **📝 Collects commit messages** since last version for changelog
+3. **🏗️ Runs full build** with linting and type checking
+4. **🏷️ Creates git tag** for the new version
+5. **🚀 Deploys to Vercel** with optimized settings
+6. **✨ Updates version display** visible in the app header
+
+### Version Display
+
+The app displays the current version in the header next to "ASCII MOTION". Clicking the version opens a modal showing:
+- Current build information (version, date, git hash)
+- Complete version history with commit messages
+- Professional changelog for tracking development progress
+
+### Manual Version Commands
+
+For version management without deployment:
+
+```bash
+# Increment patch version (0.1.23 → 0.1.24)
+npm run version:patch
+
+# Increment minor version (0.1.23 → 0.2.0) 
+npm run version:minor
+
+# Increment major version (0.2.15 → 1.0.0)
+npm run version:major
+```
+
+### Export Metadata
+
+All exported files automatically include version metadata:
+- **PNG exports**: Version info embedded in image metadata
+- **Video exports**: Version data in file metadata
+- **Session files**: Complete version and build information
+- **Text exports**: Version comment header
+
 ## 🏗️ Tech Stack
 
 - **React 18** - UI framework

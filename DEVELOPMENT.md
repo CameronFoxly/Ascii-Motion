@@ -80,6 +80,69 @@ npm run build:prod && npm run deploy
 **Environment Variables:**
 No environment variables required for basic deployment. Future auth and database features will require additional configuration.
 
+### Automated Versioning System
+
+#### **Overview**
+ASCII Motion includes an automated versioning system that increments version numbers during deployment and maintains a complete changelog with commit history.
+
+#### **File Structure**
+```
+src/constants/version.ts          # Auto-generated version data
+src/components/common/VersionDisplay.tsx  # Clickable version component
+scripts/version-bump.js           # Version management script
+```
+
+#### **Version Display Component**
+- **Location**: Header next to "ASCII MOTION" title
+- **Format**: `v0.1.23` (subtle grey monospace text)
+- **Interactive**: Click to open version history modal
+- **Metadata**: Shows build date, git hash, and complete changelog
+
+#### **Version Management Script**
+```javascript
+// scripts/version-bump.js - Core functionality
+- Parses current version from version.ts
+- Increments based on type (patch/minor/major)  
+- Collects git commit messages since last version
+- Generates new version.ts with metadata
+- Updates package.json version field
+- Creates git tags automatically
+```
+
+#### **Deployment Integration**
+```bash
+# Standard deployment (patch increment)
+npm run deploy
+# → 0.1.23 becomes 0.1.24
+# → Collects commits since last version
+# → Builds and deploys to production
+
+# Major feature deployment (minor increment)  
+npm run deploy:major
+# → 0.1.23 becomes 0.2.0
+# → Resets patch to 0
+# → Used for significant feature releases
+```
+
+#### **Export Metadata Integration**
+All export formats automatically include version information:
+```typescript
+// Added to ExportDataBundle interface
+metadata: {
+  version: string;        // e.g. "0.1.23"
+  buildDate: string;      // ISO timestamp
+  buildHash: string;      // Short git hash
+  exportDate: string;     // When export was created
+}
+```
+
+#### **Implementation Details**
+- **Version Storage**: `src/constants/version.ts` (auto-generated, do not edit manually)
+- **History Tracking**: Array of version objects with commit messages
+- **Git Integration**: Automatic tagging and commit message collection
+- **Type Safety**: Full TypeScript integration throughout
+- **Error Handling**: Graceful fallbacks for missing git data
+
 ```
 src/
 ├── components/

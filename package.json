@@ -1,7 +1,7 @@
 {
   "name": "ascii-motion",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,11 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "build:prod": "npm run lint && npm run build",
-    "deploy": "vercel --prod",
+    "version:patch": "node scripts/version-bump.js patch",
+    "version:minor": "node scripts/version-bump.js minor",
+    "version:major": "node scripts/version-bump.js major",
+    "deploy": "npm run version:patch && npm run build:prod && vercel --prod",
+    "deploy:major": "npm run version:minor && npm run build:prod && vercel --prod",
     "deploy:preview": "vercel",
     "docs-check": "echo '📋 Documentation Health Check:' && echo '1. Do COPILOT_INSTRUCTIONS.md patterns match current code?' && echo '2. Are all DEVELOPMENT.md step statuses accurate?' && echo '3. Do all file paths in docs exist?' && echo '4. Run npm run dev to verify no breaking changes' && npm run dev"
   },
