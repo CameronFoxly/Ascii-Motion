@@ -33,9 +33,9 @@
           <pre style="
             font-size: 14px;
             line-height: 1;
-            margin: 0 0 24px 0;
+            margin: 0 0 0 0;
             color: hsl(215.4, 16.3%, 46.9%);
-          ">┌                                           ┐</pre>
+          ">    ┌                               ┐</pre>
           
           <!-- Loading text -->
           <pre style="
@@ -49,7 +49,7 @@
           <pre style="
             font-size: 16px;
             line-height: 1;
-            margin: 0 0 24px 0;
+            margin: 0 0 0 0;
           ">    <span id="loading-bar-filled" style="color: hsl(270, 95%, 60%);"></span><span id="loading-bar-empty" style="color: hsl(0, 0%, 40%);"></span></pre>
           
           <!-- Bottom corner brackets -->
@@ -58,7 +58,7 @@
             line-height: 1;
             margin: 0;
             color: hsl(215.4, 16.3%, 46.9%);
-          ">└                                           ┘</pre>
+          ">    └                               ┘</pre>
         </div>
       </div>
     </div>
@@ -72,17 +72,22 @@
         return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       };
       
-      // Apply theme to initial loader
+      // Apply theme to initial loader AND body background
       const theme = getInitialTheme();
       const loader = document.getElementById('initial-loader');
       
       if (theme === 'light') {
+        // Light theme
+        document.body.style.backgroundColor = 'hsl(0, 0%, 100%)';
         loader.style.backgroundColor = 'hsl(0, 0%, 100%)';
         loader.style.color = 'hsl(0, 0%, 3.9%)';
         // Update bracket colors for light theme
         const brackets = loader.querySelectorAll('pre');
         brackets[0].style.color = 'hsl(215.4, 16.3%, 46.9%)'; // top bracket
         brackets[3].style.color = 'hsl(215.4, 16.3%, 46.9%)'; // bottom bracket
+      } else {
+        // Dark theme (default)
+        document.body.style.backgroundColor = 'hsl(0, 0%, 3.9%)';
       }
       
       // Simple loading animation
