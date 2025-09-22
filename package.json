@@ -1,14 +1,15 @@
 {
   "name": "ascii-motion",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "build:prod": "npm run lint && npm run build",
+    "build:prod": "npm run build",
+    "build:prod:lint": "npm run lint && npm run build",
     "version:patch": "node scripts/version-bump.js patch",
     "version:minor": "node scripts/version-bump.js minor",
     "version:major": "node scripts/version-bump.js major",

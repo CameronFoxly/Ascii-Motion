@@ -35,14 +35,16 @@ function App() {
         <header className="flex-shrink-0 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="px-4 py-2">
             <div className="flex justify-between items-center">
-              <div className="flex items-baseline gap-3">
+              <div className="flex gap-3 relative">
                 <pre className="font-mono text-[6px] leading-[1.1] select-none tracking-tighter">
                   <div className="text-purple-500">----▗▄▖  ▗▄▄▖ ▗▄▄▖▗▄▄▄▖▗▄▄▄▖    ▗▖  ▗▖ ▗▄▖▗▄▄▄▖▗▄▄▄▖ ▗▄▖ ▗▖  ▗▖</div>
                   <div className="text-purple-400"> --▐▌ ▐▌▐▌   ▐▌     █    █      ▐▛▚▞▜▌▐▌ ▐▌ █    █  ▐▌ ▐▌▐▛▚▖▐▌</div>
                   <div className="text-purple-400">  -▐▛▀▜▌ ▝▀▚▖▐▌     █    █      ▐▌  ▐▌▐▌ ▐▌ █    █  ▐▌ ▐▌▐▌ ▝▜▌</div>
                   <div className="text-purple-300">  -▐▌ ▐▌▗▄▄▞▘▝▚▄▄▖▗▄█▄▖▗▄█▄▖    ▐▌  ▐▌▝▚▄▞▘ █  ▗▄█▄▖▝▚▄▞▘▐▌  ▐▌</div>
                 </pre>
-                <VersionDisplay />
+                <div className="absolute left-full ml-3" style={{ bottom: '-.5em' }}>
+                  <VersionDisplay />
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <ExportImportButtons />
