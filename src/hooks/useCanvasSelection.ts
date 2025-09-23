@@ -119,11 +119,6 @@ export const useCanvasSelection = () => {
       }
       setSelectionMode('moving');
       setMouseButtonDown(true);
-    } else if (selection.active && !isPointInSelection(x, y) && isNormalSelection) {
-      // Click outside existing selection without modifiers - clear selection
-      setJustCommittedMove(false);
-      clearSelection();
-      // Don't start a new selection on this click, just clear
     } else if (isAdditive) {
       // Shift+click: Add to existing selection
       setJustCommittedMove(false);
@@ -147,6 +142,11 @@ export const useCanvasSelection = () => {
       setPendingSelectionStart({ x, y });
       setMouseButtonDown(true);
       // Selection mode will be set to 'dragging-subtract' in mouse move if drag occurs
+    } else if (selection.active && !isPointInSelection(x, y) && isNormalSelection) {
+      // Click outside existing selection without modifiers - clear selection
+      setJustCommittedMove(false);
+      clearSelection();
+      // Don't start a new selection on this click, just clear
     } else {
       // Normal click: Start new selection
       setJustCommittedMove(false);
@@ -205,10 +205,15 @@ export const useCanvasSelection = () => {
         setPendingSelectionStart(null);
       }
       
-      // Use appropriate update function based on current mode
-      if (selectionMode === 'dragging-add') {
+      // Use appropriate update function based on current mode after setting it
+      const currentMode = (x !== pendingSelectionStart.x || y !== pendingSelectionStart.y) ? 
+        (event.shiftKey && !altKeyDown ? 'dragging-add' : 
+         altKeyDown && !event.shiftKey ? 'dragging-subtract' : 'dragging') : 
+        selectionMode;
+      
+      if (currentMode === 'dragging-add') {
         updateSelectionAdditive(x, y);
-      } else if (selectionMode === 'dragging-subtract') {
+      } else if (currentMode === 'dragging-subtract') {
         updateSelectionSubtractive(x, y);
       } else {
         updateSelection(x, y);

@@ -139,20 +139,38 @@ export const useCanvasLassoSelection = () => {
       setJustCommittedMove(false);
       clearLassoSelection();
       // Don't start a new selection on this click, just clear
-    } else if (isAdditive && lassoSelection.active && !lassoSelection.isDrawing) {
+    } else if (isAdditive) {
       // Shift+click: Start new lasso to add to existing selection
       setJustCommittedMove(false);
-      startLassoSelection();
-      addLassoPoint(x, y);
-      setMouseButtonDown(true);
-      setSelectionMode('dragging-add');
-    } else if (isSubtractive && lassoSelection.active && !lassoSelection.isDrawing) {
+      if (lassoSelection.active && !lassoSelection.isDrawing) {
+        // Adding to existing selection
+        startLassoSelection();
+        addLassoPoint(x, y);
+        setMouseButtonDown(true);
+        setSelectionMode('dragging-add');
+      } else if (!lassoSelection.active) {
+        // No existing selection, start new one
+        startLassoSelection();
+        addLassoPoint(x, y);
+        setMouseButtonDown(true);
+        setSelectionMode('dragging');
+      }
+    } else if (isSubtractive) {
       // Alt+click: Start new lasso to subtract from existing selection
       setJustCommittedMove(false);
-      startLassoSelection(); 
-      addLassoPoint(x, y);
-      setMouseButtonDown(true);
-      setSelectionMode('dragging-subtract');
+      if (lassoSelection.active && !lassoSelection.isDrawing) {
+        // Subtracting from existing selection
+        startLassoSelection(); 
+        addLassoPoint(x, y);
+        setMouseButtonDown(true);
+        setSelectionMode('dragging-subtract');
+      } else if (!lassoSelection.active) {
+        // No existing selection, start new one
+        startLassoSelection();
+        addLassoPoint(x, y);
+        setMouseButtonDown(true);
+        setSelectionMode('dragging');
+      }
     } else if (!lassoSelection.active || !lassoSelection.isDrawing) {
       // Start new lasso selection (normal mode)
       setJustCommittedMove(false);
@@ -186,7 +204,8 @@ export const useCanvasLassoSelection = () => {
         currentOffset: currentDragOffset
       });
       // Note: Canvas modification happens in renderGrid for preview, actual move on mouse release
-    } else if (mouseButtonDown && lassoSelection.isDrawing && selectionMode === 'dragging') {
+    } else if (mouseButtonDown && lassoSelection.isDrawing && 
+               (selectionMode === 'dragging' || selectionMode === 'dragging-add' || selectionMode === 'dragging-subtract')) {
       // Add point to lasso path and update selected cells in real-time
       addLassoPoint(x, y);
       

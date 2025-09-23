@@ -469,13 +469,16 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     // Start a new rectangular area to add to existing selection
     const newStart = { x, y };
     
+    // Save the current selected cells before starting new rectangle
+    const currentSelectedCells = new Set(state.selection.selectedCells);
+    
     set({
       selection: {
         ...state.selection,
         start: newStart,
         end: newStart,
-        active: true
-        // Keep existing selectedCells - will be updated in updateSelection
+        active: true,
+        selectedCells: currentSelectedCells // Preserve existing selection
       }
     });
   },
@@ -485,13 +488,16 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     // Start a new rectangular area to subtract from existing selection
     const newStart = { x, y };
     
+    // Save the current selected cells before starting new rectangle
+    const currentSelectedCells = new Set(state.selection.selectedCells);
+    
     set({
       selection: {
         ...state.selection,
         start: newStart,
         end: newStart,
-        active: true
-        // Keep existing selectedCells - will be updated in updateSelection
+        active: true,
+        selectedCells: currentSelectedCells // Preserve existing selection
       }
     });
   },
