@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 
-import { Download, Upload, FileImage, Film, Save, ChevronDown } from 'lucide-react';
+import { Download, Upload, FileImage, Film, Save, FileText, ChevronDown } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
 import { useImportModal } from '../../stores/importStore';
 import type { ExportFormatId } from '../../types/export';
@@ -31,6 +31,12 @@ const EXPORT_OPTIONS = [
     name: 'Session File',
     description: 'Complete project',
     icon: Save,
+  },
+  {
+    id: 'text' as ExportFormatId,
+    name: 'Simple Text',
+    description: 'Character data as txt file',
+    icon: FileText,
   },
 ];
 

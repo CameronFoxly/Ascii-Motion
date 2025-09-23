@@ -4,6 +4,7 @@ import type {
   PngExportSettings, 
   VideoExportSettings, 
   SessionExportSettings,
+  TextExportSettings,
   ExportProgress 
 } from '../types/export';
 import type { Cell } from '../types';
@@ -190,6 +191,135 @@ export class ExportRenderer {
       console.error('Session export failed:', error);
       throw new Error(`Session export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  /**
+   * Export animation frames as simple text
+   */
+  async exportText(
+    data: ExportDataBundle, 
+    settings: TextExportSettings, 
+    filename: string
+  ): Promise<void> {
+    this.updateProgress('Preparing text export...', 0);
+
+    try {
+      this.updateProgress('Processing frames...', 20);
+
+      const textLines: string[] = [];
+
+      // Add metadata header if requested
+      if (settings.includeMetadata) {
+        textLines.push('ASCII Motion Text Export');
+        textLines.push(`Version: ${data.metadata.version}`);
+        textLines.push(`Export Date: ${data.metadata.exportDate}`);
+        textLines.push(`Frames: ${data.frames.length}`);
+        textLines.push(`Canvas Size: ${data.canvasDimensions.width}x${data.canvasDimensions.height}`);
+        textLines.push('');
+        textLines.push('---');
+        textLines.push('');
+      }
+
+      // Process each frame
+      for (let frameIndex = 0; frameIndex < data.frames.length; frameIndex++) {
+        const frame = data.frames[frameIndex];
+        const frameData = frame.data;
+
+        this.updateProgress(`Processing frame ${frameIndex + 1}...`, 20 + (frameIndex / data.frames.length) * 60);
+
+        // Convert frame to 2D array of characters
+        const grid: string[][] = [];
+        for (let y = 0; y < data.canvasDimensions.height; y++) {
+          grid[y] = [];
+          for (let x = 0; x < data.canvasDimensions.width; x++) {
+            const cellKey = `${x},${y}`;
+            const cell = frameData.get(cellKey);
+            grid[y][x] = cell?.char || ' '; // Use space for empty cells
+          }
+        }
+
+        // Apply cropping settings
+        let processedGrid = this.cropGrid(grid, settings);
+
+        // Convert grid to text lines
+        const frameTextLines = processedGrid.map(row => {
+          let line = row.join('');
+          // Apply trailing space removal if enabled
+          if (settings.removeTrailingSpaces) {
+            line = line.replace(/\s+$/, '');
+          }
+          return line;
+        });
+
+        // Add frame text to output
+        textLines.push(...frameTextLines);
+
+        // Add frame separator (except for last frame)
+        if (frameIndex < data.frames.length - 1) {
+          textLines.push('');
+          textLines.push(',');
+          textLines.push('');
+        }
+      }
+
+      this.updateProgress('Creating text file...', 90);
+
+      // Join all lines with newlines and create blob
+      const textContent = textLines.join('\n');
+      const blob = new Blob([textContent], { type: 'text/plain; charset=utf-8' });
+      
+      this.updateProgress('Saving file...', 95);
+      
+      saveAs(blob, `${filename}.txt`);
+      
+      this.updateProgress('Export complete!', 100);
+    } catch (error) {
+      console.error('Text export failed:', error);
+      throw new Error(`Text export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Crop grid based on text export settings
+   */
+  private cropGrid(grid: string[][], settings: TextExportSettings): string[][] {
+    let processedGrid = [...grid.map(row => [...row])];
+
+    // Remove leading lines
+    if (settings.removeLeadingLines) {
+      while (processedGrid.length > 0 && processedGrid[0].every(char => char === ' ')) {
+        processedGrid.shift();
+      }
+    }
+
+    // Remove trailing lines
+    if (settings.removeTrailingLines) {
+      while (processedGrid.length > 0 && processedGrid[processedGrid.length - 1].every(char => char === ' ')) {
+        processedGrid.pop();
+      }
+    }
+
+    // Remove leading spaces (find leftmost non-space character across all rows)
+    if (settings.removeLeadingSpaces) {
+      let leftmostColumn = Infinity;
+      
+      // Find the leftmost column with any non-space character
+      for (const row of processedGrid) {
+        for (let col = 0; col < row.length; col++) {
+          if (row[col] !== ' ') {
+            leftmostColumn = Math.min(leftmostColumn, col);
+            break;
+          }
+        }
+      }
+
+      // Remove leading columns if we found any content
+      if (leftmostColumn !== Infinity && leftmostColumn > 0) {
+        processedGrid = processedGrid.map(row => row.slice(leftmostColumn));
+      }
+    }
+
+    return processedGrid;
   }
 
   /**

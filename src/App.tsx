@@ -23,6 +23,7 @@ import { MediaImportPanel } from './components/features/MediaImportPanel'
 import { PngExportDialog } from './components/features/PngExportDialog'
 import { VideoExportDialog } from './components/features/VideoExportDialog'
 import { SessionExportDialog } from './components/features/SessionExportDialog'
+import { TextExportDialog } from './components/features/TextExportDialog'
 import { useLayoutState } from './hooks/useLayoutState'
 import { VersionDisplay } from './components/common/VersionDisplay'
 
@@ -199,6 +200,7 @@ function App() {
           <PngExportDialog />
           <VideoExportDialog />
           <SessionExportDialog />
+          <TextExportDialog />
         </CanvasProvider>
         
         {/* Performance Overlay for Development */}

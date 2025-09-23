@@ -6,6 +6,7 @@ import type {
   PngExportSettings, 
   VideoExportSettings, 
   SessionExportSettings,
+  TextExportSettings,
   ExportHistoryEntry 
 } from '../types/export';
 
@@ -23,6 +24,7 @@ interface ExportActions {
   setPngSettings: (settings: Partial<PngExportSettings>) => void;
   setVideoSettings: (settings: Partial<VideoExportSettings>) => void;
   setSessionSettings: (settings: Partial<SessionExportSettings>) => void;
+  setTextSettings: (settings: Partial<TextExportSettings>) => void;
   
   // History management
   addToHistory: (entry: ExportHistoryEntry) => void;
@@ -53,6 +55,14 @@ const DEFAULT_VIDEO_SETTINGS: VideoExportSettings = {
   includeMetadata: true,
 };
 
+const DEFAULT_TEXT_SETTINGS: TextExportSettings = {
+  removeLeadingSpaces: true,
+  removeTrailingSpaces: true,
+  removeLeadingLines: true,
+  removeTrailingLines: true,
+  includeMetadata: false,
+};
+
 export const useExportStore = create<ExportStoreState>((set, get) => ({
   // Initial state
   activeFormat: null,
@@ -63,6 +73,7 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
   pngSettings: DEFAULT_PNG_SETTINGS,
   videoSettings: DEFAULT_VIDEO_SETTINGS,
   sessionSettings: DEFAULT_SESSION_SETTINGS,
+  textSettings: DEFAULT_TEXT_SETTINGS,
   
   // UI state - updated for dropdown UX
   showExportModal: false, // Now used for format-specific dialogs
@@ -118,6 +129,12 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
     }));
   },
   
+  setTextSettings: (settings: Partial<TextExportSettings>) => {
+    set((state) => ({
+      textSettings: { ...state.textSettings, ...settings }
+    }));
+  },
+  
   addToHistory: (entry: ExportHistoryEntry) => {
     set((state) => ({
       history: [entry, ...state.history].slice(0, 10) // Keep last 10 exports
@@ -146,6 +163,8 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
         return state.videoSettings;
       case 'session':
         return state.sessionSettings;
+      case 'text':
+        return state.textSettings;
       default:
         return null;
     }

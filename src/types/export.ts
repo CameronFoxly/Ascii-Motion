@@ -2,7 +2,7 @@ import type { Frame, Cell, Tool } from './index';
 import type { FontMetrics } from '../utils/fontMetrics';
 
 // Export format identifiers
-export type ExportFormatId = 'png' | 'mp4' | 'session' | 'media';
+export type ExportFormatId = 'png' | 'mp4' | 'session' | 'media' | 'text';
 
 // Base export format interface
 export interface ExportFormat {
@@ -36,8 +36,16 @@ export interface SessionExportSettings {
   includeMetadata: boolean;
 }
 
+export interface TextExportSettings {
+  removeLeadingSpaces: boolean;
+  removeTrailingSpaces: boolean;
+  removeLeadingLines: boolean;
+  removeTrailingLines: boolean;
+  includeMetadata: boolean;
+}
+
 // Union type for all export settings
-export type ExportSettings = PngExportSettings | VideoExportSettings | SessionExportSettings;
+export type ExportSettings = PngExportSettings | VideoExportSettings | SessionExportSettings | TextExportSettings;
 
 // Export data bundle - all data needed for any export
 export interface ExportDataBundle {
@@ -131,6 +139,7 @@ export interface ExportState {
   pngSettings: PngExportSettings;
   videoSettings: VideoExportSettings;
   sessionSettings: SessionExportSettings;
+  textSettings: TextExportSettings;
   
   // Export history
   history: ExportHistoryEntry[];
