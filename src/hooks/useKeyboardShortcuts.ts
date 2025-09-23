@@ -175,6 +175,11 @@ export const useKeyboardShortcuts = () => {
       return;
     }
 
+    // If paste mode is active, let paste mode handle its own keyboard events (except Ctrl/Cmd+V to commit)
+    if (pasteMode.isActive && !((event.metaKey || event.ctrlKey) && event.key === 'v')) {
+      return;
+    }
+
     // If any input field is focused, block specific canvas hotkeys that conflict with typing
     // But allow text editing shortcuts (Cmd+A, arrow keys, etc.) to work normally
     const activeElement = document.activeElement as HTMLElement;

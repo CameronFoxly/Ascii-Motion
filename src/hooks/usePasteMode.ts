@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useToolStore } from '../stores/toolStore';
+import { useCanvasStore } from '../stores/canvasStore';
 
 export interface PastePreview {
   data: Map<string, any>;
@@ -35,6 +36,7 @@ export const usePasteMode = () => {
     clearLassoSelection,
     clearMagicWandSelection
   } = useToolStore();
+  const { cells, setCanvasData } = useCanvasStore();
   const [pasteMode, setPasteMode] = useState<PasteModeState>({
     isActive: false,
     preview: null,
@@ -210,11 +212,32 @@ export const usePasteMode = () => {
   }, [pasteMode, cancelPasteMode]);
 
   /**
+   * Commit paste and apply to canvas - used for keyboard shortcuts
+   */
+  const commitPasteToCanvas = useCallback(() => {
+    if (!pasteMode.isActive || !pasteMode.preview) {
+      return false;
+    }
+
+    const pastedData = commitPaste();
+    if (pastedData) {
+      // Apply the paste to canvas
+      const currentCells = new Map(cells);
+      pastedData.forEach((cell, key) => {
+        currentCells.set(key, cell);
+      });
+      setCanvasData(currentCells);
+      return true;
+    }
+    return false;
+  }, [pasteMode, commitPaste, cells, setCanvasData]);
+
+  /**
    * Handle keyboard shortcuts for paste mode
    */
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!pasteMode.isActive) return;
+      if (!pasteMode.isActive || !pasteMode.preview) return;
 
       switch (event.key) {
         case 'Escape':
@@ -223,15 +246,59 @@ export const usePasteMode = () => {
           break;
         case 'Enter':
           event.preventDefault();
-          // Commit paste and let parent handle the actual pasting
-          commitPaste();
+          // Commit paste and apply to canvas
+          commitPasteToCanvas();
+          break;
+        case 'ArrowUp':
+        case 'ArrowDown':
+        case 'ArrowLeft':
+        case 'ArrowRight':
+          event.preventDefault();
+          event.stopPropagation();
+          
+          // Calculate arrow direction offset
+          let offsetX = 0;
+          let offsetY = 0;
+          
+          switch (event.key) {
+            case 'ArrowUp':
+              offsetY = -1;
+              break;
+            case 'ArrowDown':
+              offsetY = 1;
+              break;
+            case 'ArrowLeft':
+              offsetX = -1;
+              break;
+            case 'ArrowRight':
+              offsetX = 1;
+              break;
+          }
+          
+          // Update paste preview position
+          setPasteMode(prev => {
+            if (!prev.preview) return prev;
+            
+            const newPosition = {
+              x: prev.preview.position.x + offsetX,
+              y: prev.preview.position.y + offsetY
+            };
+            
+            return {
+              ...prev,
+              preview: {
+                ...prev.preview,
+                position: newPosition
+              }
+            };
+          });
           break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [pasteMode.isActive, cancelPasteMode, commitPaste]);
+  }, [pasteMode.isActive, pasteMode.preview, cancelPasteMode, commitPasteToCanvas]);
 
   return {
     // State
