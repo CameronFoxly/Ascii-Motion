@@ -198,6 +198,12 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
     }
   };
 
+  // Handle mouse down on duration input to prevent drag initiation
+  const handleDurationMouseDown = (event: React.MouseEvent<HTMLInputElement>) => {
+    // Stop propagation to prevent drag handlers from being triggered
+    event.stopPropagation();
+  };
+
   // Calculate onion skin border styling
   const getOnionSkinBorderStyle = () => {
     if (isOnionSkinPrevious) {
@@ -314,6 +320,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
           onFocus={handleDurationFocus}
           onBlur={handleDurationBlur}
           onKeyDown={handleDurationKeyDown}
+          onMouseDown={handleDurationMouseDown}
           onClick={(e) => e.stopPropagation()}
           tabIndex={frameIndex + 1} // Sequential tab order: frame 0 = tabIndex 1, frame 1 = tabIndex 2, etc.
           className="flex-1 text-xs px-1 py-0.5 border border-border rounded w-12 bg-background"
