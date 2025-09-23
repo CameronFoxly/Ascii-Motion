@@ -18,6 +18,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Alert, AlertDescription } from '../ui/alert';
 import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '../ui/separator';
+import { Slider } from '../ui/slider';
 import { 
   Collapsible,
   CollapsibleContent,
@@ -45,6 +46,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { PANEL_ANIMATION } from '../../constants';
+import { Spinner } from '../common/Spinner';
 import { 
   useImportModal, 
   useImportFile, 
@@ -756,11 +758,6 @@ export function MediaImportPanel() {
                   <p className="text-xs text-muted-foreground">
                     {selectedFile.type} • {formatFileSize(selectedFile.size)}
                   </p>
-                  {isProcessing && (
-                    <p className="text-xs text-blue-500 font-medium">
-                      Processing...
-                    </p>
-                  )}
                 </div>
                 <Button
                   variant="ghost"
@@ -798,9 +795,15 @@ export function MediaImportPanel() {
                         </Label>
                       </div>
                       {livePreviewEnabled && (
-                        <span className="text-xs text-green-500 font-medium">
-                          Live
-                        </span>
+                        <div className="flex items-center gap-1">
+                          {isProcessing ? (
+                            <Spinner size="xs" variant="primary" />
+                          ) : (
+                            <span className="text-xs text-green-500 font-medium">
+                              Live
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
 
@@ -858,6 +861,35 @@ export function MediaImportPanel() {
                             >
                               <ChevronsRight className="w-3 h-3" />
                             </Button>
+                          </div>
+                        )}
+
+                        {/* Video Scrubbing Slider */}
+                        {previewFrames.length > 1 && (
+                          <div className="mt-3 space-y-2">
+                            <div className="relative">
+                              <Slider
+                                value={frameIndex}
+                                onValueChange={(value) => setFrameIndex(value)}
+                                min={0}
+                                max={previewFrames.length - 1}
+                                step={1}
+                                className="w-full"
+                              />
+                              {/* Tick marks for frames */}
+                              <div className="absolute top-6 left-0 right-0 flex justify-between pointer-events-none">
+                                {Array.from({ length: previewFrames.length }, (_, i) => (
+                                  <div
+                                    key={i}
+                                    className="w-px h-2 bg-muted-foreground/40"
+                                    style={{ 
+                                      marginLeft: i === 0 ? '0' : '-0.5px',
+                                      marginRight: i === previewFrames.length - 1 ? '0' : '-0.5px'
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>
