@@ -1,12 +1,28 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.8";
-export const BUILD_DATE = "2025-09-22T23:07:51.615Z";
-export const BUILD_HASH = "cf15eca";
+export const VERSION = "0.1.9";
+export const BUILD_DATE = "2025-09-23T07:54:12.770Z";
+export const BUILD_HASH = "1b0ad66";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.9",
+    "date": "2025-09-23T07:54:12.770Z",
+    "commits": [
+      "Added simple txt file export",
+      "Added color keyboardshortcuts",
+      "Fixed character picker palette layering issue",
+      "Added size readout for exported media",
+      "Fixed preview timeline slider tick marks",
+      "Updated loading state and slider control for video import",
+      "Cleaned up import/export tooltip bug",
+      "Fixed scaling bug on non-standard video sizes imported",
+      "Standarized paste mode and move selection mode hotkey behavior",
+      "Fixed paste placement bug while selection active"
+    ]
+  },
   {
     "version": "0.1.8",
     "date": "2025-09-22T23:07:51.615Z",

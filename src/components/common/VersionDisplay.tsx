@@ -61,7 +61,7 @@ export const VersionDisplay: React.FC = () => {
               <h3 className="font-semibold mb-3">Release History</h3>
               <ScrollArea className="h-[400px] pr-4">
                 <div className="space-y-6">
-                  {VERSION_HISTORY.slice().reverse().map((release, index) => (
+                  {VERSION_HISTORY.slice().map((release, index) => (
                     <div key={release.version} className="relative">
                       {/* Version Header */}
                       <div className="flex items-center justify-between mb-2">
@@ -99,7 +99,18 @@ export const VersionDisplay: React.FC = () => {
             </div>
 
             {/* Footer */}
-            <div className="flex justify-end pt-4 border-t">
+            <div className="flex justify-between items-center pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Made with ❤️ by{' '}
+                <a 
+                  href="https://github.com/cameronfoxly" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Cameron Foxly
+                </a>
+              </div>
               <Button variant="outline" onClick={() => setShowModal(false)}>
                 Close
               </Button>
