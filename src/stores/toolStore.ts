@@ -105,6 +105,10 @@ interface ToolStoreState extends ToolState {
   // Rectangular selection actions
   startSelection: (x: number, y: number) => void;
   updateSelection: (x: number, y: number) => void;
+  updateSelectionAdditive: (x: number, y: number) => void;
+  updateSelectionSubtractive: (x: number, y: number) => void;
+  addToSelection: (x: number, y: number) => void; // Shift+click to add rectangular area
+  subtractFromSelection: (x: number, y: number) => void; // Alt+click to subtract rectangular area
   clearSelection: () => void;
   
   // Lasso selection actions
@@ -112,10 +116,14 @@ interface ToolStoreState extends ToolState {
   addLassoPoint: (x: number, y: number) => void;
   updateLassoSelectedCells: (selectedCells: Set<string>) => void;
   finalizeLassoSelection: () => void;
+  addToLassoSelection: (newCells: Set<string>) => void; // Shift+click to add lasso area
+  subtractFromLassoSelection: (removeCells: Set<string>) => void; // Alt+click to subtract lasso area
   clearLassoSelection: () => void;
   
   // Magic wand selection actions
   startMagicWandSelection: (targetCell: any, selectedCells: Set<string>) => void;
+  addToMagicWandSelection: (newCells: Set<string>) => void; // Shift+click to add magic wand area
+  subtractFromMagicWandSelection: (removeCells: Set<string>) => void; // Alt+click to subtract magic wand area
   clearMagicWandSelection: () => void;
   
   // Clipboard actions
@@ -205,7 +213,8 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   selection: {
     start: { x: 0, y: 0 },
     end: { x: 0, y: 0 },
-    active: false
+    active: false,
+    selectedCells: new Set<string>()
   },
   
   // Lasso selection state
@@ -355,18 +364,136 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
       selection: {
         start: { x, y },
         end: { x, y },
-        active: true
+        active: true,
+        selectedCells: new Set([`${x},${y}`]) // Initialize with starting cell
       }
     });
   },
 
   updateSelection: (x: number, y: number) => {
-    set((state) => ({
+    set((state) => {
+      const newEnd = { x, y };
+      
+      // Calculate the cells in the current rectangular selection
+      const minX = Math.min(state.selection.start.x, newEnd.x);
+      const maxX = Math.max(state.selection.start.x, newEnd.x);
+      const minY = Math.min(state.selection.start.y, newEnd.y);
+      const maxY = Math.max(state.selection.start.y, newEnd.y);
+      
+      const currentRectCells = new Set<string>();
+      for (let cy = minY; cy <= maxY; cy++) {
+        for (let cx = minX; cx <= maxX; cx++) {
+          currentRectCells.add(`${cx},${cy}`);
+        }
+      }
+      
+      // For normal selection, replace selectedCells with current rectangle
+      const selectedCells = new Set(currentRectCells);
+      
+      return {
+        selection: {
+          ...state.selection,
+          end: newEnd,
+          selectedCells
+        }
+      };
+    });
+  },
+
+  updateSelectionAdditive: (x: number, y: number) => {
+    // Update selection in additive mode (preserving existing selectedCells)  
+    set((state) => {
+      const newEnd = { x, y };
+      
+      // Calculate the cells in the current rectangular selection being drawn
+      const minX = Math.min(state.selection.start.x, newEnd.x);
+      const maxX = Math.max(state.selection.start.x, newEnd.x);
+      const minY = Math.min(state.selection.start.y, newEnd.y);
+      const maxY = Math.max(state.selection.start.y, newEnd.y);
+      
+      const currentRectCells = new Set<string>();
+      for (let cy = minY; cy <= maxY; cy++) {
+        for (let cx = minX; cx <= maxX; cx++) {
+          currentRectCells.add(`${cx},${cy}`);
+        }
+      }
+      
+      // Combine existing selection with new rectangle
+      const combinedCells = new Set([...state.selection.selectedCells, ...currentRectCells]);
+      
+      return {
+        selection: {
+          ...state.selection,
+          end: newEnd,
+          selectedCells: combinedCells
+        }
+      };
+    });
+  },
+
+  updateSelectionSubtractive: (x: number, y: number) => {
+    // Update selection in subtractive mode (removing from existing selectedCells)
+    set((state) => {
+      const newEnd = { x, y };
+      
+      // Calculate the cells in the current rectangular selection being drawn
+      const minX = Math.min(state.selection.start.x, newEnd.x);
+      const maxX = Math.max(state.selection.start.x, newEnd.x);
+      const minY = Math.min(state.selection.start.y, newEnd.y);
+      const maxY = Math.max(state.selection.start.y, newEnd.y);
+      
+      const currentRectCells = new Set<string>();
+      for (let cy = minY; cy <= maxY; cy++) {
+        for (let cx = minX; cx <= maxX; cx++) {
+          currentRectCells.add(`${cx},${cy}`);
+        }
+      }
+      
+      // Remove rectangle cells from existing selection
+      const remainingCells = new Set(
+        [...state.selection.selectedCells].filter(cell => !currentRectCells.has(cell))
+      );
+      
+      return {
+        selection: {
+          ...state.selection,
+          end: newEnd,
+          selectedCells: remainingCells
+        }
+      };
+    });
+  },
+
+  addToSelection: (x: number, y: number) => {
+    const state = get();
+    // Start a new rectangular area to add to existing selection
+    const newStart = { x, y };
+    
+    set({
       selection: {
         ...state.selection,
-        end: { x, y }
+        start: newStart,
+        end: newStart,
+        active: true
+        // Keep existing selectedCells - will be updated in updateSelection
       }
-    }));
+    });
+  },
+
+  subtractFromSelection: (x: number, y: number) => {
+    const state = get();
+    // Start a new rectangular area to subtract from existing selection
+    const newStart = { x, y };
+    
+    set({
+      selection: {
+        ...state.selection,
+        start: newStart,
+        end: newStart,
+        active: true
+        // Keep existing selectedCells - will be updated in updateSelection
+      }
+    });
   },
 
   clearSelection: () => {
@@ -374,7 +501,8 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
       selection: {
         start: { x: 0, y: 0 },
         end: { x: 0, y: 0 },
-        active: false
+        active: false,
+        selectedCells: new Set<string>()
       }
     });
   },
@@ -418,6 +546,32 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     }));
   },
 
+  addToLassoSelection: (newCells: Set<string>) => {
+    set((state) => {
+      const combinedCells = new Set([...state.lassoSelection.selectedCells, ...newCells]);
+      return {
+        lassoSelection: {
+          ...state.lassoSelection,
+          selectedCells: combinedCells
+        }
+      };
+    });
+  },
+
+  subtractFromLassoSelection: (removeCells: Set<string>) => {
+    set((state) => {
+      const remainingCells = new Set(
+        [...state.lassoSelection.selectedCells].filter(cell => !removeCells.has(cell))
+      );
+      return {
+        lassoSelection: {
+          ...state.lassoSelection,
+          selectedCells: remainingCells
+        }
+      };
+    });
+  },
+
   clearLassoSelection: () => {
     set({
       lassoSelection: {
@@ -441,6 +595,32 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     });
   },
 
+  addToMagicWandSelection: (newCells: Set<string>) => {
+    set((state) => {
+      const combinedCells = new Set([...state.magicWandSelection.selectedCells, ...newCells]);
+      return {
+        magicWandSelection: {
+          ...state.magicWandSelection,
+          selectedCells: combinedCells
+        }
+      };
+    });
+  },
+
+  subtractFromMagicWandSelection: (removeCells: Set<string>) => {
+    set((state) => {
+      const remainingCells = new Set(
+        [...state.magicWandSelection.selectedCells].filter(cell => !removeCells.has(cell))
+      );
+      return {
+        magicWandSelection: {
+          ...state.magicWandSelection,
+          selectedCells: remainingCells
+        }
+      };
+    });
+  },
+
   clearMagicWandSelection: () => {
     set({
       magicWandSelection: {
@@ -455,32 +635,43 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   // Clipboard actions
   copySelection: (canvasData: Map<string, any>) => {
     const { selection } = get();
-    if (!selection.active) return;
+    if (!selection.active || selection.selectedCells.size === 0) return;
 
-    const minX = Math.min(selection.start.x, selection.end.x);
-    const maxX = Math.max(selection.start.x, selection.end.x);
-    const minY = Math.min(selection.start.y, selection.end.y);
-    const maxY = Math.max(selection.start.y, selection.end.y);
+    // Find bounds of the selected cells to create relative coordinates
+    const cellCoords = Array.from(selection.selectedCells).map(key => {
+      const [x, y] = key.split(',').map(Number);
+      return { x, y };
+    });
+    
+    const minX = Math.min(...cellCoords.map(c => c.x));
+    const maxX = Math.max(...cellCoords.map(c => c.x));
+    const minY = Math.min(...cellCoords.map(c => c.y));
+    const maxY = Math.max(...cellCoords.map(c => c.y));
 
     const copiedData = new Map<string, any>();
     
-    for (let y = minY; y <= maxY; y++) {
-      for (let x = minX; x <= maxX; x++) {
-        const key = `${x},${y}`;
-        const relativeKey = `${x - minX},${y - minY}`;
-        if (canvasData.has(key)) {
-          copiedData.set(relativeKey, canvasData.get(key));
-        }
+    // Copy only the selected cells with relative coordinates
+    selection.selectedCells.forEach(key => {
+      const [x, y] = key.split(',').map(Number);
+      const relativeKey = `${x - minX},${y - minY}`;
+      if (canvasData.has(key)) {
+        copiedData.set(relativeKey, canvasData.get(key));
       }
-    }
+    });
 
     set({ 
       clipboard: copiedData,
       clipboardOriginalPosition: { x: minX, y: minY }
     });
     
-    // Also copy to OS clipboard as text
-    const textForClipboard = rectangularSelectionToText(canvasData, selection);
+    // Also copy to OS clipboard as text - convert selectedCells to compatible format
+    const selectionForText = {
+      start: { x: minX, y: minY },
+      end: { x: maxX, y: maxY },
+      active: true,
+      selectedCells: selection.selectedCells // Use the actual selected cells
+    };
+    const textForClipboard = rectangularSelectionToText(canvasData, selectionForText);
     if (textForClipboard.trim() !== '') {
       writeToOSClipboard(textForClipboard).catch(error => {
         console.warn('Failed to copy to OS clipboard:', error);

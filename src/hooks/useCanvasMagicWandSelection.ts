@@ -11,7 +11,7 @@ import type { Cell } from '../types';
  * Manages character/color-based selection creation, movement, and drag operations
  */
 export const useCanvasMagicWandSelection = () => {
-  const { canvasRef, mouseButtonDown, setMouseButtonDown } = useCanvasContext();
+  const { canvasRef, mouseButtonDown, setMouseButtonDown, altKeyDown } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
   const {
     selectionMode,
@@ -29,6 +29,8 @@ export const useCanvasMagicWandSelection = () => {
     magicWandSelection, 
     magicWandContiguous,
     startMagicWandSelection,
+    addToMagicWandSelection,
+    subtractFromMagicWandSelection,
     clearMagicWandSelection,
     pushCanvasHistory,
     magicMatchChar,
@@ -156,6 +158,11 @@ export const useCanvasMagicWandSelection = () => {
     // Save current state for undo
     pushCanvasHistory(new Map(cells), currentFrameIndex);
 
+    // Determine selection mode based on modifier keys
+    const isAdditive = event.shiftKey && !altKeyDown;
+    const isSubtractive = altKeyDown && !event.shiftKey;
+    const isNormalSelection = !event.shiftKey && !altKeyDown;
+
     // If there's an uncommitted move and clicking outside selection, commit it first
     if (moveState && magicWandSelection.active && !isPointInMagicWandSelection(x, y)) {
       commitMove();
@@ -186,8 +193,8 @@ export const useCanvasMagicWandSelection = () => {
       return;
     }
 
-    // Check if we clicked inside an existing selection to start move mode
-    if (magicWandSelection.active && isPointInMagicWandSelection(x, y)) {
+    // Check if we clicked inside an existing selection to start move mode (only without modifiers)
+    if (magicWandSelection.active && isPointInMagicWandSelection(x, y) && isNormalSelection) {
       // Start move mode
       setSelectionMode('moving');
       
@@ -226,21 +233,35 @@ export const useCanvasMagicWandSelection = () => {
       return;
     }
 
-    // Clear any existing selection and create new one
-    clearMagicWandSelection();
-
     // Get the target cell
     const targetCell = getCell(x, y);
 
     // Find all matching cells
     const matchingCells = findMatchingCells(x, y, targetCell);
 
-    // Only create selection if we found matching cells
-    if (matchingCells.size > 0) {
-      startMagicWandSelection(targetCell, matchingCells);
-      setSelectionMode('none');
+    if (matchingCells.size === 0) {
+      // No matching cells found
+      if (isNormalSelection) {
+        // Clear existing selection if normal click
+        clearMagicWandSelection();
+      }
+      setMouseButtonDown(true);
+      return;
     }
 
+    if (isAdditive && magicWandSelection.active) {
+      // Shift+click: Add matching cells to existing selection
+      addToMagicWandSelection(matchingCells);
+    } else if (isSubtractive && magicWandSelection.active) {
+      // Alt+click: Subtract matching cells from existing selection
+      subtractFromMagicWandSelection(matchingCells);
+    } else {
+      // Normal click: Replace existing selection with new matching cells
+      clearMagicWandSelection();
+      startMagicWandSelection(targetCell, matchingCells);
+    }
+
+    setSelectionMode('none');
     setMouseButtonDown(true);
   }, [
     getGridCoordinatesFromEvent, 
@@ -260,7 +281,10 @@ export const useCanvasMagicWandSelection = () => {
     getCell,
     isCellEmpty,
     findMatchingCells,
-    startMagicWandSelection
+    startMagicWandSelection,
+    addToMagicWandSelection,
+    subtractFromMagicWandSelection,
+    altKeyDown
   ]);
 
   // Handle mouse move during magic wand selection

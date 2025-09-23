@@ -12,7 +12,7 @@ import type { Cell } from '../types';
  * Manages freeform selection creation, movement, and drag operations
  */
 export const useCanvasLassoSelection = () => {
-  const { canvasRef, mouseButtonDown, setMouseButtonDown } = useCanvasContext();
+  const { canvasRef, mouseButtonDown, setMouseButtonDown, altKeyDown } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
   const {
     selectionMode,
@@ -32,6 +32,8 @@ export const useCanvasLassoSelection = () => {
     addLassoPoint,
     updateLassoSelectedCells,
     finalizeLassoSelection,
+    addToLassoSelection,
+    subtractFromLassoSelection,
     clearLassoSelection,
     pushCanvasHistory 
   } = useToolStore();
@@ -77,6 +79,11 @@ export const useCanvasLassoSelection = () => {
     // Save current state for undo
     pushCanvasHistory(new Map(cells), currentFrameIndex, 'Lasso selection action');
 
+    // Determine selection mode based on modifier keys
+    const isAdditive = event.shiftKey && !altKeyDown;
+    const isSubtractive = altKeyDown && !event.shiftKey;
+    const isNormalSelection = !event.shiftKey && !altKeyDown;
+
     // If there's an uncommitted move and clicking outside selection, commit it first
     if (moveState && lassoSelection.active && !isPointInLassoSelection(x, y)) {
       commitMove();
@@ -91,8 +98,8 @@ export const useCanvasLassoSelection = () => {
       addLassoPoint(x, y);
       setMouseButtonDown(true);
       setSelectionMode('dragging');
-    } else if (lassoSelection.active && isPointInLassoSelection(x, y) && !lassoSelection.isDrawing) {
-      // Click inside existing lasso selection - enter move mode
+    } else if (lassoSelection.active && isPointInLassoSelection(x, y) && !lassoSelection.isDrawing && isNormalSelection) {
+      // Click inside existing lasso selection without modifiers - enter move mode
       setJustCommittedMove(false);
       if (moveState) {
         // Already have a moveState (continuing from arrow key movement)
@@ -127,13 +134,27 @@ export const useCanvasLassoSelection = () => {
       }
       setSelectionMode('moving');
       setMouseButtonDown(true);
-    } else if (lassoSelection.active && !isPointInLassoSelection(x, y) && !lassoSelection.isDrawing) {
-      // Click outside existing lasso selection - clear selection
+    } else if (lassoSelection.active && !isPointInLassoSelection(x, y) && !lassoSelection.isDrawing && isNormalSelection) {
+      // Click outside existing lasso selection without modifiers - clear selection
       setJustCommittedMove(false);
       clearLassoSelection();
       // Don't start a new selection on this click, just clear
+    } else if (isAdditive && lassoSelection.active && !lassoSelection.isDrawing) {
+      // Shift+click: Start new lasso to add to existing selection
+      setJustCommittedMove(false);
+      startLassoSelection();
+      addLassoPoint(x, y);
+      setMouseButtonDown(true);
+      setSelectionMode('dragging-add');
+    } else if (isSubtractive && lassoSelection.active && !lassoSelection.isDrawing) {
+      // Alt+click: Start new lasso to subtract from existing selection
+      setJustCommittedMove(false);
+      startLassoSelection(); 
+      addLassoPoint(x, y);
+      setMouseButtonDown(true);
+      setSelectionMode('dragging-subtract');
     } else if (!lassoSelection.active || !lassoSelection.isDrawing) {
-      // Start new lasso selection
+      // Start new lasso selection (normal mode)
       setJustCommittedMove(false);
       startLassoSelection();
       addLassoPoint(x, y);
@@ -144,7 +165,7 @@ export const useCanvasLassoSelection = () => {
     getGridCoordinatesFromEvent, cells, pushCanvasHistory, currentFrameIndex, moveState, lassoSelection, 
     isPointInLassoSelection, commitMove, clearLassoSelection, setJustCommittedMove,
     justCommittedMove, startLassoSelection, addLassoPoint, setMouseButtonDown,
-    setMoveState, setSelectionMode, getCell
+    setMoveState, setSelectionMode, getCell, altKeyDown
   ]);
 
     // Handle lasso selection mouse move
@@ -200,7 +221,7 @@ export const useCanvasLassoSelection = () => {
       setSelectionMode('none');
       setMouseButtonDown(false);
     } else if (selectionMode === 'dragging' && lassoSelection.isDrawing) {
-      // Lasso drawing completed - finalize the selection
+      // Normal lasso drawing completed - replace existing selection
       if (lassoSelection.path.length >= 3) {
         // Close the polygon and smooth it minimally
         const smoothedPath = smoothPolygonPath(lassoSelection.path, 0.2);
@@ -213,6 +234,28 @@ export const useCanvasLassoSelection = () => {
       }
       setSelectionMode('none');
       setMouseButtonDown(false);
+    } else if (selectionMode === 'dragging-add' && lassoSelection.isDrawing) {
+      // Additive lasso drawing completed - add to existing selection
+      if (lassoSelection.path.length >= 3) {
+        // Close the polygon and smooth it minimally
+        const smoothedPath = smoothPolygonPath(lassoSelection.path, 0.2);
+        const newCells = getCellsInPolygon(smoothedPath, width, height);
+        addToLassoSelection(newCells);
+        finalizeLassoSelection();
+      }
+      setSelectionMode('none');
+      setMouseButtonDown(false);
+    } else if (selectionMode === 'dragging-subtract' && lassoSelection.isDrawing) {
+      // Subtractive lasso drawing completed - subtract from existing selection
+      if (lassoSelection.path.length >= 3) {
+        // Close the polygon and smooth it minimally
+        const smoothedPath = smoothPolygonPath(lassoSelection.path, 0.2);
+        const removeCells = getCellsInPolygon(smoothedPath, width, height);
+        subtractFromLassoSelection(removeCells);
+        finalizeLassoSelection();
+      }
+      setSelectionMode('none');
+      setMouseButtonDown(false);
     } else {
       // Single click completed - clear mouse button state
       setMouseButtonDown(false);
@@ -220,7 +263,7 @@ export const useCanvasLassoSelection = () => {
   }, [
     selectionMode, moveState, setMoveState, setSelectionMode, setMouseButtonDown,
     lassoSelection, updateLassoSelectedCells, finalizeLassoSelection, 
-    clearLassoSelection, width, height
+    clearLassoSelection, addToLassoSelection, subtractFromLassoSelection, width, height
   ]);
 
   // Get effective lasso selection bounds for rendering

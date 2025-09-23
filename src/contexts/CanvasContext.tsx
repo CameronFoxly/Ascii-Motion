@@ -31,7 +31,7 @@ interface CanvasState {
   altKeyDown: boolean;  // For temporary eyedropper activation
   
   // Selection state
-  selectionMode: 'none' | 'dragging' | 'moving';
+  selectionMode: 'none' | 'dragging' | 'moving' | 'dragging-add' | 'dragging-subtract';
   pendingSelectionStart: { x: number; y: number } | null;
   justCommittedMove: boolean;
   

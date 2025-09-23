@@ -84,6 +84,8 @@ export interface Selection {
   start: { x: number; y: number };
   end: { x: number; y: number };
   active: boolean;
+  // Additional areas for additive/subtractive selection
+  selectedCells: Set<string>; // All selected cells from multiple rectangular areas
 }
 
 export interface LassoSelection {
