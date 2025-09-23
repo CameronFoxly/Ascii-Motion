@@ -1498,6 +1498,64 @@ This comprehensive export/import system will transform ASCII Motion from a creat
 ✅ **User Experience:**
 - **Intuitive Feedback**: Clear visual indication of which cell each tool will interact with
 - **Non-Intrusive Design**: Outline subtle enough to not distract from artwork creation
+
+### **🎯 ENHANCEMENT COMPLETED: Color Management Hotkeys (Sept 23, 2025)**
+✅ **Status**: COMPLETE - Professional color workflow hotkeys for efficient color manipulation during drawing
+✅ **Files Modified:**
+- `src/hooks/useKeyboardShortcuts.ts` (ENHANCED) - Added color swap and palette navigation hotkeys with edge case handling
+
+✅ **Features Implemented:**
+- **'X' Key - Foreground/Background Swap**: Instantly swap foreground and background colors using same logic as UI button
+- **'[' and ']' Keys - Palette Navigation**: Navigate previous/next colors in active palette with loop-around support
+- **Context-Aware Navigation**: Automatically detects foreground/background tab context for proper color assignment
+- **Smart Color Selection**: Activates first color in palette if no color currently selected
+- **Transparent Background Handling**: Proper edge case handling prevents transparent characters (foreground stays unchanged)
+- **Recent Colors Integration**: Newly selected colors automatically added to recent colors history
+
+✅ **Technical Architecture:**
+- **Reused Existing Logic**: Color swap uses identical logic to ForegroundBackgroundSelector component for consistency
+- **Robust DOM Context Detection**: Multi-strategy detection for active color picker tab (Text/BG) using various Radix UI selectors
+- **Loop-Around Navigation**: Navigate beyond first/last color wraps to opposite end of palette
+- **Edge Case Handling**: Graceful handling of empty palettes, no selection, and transparent backgrounds
+- **Store Integration**: Direct integration with both toolStore (colors) and paletteStore (navigation)
+- **Fallback Detection**: Multiple selector strategies ensure reliable tab detection across component states
+
+✅ **User Experience:**
+- **Professional Workflow**: Matches industry standards (Photoshop X key for color swap)
+- **Efficient Drawing**: Rapid color changes without interrupting drawing flow
+- **Keyboard-Driven**: Supports power users who prefer keyboard navigation
+- **Intuitive Behavior**: '[' and ']' keys provide natural left/right navigation metaphor
+- **Seamless Integration**: Works with all existing color palette features and recent colors system
+
+✅ **Implementation Details:**
+```typescript
+// 'X' Key - Swap colors with transparent edge case handling
+const swapForegroundBackground = () => {
+  const tempColor = selectedColor;
+  if (selectedBgColor === 'transparent') {
+    setSelectedBgColor(tempColor);
+    // Foreground stays unchanged (no transparent characters)
+  } else {
+    setSelectedColor(selectedBgColor);
+    setSelectedBgColor(tempColor);
+  }
+  // Add to recent colors if not transparent
+};
+
+// '[' and ']' Keys - Navigate palette colors with context awareness
+const navigatePaletteColor = (direction: 'previous' | 'next') => {
+  // Detect foreground/background context from DOM
+  // Filter colors appropriately (background includes transparent)
+  // Navigate with loop-around
+  // Update drawing color and palette selection
+};
+```
+
+✅ **Benefits for Artists:**
+- **Rapid Color Swapping**: Instant foreground/background swap during detail work
+- **Efficient Palette Navigation**: Quick access to all colors without mouse interaction
+- **Workflow Continuity**: Color changes don't interrupt drawing or selection operations
+- **Professional Feel**: Familiar hotkeys matching industry-standard graphics software
 - **Professional Feel**: Matches behavior expectations from graphics editing applications
 - **Tool Context Awareness**: Disappears automatically when using navigation tools
 - **Universal Compatibility**: Works consistently across all drawing and selection tools

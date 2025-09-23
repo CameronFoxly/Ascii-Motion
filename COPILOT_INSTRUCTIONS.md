@@ -1335,6 +1335,81 @@ const TOOL_HOTKEYS = [
 // 🚨 REMINDER: All new tools MUST have hotkeys (see Step 9 in tool creation guide)
 ```
 
+### **🎨 Color Management Hotkeys (Dec 28, 2024)**
+
+**IMPORTANT: ASCII Motion now has professional color workflow hotkeys for efficient color management during drawing.**
+
+#### **🎯 Color Hotkey Mappings:**
+| Hotkey | Action | Behavior |
+|--------|--------|----------|
+| **X** | Swap Foreground/Background | Exchanges current foreground and background colors |
+| **[** | Previous Palette Color | Navigate to previous color in active palette |
+| **]** | Next Palette Color | Navigate to next color in active palette |
+
+#### **🏗️ Implementation Architecture:**
+- **Context-Aware Navigation**: `[` and `]` respect current tab (Foreground/Background) selection
+- **Loop-Around Behavior**: Navigation wraps to beginning/end when reaching palette boundaries
+- **Edge Case Handling**: Proper handling of transparent backgrounds and empty palettes
+- **DOM Integration**: Uses DOM queries to determine active color context
+- **Zustand Integration**: Leverages existing toolStore and paletteStore state management
+
+#### **🔧 Technical Implementation Pattern:**
+
+**Color Swap Logic**:
+```typescript
+const swapForegroundBackground = () => {
+  const currentFg = toolStore.getState().selectedColor;
+  const currentBg = toolStore.getState().selectedBgColor;
+  
+  // Handle transparent background edge case
+  const newBg = currentFg === 'transparent' ? ANSI_COLORS[0] : currentFg;
+  
+  toolStore.getState().setSelectedColor(currentBg);
+  toolStore.getState().setSelectedBgColor(newBg);
+};
+```
+
+**Palette Navigation Logic**:
+```typescript
+const navigatePaletteColor = (direction: 'next' | 'prev') => {
+  const { getActiveColors, selectedColorId, setSelectedColor } = usePaletteStore.getState();
+  const activeColors = getActiveColors();
+  
+  // Context detection via DOM
+  const isForegroundTab = document.querySelector('[data-tab="foreground"]')?.getAttribute('data-state') === 'active';
+  
+  // Calculate new index with wraparound
+  const currentIndex = activeColors.findIndex(c => c.id === selectedColorId);
+  const newIndex = direction === 'next' 
+    ? (currentIndex + 1) % activeColors.length
+    : (currentIndex - 1 + activeColors.length) % activeColors.length;
+    
+  const newColor = activeColors[newIndex];
+  
+  // Apply to appropriate color slot
+  if (isForegroundTab) {
+    toolStore.getState().setSelectedColor(newColor.ansi);
+  } else {
+    toolStore.getState().setSelectedBgColor(newColor.ansi);
+  }
+  
+  setSelectedColor(newColor.id);
+};
+```
+
+#### **🚨 Integration Guidelines:**
+- **Hotkey Registration**: Added to `useKeyboardShortcuts.ts` main switch statement
+- **Store Dependencies**: Imports `usePaletteStore` and `ANSI_COLORS` constant
+- **Component Reuse**: Leverages existing swap logic patterns from `ForegroundBackgroundSelector.tsx`
+- **Context Preservation**: Maintains current palette selection and UI state
+- **Professional Standards**: Follows industry-standard color workflow patterns
+
+#### **🎯 Usage Benefits:**
+- **Workflow Efficiency**: Rapid color changes without mouse interaction
+- **Professional Feel**: Matches industry-standard drawing application hotkeys
+- **Context Awareness**: Smart navigation based on current UI selection
+- **Edge Case Handling**: Robust behavior with transparent colors and palette boundaries
+
 ### **🔐 Keyboard Shortcut Protection for Text Input Tools**
 
 **When creating tools that need text input (like the Text Tool), you MUST implement keyboard shortcut protection to prevent conflicts.**

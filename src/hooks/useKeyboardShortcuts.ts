@@ -7,6 +7,8 @@ import { getToolForHotkey } from '../constants/hotkeys';
 import { useZoomControls } from '../components/features/ZoomControls';
 import { useFrameNavigation } from './useFrameNavigation';
 import { useAnimationHistory } from './useAnimationHistory';
+import { usePaletteStore } from '../stores/paletteStore';
+import { ANSI_COLORS } from '../constants/colors';
 import type { AnyHistoryAction, CanvasHistoryAction } from '../types';
 
 /**
@@ -162,6 +164,109 @@ export const useKeyboardShortcuts = () => {
     getMagicWandClipboardOriginalPosition,
     textToolState
   } = useToolStore();
+
+  // Helper function to swap foreground/background colors
+  const swapForegroundBackground = useCallback(() => {
+    const { selectedColor, selectedBgColor, setSelectedColor, setSelectedBgColor } = useToolStore.getState();
+    const { addRecentColor } = usePaletteStore.getState();
+    
+    const tempColor = selectedColor;
+    
+    // Handle edge case: never allow transparent as foreground color
+    if (selectedBgColor === 'transparent' || selectedBgColor === ANSI_COLORS.transparent) {
+      // Background becomes current foreground color
+      setSelectedBgColor(tempColor);
+      // Foreground stays the same (no transparent characters allowed)
+    } else {
+      // Normal swap
+      setSelectedColor(selectedBgColor);
+      setSelectedBgColor(tempColor);
+    }
+    
+    // Add both colors to recent colors (only if they're not transparent)
+    if (selectedBgColor !== 'transparent' && selectedBgColor !== ANSI_COLORS.transparent) {
+      addRecentColor(selectedBgColor);
+    }
+    if (tempColor !== 'transparent' && tempColor !== ANSI_COLORS.transparent) {
+      addRecentColor(tempColor);
+    }
+  }, []);
+
+  // Helper function to navigate palette colors
+  const navigatePaletteColor = useCallback((direction: 'previous' | 'next') => {
+    const { getActiveColors, selectedColorId, setSelectedColor: setSelectedColorId } = usePaletteStore.getState();
+    const { setSelectedColor, setSelectedBgColor } = useToolStore.getState();
+    
+    // Determine if we're in background tab context by checking the active tab in the ColorPicker
+    // Look for the active background tab using multiple strategies
+    let isBackgroundTab = false;
+    
+    // Strategy 1: Look for Radix UI tabs trigger with various attribute combinations
+    const backgroundTabQueries = [
+      'button[data-state="active"][data-value="bg"]',
+      '[data-state="active"][value="bg"]', 
+      'button[aria-selected="true"][value="bg"]',
+      '[role="tab"][aria-selected="true"][value="bg"]',
+      '[data-radix-collection-item][data-state="active"][value="bg"]'
+    ];
+    
+    for (const query of backgroundTabQueries) {
+      if (document.querySelector(query)) {
+        isBackgroundTab = true;
+        break;
+      }
+    }
+    
+    // Strategy 2: If no direct match, look for any tab with "BG" text content that's active
+    if (!isBackgroundTab) {
+      const activeTabs = document.querySelectorAll('[data-state="active"], [aria-selected="true"]');
+      isBackgroundTab = Array.from(activeTabs).some(tab => 
+        tab.textContent?.includes('BG') || tab.textContent?.includes('Background')
+      );
+    }
+    
+    const activeColors = getActiveColors();
+    if (activeColors.length === 0) return;
+    
+    // Filter colors based on context (foreground = no transparent, background = include transparent)
+    const availableColors = isBackgroundTab 
+      ? [{ id: 'transparent', value: 'transparent', name: 'Transparent' }, ...activeColors.filter(c => c.value !== 'transparent' && c.value !== ANSI_COLORS.transparent)]
+      : activeColors.filter(c => c.value !== 'transparent' && c.value !== ANSI_COLORS.transparent);
+      
+    if (availableColors.length === 0) return;
+    
+    let newIndex = 0;
+    
+    if (selectedColorId) {
+      // Find current index
+      const currentIndex = availableColors.findIndex(c => c.id === selectedColorId);
+      if (currentIndex !== -1) {
+        // Navigate with loop-around
+        if (direction === 'next') {
+          newIndex = (currentIndex + 1) % availableColors.length;
+        } else {
+          newIndex = currentIndex === 0 ? availableColors.length - 1 : currentIndex - 1;
+        }
+      }
+    }
+    // If no selection, default to first color (newIndex = 0)
+    
+    const newColor = availableColors[newIndex];
+    setSelectedColorId(newColor.id);
+    
+    // Set the drawing color
+    if (isBackgroundTab) {
+      setSelectedBgColor(newColor.value);
+    } else {
+      setSelectedColor(newColor.value);
+    }
+    
+    // Add to recent colors if not transparent
+    if (newColor.value !== 'transparent' && newColor.value !== ANSI_COLORS.transparent) {
+      const { addRecentColor } = usePaletteStore.getState();
+      addRecentColor(newColor.value);
+    }
+  }, []);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     // If any modal dialog is open, disable all keyboard shortcuts
@@ -334,6 +439,28 @@ export const useKeyboardShortcuts = () => {
         event.preventDefault();
         console.log('Next frame navigation triggered');
         navigateNext();
+        return;
+      }
+      
+      // Handle color hotkeys
+      if (event.key === 'x') {
+        // Swap foreground/background colors using existing logic
+        event.preventDefault();
+        swapForegroundBackground();
+        return;
+      }
+      
+      if (event.key === '[') {
+        // Previous palette color
+        event.preventDefault();
+        navigatePaletteColor('previous');
+        return;
+      }
+      
+      if (event.key === ']') {
+        // Next palette color
+        event.preventDefault();
+        navigatePaletteColor('next');
         return;
       }
       
