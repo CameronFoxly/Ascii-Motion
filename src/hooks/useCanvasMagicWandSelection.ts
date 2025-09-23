@@ -11,7 +11,7 @@ import type { Cell } from '../types';
  * Manages character/color-based selection creation, movement, and drag operations
  */
 export const useCanvasMagicWandSelection = () => {
-  const { canvasRef, mouseButtonDown, setMouseButtonDown, altKeyDown } = useCanvasContext();
+  const { canvasRef, mouseButtonDown, setMouseButtonDown } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
   const {
     selectionMode,
@@ -159,9 +159,9 @@ export const useCanvasMagicWandSelection = () => {
     pushCanvasHistory(new Map(cells), currentFrameIndex);
 
     // Determine selection mode based on modifier keys
-    const isAdditive = event.shiftKey && !altKeyDown;
-    const isSubtractive = altKeyDown && !event.shiftKey;
-    const isNormalSelection = !event.shiftKey && !altKeyDown;
+    const isAdditive = event.shiftKey && !event.altKey;
+    const isSubtractive = event.altKey && !event.shiftKey;
+    const isNormalSelection = !event.shiftKey && !event.altKey;
 
     // If there's an uncommitted move and clicking outside selection, commit it first
     if (moveState && magicWandSelection.active && !isPointInMagicWandSelection(x, y)) {
@@ -284,7 +284,7 @@ export const useCanvasMagicWandSelection = () => {
     startMagicWandSelection,
     addToMagicWandSelection,
     subtractFromMagicWandSelection,
-    altKeyDown
+
   ]);
 
   // Handle mouse move during magic wand selection

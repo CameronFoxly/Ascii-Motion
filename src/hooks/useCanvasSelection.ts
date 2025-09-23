@@ -11,7 +11,7 @@ import type { Cell } from '../types';
  * Manages selection creation, movement, and drag operations
  */
 export const useCanvasSelection = () => {
-  const { canvasRef, mouseButtonDown, setMouseButtonDown, altKeyDown } = useCanvasContext();
+  const { canvasRef, mouseButtonDown, setMouseButtonDown } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
   const {
     selectionMode,
@@ -67,9 +67,9 @@ export const useCanvasSelection = () => {
     pushCanvasHistory(new Map(cells), currentFrameIndex, 'Selection action');
 
     // Determine selection mode based on modifier keys
-    const isAdditive = event.shiftKey && !altKeyDown;
-    const isSubtractive = altKeyDown && !event.shiftKey;
-    const isNormalSelection = !event.shiftKey && !altKeyDown;
+    const isAdditive = event.shiftKey && !event.altKey;
+    const isSubtractive = event.altKey && !event.shiftKey;
+    const isNormalSelection = !event.shiftKey && !event.altKey;
 
     // If there's an uncommitted move and clicking outside selection, commit it first
     if (moveState && selection.active && !isPointInSelection(x, y)) {
@@ -167,7 +167,7 @@ export const useCanvasSelection = () => {
     isPointInSelection, commitMove, clearSelection, setJustCommittedMove,
     justCommittedMove, startSelection, setPendingSelectionStart, setMouseButtonDown,
     setMoveState, setSelectionMode, getCell, updateSelection, pendingSelectionStart,
-    altKeyDown, addToSelection, subtractFromSelection
+    addToSelection, subtractFromSelection
   ]);
 
   // Handle selection tool mouse move
@@ -192,8 +192,8 @@ export const useCanvasSelection = () => {
       // Mouse button is down and we have a pending selection start - switch to appropriate drag mode
       if (x !== pendingSelectionStart.x || y !== pendingSelectionStart.y) {
         // Determine drag mode based on current modifier keys  
-        const isAdditive = event.shiftKey && !altKeyDown;
-        const isSubtractive = altKeyDown && !event.shiftKey;
+        const isAdditive = event.shiftKey && !event.altKey;
+        const isSubtractive = event.altKey && !event.shiftKey;
         
         if (isAdditive) {
           setSelectionMode('dragging-add');
@@ -207,8 +207,8 @@ export const useCanvasSelection = () => {
       
       // Use appropriate update function based on current mode after setting it
       const currentMode = (x !== pendingSelectionStart.x || y !== pendingSelectionStart.y) ? 
-        (event.shiftKey && !altKeyDown ? 'dragging-add' : 
-         altKeyDown && !event.shiftKey ? 'dragging-subtract' : 'dragging') : 
+        (event.shiftKey && !event.altKey ? 'dragging-add' : 
+         event.altKey && !event.shiftKey ? 'dragging-subtract' : 'dragging') : 
         selectionMode;
       
       if (currentMode === 'dragging-add') {
@@ -231,7 +231,7 @@ export const useCanvasSelection = () => {
   }, [
     getGridCoordinatesFromEvent, selectionMode, moveState, setMoveState, 
     selection, updateSelection, updateSelectionAdditive, updateSelectionSubtractive,
-    mouseButtonDown, pendingSelectionStart, setPendingSelectionStart, altKeyDown, setSelectionMode
+    mouseButtonDown, pendingSelectionStart, setPendingSelectionStart, setSelectionMode
   ]);
 
   // Handle selection tool mouse up

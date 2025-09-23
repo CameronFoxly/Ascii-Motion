@@ -12,7 +12,7 @@ import type { Cell } from '../types';
  * Manages freeform selection creation, movement, and drag operations
  */
 export const useCanvasLassoSelection = () => {
-  const { canvasRef, mouseButtonDown, setMouseButtonDown, altKeyDown } = useCanvasContext();
+  const { canvasRef, mouseButtonDown, setMouseButtonDown } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
   const {
     selectionMode,
@@ -80,9 +80,9 @@ export const useCanvasLassoSelection = () => {
     pushCanvasHistory(new Map(cells), currentFrameIndex, 'Lasso selection action');
 
     // Determine selection mode based on modifier keys
-    const isAdditive = event.shiftKey && !altKeyDown;
-    const isSubtractive = altKeyDown && !event.shiftKey;
-    const isNormalSelection = !event.shiftKey && !altKeyDown;
+    const isAdditive = event.shiftKey && !event.altKey;
+    const isSubtractive = event.altKey && !event.shiftKey;
+    const isNormalSelection = !event.shiftKey && !event.altKey;
 
     // If there's an uncommitted move and clicking outside selection, commit it first
     if (moveState && lassoSelection.active && !isPointInLassoSelection(x, y)) {
@@ -183,7 +183,7 @@ export const useCanvasLassoSelection = () => {
     getGridCoordinatesFromEvent, cells, pushCanvasHistory, currentFrameIndex, moveState, lassoSelection, 
     isPointInLassoSelection, commitMove, clearLassoSelection, setJustCommittedMove,
     justCommittedMove, startLassoSelection, addLassoPoint, setMouseButtonDown,
-    setMoveState, setSelectionMode, getCell, altKeyDown
+    setMoveState, setSelectionMode, getCell
   ]);
 
     // Handle lasso selection mouse move
