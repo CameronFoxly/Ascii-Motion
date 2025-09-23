@@ -11,6 +11,7 @@ import { FileImage, Download, Settings, Loader2 } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
 import { useExportDataCollector } from '../../utils/exportDataCollector';
 import { ExportRenderer } from '../../utils/exportRenderer';
+import { calculateExportPixelDimensions, formatPixelDimensions, estimatePngFileSize } from '../../utils/exportPixelCalculator';
 
 /**
  * PNG Export Dialog
@@ -140,6 +141,36 @@ export const PngExportDialog: React.FC = () => {
                 <p className="text-xs text-muted-foreground">
                   Higher multipliers create larger, more detailed images
                 </p>
+                {exportData && (
+                  <div className="mt-2 p-2 bg-muted/30 rounded text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Output size:</span>
+                      <span className="font-mono">
+                        {formatPixelDimensions(calculateExportPixelDimensions({
+                          gridWidth: exportData.canvasDimensions.width,
+                          gridHeight: exportData.canvasDimensions.height,
+                          sizeMultiplier: pngSettings.sizeMultiplier,
+                          fontSize: exportData.typography.fontSize,
+                          characterSpacing: exportData.typography.characterSpacing,
+                          lineSpacing: exportData.typography.lineSpacing
+                        }))}
+                      </span>
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-muted-foreground">Est. file size:</span>
+                      <span className="font-mono">
+                        {estimatePngFileSize(calculateExportPixelDimensions({
+                          gridWidth: exportData.canvasDimensions.width,
+                          gridHeight: exportData.canvasDimensions.height,
+                          sizeMultiplier: pngSettings.sizeMultiplier,
+                          fontSize: exportData.typography.fontSize,
+                          characterSpacing: exportData.typography.characterSpacing,
+                          lineSpacing: exportData.typography.lineSpacing
+                        }))}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Include Grid */}

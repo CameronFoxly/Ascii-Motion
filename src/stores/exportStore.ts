@@ -46,7 +46,7 @@ const DEFAULT_VIDEO_SETTINGS: VideoExportSettings = {
   frameRange: { start: 0, end: -1 }, // -1 means "end of animation"
   quality: 'medium', // For WebM
   crf: 24, // Default CRF for H.264 (good balance of quality/size)
-  format: 'webm', // Default to WebM format
+  format: 'mp4', // Default to MP4 format
   includeGrid: false, // Default to no grid in video
   loops: 'none', // Default to no looping
 };const DEFAULT_SESSION_SETTINGS: SessionExportSettings = {

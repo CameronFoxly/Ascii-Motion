@@ -12,6 +12,7 @@ import { Video, Loader2, Play, Settings } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
 import { useExportDataCollector } from '../../utils/exportDataCollector';
 import { ExportRenderer } from '../../utils/exportRenderer';
+import { calculateExportPixelDimensions, formatPixelDimensions } from '../../utils/exportPixelCalculator';
 import type { VideoExportSettings } from '../../types/export';
 
 /**
@@ -31,7 +32,7 @@ export const VideoExportDialog: React.FC = () => {
     frameRange: 'all',
     quality: 'high',
     crf: 24,
-    format: 'webm',
+    format: 'mp4',
     includeGrid: false,
     loops: 'none'
   });
@@ -149,9 +150,9 @@ export const VideoExportDialog: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="webm">
-                      WebM {supportsWebCodecs ? '(Recommended)' : '(Not Supported)'}
+                      WebM {supportsWebCodecs ? '(Advanced)' : '(Not Supported)'}
                     </SelectItem>
-                    <SelectItem value="mp4">MP4 (Fallback)</SelectItem>
+                    <SelectItem value="mp4">MP4 (Recommended)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -257,6 +258,23 @@ export const VideoExportDialog: React.FC = () => {
                     <SelectItem value="4">4x (Ultra High)</SelectItem>
                   </SelectContent>
                 </Select>
+                {exportData && (
+                  <div className="mt-2 p-2 bg-muted/30 rounded text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Output size:</span>
+                      <span className="font-mono">
+                        {formatPixelDimensions(calculateExportPixelDimensions({
+                          gridWidth: exportData.canvasDimensions.width,
+                          gridHeight: exportData.canvasDimensions.height,
+                          sizeMultiplier: videoSettings.sizeMultiplier,
+                          fontSize: exportData.typography.fontSize,
+                          characterSpacing: exportData.typography.characterSpacing,
+                          lineSpacing: exportData.typography.lineSpacing
+                        }))}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
