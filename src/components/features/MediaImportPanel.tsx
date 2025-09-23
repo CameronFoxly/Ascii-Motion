@@ -877,17 +877,23 @@ export function MediaImportPanel() {
                                 className="w-full"
                               />
                               {/* Tick marks for frames */}
-                              <div className="absolute top-6 left-0 right-0 flex justify-between pointer-events-none">
-                                {Array.from({ length: previewFrames.length }, (_, i) => (
-                                  <div
-                                    key={i}
-                                    className="w-px h-2 bg-muted-foreground/40"
-                                    style={{ 
-                                      marginLeft: i === 0 ? '0' : '-0.5px',
-                                      marginRight: i === previewFrames.length - 1 ? '0' : '-0.5px'
-                                    }}
-                                  />
-                                ))}
+                              <div className="absolute top-6 left-0 right-0 pointer-events-none">
+                                {Array.from({ length: previewFrames.length }, (_, i) => {
+                                  // Slider thumb is 12px wide (h-3 w-3), so half width is 6px
+                                  const thumbHalfWidth = 6;
+                                  const position = previewFrames.length === 1 ? 0.5 : i / (previewFrames.length - 1);
+                                  
+                                  return (
+                                    <div
+                                      key={i}
+                                      className="absolute w-px h-2 bg-muted-foreground/40"
+                                      style={{ 
+                                        left: `calc(${thumbHalfWidth}px + ${position} * (100% - ${thumbHalfWidth * 2}px))`,
+                                        transform: 'translateX(-0.5px)'
+                                      }}
+                                    />
+                                  );
+                                })}
                               </div>
                             </div>
                           </div>
