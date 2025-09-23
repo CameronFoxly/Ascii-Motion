@@ -157,6 +157,9 @@ export const useKeyboardShortcuts = () => {
     hasClipboard,
     hasLassoClipboard,
     hasMagicWandClipboard,
+    getClipboardOriginalPosition,
+    getLassoClipboardOriginalPosition,
+    getMagicWandClipboardOriginalPosition,
     textToolState
   } = useToolStore();
 
@@ -423,49 +426,19 @@ export const useKeyboardShortcuts = () => {
         } else {
           // Start paste mode if any clipboard has data (prioritize magic wand, then lasso, then rectangular)
           if (hasMagicWandClipboard()) {
-            // For magic wand selection, use the center of the selected cells as paste position
-            if (magicWandSelection.active && magicWandSelection.selectedCells.size > 0) {
-              const cellCoords = Array.from(magicWandSelection.selectedCells).map(key => {
-                const [x, y] = key.split(',').map(Number);
-                return { x, y };
-              });
-              const avgX = Math.floor(cellCoords.reduce((sum, c) => sum + c.x, 0) / cellCoords.length);
-              const avgY = Math.floor(cellCoords.reduce((sum, c) => sum + c.y, 0) / cellCoords.length);
-              startPasteMode({ x: avgX, y: avgY });
-            } else {
-              startPasteMode({ x: 0, y: 0 });
-            }
+            // Always use stored original position for consistent paste behavior
+            const originalPos = getMagicWandClipboardOriginalPosition();
+            startPasteMode(originalPos || { x: 0, y: 0 });
           } else if (hasLassoClipboard()) {
-            // For lasso selection, use the center of the selected cells as paste position
-            if (lassoSelection.active && lassoSelection.selectedCells.size > 0) {
-              const cellCoords = Array.from(lassoSelection.selectedCells).map(key => {
-                const [x, y] = key.split(',').map(Number);
-                return { x, y };
-              });
-              const avgX = Math.floor(cellCoords.reduce((sum, c) => sum + c.x, 0) / cellCoords.length);
-              const avgY = Math.floor(cellCoords.reduce((sum, c) => sum + c.y, 0) / cellCoords.length);
-              startPasteMode({ x: avgX, y: avgY });
-            } else {
-              startPasteMode({ x: 0, y: 0 });
-            }
+            // Always use stored original position for consistent paste behavior
+            const originalPos = getLassoClipboardOriginalPosition();
+            startPasteMode(originalPos || { x: 0, y: 0 });
           } else if (hasClipboard()) {
-            let pasteX = 0;
-            let pasteY = 0;
+            // Always use stored original position for consistent paste behavior
+            const originalPos = getClipboardOriginalPosition();
+            const pastePos = originalPos || { x: 0, y: 0 };
             
-            if (lassoSelection.active && lassoSelection.selectedCells.size > 0) {
-              // For lasso selection, use the bounds of selected cells
-              const cellCoords = Array.from(lassoSelection.selectedCells).map(key => {
-                const [x, y] = key.split(',').map(Number);
-                return { x, y };
-              });
-              pasteX = Math.min(...cellCoords.map(c => c.x));
-              pasteY = Math.min(...cellCoords.map(c => c.y));
-            } else if (selection.active) {
-              pasteX = selection.start.x;
-              pasteY = selection.start.y;
-            }
-            
-            startPasteMode({ x: pasteX, y: pasteY });
+            startPasteMode(pastePos);
           }
         }
         break;
@@ -530,6 +503,9 @@ export const useKeyboardShortcuts = () => {
     hasClipboard,
     hasLassoClipboard,
     hasMagicWandClipboard,
+    getClipboardOriginalPosition,
+    getLassoClipboardOriginalPosition,
+    getMagicWandClipboardOriginalPosition,
     textToolState,
     setActiveTool,
     toggleOnionSkin,
@@ -577,23 +553,11 @@ export const useKeyboardShortcuts = () => {
       } else {
         // Start paste mode if clipboard has data
         if (hasClipboard()) {
-          let pasteX = 0;
-          let pasteY = 0;
+          // Always use stored original position for consistent paste behavior
+          const originalPos = getClipboardOriginalPosition();
+          const pastePos = originalPos || { x: 0, y: 0 };
           
-          if (lassoSelection.active && lassoSelection.selectedCells.size > 0) {
-            // For lasso selection, use the bounds of selected cells
-            const cellCoords = Array.from(lassoSelection.selectedCells).map(key => {
-              const [x, y] = key.split(',').map(Number);
-              return { x, y };
-            });
-            pasteX = Math.min(...cellCoords.map(c => c.x));
-            pasteY = Math.min(...cellCoords.map(c => c.y));
-          } else if (selection.active) {
-            pasteX = selection.start.x;
-            pasteY = selection.start.y;
-          }
-          
-          startPasteMode({ x: pasteX, y: pasteY });
+          startPasteMode(pastePos);
         }
       }
     }

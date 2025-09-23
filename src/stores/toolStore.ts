@@ -32,12 +32,15 @@ interface ToolStoreState extends ToolState {
   
   // Clipboard for copy/paste
   clipboard: Map<string, any> | null;
+  clipboardOriginalPosition: { x: number; y: number } | null;
   
   // Lasso clipboard for copy/paste
   lassoClipboard: Map<string, any> | null;
+  lassoClipboardOriginalPosition: { x: number; y: number } | null;
   
   // Magic wand clipboard for copy/paste
   magicWandClipboard: Map<string, any> | null;
+  magicWandClipboardOriginalPosition: { x: number; y: number } | null;
   
   // Enhanced history for undo/redo
   historyStack: AnyHistoryAction[];
@@ -119,16 +122,19 @@ interface ToolStoreState extends ToolState {
   copySelection: (canvasData: Map<string, any>) => void;
   pasteSelection: (x: number, y: number) => Map<string, any> | null;
   hasClipboard: () => boolean;
+  getClipboardOriginalPosition: () => { x: number; y: number } | null;
   
   // Lasso clipboard actions
   copyLassoSelection: (canvasData: Map<string, any>) => void;
   pasteLassoSelection: (offsetX: number, offsetY: number) => Map<string, any> | null;
   hasLassoClipboard: () => boolean;
+  getLassoClipboardOriginalPosition: () => { x: number; y: number } | null;
   
   // Magic wand clipboard actions
   copyMagicWandSelection: (canvasData: Map<string, any>) => void;
   pasteMagicWandSelection: (offsetX: number, offsetY: number) => Map<string, any> | null;
   hasMagicWandClipboard: () => boolean;
+  getMagicWandClipboardOriginalPosition: () => { x: number; y: number } | null;
   
   // Text tool actions
   startTyping: (x: number, y: number) => void;
@@ -229,12 +235,15 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   
   // Clipboard state
   clipboard: null,
+  clipboardOriginalPosition: null,
   
   // Lasso clipboard state
   lassoClipboard: null,
+  lassoClipboardOriginalPosition: null,
   
   // Magic wand clipboard state
   magicWandClipboard: null,
+  magicWandClipboardOriginalPosition: null,
   
   // Enhanced history for undo/redo
   historyStack: [],
@@ -465,7 +474,10 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
       }
     }
 
-    set({ clipboard: copiedData });
+    set({ 
+      clipboard: copiedData,
+      clipboardOriginalPosition: { x: minX, y: minY }
+    });
     
     // Also copy to OS clipboard as text
     const textForClipboard = rectangularSelectionToText(canvasData, selection);
@@ -497,6 +509,10 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
            (state.lassoClipboard !== null && state.lassoClipboard!.size > 0);
   },
 
+  getClipboardOriginalPosition: () => {
+    return get().clipboardOriginalPosition;
+  },
+
   // Lasso clipboard actions
   copyLassoSelection: (canvasData: Map<string, any>) => {
     const { lassoSelection } = get();
@@ -525,7 +541,10 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
       }
     });
 
-    set({ lassoClipboard: copiedData });
+    set({ 
+      lassoClipboard: copiedData,
+      lassoClipboardOriginalPosition: { x: minX, y: minY }
+    });
     
     // Also copy to OS clipboard as text
     const textForClipboard = lassoSelectionToText(canvasData, lassoSelection.selectedCells);
@@ -555,6 +574,10 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     return get().lassoClipboard !== null && get().lassoClipboard!.size > 0;
   },
 
+  getLassoClipboardOriginalPosition: () => {
+    return get().lassoClipboardOriginalPosition;
+  },
+
   // Magic wand clipboard actions
   copyMagicWandSelection: (canvasData: Map<string, any>) => {
     const { magicWandSelection } = get();
@@ -564,16 +587,30 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
 
     const copiedData = new Map<string, any>();
     
-    // Copy all selected cells with their relative positions
+    // Find bounds of the selected cells to create relative coordinates (consistent with other clipboard types)
+    const cellCoords = Array.from(magicWandSelection.selectedCells).map(key => {
+      const [x, y] = key.split(',').map(Number);
+      return { x, y };
+    });
+    
+    const minX = Math.min(...cellCoords.map(c => c.x));
+    const minY = Math.min(...cellCoords.map(c => c.y));
+    
+    // Copy selected cells with relative coordinates
     const selectedArray = Array.from(magicWandSelection.selectedCells);
     for (const cellKey of selectedArray) {
+      const [x, y] = cellKey.split(',').map(Number);
+      const relativeKey = `${x - minX},${y - minY}`;
       const cell = canvasData.get(cellKey);
       if (cell) {
-        copiedData.set(cellKey, { ...cell });
+        copiedData.set(relativeKey, { ...cell });
       }
     }
     
-    set({ magicWandClipboard: copiedData });
+    set({ 
+      magicWandClipboard: copiedData,
+      magicWandClipboardOriginalPosition: { x: minX, y: minY }
+    });
     
     // Also copy to OS clipboard as text
     const textForClipboard = magicWandSelectionToText(canvasData, magicWandSelection.selectedCells);
@@ -592,18 +629,22 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
 
     const pasteData = new Map<string, any>();
     
-    // Apply offset to each cell position
-    for (const [cellKey, cell] of magicWandClipboard.entries()) {
-      const [x, y] = cellKey.split(',').map(Number);
-      const newKey = `${x + offsetX},${y + offsetY}`;
-      pasteData.set(newKey, { ...cell });
-    }
+    // Apply offset to each cell position (now using relative coordinates like other clipboard types)
+    magicWandClipboard.forEach((cell, relativeKey) => {
+      const [relX, relY] = relativeKey.split(',').map(Number);
+      const absoluteKey = `${offsetX + relX},${offsetY + relY}`;
+      pasteData.set(absoluteKey, { ...cell });
+    });
     
     return pasteData;
   },
 
   hasMagicWandClipboard: () => {
     return get().magicWandClipboard !== null && get().magicWandClipboard!.size > 0;
+  },
+
+  getMagicWandClipboardOriginalPosition: () => {
+    return get().magicWandClipboardOriginalPosition;
   },
 
   // Enhanced history actions
