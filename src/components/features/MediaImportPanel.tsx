@@ -43,6 +43,8 @@ import {
   ArrowRight,
   RotateCcw
 } from 'lucide-react';
+import { cn } from '../../lib/utils';
+import { PANEL_ANIMATION } from '../../constants';
 import { 
   useImportModal, 
   useImportFile, 
@@ -500,10 +502,26 @@ export function MediaImportPanel() {
         });
         URL.revokeObjectURL(img.src);
       } else {
-        // For videos, we'll use default sizing for now
-        // TODO: Get video dimensions from first frame
-        imageWidth = 1920;
-        imageHeight = 1080;
+        // Get video dimensions from metadata
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.src = URL.createObjectURL(file);
+        
+        await new Promise((resolve) => {
+          video.onloadedmetadata = () => {
+            imageWidth = video.videoWidth;
+            imageHeight = video.videoHeight;
+            resolve(void 0);
+          };
+          video.onerror = () => {
+            // Fallback to default dimensions if video loading fails
+            imageWidth = 1920;
+            imageHeight = 1080;
+            resolve(void 0);
+          };
+        });
+        
+        URL.revokeObjectURL(video.src);
       }
       
       // Calculate optimal character dimensions
@@ -660,10 +678,12 @@ export function MediaImportPanel() {
     return `${size.toFixed(1)} ${units[unitIndex]}`;
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-y-0 right-0 w-80 bg-background border-l border-border shadow-lg z-50 flex flex-col overflow-hidden">
+    <div className={cn(
+      "fixed inset-y-0 right-0 w-80 bg-background border-l border-border shadow-lg z-50 flex flex-col overflow-hidden",
+      PANEL_ANIMATION.TRANSITION,
+      isOpen ? "translate-x-0" : "translate-x-full"
+    )}>
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border">
         <h2 className="text-sm font-medium flex items-center gap-2">
