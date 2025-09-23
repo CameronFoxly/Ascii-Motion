@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
@@ -119,10 +120,10 @@ export const CharacterPicker: React.FC<CharacterPickerProps> = ({
 
   const position = getPickerPosition();
 
-  return (
+  return createPortal(
     <div
       ref={pickerRef}
-      className={`fixed z-50 animate-in duration-200 ${
+      className={`fixed z-[99999] animate-in duration-200 ${
         anchorPosition === 'bottom-right' ? 'slide-in-from-bottom-2 fade-in-0' : 'slide-in-from-right-2 fade-in-0'
       }`}
       style={{
@@ -132,6 +133,8 @@ export const CharacterPicker: React.FC<CharacterPickerProps> = ({
         maxWidth: '320px',
         width: '320px'
       }}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
     >
       <Card className="border border-border/50 shadow-lg">
         <div className="p-4">
@@ -168,6 +171,7 @@ export const CharacterPicker: React.FC<CharacterPickerProps> = ({
           </Tabs>
         </div>
       </Card>
-    </div>
+    </div>,
+    document.body
   );
 };
