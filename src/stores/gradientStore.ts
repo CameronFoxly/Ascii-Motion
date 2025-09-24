@@ -92,9 +92,9 @@ const createDefaultProperty = (enabled: boolean, defaultValue: string, secondVal
 // Default gradient definition
 const createDefaultDefinition = (): GradientDefinition => ({
   type: 'linear',
-  character: createDefaultProperty(true, '#', '@'),
+  character: createDefaultProperty(true, '#', '*'),
   textColor: createDefaultProperty(true, '#FFFFFF', '#FFFFFF'),
-  backgroundColor: createDefaultProperty(true, '#808080', '#FFFFFF') // Default mid grey and white
+  backgroundColor: createDefaultProperty(false, '#808080', '#FFFFFF') // Default mid grey and white, disabled by default
 });
 
 export const useGradientStore = create<GradientStore>((set, get) => ({
@@ -380,7 +380,7 @@ export const initializeGradientWithCurrentValues = (
     enabled: true,
     stops: [
       { position: 0, value: selectedChar },
-      { position: 1, value: '@' }
+      { position: 1, value: '*' }
     ]
   });
   
@@ -393,10 +393,10 @@ export const initializeGradientWithCurrentValues = (
     ]
   });
   
-  // Initialize background color gradient (handle transparent case)
+  // Initialize background color gradient (handle transparent case) - disabled by default
   const bgStartValue = selectedBgColor === 'transparent' ? '#808080' : selectedBgColor;
   updateProperty('backgroundColor', {
-    enabled: true,
+    enabled: false,
     stops: [
       { position: 0, value: bgStartValue },
       { position: 1, value: '#FFFFFF' }
