@@ -54,61 +54,6 @@ export const useGradientFillTool = () => {
     }
   }, [activeTool, selectedChar, selectedColor, selectedBgColor]);
 
-  // Handle canvas click during gradient application
-  const handleCanvasClick = useCallback((x: number, y: number) => {
-    if (activeTool !== 'gradientfill') return;
-
-    // Ignore clicks on UI elements or outside canvas bounds
-    if (x < 0 || x >= canvasWidth || y < 0 || y >= canvasHeight) return;
-    
-    if (!isApplying) {
-      // First click - start applying gradient
-      console.log('Starting gradient application at:', { x, y });
-      setApplying(true);
-      setPoints({ x, y }, null);
-      return;
-    }
-    
-    if (startPoint && !endPoint) {
-      // Second click - set end point and generate preview
-      const newEndPoint = { x, y };
-      setPoints(startPoint, newEndPoint);
-      generatePreview(startPoint, newEndPoint);
-      return;
-    }
-    
-    // If we already have both points, treat this as a confirmation click
-    // (unless it's on a control point - that would be handled by drag logic)
-    if (startPoint && endPoint && previewData) {
-      applyGradient();
-    }
-  }, [
-    activeTool, 
-    isApplying, 
-    startPoint, 
-    endPoint, 
-    previewData,
-    canvasWidth,
-    canvasHeight,
-    setApplying, 
-    setPoints
-  ]);
-  
-  // Handle mouse move for interactive preview updates
-  const handleCanvasMouseMove = useCallback((x: number, y: number) => {
-    if (activeTool !== 'gradientfill' || !isApplying || !startPoint) return;
-    
-    if (!endPoint) {
-      // Still dragging to set the end point - update preview with current mouse position
-      const currentEndPoint = { x, y };
-      generatePreview(startPoint, currentEndPoint);
-    } else {
-      // Both points are set - allow dragging to adjust them
-      // For now, we'll regenerate preview if definition changes
-      // TODO: Add drag detection for start/end point adjustment
-    }
-  }, [activeTool, isApplying, startPoint, endPoint]);
-
   // Generate gradient preview
   const generatePreview = useCallback((start: { x: number; y: number }, end: { x: number; y: number }) => {
     try {
@@ -206,13 +151,74 @@ export const useGradientFillTool = () => {
     pushToHistory, 
     resetGradient
   ]);
-  
+
+  // Handle canvas click during gradient application
+  const handleCanvasClick = useCallback((x: number, y: number) => {
+    console.log('handleCanvasClick called:', { x, y, activeTool, isApplying, startPoint, endPoint });
+    
+    if (activeTool !== 'gradientfill') return;
+
+    // Ignore clicks on UI elements or outside canvas bounds
+    if (x < 0 || x >= canvasWidth || y < 0 || y >= canvasHeight) return;
+    
+    if (!isApplying) {
+      // First click - start applying gradient
+      console.log('Starting gradient application at:', { x, y });
+      setApplying(true);
+      setPoints({ x, y }, null);
+      return;
+    }
+    
+    if (startPoint && !endPoint) {
+      // Second click - set end point and generate preview
+      console.log('Setting end point at:', { x, y, startPoint });
+      const newEndPoint = { x, y };
+      setPoints(startPoint, newEndPoint);
+      generatePreview(startPoint, newEndPoint);
+      return;
+    }
+    
+    // If we already have both points, treat this as a confirmation click
+    // (unless it's on a control point - that would be handled by drag logic)
+    if (startPoint && endPoint && previewData) {
+      console.log('Applying gradient');
+      applyGradient();
+    }
+  }, [
+    activeTool, 
+    isApplying, 
+    startPoint, 
+    endPoint, 
+    previewData,
+    canvasWidth,
+    canvasHeight,
+    setApplying, 
+    setPoints,
+    generatePreview,
+    applyGradient
+  ]);
+
+  // Handle mouse move for interactive preview updates
+  const handleCanvasMouseMove = useCallback((x: number, y: number) => {
+    if (activeTool !== 'gradientfill' || !isApplying || !startPoint) return;
+    
+    if (!endPoint) {
+      // Still dragging to set the end point - update preview with current mouse position
+      const currentEndPoint = { x, y };
+      generatePreview(startPoint, currentEndPoint);
+    } else {
+      // Both points are set - allow dragging to adjust them
+      // For now, we'll regenerate preview if definition changes
+      // TODO: Add drag detection for start/end point adjustment
+    }
+  }, [activeTool, isApplying, startPoint, endPoint, generatePreview]);
+
   // Cancel gradient (Escape key)
   const cancelGradient = useCallback(() => {
     if (!isApplying) return;
     resetGradient();
   }, [isApplying, resetGradient]);
-  
+
   // Keyboard event handlers
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

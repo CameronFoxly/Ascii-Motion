@@ -25,6 +25,18 @@ interface GradientStore {
   matchColor: boolean;
   matchBgColor: boolean;
   
+  // Drag state for interactive controls
+  dragState: {
+    isDragging: boolean;
+    dragType: 'start' | 'end' | 'stop';
+    dragData?: {
+      property?: 'character' | 'textColor' | 'backgroundColor';
+      stopIndex?: number;
+    };
+    startMousePos?: { x: number; y: number };
+    startValue?: { x: number; y: number } | number; // position for start/end, position value for stops
+  } | null;
+  
   // Actions
   setIsOpen: (open: boolean) => void;
   updateDefinition: (definition: Partial<GradientDefinition>) => void;
@@ -48,6 +60,20 @@ interface GradientStore {
   // Fill configuration
   setContiguous: (contiguous: boolean) => void;
   setMatchCriteria: (criteria: { char: boolean; color: boolean; bgColor: boolean }) => void;
+  
+  // Drag actions
+  startDrag: (
+    dragType: 'start' | 'end' | 'stop',
+    mousePos: { x: number; y: number },
+    dragData?: { property?: 'character' | 'textColor' | 'backgroundColor'; stopIndex?: number }
+  ) => void;
+  updateDrag: (mousePos: { x: number; y: number }, canvasContext?: { 
+    cellWidth: number; 
+    cellHeight: number; 
+    zoom: number; 
+    panOffset: { x: number; y: number };
+  }) => void;
+  endDrag: () => void;
   
   // Utility
   reset: () => void;
@@ -83,6 +109,7 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
   matchChar: true,
   matchColor: true,
   matchBgColor: true,
+  dragState: null,
 
   // Panel actions
   setIsOpen: (open: boolean) => {
@@ -216,13 +243,126 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
     });
   },
 
+  // Drag actions
+  startDrag: (
+    dragType: 'start' | 'end' | 'stop',
+    mousePos: { x: number; y: number },
+    dragData?: { property?: 'character' | 'textColor' | 'backgroundColor'; stopIndex?: number }
+  ) => {
+    const state = get();
+    let startValue: { x: number; y: number } | number | undefined;
+    
+    if (dragType === 'start' && state.startPoint) {
+      startValue = { ...state.startPoint };
+    } else if (dragType === 'end' && state.endPoint) {
+      startValue = { ...state.endPoint };
+    } else if (dragType === 'stop' && dragData?.property && dragData.stopIndex !== undefined) {
+      const stops = state.definition[dragData.property].stops;
+      if (stops[dragData.stopIndex]) {
+        startValue = stops[dragData.stopIndex].position;
+      }
+    }
+    
+    set({
+      dragState: {
+        isDragging: true,
+        dragType,
+        dragData,
+        startMousePos: { ...mousePos },
+        startValue
+      }
+    });
+  },
+
+  updateDrag: (mousePos: { x: number; y: number }, canvasContext?: { 
+    cellWidth: number; 
+    cellHeight: number; 
+    zoom: number; 
+    panOffset: { x: number; y: number };
+  }) => {
+    const state = get();
+    if (!state.dragState || !state.dragState.isDragging) return;
+    
+    const { dragType, dragData, startMousePos, startValue } = state.dragState;
+    if (!startMousePos || startValue === undefined) return;
+    
+    if (dragType === 'start' || dragType === 'end') {
+      if (typeof startValue === 'object' && canvasContext) {
+        // Convert mouse delta to grid delta
+        const deltaX = mousePos.x - startMousePos.x;
+        const deltaY = mousePos.y - startMousePos.y;
+        
+        const effectiveCellWidth = canvasContext.cellWidth * canvasContext.zoom;
+        const effectiveCellHeight = canvasContext.cellHeight * canvasContext.zoom;
+        
+        const gridDeltaX = Math.round(deltaX / effectiveCellWidth);
+        const gridDeltaY = Math.round(deltaY / effectiveCellHeight);
+        
+        const newPoint = {
+          x: Math.max(0, startValue.x + gridDeltaX),
+          y: Math.max(0, startValue.y + gridDeltaY)
+        };
+        
+        if (dragType === 'start') {
+          set({ startPoint: newPoint });
+        } else if (dragType === 'end') {
+          set({ endPoint: newPoint });
+        }
+      }
+    } else if (dragType === 'stop' && dragData?.property && dragData.stopIndex !== undefined) {
+      // Calculate new stop position along the gradient line
+      if (state.startPoint && state.endPoint && typeof startValue === 'number') {
+        const lineLength = Math.sqrt(
+          Math.pow(state.endPoint.x - state.startPoint.x, 2) + 
+          Math.pow(state.endPoint.y - state.startPoint.y, 2)
+        );
+        
+        if (lineLength > 0 && canvasContext) {
+          // Project mouse movement onto the gradient line
+          const deltaX = mousePos.x - startMousePos.x;
+          const deltaY = mousePos.y - startMousePos.y;
+          
+          const effectiveCellWidth = canvasContext.cellWidth * canvasContext.zoom;
+          
+          const lineAngle = Math.atan2(state.endPoint.y - state.startPoint.y, state.endPoint.x - state.startPoint.x);
+          const projectedDelta = deltaX * Math.cos(lineAngle) + deltaY * Math.sin(lineAngle);
+          const positionDelta = projectedDelta / (lineLength * effectiveCellWidth);
+          
+          const newPosition = Math.max(0, Math.min(1, startValue + positionDelta));
+          
+          // Update the stop position
+          const currentProperty = state.definition[dragData.property];
+          const newStops = [...currentProperty.stops];
+          if (newStops[dragData.stopIndex]) {
+            newStops[dragData.stopIndex] = { ...newStops[dragData.stopIndex], position: newPosition };
+            
+            set((prevState) => ({
+              definition: {
+                ...prevState.definition,
+                [dragData.property as keyof GradientDefinition]: {
+                  ...currentProperty,
+                  stops: newStops
+                }
+              }
+            }));
+          }
+        }
+      }
+    }
+  },
+
+  endDrag: () => {
+    set({ dragState: null });
+  },
+
   // Utility actions
   reset: () => {
     set({
       isApplying: false,
       startPoint: null,
       endPoint: null,
-      previewData: null
+      previewData: null,
+      dragState: null
     });
   }
 }));

@@ -3,6 +3,7 @@ import { useToolStore } from '../../stores/toolStore';
 import { useGradientStore } from '../../stores/gradientStore';
 import { useCanvasContext } from '../../contexts/CanvasContext';
 import { useCanvasState } from '../../hooks/useCanvasState';
+import { InteractiveGradientOverlay } from './InteractiveGradientOverlay';
 
 export const CanvasOverlay: React.FC = () => {
   // Create a separate canvas ref for overlay
@@ -371,12 +372,15 @@ export const CanvasOverlay: React.FC = () => {
   }, [renderOverlay]);
 
   return (
-    <canvas
-      ref={overlayCanvasRef}
-      className="absolute inset-0 pointer-events-none"
-      style={{
-        zIndex: 10, // Ensure overlay appears above main canvas
-      }}
-    />
+    <>
+      <canvas
+        ref={overlayCanvasRef}
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          zIndex: 10, // Ensure overlay appears above main canvas
+        }}
+      />
+      <InteractiveGradientOverlay />
+    </>
   );
 };
