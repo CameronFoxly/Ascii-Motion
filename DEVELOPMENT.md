@@ -398,6 +398,100 @@ const SELECTION_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; de
 - ✅ Scalable organization as new tools are added
 - ✅ Professional user experience matching industry standards
 
+### **🚨 MANDATORY: File Organization Standards**
+ASCII Motion maintains a clean, professional repository structure that supports both human developers and AI coding assistants. All files must be placed in their designated directories.
+
+#### **1. Directory Usage Rules**
+
+**Root Directory** - Reserved for essential project files only:
+- ✅ `package.json`, `README.md`, `LICENSE` - Project metadata
+- ✅ Config files: `vite.config.ts`, `tsconfig.json`, `tailwind.config.js` - Build configuration  
+- ✅ `index.html`, `vercel.json` - Deployment essentials
+- ❌ Implementation docs, guides, plans, test files, experiments
+
+**docs/ Directory** - All implementation and planning documentation:
+- ✅ Implementation guides: `GRADIENT_FILL_IMPLEMENTATION.md`, `ONION_SKINNING_GUIDE.md`
+- ✅ Planning documents: `PHASE_4_ADVANCED_TOOLS_PLAN.md`, `PRD.md`
+- ✅ Performance docs: `PERFORMANCE_OPTIMIZATION.md`, `CANVAS_RENDERING_IMPROVEMENTS.md`
+- ✅ Testing guides: `RESPONSIVE_TESTING_CHECKLIST.md`, `PASTE_FUNCTIONALITY_TEST.md`
+- ✅ Navigation: `docs/README.md` with categorized links
+
+**dev-tools/ Directory** - Development utilities and test scripts:
+- ✅ Test scripts: `test-video-export.js`, `test-frame-timing.js`, `clipboard-test.js`
+- ✅ Debug utilities: `debug-video-export.js`, font-test files
+- ✅ Development experiments and temporary test files
+- ✅ Documentation: `dev-tools/README.md` explaining each tool
+
+**src/ Directory** - Production application code only:
+- ✅ Components, hooks, stores, types, utils
+- ❌ Documentation files, test scripts, experiments
+
+#### **2. File Creation Guidelines**
+
+**Creating Implementation Documentation:**
+```bash
+# ✅ CORRECT - Place in docs/ directory
+touch docs/NEW_FEATURE_IMPLEMENTATION.md
+touch docs/PERFORMANCE_ANALYSIS.md
+touch docs/USER_TESTING_RESULTS.md
+
+# ❌ INCORRECT - Never place in root
+touch NEW_FEATURE_IMPLEMENTATION.md  # Creates root clutter
+```
+
+**Creating Test Files:**
+```bash
+# ✅ CORRECT - Place in dev-tools/ directory  
+touch dev-tools/test-new-feature.js
+touch dev-tools/debug-performance.js
+touch dev-tools/experiment-ui-layout.html
+
+# ❌ INCORRECT - Never place in root
+touch test-new-feature.js  # Creates root clutter
+```
+
+**Creating Source Code:**
+```bash
+# ✅ CORRECT - Place in appropriate src/ subdirectory
+touch src/components/ui/NewComponent.tsx
+touch src/hooks/useNewFeature.ts
+touch src/stores/newStore.ts
+
+# ❌ INCORRECT - Never place docs in src/
+touch src/IMPLEMENTATION_GUIDE.md  # Wrong directory
+```
+
+#### **3. Maintenance Procedures**
+
+**Before Committing - Root Directory Checklist:**
+- [ ] No `.md` files except `README.md` and `LICENSE`
+- [ ] No test files (`test-*.js`, `*-test.js`, `debug-*.js`)
+- [ ] No temporary files (`.backup`, `.tmp`, experimental HTML)
+- [ ] Only essential config and deployment files
+
+**Directory Health Check Commands:**
+```bash
+# Check for documentation files in root (should return empty)
+find . -maxdepth 1 -name "*.md" -not -name "README.md" -not -name "LICENSE"
+
+# Check for test files in root (should return empty)
+find . -maxdepth 1 -name "*test*.js" -o -name "debug-*.js" -o -name "*-test.*"
+
+# Verify docs organization
+ls docs/ | wc -l  # Should show organized documentation count
+
+# Verify dev-tools organization  
+ls dev-tools/ | wc -l  # Should show organized test utilities count
+```
+
+**Benefits of Following File Organization:**
+- ✅ Professional repository appearance for stakeholders
+- ✅ Clear separation between production code and development utilities
+- ✅ Improved discoverability through organized documentation
+- ✅ Supports both human developers and AI coding assistants
+- ✅ Maintains clean git history and meaningful file structure
+- ✅ Scalable organization as project grows
+
 ## Development Phases
 
 ### Phase 1: Core Editor ✅ **COMPLETE**

@@ -579,6 +579,94 @@ src/
 └── lib/
 ```
 
+## 🗂️ **File Organization Standards**
+
+**⚠️ CRITICAL: All new files must be placed in appropriate directories - NEVER in root directory.**
+
+### **📁 Directory Usage Guidelines**
+
+#### **Root Directory** - ESSENTIAL FILES ONLY
+- `README.md`, `package.json`, `LICENSE` - Standard project files
+- `DEVELOPMENT.md`, `COPILOT_INSTRUCTIONS.md`, `PRD.md` - Core documentation
+- Configuration files: `vite.config.ts`, `tailwind.config.js`, etc.
+- **❌ NEVER place documentation, test files, or development utilities in root**
+
+#### **`docs/` Directory** - All Implementation Documentation
+- `*_IMPLEMENTATION.md` - Feature implementation analysis
+- `*_PLAN.md` - Development and architecture planning documents
+- `*_GUIDE.md` - Feature usage and system guides
+- `PERFORMANCE_*.md` - Performance optimization documentation
+- `*_TEST*.md` - Testing procedures and checklists
+- **✅ CREATE: Implementation docs, architecture plans, feature guides**
+
+#### **`dev-tools/` Directory** - Development Utilities & Tests
+- `test-*.js` - Test scripts and debugging utilities
+- `debug-*.js` - Development debugging tools
+- `*-test.html` - UI testing pages
+- `*.json` - Test data files
+- **✅ CREATE: Test scripts, debugging tools, development utilities**
+
+#### **`src/` Directory** - Application Source Code
+- Follow existing component organization patterns
+- Place new components in appropriate subdirectories
+- **✅ CREATE: React components, hooks, stores, utilities**
+
+### **🎯 File Creation Rules**
+
+**When creating documentation:**
+```bash
+# ✅ CORRECT - Place in docs/
+touch docs/NEW_FEATURE_IMPLEMENTATION.md
+touch docs/PERFORMANCE_ANALYSIS.md
+touch docs/TESTING_CHECKLIST.md
+
+# ❌ WRONG - Never place in root
+touch NEW_FEATURE_DOCS.md  # This clutters root directory
+```
+
+**When creating test files:**
+```bash
+# ✅ CORRECT - Place in dev-tools/
+touch dev-tools/test-new-feature.js
+touch dev-tools/debug-performance.js
+touch dev-tools/ui-test.html
+
+# ❌ WRONG - Never place in root  
+touch test-something.js  # This clutters root directory
+```
+
+**When creating components:**
+```bash
+# ✅ CORRECT - Follow src/ organization
+touch src/components/tools/NewTool.tsx
+touch src/hooks/useNewFeature.ts
+touch src/stores/newFeatureStore.ts
+```
+
+### **📋 File Organization Checklist**
+
+Before creating any new file, ask:
+- [ ] Is this a core project file? → Root directory (rare)
+- [ ] Is this documentation? → `docs/` directory
+- [ ] Is this a test or development tool? → `dev-tools/` directory  
+- [ ] Is this application source code? → `src/` directory
+- [ ] Does the file follow established naming conventions?
+- [ ] Is there a README in the target directory explaining its purpose?
+
+### **🔧 Maintenance Guidelines**
+
+**Regular cleanup (monthly):**
+- [ ] Review `dev-tools/` for obsolete test files
+- [ ] Update `docs/README.md` when adding new documentation
+- [ ] Ensure root directory remains clean and essential-only
+- [ ] Verify all directories have explanatory README files
+
+**Documentation organization:**
+- [ ] Group related docs by feature or phase
+- [ ] Use consistent naming: `FEATURE_IMPLEMENTATION.md`, `PHASE_X_PLAN.md`
+- [ ] Link between related documents
+- [ ] Keep navigation clear in `docs/README.md`
+
 ### 2. State Management with Zustand
 **Current focused, single-responsibility stores:**
 - `useCanvasStore` - Canvas data, dimensions, cells, and canvas operations
