@@ -10,6 +10,7 @@ import { useToolBehavior } from '../../hooks/useToolBehavior';
 import { ToolManager } from './ToolManager';
 import { ToolStatusManager } from './ToolStatusManager';
 import { CanvasActionButtons } from './CanvasActionButtons';
+import { CanvasOverlay } from './CanvasOverlay';
 
 interface CanvasGridProps {
   className?: string;
@@ -365,7 +366,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       {/* Tool Manager - handles tool-specific behavior */}
       <ToolManager />
       
-      <div className={`canvas-wrapper border rounded-lg overflow-auto flex-1 ${
+      <div className={`canvas-wrapper border rounded-lg overflow-auto flex-1 relative ${
         isPlaying 
           ? 'border-white border-2' 
           : isPlaybackMode 
@@ -385,6 +386,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
             // Width and height are set by canvas resize logic in useCanvasRenderer
           }}
         />
+        <CanvasOverlay />
       </div>
       
       {/* Action buttons and status info positioned outside canvas */}

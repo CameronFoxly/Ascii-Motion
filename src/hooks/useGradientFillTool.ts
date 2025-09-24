@@ -63,6 +63,7 @@ export const useGradientFillTool = () => {
     
     if (!isApplying) {
       // First click - start applying gradient
+      console.log('Starting gradient application at:', { x, y });
       setApplying(true);
       setPoints({ x, y }, null);
       return;
