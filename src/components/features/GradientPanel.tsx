@@ -47,17 +47,11 @@ export function GradientPanel() {
     isOpen, 
     setIsOpen, 
     definition,
-    contiguous,
-    matchChar,
-    matchColor,
-    matchBgColor,
     updateDefinition,
     updateProperty,
     addStop,
     removeStop,
-    updateStop,
-    setContiguous,
-    setMatchCriteria
+    updateStop
   } = useGradientStore();
 
   // Section collapse states
@@ -65,7 +59,6 @@ export function GradientPanel() {
   const [characterOpen, setCharacterOpen] = useState(true);
   const [textColorOpen, setTextColorOpen] = useState(true);
   const [backgroundColorOpen, setBackgroundColorOpen] = useState(true);
-  const [fillAreaOpen, setFillAreaOpen] = useState(true);
 
   // Auto-open panel when gradient tool becomes active
   // Auto-close when switching away from gradient tool
@@ -374,53 +367,6 @@ export function GradientPanel() {
             backgroundColorOpen,
             setBackgroundColorOpen
           )}
-
-          <Separator />
-
-          {/* Fill Area Configuration */}
-          <Collapsible open={fillAreaOpen} onOpenChange={setFillAreaOpen}>
-            <CollapsibleHeader isOpen={fillAreaOpen}>
-              Fill Area Settings
-            </CollapsibleHeader>
-            <CollapsibleContent className="collapsible-content">
-              <div className="space-y-3 mt-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Contiguous Fill</Label>
-                  <Switch
-                    checked={contiguous}
-                    onCheckedChange={setContiguous}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-xs">Match Criteria</Label>
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs">Match Character</Label>
-                      <Switch
-                        checked={matchChar}
-                        onCheckedChange={(checked) => setMatchCriteria({ char: checked, color: matchColor, bgColor: matchBgColor })}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs">Match Text Color</Label>
-                      <Switch
-                        checked={matchColor}
-                        onCheckedChange={(checked) => setMatchCriteria({ char: matchChar, color: checked, bgColor: matchBgColor })}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs">Match Background</Label>
-                      <Switch
-                        checked={matchBgColor}
-                        onCheckedChange={(checked) => setMatchCriteria({ char: matchChar, color: matchColor, bgColor: checked })}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
 
           <Separator />
 
