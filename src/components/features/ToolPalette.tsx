@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
+import { GradientIcon } from '../icons';
 import { 
   PenTool, 
   Eraser, 
@@ -16,8 +17,7 @@ import {
   Lasso,
   Type,
   Wand2,
-  Palette,
-  SwatchBook
+  Palette
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -53,7 +53,7 @@ const DRAWING_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; desc
   { id: 'pencil', name: 'Pencil', icon: <PenTool className="w-3 h-3" />, description: 'Draw characters' },
   { id: 'eraser', name: 'Eraser', icon: <Eraser className="w-3 h-3" />, description: 'Remove characters' },
   { id: 'paintbucket', name: 'Fill', icon: <PaintBucket className="w-3 h-3" />, description: 'Fill connected areas' },
-  { id: 'gradientfill', name: 'Gradient', icon: <SwatchBook className="w-3 h-3" />, description: 'Apply gradient fills' },
+  { id: 'gradientfill', name: 'Gradient', icon: <GradientIcon className="w-3 h-3" />, description: 'Apply gradient fills' },
   { id: 'rectangle', name: 'Rectangle', icon: <Square className="w-3 h-3" />, description: 'Draw rectangles' },
   { id: 'ellipse', name: 'Ellipse', icon: <Circle className="w-3 h-3" />, description: 'Draw ellipses/circles' },
   { id: 'text', name: 'Text', icon: <Type className="w-3 h-3" />, description: 'Type text directly' },

@@ -24,8 +24,8 @@ import {
   CollapsibleTrigger
 } from '../ui/collapsible';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
+import { GradientIcon } from '../icons';
 import { 
-  SwatchBook,
   X,
   Plus,
   Minus,
@@ -290,7 +290,7 @@ export function GradientPanel() {
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border">
         <h2 className="text-sm font-medium flex items-center gap-2">
-          <SwatchBook className="w-3 h-3" />
+          <GradientIcon className="w-3 h-3" />
           Gradient Fill
         </h2>
         <Button
