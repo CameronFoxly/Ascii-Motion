@@ -1,12 +1,39 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.9";
-export const BUILD_DATE = "2025-09-23T07:54:12.770Z";
-export const BUILD_HASH = "1b0ad66";
+export const VERSION = "0.1.10";
+export const BUILD_DATE = "2025-09-24T22:59:11.835Z";
+export const BUILD_HASH = "d85fafa";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.10",
+    "date": "2025-09-24T22:59:11.835Z",
+    "commits": [
+      "Merge pull request #5 from CameronFoxly/gradient-fill",
+      "Fixed basic color picking.",
+      "Move selection settings for gradient tool to left panel",
+      "Reset defaults for gradient fill",
+      "Updated gradient icon and added custom icon system",
+      "Reorganized all documentation and repo structure",
+      "Updated gradient fill documentation",
+      "Fixed up Render bug",
+      "Live preview fixed",
+      "Preview mode for gradient now working",
+      "Basic gradient functianality added",
+      "Completed first three phases of gradient fill tool imlementation",
+      "Add gradient development plan",
+      "Update readme",
+      "Revise README",
+      "[CopilotSWE] Fix text input bug on timeline frame card",
+      "Complete fix for duration input text selection - now working properly",
+      "Fix frame duration input drag conflict by preventing mousedown propagation",
+      "Initial analysis of timeline frame duration input tab behavior",
+      "Initial plan",
+      "Fixed version number"
+    ]
+  },
   {
     "version": "0.1.9",
     "date": "2025-09-23T07:54:12.770Z",

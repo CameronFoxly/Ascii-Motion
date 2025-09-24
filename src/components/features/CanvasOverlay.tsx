@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import { useToolStore } from '../../stores/toolStore';
 import { useGradientStore } from '../../stores/gradientStore';
 import { useCanvasContext } from '../../contexts/CanvasContext';
+import { useCanvasStore } from '../../stores/canvasStore';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useCanvasState } from '../../hooks/useCanvasState';
 import { InteractiveGradientOverlay } from './InteractiveGradientOverlay';
 
@@ -24,6 +26,8 @@ export const CanvasOverlay: React.FC = () => {
     definition: gradientDefinition,
     previewData: gradientPreview
   } = useGradientStore();
+  const { canvasBackgroundColor } = useCanvasStore();
+  const { theme } = useTheme();
 
   // Calculate effective dimensions with zoom and aspect ratio
   const effectiveCellWidth = cellWidth * zoom;
@@ -332,16 +336,25 @@ export const CanvasOverlay: React.FC = () => {
         });
       }
       
-      // Draw gradient preview overlay with transparency
+      // Draw gradient preview overlay with full opacity (shows exactly what the final result will be)
       if (gradientPreview && gradientPreview.size > 0) {
-        ctx.globalAlpha = 0.7;
+        ctx.globalAlpha = 1.0;
         
         gradientPreview.forEach((cell, key) => {
           const [x, y] = key.split(',').map(Number);
           const pixelX = x * effectiveCellWidth + panOffset.x;
           const pixelY = y * effectiveCellHeight + panOffset.y;
 
-          // Draw cell background
+          // First, clear the background to hide original canvas content
+          // Use actual canvas background, or app background when canvas is transparent
+          if (canvasBackgroundColor === 'transparent') {
+            ctx.fillStyle = theme === 'dark' ? '#000000' : '#ffffff';
+          } else {
+            ctx.fillStyle = canvasBackgroundColor;
+          }
+          ctx.fillRect(pixelX, pixelY, effectiveCellWidth, effectiveCellHeight);
+
+          // Draw cell background (gradient background color)
           if (cell.bgColor && cell.bgColor !== 'transparent') {
             ctx.fillStyle = cell.bgColor;
             ctx.fillRect(pixelX, pixelY, effectiveCellWidth, effectiveCellHeight);
