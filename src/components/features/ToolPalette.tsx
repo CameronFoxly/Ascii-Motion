@@ -1,11 +1,13 @@
 import React from 'react';
 import { useToolStore } from '../../stores/toolStore';
+import { useGradientStore } from '../../stores/gradientStore';
 import { useCanvasContext } from '../../contexts/CanvasContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
+import { GradientIcon } from '../icons';
 import { 
   PenTool, 
   Eraser, 
@@ -52,6 +54,7 @@ const DRAWING_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; desc
   { id: 'pencil', name: 'Pencil', icon: <PenTool className="w-3 h-3" />, description: 'Draw characters' },
   { id: 'eraser', name: 'Eraser', icon: <Eraser className="w-3 h-3" />, description: 'Remove characters' },
   { id: 'paintbucket', name: 'Fill', icon: <PaintBucket className="w-3 h-3" />, description: 'Fill connected areas' },
+  { id: 'gradientfill', name: 'Gradient', icon: <GradientIcon className="w-3 h-3" />, description: 'Apply gradient fills' },
   { id: 'rectangle', name: 'Rectangle', icon: <Square className="w-3 h-3" />, description: 'Draw rectangles' },
   { id: 'ellipse', name: 'Ellipse', icon: <Circle className="w-3 h-3" />, description: 'Draw ellipses/circles' },
   { id: 'text', name: 'Text', icon: <Type className="w-3 h-3" />, description: 'Type text directly' },
@@ -69,17 +72,18 @@ const UTILITY_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; desc
 
 export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
   const { activeTool, setActiveTool, rectangleFilled, setRectangleFilled, paintBucketContiguous, setPaintBucketContiguous, magicWandContiguous, setMagicWandContiguous, toolAffectsChar, toolAffectsColor, toolAffectsBgColor, eyedropperPicksChar, eyedropperPicksColor, eyedropperPicksBgColor, setToolAffectsChar, setToolAffectsColor, setToolAffectsBgColor, setEyedropperPicksChar, setEyedropperPicksColor, setEyedropperPicksBgColor, fillMatchChar, fillMatchColor, fillMatchBgColor, setFillMatchChar, setFillMatchColor, setFillMatchBgColor, magicMatchChar, magicMatchColor, magicMatchBgColor, setMagicMatchChar, setMagicMatchColor, setMagicMatchBgColor } = useToolStore();
+  const { contiguous, matchChar, matchColor, matchBgColor, setContiguous, setMatchCriteria } = useGradientStore();
   const { altKeyDown } = useCanvasContext();
   const [showOptions, setShowOptions] = React.useState(true);
   const [showTools, setShowTools] = React.useState(true);
 
   // Calculate effective tool (Alt key overrides with eyedropper for drawing tools)
-  const drawingTools = ['pencil', 'eraser', 'paintbucket', 'rectangle', 'ellipse'] as const;
+  const drawingTools = ['pencil', 'eraser', 'paintbucket', 'gradientfill', 'rectangle', 'ellipse'] as const;
   const shouldAllowEyedropperOverride = drawingTools.includes(activeTool as any);
   const effectiveTool = (altKeyDown && shouldAllowEyedropperOverride) ? 'eyedropper' : activeTool;
 
   // Tools that actually have configurable options. (Removed 'eraser' and 'text' per layout bug fix.)
-  const hasOptions = ['rectangle', 'ellipse', 'paintbucket', 'magicwand', 'pencil', 'eyedropper'].includes(effectiveTool);
+  const hasOptions = ['rectangle', 'ellipse', 'paintbucket', 'gradientfill', 'magicwand', 'pencil', 'eyedropper'].includes(effectiveTool);
 
   // Get the current tool's icon
   const getCurrentToolIcon = () => {
@@ -203,6 +207,71 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                         onCheckedChange={setPaintBucketContiguous}
                       />
                     </div>
+                  )}
+                  
+                  {effectiveTool === 'gradientfill' && (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="gradient-contiguous" className="text-xs cursor-pointer">
+                          Contiguous
+                        </Label>
+                        <Switch
+                          id="gradient-contiguous"
+                          checked={contiguous}
+                          onCheckedChange={setContiguous}
+                        />
+                      </div>
+                      <div className="space-y-2 mt-2">
+                        <div className="text-xs text-muted-foreground">Selects same:</div>
+                        <div className="flex gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={matchChar ? "default" : "outline"}
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => setMatchCriteria({ char: !matchChar, color: matchColor, bgColor: matchBgColor })}
+                              >
+                                <Type className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Match character</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={matchColor ? "default" : "outline"}
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => setMatchCriteria({ char: matchChar, color: !matchColor, bgColor: matchBgColor })}
+                              >
+                                <Palette className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Match text color</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={matchBgColor ? "default" : "outline"}
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => setMatchCriteria({ char: matchChar, color: matchColor, bgColor: !matchBgColor })}
+                              >
+                                <Square className="h-3 w-3 fill-current" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Match background color</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </div>
+                    </>
                   )}
                   
                   {effectiveTool === 'magicwand' && (

@@ -11,6 +11,7 @@ import {
   EllipseToolStatus,
   EyedropperToolStatus,
   TextToolStatus,
+  GradientFillToolStatus,
 } from '../tools';
 
 /**
@@ -22,7 +23,7 @@ export const ToolStatusManager: React.FC = () => {
   const { altKeyDown } = useCanvasContext();
 
   // Calculate effective tool (Alt key overrides with eyedropper for drawing tools)
-  const drawingTools = ['pencil', 'eraser', 'paintbucket', 'rectangle', 'ellipse'] as const;
+  const drawingTools = ['pencil', 'eraser', 'paintbucket', 'gradientfill', 'rectangle', 'ellipse'] as const;
   const shouldAllowEyedropperOverride = drawingTools.includes(activeTool as any);
   const effectiveTool = (altKeyDown && shouldAllowEyedropperOverride) ? 'eyedropper' : activeTool;
 
@@ -48,6 +49,8 @@ export const ToolStatusManager: React.FC = () => {
         return <EyedropperToolStatus />;
       case 'text':
         return <TextToolStatus />;
+      case 'gradientfill':
+        return <GradientFillToolStatus />;
       default:
         return <span className="text-muted-foreground">No tool selected</span>;
     }

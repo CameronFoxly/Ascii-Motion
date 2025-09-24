@@ -20,6 +20,7 @@ import { StatusPanel } from './components/features/StatusPanel'
 import { ExportImportButtons } from './components/features/ExportImportButtons'
 import { ImportModal } from './components/features/ImportModal'
 import { MediaImportPanel } from './components/features/MediaImportPanel'
+import { GradientPanel } from './components/features/GradientPanel'
 import { PngExportDialog } from './components/features/PngExportDialog'
 import { VideoExportDialog } from './components/features/VideoExportDialog'
 import { SessionExportDialog } from './components/features/SessionExportDialog'
@@ -197,6 +198,7 @@ function App() {
           {/* Export/Import Dialogs - Inside CanvasProvider to access context */}
           <ImportModal />
           <MediaImportPanel />
+          <GradientPanel />
           <PngExportDialog />
           <VideoExportDialog />
           <SessionExportDialog />

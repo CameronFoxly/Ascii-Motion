@@ -7,6 +7,7 @@ import { useCanvasLassoSelection } from './useCanvasLassoSelection';
 import { useCanvasMagicWandSelection } from './useCanvasMagicWandSelection';
 import { useCanvasDragAndDrop } from './useCanvasDragAndDrop';
 import { useTextTool } from './useTextTool';
+import { useGradientFillTool } from './useGradientFillTool';
 import { useCanvasState } from './useCanvasState';
 
 export interface MouseHandlers {
@@ -34,9 +35,10 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
   const magicWandSelectionHandlers = useCanvasMagicWandSelection();
   const dragAndDropHandlers = useCanvasDragAndDrop();
   const textToolHandlers = useTextTool();
+  const gradientFillHandlers = useGradientFillTool();
 
   // Determine effective tool (Alt key overrides with eyedropper for drawing tools)
-  const drawingTools = ['pencil', 'eraser', 'paintbucket', 'rectangle', 'ellipse'] as const;
+  const drawingTools = ['pencil', 'eraser', 'paintbucket', 'gradientfill', 'rectangle', 'ellipse'] as const;
   const shouldAllowEyedropperOverride = drawingTools.includes(activeTool as any);
   const effectiveTool = (altKeyDown && shouldAllowEyedropperOverride) ? 'eyedropper' : activeTool;
 
@@ -159,8 +161,12 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
         dragAndDropHandlers.handleEllipseMouseDown(event);
         break;
       case 'text':
-        const coords = getGridCoordinatesFromEvent(event);
-        textToolHandlers.handleTextToolClick(coords.x, coords.y);
+        const textCoords = getGridCoordinatesFromEvent(event);
+        textToolHandlers.handleTextToolClick(textCoords.x, textCoords.y);
+        break;
+      case 'gradientfill':
+        const gradientCoords = getGridCoordinatesFromEvent(event);
+        gradientFillHandlers.handleCanvasClick(gradientCoords.x, gradientCoords.y);
         break;
       default:
         // For basic drawing tools (pencil, eraser, eyedropper, paintbucket)
@@ -206,6 +212,10 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
         break;
       case 'ellipse':
         dragAndDropHandlers.handleEllipseMouseMove(event);
+        break;
+      case 'gradientfill':
+        const gradientCoords = getGridCoordinatesFromEvent(event);
+        gradientFillHandlers.handleCanvasMouseMove(gradientCoords.x, gradientCoords.y);
         break;
       default:
         // For basic drawing tools (pencil, eraser, eyedropper, paintbucket)

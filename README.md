@@ -151,7 +151,7 @@ Where I'm at with the concept:
 - [ ] Custom brush system with pattern creation
 - [x] Advanced color palettes beyond ANSI
 - [x] Re-color brush (change colors without affecting characters)
-- [ ] Gradient fill tool with linear interopolation and dithering
+- [x] **Gradient fill tool** ✅ **COMPLETE** - Linear/radial gradients with interactive controls
 - [ ] Figlet text system
 - [ ] Draw boxes and tables with ascii characters
 </details>
@@ -177,6 +177,8 @@ Where I'm at with the concept:
 - **[Product Requirements Document](./PRD.md)** - Complete feature specifications
 - **[Development Guide](./DEVELOPMENT.md)** - Setup and project structure
 - **[Copilot Instructions](./COPILOT_INSTRUCTIONS.md)** - Development guidelines
+- **[Technical Documentation](./docs/)** - Comprehensive implementation guides, plans, and feature documentation
+- **[Development Tools](./dev-tools/)** - Test scripts and debugging utilities
 
 ## 📜 License
 
