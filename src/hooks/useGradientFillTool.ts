@@ -96,11 +96,17 @@ export const useGradientFillTool = () => {
   
   // Handle mouse move for interactive preview updates
   const handleCanvasMouseMove = useCallback((x: number, y: number) => {
-    if (activeTool !== 'gradientfill' || !isApplying || !startPoint || endPoint) return;
+    if (activeTool !== 'gradientfill' || !isApplying || !startPoint) return;
     
-    // Update preview while dragging from start point to current mouse position
-    const currentEndPoint = { x, y };
-    generatePreview(startPoint, currentEndPoint);
+    if (!endPoint) {
+      // Still dragging to set the end point - update preview with current mouse position
+      const currentEndPoint = { x, y };
+      generatePreview(startPoint, currentEndPoint);
+    } else {
+      // Both points are set - allow dragging to adjust them
+      // For now, we'll regenerate preview if definition changes
+      // TODO: Add drag detection for start/end point adjustment
+    }
   }, [activeTool, isApplying, startPoint, endPoint]);
 
   // Generate gradient preview
@@ -239,6 +245,14 @@ export const useGradientFillTool = () => {
       resetGradient();
     }
   }, [activeTool, resetGradient]);
+
+  // Regenerate preview when gradient definition changes (while both points are set)
+  useEffect(() => {
+    if (activeTool === 'gradientfill' && isApplying && startPoint && endPoint) {
+      console.log('Regenerating preview due to definition change');
+      generatePreview(startPoint, endPoint);
+    }
+  }, [activeTool, isApplying, startPoint, endPoint, definition, contiguous, matchChar, matchColor, matchBgColor, generatePreview]);
   
   // Cleanup on unmount
   useEffect(() => {
