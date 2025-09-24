@@ -1,12 +1,11 @@
 # ASCII Motion
 
-A web app for creating and animating ASCII/ANSI art. 
-
-<img width="2594" height="1702" alt="Screenshot of the ASCII Motion App" src="https://github.com/user-attachments/assets/c3b54321-ffe1-42e1-a412-f425995274c5" />
-
 ![ASCII Motion](https://img.shields.io/badge/status-in%20development-yellow)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
+A web app for creating and animating ASCII/ANSI art. 
+
+<img width="2594" height="1702" alt="Screenshot of the ASCII Motion App" src="https://github.com/user-attachments/assets/c3b54321-ffe1-42e1-a412-f425995274c5" /></br>
 
 ## 🎨 Current Features
 
@@ -98,6 +97,9 @@ src/
 
 ## 📋 Development Status
 
+This is currently maintained entirely by me, an animator and brand designer with next to no experience with building tools. This has been vibe-coded into existence using GitHub Copilot in VScode, using mostly Claude Sonnet 4, with the occaisional GPT-5 when Claude gets stumped. Please forgive any messy or unusal structure or vibe-code artifacts, I'm trying my best!
+
+Where I'm at with the concept:
 <details>
 <summary> ✅ Phase 1: Foundation & Core Editor (Complete) </summary>
    
