@@ -25,6 +25,7 @@ import {
 } from '../ui/collapsible';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
 import { GradientIcon } from '../icons';
+import { GradientStopPicker } from './GradientStopPicker';
 import { 
   X,
   Plus,
@@ -59,6 +60,12 @@ export function GradientPanel() {
   const [characterOpen, setCharacterOpen] = useState(true);
   const [textColorOpen, setTextColorOpen] = useState(true);
   const [backgroundColorOpen, setBackgroundColorOpen] = useState(true);
+
+  // Picker state
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerType, setPickerType] = useState<'character' | 'textColor' | 'backgroundColor'>('character');
+  const [pickerStopIndex, setPickerStopIndex] = useState(0);
+  const [pickerInitialValue, setPickerInitialValue] = useState('');
 
   // Auto-open panel when gradient tool becomes active
   // Auto-close when switching away from gradient tool
@@ -113,23 +120,21 @@ export function GradientPanel() {
     updateStop(property, stopIndex, { value });
   };
 
-  const setStopToCurrentValue = (
+  const openStopPicker = (
     property: 'character' | 'textColor' | 'backgroundColor',
     stopIndex: number
   ) => {
-    let currentValue = '';
-    switch (property) {
-      case 'character':
-        currentValue = selectedChar;
-        break;
-      case 'textColor':
-        currentValue = selectedColor;
-        break;
-      case 'backgroundColor':
-        currentValue = selectedBgColor;
-        break;
-    }
-    updateStop(property, stopIndex, { value: currentValue });
+    const stops = definition[property].stops;
+    const currentValue = stops[stopIndex]?.value || '';
+    setPickerType(property);
+    setPickerStopIndex(stopIndex);
+    setPickerInitialValue(currentValue);
+    setPickerOpen(true);
+  };
+
+  const handlePickerValueSelect = (value: string) => {
+    updateStop(pickerType, pickerStopIndex, { value });
+    setPickerOpen(false);
   };
 
   const renderPropertyEditor = (
@@ -244,13 +249,13 @@ export function GradientPanel() {
                       />
                     </div>
                     
-                    {/* Set to Current Value Button */}
+                    {/* Open Picker Button */}
                     <Button
                       variant="outline"
                       size="sm"
                       className="h-6 w-6 p-0"
-                      onClick={() => setStopToCurrentValue(propertyKey, index)}
-                      title={`Set to current ${propertyKey === 'character' ? 'character' : 'color'}`}
+                      onClick={() => openStopPicker(propertyKey, index)}
+                      title={`Pick ${propertyKey === 'character' ? 'character' : 'color'}`}
                     >
                       <Palette className="w-3 h-3" />
                     </Button>
@@ -415,6 +420,15 @@ export function GradientPanel() {
 
         </div>
       </ScrollArea>
+
+      {/* Gradient Stop Picker Dialog */}
+      <GradientStopPicker
+        isOpen={pickerOpen}
+        onOpenChange={setPickerOpen}
+        onValueSelect={handlePickerValueSelect}
+        initialValue={pickerInitialValue}
+        type={pickerType}
+      />
     </div>
   );
 }
