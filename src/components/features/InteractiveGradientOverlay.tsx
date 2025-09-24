@@ -205,25 +205,23 @@ export const InteractiveGradientOverlay: React.FC = () => {
       />
     );
 
-    // Start label  
-    elements.push(
-      <div
-        key="start-label"
-        className="absolute text-white text-xs font-mono -translate-x-1/2 pointer-events-none select-none"
-        style={{
-          left: startPixelX,
-          top: startPixelY - 18
-        }}
-      >
-        START
-      </div>
-    );
 
-    if (endPoint) {
-      const endPixelX = endPoint.x * effectiveCellWidth + panOffset.x + effectiveCellWidth / 2;
-      const endPixelY = endPoint.y * effectiveCellHeight + panOffset.y + effectiveCellHeight / 2;
 
-      // Gradient line
+    // Stop controls - show immediately when start point is placed
+    const enabledProperties: Array<'character' | 'textColor' | 'backgroundColor'> = [];
+    if (definition.character.enabled) enabledProperties.push('character');
+    if (definition.textColor.enabled) enabledProperties.push('textColor');
+    if (definition.backgroundColor.enabled) enabledProperties.push('backgroundColor');
+
+    // If we don't have an end point yet, show stops vertically below the start point
+    const hasEndPoint = !!endPoint;
+    let endPixelX, endPixelY;
+
+    if (hasEndPoint) {
+      endPixelX = endPoint.x * effectiveCellWidth + panOffset.x + effectiveCellWidth / 2;
+      endPixelY = endPoint.y * effectiveCellHeight + panOffset.y + effectiveCellHeight / 2;
+
+      // Gradient line (only when both points exist)
       elements.push(
         <svg
           key="gradient-line"
@@ -269,30 +267,29 @@ export const InteractiveGradientOverlay: React.FC = () => {
           END
         </div>
       );
+    }
 
-      // Stop controls
-      const enabledProperties: Array<'character' | 'textColor' | 'backgroundColor'> = [];
-      if (definition.character.enabled) enabledProperties.push('character');
-      if (definition.textColor.enabled) enabledProperties.push('textColor');
-      if (definition.backgroundColor.enabled) enabledProperties.push('backgroundColor');
+    // Render stops for each enabled property
+    enabledProperties.forEach((property, propIndex) => {
+      const stops = definition[property].stops;
 
-      enabledProperties.forEach((property, propIndex) => {
-        const stops = definition[property].stops;
+      stops.forEach((stop, stopIndex) => {
+        if (stop.position < 0 || stop.position > 1) return;
 
-        stops.forEach((stop, stopIndex) => {
-          if (stop.position < 0 || stop.position > 1) return;
+        let stopX, stopY;
 
-          // Calculate stop position
-          const lineX = startPixelX + (endPixelX - startPixelX) * stop.position;
-          const lineY = startPixelY + (endPixelY - startPixelY) * stop.position;
+        if (hasEndPoint) {
+          // Calculate stop position along the gradient line
+          const lineX = startPixelX + (endPixelX! - startPixelX) * stop.position;
+          const lineY = startPixelY + (endPixelY! - startPixelY) * stop.position;
 
-          // Apply perpendicular offset
-          const lineAngle = Math.atan2(endPixelY - startPixelY, endPixelX - startPixelX);
+          // Apply perpendicular offset for multiple properties
+          const lineAngle = Math.atan2(endPixelY! - startPixelY, endPixelX! - startPixelX);
           const perpAngle = lineAngle + Math.PI / 2;
           const offsetDistance = propIndex * 20;
 
-          const stopX = lineX + Math.cos(perpAngle) * offsetDistance;
-          const stopY = lineY + Math.sin(perpAngle) * offsetDistance;
+          stopX = lineX + Math.cos(perpAngle) * offsetDistance;
+          stopY = lineY + Math.sin(perpAngle) * offsetDistance;
 
           // Connection line to main gradient line (if offset)
           if (offsetDistance > 0) {
@@ -314,44 +311,48 @@ export const InteractiveGradientOverlay: React.FC = () => {
               </svg>
             );
           }
+        } else {
+          // Show stops vertically below start point when no end point yet
+          stopX = startPixelX + propIndex * 25 - (enabledProperties.length - 1) * 12.5; // Center the stops
+          stopY = startPixelY + 40 + stopIndex * 25; // Stack stops vertically
+        }
 
-          // Stop marker
-          const stopColor = property === 'character' ? '#8b5cf6' : 
-                           property === 'textColor' ? '#3b82f6' : '#f59e0b';
+        // Stop marker
+        const stopColor = property === 'character' ? '#8b5cf6' : 
+                         property === 'textColor' ? '#3b82f6' : '#f59e0b';
 
-          elements.push(
-            <div
-              key={`stop-${property}-${stopIndex}`}
-              className="absolute w-3 h-3 -translate-x-1/2 -translate-y-1/2 border border-white cursor-move"
-              style={{
-                left: stopX,
-                top: stopY,
-                backgroundColor: stopColor,
-                pointerEvents: dragState?.isDragging ? 'none' : 'auto'
-              }}
-            />
-          );
+        elements.push(
+          <div
+            key={`stop-${property}-${stopIndex}`}
+            className="absolute w-3 h-3 -translate-x-1/2 -translate-y-1/2 border border-white cursor-move"
+            style={{
+              left: stopX,
+              top: stopY,
+              backgroundColor: stopColor,
+              pointerEvents: dragState?.isDragging ? 'none' : 'auto'
+            }}
+          />
+        );
 
-          // Stop value display
-          const displayValue = property === 'character' ? stop.value : '●';
-          const textColor = property === 'character' ? 'white' : stop.value;
+        // Stop value display
+        const displayValue = property === 'character' ? stop.value : '●';
+        const textColor = property === 'character' ? 'white' : stop.value;
 
-          elements.push(
-            <div
-              key={`stop-value-${property}-${stopIndex}`}
-              className="absolute text-xs font-mono -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none"
-              style={{
-                left: stopX,
-                top: stopY,
-                color: textColor
-              }}
-            >
-              {displayValue}
-            </div>
-          );
-        });
+        elements.push(
+          <div
+            key={`stop-value-${property}-${stopIndex}`}
+            className="absolute text-xs font-mono -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none"
+            style={{
+              left: stopX,
+              top: stopY,
+              color: textColor
+            }}
+          >
+            {displayValue}
+          </div>
+        );
       });
-    }
+    });
 
     return elements;
   };
