@@ -28,7 +28,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   const prevToolRef = useRef(activeTool);
   
   // Calculate effective tool (Alt key overrides with eyedropper for drawing tools)
-  const drawingTools = ['pencil', 'eraser', 'paintbucket', 'rectangle', 'ellipse'] as const;
+  const drawingTools = ['pencil', 'eraser', 'paintbucket', 'gradientfill', 'rectangle', 'ellipse'] as const;
   const shouldAllowEyedropperOverride = drawingTools.includes(activeTool as any);
   
   const effectiveTool = (altKeyDown && shouldAllowEyedropperOverride) ? 'eyedropper' : activeTool;

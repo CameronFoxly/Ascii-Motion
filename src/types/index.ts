@@ -67,7 +67,8 @@ export type Tool =
   | 'eyedropper'
   | 'line'
   | 'text'
-  | 'brush';
+  | 'brush'
+  | 'gradientfill';
 
 export interface ToolState {
   activeTool: Tool;
@@ -137,6 +138,45 @@ export interface ExportSettings {
     preserveFormatting: boolean;
     lineEndings: 'lf' | 'crlf';
   };
+}
+
+// Gradient Fill Tool Types
+export type InterpolationMethod = 'linear' | 'constant' | 'bayer2x2' | 'bayer4x4' | 'noise';
+export type GradientType = 'linear' | 'radial';
+
+export interface GradientStop {
+  position: number; // 0-1 along gradient line
+  value: string; // Character, color hex, or bgColor hex
+}
+
+export interface GradientProperty {
+  enabled: boolean;
+  stops: GradientStop[];
+  interpolation: InterpolationMethod;
+}
+
+export interface GradientDefinition {
+  type: GradientType;
+  character: GradientProperty;
+  textColor: GradientProperty;
+  backgroundColor: GradientProperty;
+}
+
+export interface GradientState {
+  // Fill area matching (extends paint bucket logic)
+  contiguous: boolean;
+  matchChar: boolean;
+  matchColor: boolean;
+  matchBgColor: boolean;
+  
+  // Gradient definition
+  definition: GradientDefinition;
+  
+  // Interactive state
+  isApplying: boolean;
+  startPoint: { x: number; y: number } | null;
+  endPoint: { x: number; y: number } | null;
+  previewData: Map<string, Cell> | null;
 }
 
 // Utility type for creating Cell coordinates

@@ -10,6 +10,7 @@ import {
   EllipseTool,
   EyedropperTool,
   TextTool,
+  GradientFillTool,
 } from '../tools';
 
 /**
@@ -40,6 +41,8 @@ export const ToolManager: React.FC = () => {
       return <EyedropperTool />;
     case 'text':
       return <TextTool />;
+    case 'gradientfill':
+      return <GradientFillTool />;
     default:
       return null;
   }

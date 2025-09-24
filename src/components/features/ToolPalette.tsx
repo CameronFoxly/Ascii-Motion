@@ -16,7 +16,8 @@ import {
   Lasso,
   Type,
   Wand2,
-  Palette
+  Palette,
+  SwatchBook
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -52,6 +53,7 @@ const DRAWING_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; desc
   { id: 'pencil', name: 'Pencil', icon: <PenTool className="w-3 h-3" />, description: 'Draw characters' },
   { id: 'eraser', name: 'Eraser', icon: <Eraser className="w-3 h-3" />, description: 'Remove characters' },
   { id: 'paintbucket', name: 'Fill', icon: <PaintBucket className="w-3 h-3" />, description: 'Fill connected areas' },
+  { id: 'gradientfill', name: 'Gradient', icon: <SwatchBook className="w-3 h-3" />, description: 'Apply gradient fills' },
   { id: 'rectangle', name: 'Rectangle', icon: <Square className="w-3 h-3" />, description: 'Draw rectangles' },
   { id: 'ellipse', name: 'Ellipse', icon: <Circle className="w-3 h-3" />, description: 'Draw ellipses/circles' },
   { id: 'text', name: 'Text', icon: <Type className="w-3 h-3" />, description: 'Type text directly' },
@@ -74,12 +76,12 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
   const [showTools, setShowTools] = React.useState(true);
 
   // Calculate effective tool (Alt key overrides with eyedropper for drawing tools)
-  const drawingTools = ['pencil', 'eraser', 'paintbucket', 'rectangle', 'ellipse'] as const;
+  const drawingTools = ['pencil', 'eraser', 'paintbucket', 'gradientfill', 'rectangle', 'ellipse'] as const;
   const shouldAllowEyedropperOverride = drawingTools.includes(activeTool as any);
   const effectiveTool = (altKeyDown && shouldAllowEyedropperOverride) ? 'eyedropper' : activeTool;
 
   // Tools that actually have configurable options. (Removed 'eraser' and 'text' per layout bug fix.)
-  const hasOptions = ['rectangle', 'ellipse', 'paintbucket', 'magicwand', 'pencil', 'eyedropper'].includes(effectiveTool);
+  const hasOptions = ['rectangle', 'ellipse', 'paintbucket', 'gradientfill', 'magicwand', 'pencil', 'eyedropper'].includes(effectiveTool);
 
   // Get the current tool's icon
   const getCurrentToolIcon = () => {
@@ -199,6 +201,19 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                       </Label>
                       <Switch
                         id="contiguous-fill"
+                        checked={paintBucketContiguous}
+                        onCheckedChange={setPaintBucketContiguous}
+                      />
+                    </div>
+                  )}
+                  
+                  {effectiveTool === 'gradientfill' && (
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="gradient-contiguous" className="text-xs cursor-pointer">
+                        Contiguous
+                      </Label>
+                      <Switch
+                        id="gradient-contiguous"
                         checked={paintBucketContiguous}
                         onCheckedChange={setPaintBucketContiguous}
                       />
