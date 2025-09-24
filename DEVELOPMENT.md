@@ -3524,6 +3524,1460 @@ The modular architecture enables future enhancements:
 
 This Phase 4 implementation establishes ASCII Motion as a professional tool for media-to-ASCII conversion with a breakthrough independent preview overlay system that ensures frame-safe import operations. The architecture maintains consistency with existing application patterns while introducing innovative solutions to complex data synchronization challenges. The modular design supports future enhancements while providing immediate, robust value for users converting visual media into ASCII art.
 
+# 🌈 **Phase 5: Advanced Gradient Fill Tool** - 📋 **PLANNED**
+
+## Overview
+Implementation of a sophisticated gradient fill tool that applies customizable character, foreground color, and background color gradients to canvas areas with matching cell criteria. Features interactive visual controls, multiple interpolation methods, and professional UI integration.
+
+## 🎯 **Core Requirements**
+
+### **Gradient Types**
+- **Linear Gradients**: Flow along user-defined line from start to end point
+- **Radial Gradients**: Radiate outward from start point with end point defining radius
+- **Property Support**: Independent gradients for character, text color, and background color
+- **Stop System**: Up to 8 customizable stops per property with visual positioning
+
+### **Fill Area Selection**
+- **Contiguous Mode**: Fill connected areas (like current paint bucket contiguous)
+- **Non-contiguous Mode**: Fill all matching cells on canvas (like paint bucket non-contiguous)
+- **Matching Criteria**: Toggleable matching for character, color, and background color properties
+- **Smart Defaults**: Inherit paint bucket matching logic and extend for gradient use
+
+### **Interactive Preview System**
+- **Visual Controls**: Draggable start/end points with dotted line overlay
+- **Stop Positioning**: Visual stop indicators along gradient line with property values
+- **Live Preview**: Real-time gradient application preview during editing
+- **Escape/Enter Controls**: Cancel/confirm workflow with clean state management
+
+## 🏗️ **Architecture & Implementation Plan**
+
+### **Phase 5.1: Core Types & Store Foundation**
+
+#### **1. Type Definitions (`src/types/index.ts`)**
+```typescript
+export type Tool = 
+  | 'pencil' 
+  | 'eraser' 
+  | 'paintbucket' 
+  | 'select' 
+  | 'lasso'
+  | 'magicwand'
+  | 'rectangle' 
+  | 'ellipse'
+  | 'eyedropper'
+  | 'line'
+  | 'text'
+  | 'brush'
+  | 'gradientfill'; // NEW
+
+// Gradient-specific types
+export type InterpolationMethod = 'linear' | 'constant' | 'bayer2x2' | 'bayer4x4' | 'noise';
+export type GradientType = 'linear' | 'radial';
+
+export interface GradientStop {
+  position: number; // 0-1 along gradient line
+  value: string; // Character, color hex, or bgColor hex
+}
+
+export interface GradientProperty {
+  enabled: boolean;
+  stops: GradientStop[];
+  interpolation: InterpolationMethod;
+}
+
+export interface GradientDefinition {
+  type: GradientType;
+  character: GradientProperty;
+  textColor: GradientProperty;
+  backgroundColor: GradientProperty;
+}
+
+export interface GradientState {
+  // Fill area matching (extends paint bucket logic)
+  contiguous: boolean;
+  matchChar: boolean;
+  matchColor: boolean;
+  matchBgColor: boolean;
+  
+  // Gradient definition
+  definition: GradientDefinition;
+  
+  // Interactive state
+  isApplying: boolean;
+  startPoint: { x: number; y: number } | null;
+  endPoint: { x: number; y: number } | null;
+  previewData: Map<string, Cell> | null;
+}
+```
+
+#### **2. Tool Store Extension (`src/stores/toolStore.ts`)**
+```typescript
+interface ToolStoreState extends ToolState {
+  // ... existing properties
+  
+  // Gradient fill state
+  gradientState: GradientState;
+  
+  // Actions
+  setGradientContiguous: (contiguous: boolean) => void;
+  setGradientMatchCriteria: (criteria: { char: boolean; color: boolean; bgColor: boolean }) => void;
+  setGradientDefinition: (definition: GradientDefinition) => void;
+  setGradientApplying: (isApplying: boolean) => void;
+  setGradientPoints: (start: { x: number; y: number } | null, end: { x: number; y: number } | null) => void;
+  setGradientPreview: (previewData: Map<string, Cell> | null) => void;
+  resetGradientState: () => void;
+}
+```
+
+#### **3. Gradient Store (`src/stores/gradientStore.ts`)**
+```typescript
+import { create } from 'zustand';
+import { DEFAULT_COLORS } from '../constants';
+
+interface GradientStoreState {
+  // Panel state
+  isOpen: boolean;
+  
+  // Current gradient configuration
+  definition: GradientDefinition;
+  
+  // Interactive application state
+  isApplying: boolean;
+  startPoint: { x: number; y: number } | null;
+  endPoint: { x: number; y: number } | null;
+  previewData: Map<string, Cell> | null;
+  
+  // Fill area configuration
+  contiguous: boolean;
+  matchChar: boolean;
+  matchColor: boolean;
+  matchBgColor: boolean;
+  
+  // Actions
+  setIsOpen: (open: boolean) => void;
+  updateDefinition: (definition: Partial<GradientDefinition>) => void;
+  updateProperty: (property: 'character' | 'textColor' | 'backgroundColor', update: Partial<GradientProperty>) => void;
+  addStop: (property: 'character' | 'textColor' | 'backgroundColor') => void;
+  removeStop: (property: 'character' | 'textColor' | 'backgroundColor', index: number) => void;
+  updateStop: (property: 'character' | 'textColor' | 'backgroundColor', index: number, update: Partial<GradientStop>) => void;
+  
+  // Application state
+  setApplying: (isApplying: boolean) => void;
+  setPoints: (start: { x: number; y: number } | null, end: { x: number; y: number } | null) => void;
+  setPreview: (previewData: Map<string, Cell> | null) => void;
+  
+  // Fill configuration
+  setContiguous: (contiguous: boolean) => void;
+  setMatchCriteria: (criteria: { char: boolean; color: boolean; bgColor: boolean }) => void;
+  
+  // Utility
+  reset: () => void;
+}
+```
+
+### **Phase 5.2: Gradient Algorithm Core**
+
+#### **4. Gradient Engine (`src/utils/gradientEngine.ts`)**
+```typescript
+import type { Cell, GradientDefinition, InterpolationMethod } from '../types';
+
+export interface GradientPoint {
+  x: number;
+  y: number;
+}
+
+export interface GradientOptions {
+  startPoint: GradientPoint;
+  endPoint: GradientPoint;
+  definition: GradientDefinition;
+  fillArea: Set<string>; // Cell keys to apply gradient to
+}
+
+// Core gradient calculation
+export const calculateGradientCells = (options: GradientOptions): Map<string, Cell> => {
+  const { startPoint, endPoint, definition, fillArea } = options;
+  const result = new Map<string, Cell>();
+  
+  fillArea.forEach(cellKey => {
+    const [x, y] = cellKey.split(',').map(Number);
+    const position = calculatePositionOnGradient(x, y, startPoint, endPoint, definition.type);
+    
+    const gradientCell: Cell = {
+      char: definition.character.enabled ? 
+        interpolateProperty(position, definition.character) : ' ',
+      color: definition.textColor.enabled ? 
+        interpolateProperty(position, definition.textColor) : '#FFFFFF',
+      bgColor: definition.backgroundColor.enabled ? 
+        interpolateProperty(position, definition.backgroundColor) : 'transparent'
+    };
+    
+    result.set(cellKey, gradientCell);
+  });
+  
+  return result;
+};
+
+// Position calculation for linear/radial gradients
+const calculatePositionOnGradient = (
+  x: number, 
+  y: number, 
+  start: GradientPoint, 
+  end: GradientPoint, 
+  type: 'linear' | 'radial'
+): number => {
+  if (type === 'linear') {
+    // Project point onto line and calculate 0-1 position
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    
+    if (length === 0) return 0;
+    
+    const dot = (x - start.x) * dx + (y - start.y) * dy;
+    return Math.max(0, Math.min(1, dot / (length * length)));
+  } else {
+    // Radial: distance from start point, normalized by end point distance
+    const distToStart = Math.sqrt((x - start.x) ** 2 + (y - start.y) ** 2);
+    const maxRadius = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
+    
+    return maxRadius === 0 ? 0 : Math.min(1, distToStart / maxRadius);
+  }
+};
+
+// Property interpolation with method support
+const interpolateProperty = (position: number, property: GradientProperty): string => {
+  const { stops, interpolation } = property;
+  
+  if (stops.length === 0) return '';
+  if (stops.length === 1) return stops[0].value;
+  
+  // Sort stops by position
+  const sortedStops = [...stops].sort((a, b) => a.position - b.position);
+  
+  // Find surrounding stops
+  let leftStop = sortedStops[0];
+  let rightStop = sortedStops[sortedStops.length - 1];
+  
+  for (let i = 0; i < sortedStops.length - 1; i++) {
+    if (position >= sortedStops[i].position && position <= sortedStops[i + 1].position) {
+      leftStop = sortedStops[i];
+      rightStop = sortedStops[i + 1];
+      break;
+    }
+  }
+  
+  switch (interpolation) {
+    case 'constant':
+      return leftStop.value;
+    case 'linear':
+      return interpolateLinear(position, leftStop, rightStop);
+    case 'bayer2x2':
+    case 'bayer4x4':
+      return applyBayerDither(position, leftStop, rightStop, interpolation);
+    case 'noise':
+      return applyNoiseDither(position, leftStop, rightStop);
+    default:
+      return leftStop.value;
+  }
+};
+
+// Linear interpolation for colors and characters
+const interpolateLinear = (position: number, left: GradientStop, right: GradientStop): string => {
+  if (left.position === right.position) return left.value;
+  
+  const t = (position - left.position) / (right.position - left.position);
+  
+  // Character interpolation (Unicode code point blending)
+  if (left.value.length === 1 && right.value.length === 1) {
+    const leftCode = left.value.charCodeAt(0);
+    const rightCode = right.value.charCodeAt(0);
+    const interpolatedCode = Math.round(leftCode + t * (rightCode - leftCode));
+    return String.fromCharCode(interpolatedCode);
+  }
+  
+  // Color interpolation (hex colors)
+  if (left.value.startsWith('#') && right.value.startsWith('#')) {
+    return interpolateColor(left.value, right.value, t);
+  }
+  
+  return t < 0.5 ? left.value : right.value;
+};
+
+// Color interpolation helper
+const interpolateColor = (color1: string, color2: string, t: number): string => {
+  const rgb1 = hexToRgb(color1);
+  const rgb2 = hexToRgb(color2);
+  
+  if (!rgb1 || !rgb2) return color1;
+  
+  const r = Math.round(rgb1.r + t * (rgb2.r - rgb1.r));
+  const g = Math.round(rgb1.g + t * (rgb2.g - rgb1.g));
+  const b = Math.round(rgb1.b + t * (rgb2.b - rgb1.b));
+  
+  return rgbToHex(r, g, b);
+};
+
+// Dithering implementations
+const applyBayerDither = (
+  position: number, 
+  left: GradientStop, 
+  right: GradientStop, 
+  method: 'bayer2x2' | 'bayer4x4'
+): string => {
+  // Implementation of ordered Bayer dithering
+  // Uses only the colors defined in the stops
+  // Creates visual patterns between stop values
+  // TODO: Implement Bayer matrix dithering
+  return position < 0.5 ? left.value : right.value; // Placeholder
+};
+
+const applyNoiseDither = (position: number, left: GradientStop, right: GradientStop): string => {
+  // Implementation of noise-based dithering
+  // TODO: Implement noise dithering algorithm
+  const noise = Math.random();
+  return (position + noise * 0.1) < 0.5 ? left.value : right.value; // Placeholder
+};
+
+// Utility functions
+const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+};
+
+const rgbToHex = (r: number, g: number, b: number): string => {
+  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+};
+```
+
+### **Phase 5.3: Tool Integration**
+
+#### **5. Gradient Fill Tool Component (`src/components/tools/GradientFillTool.tsx`)**
+```typescript
+import React from 'react';
+import { useGradientFillTool } from '../../hooks/useGradientFillTool';
+import { useGradientStore } from '../../stores/gradientStore';
+
+/**
+ * Gradient Fill Tool Component
+ * Handles gradient fill behavior and interactive preview
+ */
+export const GradientFillTool: React.FC = () => {
+  // The gradient fill logic is handled by useGradientFillTool hook
+  useGradientFillTool();
+  
+  return null; // No direct UI - handles behavior through hooks
+};
+
+/**
+ * Gradient Fill Tool Status Component
+ * Provides visual feedback about the gradient fill tool
+ */
+export const GradientFillToolStatus: React.FC = () => {
+  const { isApplying, definition, contiguous } = useGradientStore();
+  
+  const enabledProperties = [
+    definition.character.enabled && 'Character',
+    definition.textColor.enabled && 'Color',
+    definition.backgroundColor.enabled && 'Background'
+  ].filter(Boolean).join(', ');
+  
+  const fillMode = contiguous ? 'connected areas' : 'all matching cells';
+  
+  if (isApplying) {
+    return (
+      <span className="text-muted-foreground">
+        Gradient Fill: Click to set start point, drag to define gradient line
+      </span>
+    );
+  }
+  
+  return (
+    <span className="text-muted-foreground">
+      Gradient Fill: Will apply {enabledProperties || 'no properties'} to {fillMode}
+    </span>
+  );
+};
+```
+
+#### **6. Gradient Fill Hook (`src/hooks/useGradientFillTool.ts`)**
+```typescript
+import { useCallback, useEffect } from 'react';
+import { useCanvasStore } from '../stores/canvasStore';
+import { useGradientStore } from '../stores/gradientStore';
+import { useToolStore } from '../stores/toolStore';
+import { calculateGradientCells } from '../utils/gradientEngine';
+import { useAnimationHistory } from './useAnimationHistory';
+
+export const useGradientFillTool = () => {
+  const { addToHistory } = useAnimationHistory();
+  const { 
+    isApplying, 
+    startPoint, 
+    endPoint, 
+    definition, 
+    contiguous, 
+    matchChar, 
+    matchColor, 
+    matchBgColor,
+    setApplying, 
+    setPoints, 
+    setPreview,
+    reset 
+  } = useGradientStore();
+  
+  const { cells, getCell, setCanvasData } = useCanvasStore();
+  const { activeTool } = useToolStore();
+  
+  // Handle canvas click during gradient application
+  const handleCanvasClick = useCallback((x: number, y: number) => {
+    if (activeTool !== 'gradientfill') return;
+    
+    if (!isApplying) {
+      // First click - start applying gradient
+      setApplying(true);
+      setPoints({ x, y }, null);
+      return;
+    }
+    
+    if (startPoint && !endPoint) {
+      // Second click - set end point and generate preview
+      const newEndPoint = { x, y };
+      setPoints(startPoint, newEndPoint);
+      generatePreview(startPoint, newEndPoint);
+      return;
+    }
+  }, [activeTool, isApplying, startPoint, endPoint, setApplying, setPoints]);
+  
+  // Generate gradient preview
+  const generatePreview = useCallback((start: { x: number; y: number }, end: { x: number; y: number }) => {
+    // Find fill area using same logic as paint bucket
+    const fillArea = findFillArea(start.x, start.y);
+    
+    // Calculate gradient cells
+    const gradientCells = calculateGradientCells({
+      startPoint: start,
+      endPoint: end,
+      definition,
+      fillArea
+    });
+    
+    setPreview(gradientCells);
+  }, [definition, setPreview]);
+  
+  // Find fill area based on matching criteria
+  const findFillArea = useCallback((startX: number, startY: number): Set<string> => {
+    const targetCell = getCell(startX, startY);
+    if (!targetCell) return new Set();
+    
+    const fillArea = new Set<string>();
+    
+    // Use same logic as paint bucket tool
+    if (contiguous) {
+      // Contiguous fill - flood fill algorithm
+      const toFill: { x: number; y: number }[] = [{ x: startX, y: startY }];
+      const visited = new Set<string>();
+      
+      while (toFill.length > 0) {
+        const { x, y } = toFill.pop()!;
+        const key = `${x},${y}`;
+        
+        if (visited.has(key)) continue;
+        visited.add(key);
+        
+        const currentCell = getCell(x, y);
+        if (!currentCell || !matchesTarget(currentCell, targetCell)) continue;
+        
+        fillArea.add(key);
+        
+        // Add adjacent cells
+        const adjacent = [
+          { x: x - 1, y },
+          { x: x + 1, y },
+          { x, y: y - 1 },
+          { x, y: y + 1 }
+        ];
+        
+        for (const adj of adjacent) {
+          const adjKey = `${adj.x},${adj.y}`;
+          if (!visited.has(adjKey)) {
+            toFill.push(adj);
+          }
+        }
+      }
+    } else {
+      // Non-contiguous fill - all matching cells
+      cells.forEach((cell, key) => {
+        if (matchesTarget(cell, targetCell)) {
+          fillArea.add(key);
+        }
+      });
+    }
+    
+    return fillArea;
+  }, [contiguous, matchChar, matchColor, matchBgColor, cells, getCell]);
+  
+  // Check if cell matches target based on criteria
+  const matchesTarget = useCallback((cell: any, target: any): boolean => {
+    if (matchChar && cell.char !== target.char) return false;
+    if (matchColor && cell.color !== target.color) return false;
+    if (matchBgColor && cell.bgColor !== target.bgColor) return false;
+    return true;
+  }, [matchChar, matchColor, matchBgColor]);
+  
+  // Apply gradient (Enter key)
+  const applyGradient = useCallback(() => {
+    if (!isApplying || !previewData) return;
+    
+    const originalCells = new Map(cells);
+    
+    // Apply gradient to canvas
+    const newCells = new Map(cells);
+    previewData.forEach((cell, key) => {
+      newCells.set(key, cell);
+    });
+    
+    setCanvasData(newCells);
+    
+    // Add to history
+    addToHistory({
+      type: 'canvas_edit',
+      timestamp: Date.now(),
+      description: 'Apply gradient fill',
+      data: {
+        canvasData: originalCells,
+        frameIndex: 0 // TODO: Get current frame index
+      }
+    });
+    
+    // Reset state
+    reset();
+  }, [isApplying, previewData, cells, setCanvasData, addToHistory, reset]);
+  
+  // Cancel gradient (Escape key)
+  const cancelGradient = useCallback(() => {
+    if (!isApplying) return;
+    reset();
+  }, [isApplying, reset]);
+  
+  // Keyboard handlers
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (activeTool !== 'gradientfill' || !isApplying) return;
+      
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        applyGradient();
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        cancelGradient();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeTool, isApplying, applyGradient, cancelGradient]);
+  
+  // Reset when switching tools
+  useEffect(() => {
+    if (activeTool !== 'gradientfill') {
+      reset();
+    }
+  }, [activeTool, reset]);
+  
+  return {
+    handleCanvasClick,
+    isApplying,
+    startPoint,
+    endPoint
+  };
+};
+```
+
+### **Phase 5.4: UI Components**
+
+#### **7. Gradient Panel (`src/components/features/GradientPanel.tsx`)**
+```typescript
+import React, { useState } from 'react';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Switch } from '../ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { ScrollArea } from '../ui/scroll-area';
+import { Separator } from '../ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Collapsible, CollapsibleContent } from '../ui/collapsible';
+import { CollapsibleHeader } from '../common/CollapsibleHeader';
+import { 
+  Plus, 
+  Edit3, 
+  X, 
+  Palette, 
+  Type, 
+  Square,
+  ArrowRight,
+  Circle
+} from 'lucide-react';
+import { cn } from '../../lib/utils';
+import { PANEL_ANIMATION } from '../../constants';
+import { useGradientStore } from '../../stores/gradientStore';
+import { useToolStore } from '../../stores/toolStore';
+import type { InterpolationMethod, GradientType } from '../../types';
+
+export function GradientPanel() {
+  const { isOpen, setIsOpen } = useGradientStore();
+  const { activeTool } = useToolStore();
+  
+  // Auto-open when gradient tool is selected
+  React.useEffect(() => {
+    if (activeTool === 'gradientfill') {
+      setIsOpen(true);
+    }
+  }, [activeTool, setIsOpen]);
+  
+  // Auto-close when different tool is selected
+  React.useEffect(() => {
+    if (activeTool !== 'gradientfill' && isOpen) {
+      setIsOpen(false);
+    }
+  }, [activeTool, isOpen, setIsOpen]);
+  
+  if (!isOpen) return null;
+  
+  return (
+    <div 
+      className={cn(
+        'fixed right-0 top-0 h-full bg-muted/20 border-l border-border z-30',
+        'w-80 overflow-hidden',
+        PANEL_ANIMATION.TRANSITION,
+        isOpen ? 'translate-x-0' : 'translate-x-full'
+      )}
+    >
+      <div className="h-full flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <h2 className="text-lg font-semibold">Gradient Fill</h2>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setIsOpen(false)}
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+        
+        <ScrollArea className="flex-1 p-4">
+          <div className="space-y-4">
+            <GradientTypeSelector />
+            <FillAreaSettings />
+            <Separator />
+            <GradientPropertyEditor property="character" />
+            <GradientPropertyEditor property="textColor" />
+            <GradientPropertyEditor property="backgroundColor" />
+          </div>
+        </ScrollArea>
+      </div>
+    </div>
+  );
+}
+
+// Gradient type selector (Linear/Radial)
+const GradientTypeSelector: React.FC = () => {
+  const { definition, updateDefinition } = useGradientStore();
+  
+  return (
+    <div className="space-y-2">
+      <Label>Gradient Type</Label>
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          variant={definition.type === 'linear' ? 'default' : 'outline'}
+          onClick={() => updateDefinition({ type: 'linear' })}
+          className="flex items-center gap-2"
+        >
+          <ArrowRight className="w-4 h-4" />
+          Linear
+        </Button>
+        <Button
+          variant={definition.type === 'radial' ? 'default' : 'outline'}
+          onClick={() => updateDefinition({ type: 'radial' })}
+          className="flex items-center gap-2"
+        >
+          <Circle className="w-4 h-4" />
+          Radial
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// Fill area configuration
+const FillAreaSettings: React.FC = () => {
+  const { 
+    contiguous, 
+    matchChar, 
+    matchColor, 
+    matchBgColor,
+    setContiguous,
+    setMatchCriteria 
+  } = useGradientStore();
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">Fill Area</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="contiguous">Contiguous</Label>
+          <Switch
+            id="contiguous"
+            checked={contiguous}
+            onCheckedChange={setContiguous}
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Selects same:</Label>
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="match-char" className="text-xs">Character</Label>
+              <Switch
+                id="match-char"
+                checked={matchChar}
+                onCheckedChange={(checked) => setMatchCriteria({ char: checked, color: matchColor, bgColor: matchBgColor })}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="match-color" className="text-xs">Text Color</Label>
+              <Switch
+                id="match-color"
+                checked={matchColor}
+                onCheckedChange={(checked) => setMatchCriteria({ char: matchChar, color: checked, bgColor: matchBgColor })}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="match-bg" className="text-xs">Background</Label>
+              <Switch
+                id="match-bg"
+                checked={matchBgColor}
+                onCheckedChange={(checked) => setMatchCriteria({ char: matchChar, color: matchColor, bgColor: checked })}
+              />
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Individual property editor (Character, Text Color, Background Color)
+interface GradientPropertyEditorProps {
+  property: 'character' | 'textColor' | 'backgroundColor';
+}
+
+const GradientPropertyEditor: React.FC<GradientPropertyEditorProps> = ({ property }) => {
+  const { definition, updateProperty, addStop, removeStop, updateStop } = useGradientStore();
+  const { selectedChar, selectedColor, selectedBgColor } = useToolStore();
+  
+  const propertyData = definition[property];
+  const [isExpanded, setIsExpanded] = useState(propertyData.enabled);
+  
+  const getIcon = () => {
+    switch (property) {
+      case 'character': return <Type className="w-4 h-4" />;
+      case 'textColor': return <Palette className="w-4 h-4" />;
+      case 'backgroundColor': return <Square className="w-4 h-4" />;
+    }
+  };
+  
+  const getLabel = () => {
+    switch (property) {
+      case 'character': return 'Character';
+      case 'textColor': return 'Text Color';
+      case 'backgroundColor': return 'Background Color';
+    }
+  };
+  
+  const getDefaultValue = () => {
+    switch (property) {
+      case 'character': return selectedChar;
+      case 'textColor': return selectedColor;
+      case 'backgroundColor': return selectedBgColor === 'transparent' ? '#808080' : selectedBgColor;
+    }
+  };
+  
+  React.useEffect(() => {
+    setIsExpanded(propertyData.enabled);
+  }, [propertyData.enabled]);
+  
+  return (
+    <Card>
+      <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+        <CollapsibleHeader 
+          isOpen={isExpanded}
+          onToggle={() => setIsExpanded(!isExpanded)}
+          className="px-6 py-4"
+        >
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              {getIcon()}
+              <span className="font-medium">{getLabel()}</span>
+            </div>
+            <Switch
+              checked={propertyData.enabled}
+              onCheckedChange={(enabled) => {
+                updateProperty(property, { enabled });
+                if (enabled && propertyData.stops.length === 0) {
+                  // Initialize with default stops
+                  updateProperty(property, {
+                    stops: [
+                      { position: 0, value: getDefaultValue() },
+                      { position: 1, value: property === 'character' ? '@' : '#FFFFFF' }
+                    ]
+                  });
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </CollapsibleHeader>
+        
+        <CollapsibleContent>
+          <CardContent className="space-y-3">
+            {/* Interpolation Method */}
+            <div className="space-y-2">
+              <Label className="text-xs">Interpolation</Label>
+              <Select
+                value={propertyData.interpolation}
+                onValueChange={(value: InterpolationMethod) => 
+                  updateProperty(property, { interpolation: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="linear">Linear</SelectItem>
+                  <SelectItem value="constant">Constant</SelectItem>
+                  <SelectItem value="bayer2x2">2x2 Bayer Dither</SelectItem>
+                  <SelectItem value="bayer4x4">4x4 Bayer Dither</SelectItem>
+                  <SelectItem value="noise">Noise Dither</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Gradient Stops */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Stops ({propertyData.stops.length}/8)</Label>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => addStop(property)}
+                  disabled={propertyData.stops.length >= 8}
+                >
+                  <Plus className="w-3 h-3" />
+                </Button>
+              </div>
+              
+              <div className="space-y-1 max-h-40 overflow-y-auto">
+                {propertyData.stops.map((stop, index) => (
+                  <GradientStopEditor
+                    key={index}
+                    property={property}
+                    stop={stop}
+                    index={index}
+                    onUpdate={(update) => updateStop(property, index, update)}
+                    onRemove={() => removeStop(property, index)}
+                    canRemove={propertyData.stops.length > 2}
+                  />
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
+  );
+};
+
+// Individual stop editor
+interface GradientStopEditorProps {
+  property: 'character' | 'textColor' | 'backgroundColor';
+  stop: any; // GradientStop
+  index: number;
+  onUpdate: (update: any) => void;
+  onRemove: () => void;
+  canRemove: boolean;
+}
+
+const GradientStopEditor: React.FC<GradientStopEditorProps> = ({ 
+  property, 
+  stop, 
+  index, 
+  onUpdate, 
+  onRemove, 
+  canRemove 
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  
+  const handleDoubleClick = () => {
+    setIsEditing(true);
+  };
+  
+  const getDisplayValue = () => {
+    if (property === 'character') {
+      return stop.value;
+    }
+    return (
+      <div 
+        className="w-4 h-4 border border-border rounded"
+        style={{ backgroundColor: stop.value }}
+      />
+    );
+  };
+  
+  return (
+    <div className="flex items-center gap-2 p-2 bg-muted/30 rounded">
+      <span className="text-xs text-muted-foreground w-6">#{index + 1}</span>
+      
+      <div 
+        className="flex-1 flex items-center justify-center min-h-6 bg-background border border-border rounded cursor-pointer hover:bg-muted/50"
+        onDoubleClick={handleDoubleClick}
+      >
+        {getDisplayValue()}
+      </div>
+      
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => setIsEditing(!isEditing)}
+        className="h-6 w-6 p-0"
+      >
+        <Edit3 className="w-3 h-3" />
+      </Button>
+      
+      {canRemove && (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onRemove}
+          className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+        >
+          <X className="w-3 h-3" />
+        </Button>
+      )}
+      
+      {isEditing && (
+        <div className="absolute inset-0 bg-background border border-border rounded p-2 z-10">
+          {/* TODO: Add character picker or color picker based on property */}
+          <Input
+            value={stop.value}
+            onChange={(e) => onUpdate({ value: e.target.value })}
+            onBlur={() => setIsEditing(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === 'Escape') {
+                setIsEditing(false);
+              }
+            }}
+            autoFocus
+            className="h-6"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+#### **8. Canvas Overlay Integration (`src/components/features/CanvasOverlay.tsx`)**
+```typescript
+// Add to existing CanvasOverlay component
+import { GradientOverlay } from './GradientOverlay';
+
+export const CanvasOverlay: React.FC<CanvasOverlayProps> = ({ ... }) => {
+  // ... existing code
+  
+  return (
+    <>
+      {/* ... existing overlays */}
+      <GradientOverlay />
+    </>
+  );
+};
+```
+
+#### **9. Gradient Overlay Component (`src/components/features/GradientOverlay.tsx`)**
+```typescript
+import React from 'react';
+import { useGradientStore } from '../../stores/gradientStore';
+import { useCanvasContext } from '../../contexts/CanvasContext';
+
+export const GradientOverlay: React.FC = () => {
+  const { isApplying, startPoint, endPoint, definition, previewData } = useGradientStore();
+  const { cellWidth, cellHeight, zoom, panOffset } = useCanvasContext();
+  
+  if (!isApplying) return null;
+  
+  const effectiveCellWidth = cellWidth * zoom;
+  const effectiveCellHeight = cellHeight * zoom;
+  
+  return (
+    <div className="absolute inset-0 pointer-events-none">
+      <svg 
+        className="w-full h-full"
+        style={{ overflow: 'visible' }}
+      >
+        {/* Dotted line between start and end points */}
+        {startPoint && endPoint && (
+          <line
+            x1={startPoint.x * effectiveCellWidth + panOffset.x + effectiveCellWidth / 2}
+            y1={startPoint.y * effectiveCellHeight + panOffset.y + effectiveCellHeight / 2}
+            x2={endPoint.x * effectiveCellWidth + panOffset.x + effectiveCellWidth / 2}
+            y2={endPoint.y * effectiveCellHeight + panOffset.y + effectiveCellHeight / 2}
+            stroke="white"
+            strokeWidth="2"
+            strokeDasharray="4 4"
+            opacity="0.8"
+          />
+        )}
+        
+        {/* Start point control */}
+        {startPoint && (
+          <GradientControlPoint
+            point={startPoint}
+            type="start"
+            cellWidth={effectiveCellWidth}
+            cellHeight={effectiveCellHeight}
+            panOffset={panOffset}
+          />
+        )}
+        
+        {/* End point control */}
+        {endPoint && (
+          <GradientControlPoint
+            point={endPoint}
+            type="end"
+            cellWidth={effectiveCellWidth}
+            cellHeight={effectiveCellHeight}
+            panOffset={panOffset}
+          />
+        )}
+        
+        {/* Gradient stops along the line */}
+        {startPoint && endPoint && (
+          <GradientStopsOverlay
+            startPoint={startPoint}
+            endPoint={endPoint}
+            definition={definition}
+            cellWidth={effectiveCellWidth}
+            cellHeight={effectiveCellHeight}
+            panOffset={panOffset}
+          />
+        )}
+      </svg>
+      
+      {/* Preview cells overlay */}
+      {previewData && (
+        <GradientPreviewOverlay
+          previewData={previewData}
+          cellWidth={effectiveCellWidth}
+          cellHeight={effectiveCellHeight}
+          panOffset={panOffset}
+        />
+      )}
+    </div>
+  );
+};
+
+interface GradientControlPointProps {
+  point: { x: number; y: number };
+  type: 'start' | 'end';
+  cellWidth: number;
+  cellHeight: number;
+  panOffset: { x: number; y: number };
+}
+
+const GradientControlPoint: React.FC<GradientControlPointProps> = ({
+  point,
+  type,
+  cellWidth,
+  cellHeight,
+  panOffset
+}) => {
+  const x = point.x * cellWidth + panOffset.x + cellWidth / 2;
+  const y = point.y * cellHeight + panOffset.y + cellHeight / 2;
+  
+  return (
+    <circle
+      cx={x}
+      cy={y}
+      r="6"
+      fill={type === 'start' ? '#22c55e' : '#ef4444'}
+      stroke="white"
+      strokeWidth="2"
+      className="cursor-pointer"
+    />
+  );
+};
+
+interface GradientStopsOverlayProps {
+  startPoint: { x: number; y: number };
+  endPoint: { x: number; y: number };
+  definition: any; // GradientDefinition
+  cellWidth: number;
+  cellHeight: number;
+  panOffset: { x: number; y: number };
+}
+
+const GradientStopsOverlay: React.FC<GradientStopsOverlayProps> = ({
+  startPoint,
+  endPoint,
+  definition,
+  cellWidth,
+  cellHeight,
+  panOffset
+}) => {
+  // Calculate positions along the gradient line for each stop
+  const calculateStopPositions = () => {
+    const allStops: Array<{ position: number; type: string; value: string; enabled: boolean }> = [];
+    
+    // Collect all stops from enabled properties
+    if (definition.character.enabled) {
+      definition.character.stops.forEach((stop: any) => {
+        allStops.push({ ...stop, type: 'character', enabled: true });
+      });
+    }
+    
+    if (definition.textColor.enabled) {
+      definition.textColor.stops.forEach((stop: any) => {
+        allStops.push({ ...stop, type: 'textColor', enabled: true });
+      });
+    }
+    
+    if (definition.backgroundColor.enabled) {
+      definition.backgroundColor.stops.forEach((stop: any) => {
+        allStops.push({ ...stop, type: 'backgroundColor', enabled: true });
+      });
+    }
+    
+    return allStops.sort((a, b) => a.position - b.position);
+  };
+  
+  const stops = calculateStopPositions();
+  
+  return (
+    <>
+      {stops.map((stop, index) => (
+        <GradientStopMarker
+          key={index}
+          stop={stop}
+          startPoint={startPoint}
+          endPoint={endPoint}
+          cellWidth={cellWidth}
+          cellHeight={cellHeight}
+          panOffset={panOffset}
+        />
+      ))}
+    </>
+  );
+};
+
+// Individual stop markers along the gradient line
+interface GradientStopMarkerProps {
+  stop: { position: number; type: string; value: string };
+  startPoint: { x: number; y: number };
+  endPoint: { x: number; y: number };
+  cellWidth: number;
+  cellHeight: number;
+  panOffset: { x: number; y: number };
+}
+
+const GradientStopMarker: React.FC<GradientStopMarkerProps> = ({
+  stop,
+  startPoint,
+  endPoint,
+  cellWidth,
+  cellHeight,
+  panOffset
+}) => {
+  // Calculate position along the line
+  const lineX = startPoint.x + (endPoint.x - startPoint.x) * stop.position;
+  const lineY = startPoint.y + (endPoint.y - startPoint.y) * stop.position;
+  
+  const x = lineX * cellWidth + panOffset.x + cellWidth / 2;
+  const y = lineY * cellHeight + panOffset.y + cellHeight / 2;
+  
+  // Offset perpendicular to line based on type
+  const lineAngle = Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x);
+  const perpAngle = lineAngle + Math.PI / 2;
+  
+  const offsetDistance = stop.type === 'character' ? 0 : 
+                        stop.type === 'textColor' ? 15 : 30;
+  
+  const offsetX = Math.cos(perpAngle) * offsetDistance;
+  const offsetY = Math.sin(perpAngle) * offsetDistance;
+  
+  const finalX = x + offsetX;
+  const finalY = y + offsetY;
+  
+  return (
+    <g>
+      {/* Connection line to gradient line */}
+      {offsetDistance > 0 && (
+        <line
+          x1={x}
+          y1={y}
+          x2={finalX}
+          y2={finalY}
+          stroke="white"
+          strokeWidth="1"
+          opacity="0.6"
+        />
+      )}
+      
+      {/* Stop marker */}
+      <rect
+        x={finalX - 8}
+        y={finalY - 8}
+        width="16"
+        height="16"
+        fill={stop.type === 'character' ? '#3b82f6' :
+              stop.type === 'textColor' ? '#8b5cf6' : '#f59e0b'}
+        stroke="white"
+        strokeWidth="1"
+        rx="2"
+        className="cursor-pointer"
+      />
+      
+      {/* Stop value display */}
+      <text
+        x={finalX}
+        y={finalY + 2}
+        textAnchor="middle"
+        fontSize="8"
+        fill="white"
+        fontFamily="monospace"
+      >
+        {stop.type === 'character' ? stop.value : '●'}
+      </text>
+    </g>
+  );
+};
+
+// Preview overlay for gradient application
+interface GradientPreviewOverlayProps {
+  previewData: Map<string, any>; // Map<string, Cell>
+  cellWidth: number;
+  cellHeight: number;
+  panOffset: { x: number; y: number };
+}
+
+const GradientPreviewOverlay: React.FC<GradientPreviewOverlayProps> = ({
+  previewData,
+  cellWidth,
+  cellHeight,
+  panOffset
+}) => {
+  return (
+    <div className="absolute inset-0 pointer-events-none opacity-80">
+      {Array.from(previewData.entries()).map(([key, cell]) => {
+        const [x, y] = key.split(',').map(Number);
+        
+        return (
+          <div
+            key={key}
+            className="absolute font-mono flex items-center justify-center"
+            style={{
+              left: x * cellWidth + panOffset.x,
+              top: y * cellHeight + panOffset.y,
+              width: cellWidth,
+              height: cellHeight,
+              color: cell.color,
+              backgroundColor: cell.bgColor === 'transparent' ? 'transparent' : cell.bgColor,
+            }}
+          >
+            {cell.char}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+```
+
+### **Phase 5.5: Integration & Polish**
+
+#### **10. Tool Registration & Hotkey**
+
+**Update Tool Types (`src/types/index.ts`):**
+```typescript
+export type Tool = 
+  | 'pencil' 
+  | 'eraser' 
+  | 'paintbucket' 
+  | 'select' 
+  | 'lasso'
+  | 'magicwand'
+  | 'rectangle' 
+  | 'ellipse'
+  | 'eyedropper'
+  | 'line'
+  | 'text'
+  | 'brush'
+  | 'gradientfill'; // NEW
+```
+
+**Update Hotkeys (`src/constants/hotkeys.ts`):**
+```typescript
+export const TOOL_HOTKEYS: ToolHotkey[] = [
+  // ... existing hotkeys
+  { tool: 'gradientfill', key: 'f', displayName: 'F', description: 'Gradient fill tool hotkey' },
+];
+```
+
+**Update ToolManager (`src/components/features/ToolManager.tsx`):**
+```typescript
+import { GradientFillTool } from '../tools';
+
+export const ToolManager: React.FC = () => {
+  const { activeTool } = useToolStore();
+
+  switch (activeTool) {
+    // ... existing cases
+    case 'gradientfill':
+      return <GradientFillTool />;
+    default:
+      return null;
+  }
+};
+```
+
+**Update ToolStatusManager (`src/components/features/ToolStatusManager.tsx`):**
+```typescript
+import { GradientFillToolStatus } from '../tools';
+
+// Add to switch statement
+case 'gradientfill':
+  return <GradientFillToolStatus />;
+```
+
+**Update ToolPalette (`src/components/features/ToolPalette.tsx`):**
+```typescript
+import { Blend } from 'lucide-react';
+
+const DRAWING_TOOLS = [
+  // ... existing tools
+  { id: 'gradientfill', name: 'Gradient', icon: <Blend className="w-3 h-3" />, description: 'Gradient fill tool' },
+];
+```
+
+#### **11. App Integration**
+
+**Update App.tsx:**
+```typescript
+import { GradientPanel } from './components/features/GradientPanel';
+
+function App() {
+  return (
+    <div className="app">
+      {/* ... existing content */}
+      
+      <CanvasProvider>
+        {/* ... existing content */}
+        <GradientPanel />
+      </CanvasProvider>
+    </div>
+  );
+}
+```
+
+## 🎯 **Implementation Timeline**
+
+### **Phase 5.1: Foundation (Week 1)**
+- [ ] Type definitions and interfaces
+- [ ] Gradient store creation and state management
+- [ ] Tool store integration
+- [ ] Basic gradient engine algorithms
+
+### **Phase 5.2: Core Logic (Week 2)**
+- [ ] Gradient calculation engine
+- [ ] Fill area detection (contiguous/non-contiguous)
+- [ ] Interpolation methods (linear, constant)
+- [ ] Dithering algorithms (Bayer, noise)
+
+### **Phase 5.3: Tool Integration (Week 3)**
+- [ ] GradientFillTool component
+- [ ] useGradientFillTool hook
+- [ ] Canvas interaction handlers
+- [ ] Undo/redo integration
+
+### **Phase 5.4: UI Components (Week 4)**
+- [ ] GradientPanel main component
+- [ ] Property editors with stop management
+- [ ] Interactive overlays and visual controls
+- [ ] Character/color picker integration
+
+### **Phase 5.5: Polish & Integration (Week 5)**
+- [ ] Tool registration and hotkey assignment
+- [ ] ToolManager and ToolStatusManager updates
+- [ ] ToolPalette integration
+- [ ] App-level integration and testing
+
+### **Phase 5.6: Testing & Refinement (Week 6)**
+- [ ] End-to-end workflow testing
+- [ ] Performance optimization
+- [ ] Edge case handling
+- [ ] Documentation updates
+
+## 🧪 **Testing Checklist**
+
+### **Core Functionality**
+- [ ] Linear and radial gradients render correctly
+- [ ] All interpolation methods work as expected
+- [ ] Contiguous and non-contiguous fill modes work
+- [ ] Matching criteria (char, color, bgColor) function properly
+- [ ] Undo/redo properly restores previous state
+
+### **Interactive Controls**
+- [ ] Start/end point positioning works on first and second click
+- [ ] Dotted line overlay appears between points
+- [ ] Gradient stops display correctly along line
+- [ ] Stop positioning respects perpendicular offset stacking
+- [ ] Enter applies gradient, Escape cancels
+
+### **UI Integration**
+- [ ] Panel opens automatically when tool selected
+- [ ] Panel closes when different tool selected
+- [ ] All property editors expand/collapse properly
+- [ ] Stop addition/removal works within 8-stop limit
+- [ ] Default values initialize correctly
+
+### **Edge Cases**
+- [ ] Empty canvas areas handle gracefully
+- [ ] Transparent background color handled properly
+- [ ] Very short gradient lines work correctly
+- [ ] Overlapping stops position correctly
+- [ ] Memory management for large fill areas
+
+## 🎨 **Design Patterns**
+
+This implementation follows established ASCII Motion patterns:
+
+- **Tool Architecture**: 9-step tool creation pattern with dedicated hook
+- **State Management**: Zustand store with clean action interfaces
+- **UI Components**: Shadcn/ui components with consistent styling
+- **Panel System**: Right-slide overlay matching MediaImportPanel
+- **Canvas Integration**: Context-based rendering with zoom/pan support
+- **History System**: Full undo/redo integration with useAnimationHistory
+- **Typography Support**: Respects canvas typography settings
+
+The gradient fill tool will integrate seamlessly with existing architecture while providing powerful new creative capabilities for ASCII art creation.
+
 ## Contributing
 
 Follow the component structure and Copilot instructions in `COPILOT_INSTRUCTIONS.md` for consistent code organization.
