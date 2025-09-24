@@ -26,6 +26,7 @@ import {
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
 import { GradientIcon } from '../icons';
 import { GradientStopPicker } from './GradientStopPicker';
+import { PANEL_ANIMATION } from '../../constants';
 import { 
   X,
   Plus,
@@ -43,7 +44,7 @@ import { useToolStore } from '../../stores/toolStore';
 import type { GradientProperty, InterpolationMethod, GradientType } from '../../types';
 
 export function GradientPanel() {
-  const { activeTool, selectedChar, selectedColor, selectedBgColor } = useToolStore();
+  const { activeTool, selectedChar, selectedColor, selectedBgColor, setActiveTool } = useToolStore();
   const { 
     isOpen, 
     setIsOpen, 
@@ -54,6 +55,29 @@ export function GradientPanel() {
     removeStop,
     updateStop
   } = useGradientStore();
+
+  // Animation state to handle transitions properly
+  const [shouldRender, setShouldRender] = useState(isOpen);
+  const [isAnimating, setIsAnimating] = useState(isOpen);
+
+  // Handle panel animation states
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+      // Trigger animation on next frame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        setIsAnimating(true);
+      });
+    } else if (shouldRender) {
+      // Only start exit animation if panel was previously rendered
+      setIsAnimating(false);
+      // Wait for animation to complete before removing from DOM
+      const timer = setTimeout(() => {
+        setShouldRender(false);
+      }, 300); // Match PANEL_ANIMATION.DURATION
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, shouldRender]);
 
   // Section collapse states
   const [gradientTypeOpen, setGradientTypeOpen] = useState(true);
@@ -281,10 +305,14 @@ export function GradientPanel() {
   );
 
   return (
-    <div className={cn(
-      "fixed inset-y-0 right-0 w-80 bg-background border-l border-border shadow-lg z-50 flex flex-col overflow-hidden transition-transform duration-300 ease-in-out",
-      isOpen ? "translate-x-0" : "translate-x-full"
-    )}>
+    <>
+      {/* Render panel only when it should be visible or animating */}
+      {shouldRender && (
+        <div className={cn(
+          "fixed inset-y-0 right-0 w-80 bg-background border-l border-border shadow-lg z-50 flex flex-col overflow-hidden",
+          PANEL_ANIMATION.TRANSITION,
+          isAnimating ? "translate-x-0" : "translate-x-full"
+        )}>
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border">
         <h2 className="text-sm font-medium flex items-center gap-2">
@@ -292,7 +320,10 @@ export function GradientPanel() {
           Gradient Fill
         </h2>
         <Button
-          onClick={() => setIsOpen(false)}
+          onClick={() => {
+            setIsOpen(false);
+            setActiveTool('pencil');
+          }}
           variant="ghost"
           size="sm"
           className="h-6 w-6 p-0"
@@ -429,6 +460,8 @@ export function GradientPanel() {
         initialValue={pickerInitialValue}
         type={pickerType}
       />
-    </div>
+        </div>
+      )}
+    </>
   );
 }
