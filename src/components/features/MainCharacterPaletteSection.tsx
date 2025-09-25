@@ -21,14 +21,11 @@ import {
 import { 
   Collapsible,
   CollapsibleContent,
-  CollapsibleTrigger,
 } from '../ui/collapsible';
 
 import {
   ArrowLeft,
   ArrowRight,
-  ChevronDown,
-  ChevronUp,
   GripVertical,
   Plus,
   Settings,
@@ -54,7 +51,6 @@ interface MainCharacterPaletteSectionProps {
 
 export function MainCharacterPaletteSection({ className = '' }: MainCharacterPaletteSectionProps) {
   const [isOpen, setIsOpen] = useState(true);
-  const [isCharacterSectionOpen, setIsCharacterSectionOpen] = useState(true);
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -63,10 +59,9 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
   const [isCharacterPickerOpen, setIsCharacterPickerOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
-  const [pickerTriggerSource, setPickerTriggerSource] = useState<'edit-button' | 'palette-icon' | 'character-preview' | 'palette-swatch'>('palette-icon');
+  const [pickerTriggerSource, setPickerTriggerSource] = useState<'edit-button' | 'palette-icon' | 'palette-swatch'>('palette-icon');
   const [editingCharacterIndex, setEditingCharacterIndex] = useState<number | null>(null);
   const characterPickerTriggerRef = React.useRef<HTMLButtonElement>(null);
-  const characterPreviewRef = React.useRef<HTMLButtonElement>(null);
   const editButtonRef = React.useRef<HTMLButtonElement>(null);
   const paletteContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -106,10 +101,7 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
   };
 
   const handleCharacterSelect = (character: string) => {
-    if (pickerTriggerSource === 'character-preview') {
-      // Update active character (just change selection, don't modify palette)
-      setSelectedChar(character);
-    } else if ((pickerTriggerSource === 'edit-button' || pickerTriggerSource === 'palette-swatch') && editingCharacterIndex !== null) {
+    if ((pickerTriggerSource === 'edit-button' || pickerTriggerSource === 'palette-swatch') && editingCharacterIndex !== null) {
       // Replace the character at editingCharacterIndex
       const targetPalette = ensureCustomPalette();
       const newCharacters = [...targetPalette.characters];
@@ -215,37 +207,6 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
 
   return (
     <div className={`space-y-3 ${className}`}>
-      {/* Character Section - Single character preview and picker */}
-      <Collapsible open={isCharacterSectionOpen} onOpenChange={setIsCharacterSectionOpen}>
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" className="w-full justify-between p-2 h-auto font-medium text-sm">
-            Character
-            {isCharacterSectionOpen ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-3">
-          {/* Large character preview - similar to color selector */}
-          <div className="flex justify-center">
-            <Button
-              ref={characterPreviewRef}
-              variant="outline"
-              className="w-16 h-16 text-3xl font-mono hover:bg-muted transition-colors"
-              onClick={() => {
-                setPickerTriggerSource('character-preview');
-                setIsCharacterPickerOpen(true);
-              }}
-              title={`Active Character: "${selectedChar === ' ' ? 'Space' : selectedChar}" - Click to change`}
-            >
-              {selectedChar === ' ' ? '␣' : selectedChar}
-            </Button>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-
       {/* Character Palette Section */}
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleHeader isOpen={isOpen}>
@@ -419,13 +380,11 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
         onSelectCharacter={handleCharacterSelect}
         triggerRef={
           pickerTriggerSource === 'edit-button' ? editButtonRef :
-          pickerTriggerSource === 'character-preview' ? characterPreviewRef :
           pickerTriggerSource === 'palette-swatch' ? paletteContainerRef :
           characterPickerTriggerRef
         }
         anchorPosition={
           pickerTriggerSource === 'edit-button' ? 'left-bottom-aligned' :
-          pickerTriggerSource === 'character-preview' ? 'bottom-right' :
           'left-bottom'
         }
       />

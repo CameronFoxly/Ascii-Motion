@@ -254,13 +254,33 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
       let top = triggerRect.bottom + 8; // 8px gap below trigger
       let left = triggerRect.left;
       
-      // Ensure picker doesn't go off-screen
+      // Ensure picker doesn't go off-screen horizontally
       if (left + pickerWidth > window.innerWidth) {
         left = window.innerWidth - pickerWidth - 8;
       }
+      
+      // Check if it would go off bottom of screen
       if (top + pickerHeight > window.innerHeight + window.scrollY) {
-        // If it goes off bottom, position above the trigger instead
-        top = triggerRect.top + window.scrollY - pickerHeight - 8;
+        // Try positioning above the trigger instead
+        const topAbove = triggerRect.top + window.scrollY - pickerHeight - 8;
+        
+        // If positioning above would go off the top, use smart positioning
+        if (topAbove < window.scrollY + 8) {
+          // Position it in the viewport with available space
+          const maxTop = Math.max(window.scrollY + 8, triggerRect.bottom + window.scrollY + 8);
+          const maxBottom = window.scrollY + window.innerHeight - 8;
+          
+          // Use the position that gives us the most space
+          if (triggerRect.top > window.innerHeight / 2) {
+            // More space above, position above the trigger
+            top = Math.max(window.scrollY + 8, triggerRect.top + window.scrollY - pickerHeight - 8);
+          } else {
+            // More space below, position below the trigger but constrained
+            top = Math.min(maxTop, maxBottom - pickerHeight);
+          }
+        } else {
+          top = topAbove;
+        }
       }
       
       return {
@@ -273,13 +293,33 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
       let top = triggerRect.bottom + 8; // 8px gap below trigger
       let left = triggerRect.right - pickerWidth;
       
-      // Ensure picker doesn't go off-screen
+      // Ensure picker doesn't go off-screen horizontally
       if (left < 8) {
         left = 8;
       }
+      
+      // Check if it would go off bottom of screen
       if (top + pickerHeight > window.innerHeight + window.scrollY) {
-        // If it goes off bottom, position above the trigger instead
-        top = triggerRect.top + window.scrollY - pickerHeight - 8;
+        // Try positioning above the trigger instead
+        const topAbove = triggerRect.top + window.scrollY - pickerHeight - 8;
+        
+        // If positioning above would go off the top, use smart positioning
+        if (topAbove < window.scrollY + 8) {
+          // Position it in the viewport with available space
+          const maxTop = Math.max(window.scrollY + 8, triggerRect.bottom + window.scrollY + 8);
+          const maxBottom = window.scrollY + window.innerHeight - 8;
+          
+          // Use the position that gives us the most space
+          if (triggerRect.top > window.innerHeight / 2) {
+            // More space above, position above the trigger
+            top = Math.max(window.scrollY + 8, triggerRect.top + window.scrollY - pickerHeight - 8);
+          } else {
+            // More space below, position below the trigger but constrained
+            top = Math.min(maxTop, maxBottom - pickerHeight);
+          }
+        } else {
+          top = topAbove;
+        }
       }
       
       return {

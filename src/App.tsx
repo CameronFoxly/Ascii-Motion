@@ -10,6 +10,7 @@ import { PanelToggleButton } from './components/common/PanelToggleButton'
 import { ToolPalette } from './components/features/ToolPalette'
 import { MainCharacterPaletteSection } from './components/features/MainCharacterPaletteSection'
 import { ColorPicker } from './components/features/ColorPicker'
+import { ActiveStyleSection } from './components/features/ActiveStyleSection'
 import { CanvasSettings } from './components/features/CanvasSettings'
 import { AnimationTimeline } from './components/features/AnimationTimeline'
 import { PlaybackOverlay } from './components/features/PlaybackOverlay'
@@ -116,6 +117,12 @@ function App() {
                 minWidth="w-56"
               >
                 <div className="space-y-3">
+                  <ActiveStyleSection />
+                  
+                  <div className="relative -mx-4 h-px">
+                    <Separator className="absolute inset-0" />
+                  </div>
+                  
                   <MainCharacterPaletteSection />
                   
                   <div className="relative -mx-4 h-px">

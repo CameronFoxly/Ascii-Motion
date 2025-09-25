@@ -194,22 +194,6 @@ export const ForegroundBackgroundSelector: React.FC<ForegroundBackgroundSelector
             </Tooltip>
           </div>
         </div>
-
-        {/* Color values display */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs">
-            <Type className="w-3 h-3 text-muted-foreground" />
-            <span className="font-medium">Foreground:</span>
-            <span className="font-mono text-muted-foreground">{selectedColor}</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <Palette className="w-3 h-3 text-muted-foreground" />
-            <span className="font-medium">Background:</span>
-            <span className="font-mono text-muted-foreground">
-              {isBackgroundTransparent ? 'transparent' : selectedBgColor}
-            </span>
-          </div>
-        </div>
       </div>
     </TooltipProvider>
   );

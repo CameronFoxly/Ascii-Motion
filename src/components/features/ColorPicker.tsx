@@ -5,12 +5,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { Palette, Type, Settings, Plus, Trash2, ChevronLeft, ChevronRight, Upload, Download } from 'lucide-react';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
-import { ForegroundBackgroundSelector } from './ForegroundBackgroundSelector';
 import { ColorPickerOverlay } from './ColorPickerOverlay';
 import { ImportPaletteDialog } from './ImportPaletteDialog';
 import { ExportPaletteDialog } from './ExportPaletteDialog';
@@ -54,7 +52,6 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
   const [isManagePalettesOpen, setIsManagePalettesOpen] = useState(false);
   
   // Collapsible section states
-  const [isColorSectionOpen, setIsColorSectionOpen] = useState(true);
   const [isPaletteSectionOpen, setIsPaletteSectionOpen] = useState(true);
 
   // Initialize palette store on mount (ensure default palettes are loaded)
@@ -194,22 +191,19 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
   };
 
   // Handle color double-click to edit
-  const handleColorDoubleClick = (color: string) => {
+  const handleColorDoubleClick = (color: string, event: React.MouseEvent<HTMLElement>) => {
     if (activePalette) {
       const colorItem = activeColors.find(c => c.value === color);
       setEditingColorId(colorItem?.id || null);
       setColorPickerMode('palette');
       setColorPickerInitialColor(color);
+      
+      // Create a ref from the clicked element
+      const elementRef = { current: event.currentTarget };
+      setColorPickerTriggerRef(elementRef);
+      
       setIsColorPickerOpen(true);
     }
-  };
-
-  // Handle opening color picker from foreground/background selector
-  const handleOpenColorPicker = (mode: 'foreground' | 'background', currentColor: string, triggerRef?: React.RefObject<HTMLElement | null>) => {
-    setColorPickerMode(mode);
-    setColorPickerInitialColor(currentColor);
-    setColorPickerTriggerRef(triggerRef || undefined);
-    setIsColorPickerOpen(true);
   };
 
   // Handle color picker selection
@@ -245,25 +239,10 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
 
   return (
     <div className={`space-y-3 ${className}`}>
-      {/* Color Section */}
-      <Collapsible open={isColorSectionOpen} onOpenChange={setIsColorSectionOpen}>
-        <CollapsibleHeader isOpen={isColorSectionOpen}>
-          Color
-        </CollapsibleHeader>
-        <CollapsibleContent className="collapsible-content space-y-3">
-          {/* Photoshop-style foreground/background selector */}
-          <ForegroundBackgroundSelector onOpenColorPicker={handleOpenColorPicker} />
-        </CollapsibleContent>
-      </Collapsible>
-
-      <div className="relative -mx-4 h-px">
-        <Separator className="absolute inset-0" />
-      </div>
-
-      {/* Palette Section */}
+      {/* Color Palette Section */}
       <Collapsible open={isPaletteSectionOpen} onOpenChange={setIsPaletteSectionOpen}>
         <CollapsibleHeader isOpen={isPaletteSectionOpen}>
-          Palette
+          Color Palette
         </CollapsibleHeader>
         <CollapsibleContent className="collapsible-content space-y-3">
           {/* Palette selector with inline buttons */}
@@ -375,7 +354,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                             handleColorSelect(color.value, false);
                             handleColorPaletteSelect(color.id);
                           }}
-                          onDoubleClick={() => handleColorDoubleClick(color.value)}
+                          onDoubleClick={(e) => handleColorDoubleClick(color.value, e)}
                           onDragStart={(e) => handleDragStart(e, color.id)}
                           onDragOver={(e) => handleDragOver(e, color.id)}
                           onDrop={(e) => handleDrop(e, color.id)}
@@ -434,7 +413,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                               handleColorSelect(color.value, true);
                               handleColorPaletteSelect(color.id);
                             }}
-                            onDoubleClick={() => !isTransparent && handleColorDoubleClick(color.value)}
+                            onDoubleClick={(e) => !isTransparent && handleColorDoubleClick(color.value, e)}
                             onDragStart={(e) => handleDragStart(e, color.id)}
                             onDragOver={(e) => handleDragOver(e, color.id)}
                             onDrop={(e) => handleDrop(e, color.id)}
@@ -633,7 +612,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
         }
         showTransparentOption={colorPickerMode === 'background'}
         triggerRef={colorPickerTriggerRef}
-        anchorPosition="left-slide"
+        anchorPosition="bottom-right"
       />
 
       {/* Import/Export Dialogs */}
