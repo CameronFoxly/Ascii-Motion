@@ -8,7 +8,7 @@ import { ThemeToggle } from './components/common/ThemeToggle'
 import { CollapsiblePanel } from './components/common/CollapsiblePanel'
 import { PanelToggleButton } from './components/common/PanelToggleButton'
 import { ToolPalette } from './components/features/ToolPalette'
-import { CharacterPalette } from './components/features/CharacterPalette'
+import { MainCharacterPaletteSection } from './components/features/MainCharacterPaletteSection'
 import { ColorPicker } from './components/features/ColorPicker'
 import { CanvasSettings } from './components/features/CanvasSettings'
 import { AnimationTimeline } from './components/features/AnimationTimeline'
@@ -116,7 +116,7 @@ function App() {
                 minWidth="w-56"
               >
                 <div className="space-y-3">
-                  <CharacterPalette />
+                  <MainCharacterPaletteSection />
                   
                   <div className="relative -mx-4 h-px">
                     <Separator className="absolute inset-0" />
