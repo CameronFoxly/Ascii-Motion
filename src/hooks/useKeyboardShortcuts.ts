@@ -101,6 +101,16 @@ const processHistoryAction = (
       }
       break;
       
+    case 'navigate_frame':
+      if (isRedo) {
+        // Redo: Go to the new frame index
+        animationStore.setCurrentFrame(action.data.newFrameIndex);
+      } else {
+        // Undo: Go back to the previous frame index
+        animationStore.setCurrentFrame(action.data.previousFrameIndex);
+      }
+      break;
+      
     default:
       console.warn('Unknown history action type:', (action as any).type);
   }
