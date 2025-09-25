@@ -8,7 +8,8 @@ A web app for creating and animating ASCII/ANSI art.
 Current deployed version:
 https://ascii-motion.app
 
-<img width="2594" height="1702" alt="Screenshot of the ASCII Motion App" src="https://github.com/user-attachments/assets/c3b54321-ffe1-42e1-a412-f425995274c5" /></br>
+<img width="2610" height="1758" alt="Screenshot of the ASCII Motion app UI" src="https://github.com/user-attachments/assets/e2be1571-c322-4c8f-bdef-10ab01eb9a05" />
+</br>
 
 ## 🎨 Current Features
 
