@@ -52,6 +52,7 @@ interface GradientStore {
     index: number, 
     update: Partial<GradientStop>
   ) => void;
+  sortStops: (property: 'character' | 'textColor' | 'backgroundColor') => void;
   
   // Application state
   setApplying: (isApplying: boolean) => void;
@@ -175,7 +176,7 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
         ...state.definition,
         [property]: {
           ...state.definition[property],
-          stops: [...state.definition[property].stops, newStop]
+          stops: [...state.definition[property].stops, newStop].sort((a, b) => a.position - b.position)
         }
       }
     }));
@@ -185,7 +186,7 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
     const state = get();
     const currentProperty = state.definition[property];
     
-    if (currentProperty.stops.length <= 2) return; // Minimum 2 stops
+    if (currentProperty.stops.length <= 1) return; // Minimum 1 stop
     
     set((state) => ({
       definition: {
@@ -214,6 +215,22 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
         }
       }
     }));
+  },
+
+  sortStops: (property: 'character' | 'textColor' | 'backgroundColor') => {
+    set((state) => {
+      const propertyState = state.definition[property];
+      const sortedStops = [...propertyState.stops].sort((a, b) => a.position - b.position);
+      return {
+        definition: {
+          ...state.definition,
+          [property]: {
+            ...propertyState,
+            stops: sortedStops
+          }
+        }
+      };
+    });
   },
 
   // Application state actions
@@ -362,7 +379,26 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
   },
 
   endDrag: () => {
+    const state = get();
+    const { dragState } = state;
     set({ dragState: null });
+
+    if (dragState?.dragType === 'stop' && dragState.dragData?.property) {
+      const property = dragState.dragData.property;
+      set((current) => {
+        const propertyState = current.definition[property];
+        const sortedStops = [...propertyState.stops].sort((a, b) => a.position - b.position);
+        return {
+          definition: {
+            ...current.definition,
+            [property]: {
+              ...propertyState,
+              stops: sortedStops
+            }
+          }
+        };
+      });
+    }
   },
 
   // Utility actions

@@ -9,7 +9,7 @@
  * - Multiple interpolation methods and gradient types
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '../ui/separator';
@@ -18,6 +18,7 @@ import { Switch } from '../ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Slider } from '../ui/slider';
 import { Input } from '../ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { 
   Collapsible,
   CollapsibleContent,
@@ -48,6 +49,22 @@ const parseTailwindDuration = (token: string): number | null => {
   return match ? Number(match[1]) : null;
 };
 
+const sanitizeHexInput = (value: string): string => {
+  let sanitized = value.replace(/[^#0-9A-Fa-f]/g, '').toUpperCase();
+
+  if (!sanitized.startsWith('#')) {
+    sanitized = '#' + sanitized.replace(/#/g, '');
+  } else {
+    sanitized = '#' + sanitized.slice(1).replace(/#/g, '');
+  }
+
+  if (sanitized.length > 7) {
+    sanitized = sanitized.slice(0, 7);
+  }
+
+  return sanitized;
+};
+
 export function GradientPanel() {
   const { activeTool, selectedChar, selectedColor, selectedBgColor, setActiveTool } = useToolStore();
   const { 
@@ -58,7 +75,8 @@ export function GradientPanel() {
     updateProperty,
     addStop,
     removeStop,
-    updateStop
+    updateStop,
+    sortStops
   } = useGradientStore();
 
   const animationDurationMs = useMemo(
@@ -147,7 +165,34 @@ export function GradientPanel() {
     stopIndex: number,
     value: string
   ) => {
-    updateStop(property, stopIndex, { value });
+    if (property === 'character') {
+      updateStop(property, stopIndex, { value });
+      return;
+    }
+
+    if (property === 'backgroundColor' && value.trim().toLowerCase() === 'transparent') {
+      updateStop(property, stopIndex, { value: 'transparent' });
+      return;
+    }
+
+    const sanitized = sanitizeHexInput(value);
+    updateStop(property, stopIndex, { value: sanitized });
+  };
+
+  const handleStopPositionCommit = (
+    property: 'character' | 'textColor' | 'backgroundColor'
+  ) => {
+    sortStops(property);
+  };
+
+  const handleStopSliderKeyUp = (
+    event: KeyboardEvent<HTMLInputElement>,
+    property: 'character' | 'textColor' | 'backgroundColor'
+  ) => {
+    const commitKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+    if (commitKeys.includes(event.key)) {
+      sortStops(property);
+    }
   };
 
   const openStopPicker = (
@@ -233,7 +278,7 @@ export function GradientPanel() {
                 </div>
               </div>
               
-              <div className="space-y-2 max-h-40 overflow-y-auto">
+              <div className="space-y-2">
                 {property.stops.map((stop, index) => (
                   <div key={index} className="flex items-center gap-2 p-2 border border-border rounded bg-card">
                     {/* Position Slider */}
@@ -243,52 +288,75 @@ export function GradientPanel() {
                           {Math.round(stop.position * 100)}%
                         </Label>
                         <Slider
-                          value={stop.position * 100}
+                          value={Math.round(stop.position * 100)}
                           onValueChange={(value: number) => handleStopPositionChange(propertyKey, index, value)}
                           min={0}
                           max={100}
                           step={1}
                           className="flex-1"
+                          onMouseUp={() => handleStopPositionCommit(propertyKey)}
+                          onTouchEnd={() => handleStopPositionCommit(propertyKey)}
+                          onKeyUp={(event) => handleStopSliderKeyUp(event, propertyKey)}
                         />
                       </div>
                     </div>
                     
                     {/* Value Preview */}
                     {propertyKey !== 'character' && (
-                      <div
-                        className="w-6 h-6 rounded border border-border flex-shrink-0"
-                        style={{ backgroundColor: stop.value === 'transparent' ? 'transparent' : stop.value }}
-                        title={stop.value}
-                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="w-8 h-8 rounded border-2 border-border flex-shrink-0 transition-all focus:outline-none focus:ring-2 focus:ring-white/90 focus:ring-offset-2 focus:ring-offset-background hover:shadow-[0_0_0_2px_rgba(255,255,255,0.85)]"
+                            onClick={() => openStopPicker(propertyKey, index)}
+                            style={{
+                              backgroundColor: stop.value === 'transparent' ? 'transparent' : stop.value,
+                              backgroundImage: stop.value === 'transparent'
+                                ? 'linear-gradient(45deg, rgba(255,255,255,0.35) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.35) 75%), linear-gradient(45deg, rgba(255,255,255,0.35) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.35) 75%)'
+                                : undefined,
+                              backgroundPosition: stop.value === 'transparent' ? '0 0, 8px 8px' : undefined,
+                              backgroundSize: stop.value === 'transparent' ? '16px 16px' : undefined
+                            }}
+                            aria-label="Edit color"
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>Edit color</TooltipContent>
+                      </Tooltip>
                     )}
                     
                     {/* Character Preview */}
                     {propertyKey === 'character' && (
-                      <div className="w-6 h-6 text-xs flex items-center justify-center border border-border rounded bg-muted font-mono">
-                        {stop.value || '?'}
-                      </div>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="w-8 h-8 text-xs flex items-center justify-center border-2 border-border rounded bg-muted font-mono transition-all focus:outline-none focus:ring-2 focus:ring-white/90 focus:ring-offset-2 focus:ring-offset-background hover:shadow-[0_0_0_2px_rgba(255,255,255,0.85)]"
+                            onClick={() => openStopPicker(propertyKey, index)}
+                            aria-label="Edit character"
+                          >
+                            {stop.value || '?'}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit character</TooltipContent>
+                      </Tooltip>
                     )}
                     
                     {/* Value Input */}
-                    <div className="w-16">
+                    <div className="w-24">
                       <Input
                         value={stop.value}
                         onChange={(e) => handleStopValueChange(propertyKey, index, e.target.value)}
-                        className="h-6 text-xs text-center font-mono"
+                        className={cn(
+                          "h-7 text-xs text-center font-mono",
+                          propertyKey !== 'character' && 'uppercase'
+                        )}
                         placeholder={propertyKey === 'character' ? 'A' : '#FFF'}
+                        inputMode={propertyKey === 'character' ? 'text' : 'text'}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        spellCheck={false}
                       />
                     </div>
-                    
-                    {/* Open Picker Button */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-6 w-6 p-0"
-                      onClick={() => openStopPicker(propertyKey, index)}
-                      title={`Pick ${propertyKey === 'character' ? 'character' : 'color'}`}
-                    >
-                      <Palette className="w-3 h-3" />
-                    </Button>
                     
                     {/* Remove Button */}
                     <Button
@@ -296,7 +364,7 @@ export function GradientPanel() {
                       size="sm"
                       className="h-6 w-6 p-0"
                       onClick={() => removeStop(propertyKey, index)}
-                      disabled={property.stops.length <= 2}
+                      disabled={property.stops.length <= 1}
                     >
                       <Minus className="w-3 h-3" />
                     </Button>
@@ -311,7 +379,7 @@ export function GradientPanel() {
   );
 
   return (
-    <>
+    <TooltipProvider>
       {/* Render panel only when it should be visible or animating */}
       {shouldRender && (
         <div className={cn(
@@ -319,28 +387,28 @@ export function GradientPanel() {
           PANEL_ANIMATION.TRANSITION,
           isAnimating ? "translate-x-0" : "translate-x-full"
         )}>
-      {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-border">
-        <h2 className="text-sm font-medium flex items-center gap-2">
-          <GradientIcon className="w-3 h-3" />
-          Gradient Fill
-        </h2>
-        <Button
-          onClick={() => {
-            setIsOpen(false);
-            setActiveTool('pencil');
-          }}
-          variant="ghost"
-          size="sm"
-          className="h-6 w-6 p-0"
-        >
-          <X className="w-3 h-3" />
-        </Button>
-      </div>
+          {/* Header */}
+          <div className="flex items-center justify-between p-3 border-b border-border">
+            <h2 className="text-sm font-medium flex items-center gap-2">
+              <GradientIcon className="w-3 h-3" />
+              Gradient Fill
+            </h2>
+            <Button
+              onClick={() => {
+                setIsOpen(false);
+                setActiveTool('pencil');
+              }}
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0"
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          </div>
 
-      {/* Scrollable Content Area */}
-      <ScrollArea className="flex-1">
-        <div className="p-3 space-y-3" style={{ width: '296px', maxWidth: '296px' }}>
+          {/* Scrollable Content Area */}
+          <ScrollArea className="flex-1">
+            <div className="p-3 space-y-3" style={{ width: '296px', maxWidth: '296px' }}>
           
           {/* Gradient Type Section */}
           <Collapsible open={gradientTypeOpen} onOpenChange={setGradientTypeOpen}>
@@ -442,7 +510,7 @@ export function GradientPanel() {
               </div>
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              Use the palette icon to copy these values to gradient stops
+              Click any swatch or character tile in the stops list to edit or copy these values
             </div>
           </div>
 
@@ -455,19 +523,19 @@ export function GradientPanel() {
             <div>• Adjust stops and interpolation methods</div>
           </div>
 
-        </div>
-      </ScrollArea>
+            </div>
+          </ScrollArea>
 
-      {/* Gradient Stop Picker Dialog */}
-      <GradientStopPicker
-        isOpen={pickerOpen}
-        onOpenChange={setPickerOpen}
-        onValueSelect={handlePickerValueSelect}
-        initialValue={pickerInitialValue}
-        type={pickerType}
-      />
+          {/* Gradient Stop Picker Dialog */}
+          <GradientStopPicker
+            isOpen={pickerOpen}
+            onOpenChange={setPickerOpen}
+            onValueSelect={handlePickerValueSelect}
+            initialValue={pickerInitialValue}
+            type={pickerType}
+          />
         </div>
       )}
-    </>
+    </TooltipProvider>
   );
 }
