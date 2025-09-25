@@ -1,12 +1,42 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.10";
-export const BUILD_DATE = "2025-09-24T22:59:11.835Z";
-export const BUILD_HASH = "d85fafa";
+export const VERSION = "0.1.11";
+export const BUILD_DATE = "2025-09-25T07:29:37.490Z";
+export const BUILD_HASH = "5ffdee4";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.11",
+    "date": "2025-09-25T07:29:37.490Z",
+    "commits": [
+      "Clean up logs",
+      "Adding link to app",
+      "Update README with deployed version information",
+      "Updated version control layout.",
+      "Added html and json export imports",
+      "Merge branch 'main' of https://github.com/cameronfoxly/Ascii-Motion",
+      "Merge pull request #9 from CameronFoxly/copilot/fix-d5cd1499-b7bd-4367-a54e-c53b06c9cea9",
+      "Added pixel preview of gradient",
+      "Remove unused NavigateFrameHistoryAction import - fix TypeScript build error",
+      "Merge pull request #7 from CameronFoxly/copilot/fix-ea41f7be-6c92-4275-84df-72aa405e82f4",
+      "Improve navigation history timing - record after successful execution",
+      "Implement frame navigation history tracking to fix undo bug",
+      "Initial analysis of undo bug with timeline",
+      "Initial plan",
+      "Fixed up stops menus",
+      "Address code review feedback: remove unnecessary cursor property from ASCII logo",
+      "Implement UI text selection improvements - make interface text unselectable with ASCII logo exception",
+      "Initial exploration and planning for UI text selection improvements",
+      "Initial plan",
+      "Thicker cotnrol outlines",
+      "Fixed end point rendering bug for gradient",
+      "Fixed exit animation for gradient panel",
+      "Added animation to gradient panel entrance",
+      "Fixed gradient preview visibility"
+    ]
+  },
   {
     "version": "0.1.10",
     "date": "2025-09-24T22:59:11.835Z",

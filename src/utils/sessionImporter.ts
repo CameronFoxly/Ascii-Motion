@@ -188,8 +188,6 @@ export class SessionImporter {
         typographyCallbacks.setLineSpacing(sessionData.typography.lineSpacing);
       }
     }
-    
-    console.log('Session imported successfully');
   }
 }
 

@@ -48,7 +48,6 @@ export const PerformanceMonitor: React.FC = () => {
         const result = await testLargeGridPerformance(size.width, size.height);
         results.push(result);
         
-        console.log(`✅ Test completed: ${result.gridSize} - ${result.avgRenderTime}ms`);
       } catch (error) {
         console.error(`❌ Test failed for ${size.width}x${size.height}:`, error);
       }

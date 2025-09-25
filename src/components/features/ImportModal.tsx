@@ -31,7 +31,6 @@ export const ImportModal: React.FC = () => {
 
     try {
       setIsImporting(true);
-      console.log('Importing session file:', file.name);
       
       // Pass typography callbacks to the import function
       await importSession(file, {
@@ -39,8 +38,6 @@ export const ImportModal: React.FC = () => {
         setCharacterSpacing,
         setLineSpacing
       });
-      
-      console.log('Session imported successfully');
       
       // Reset input and close modal
       event.target.value = '';
