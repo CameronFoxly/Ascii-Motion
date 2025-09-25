@@ -25,6 +25,9 @@ import { PngExportDialog } from './components/features/PngExportDialog'
 import { VideoExportDialog } from './components/features/VideoExportDialog'
 import { SessionExportDialog } from './components/features/SessionExportDialog'
 import { TextExportDialog } from './components/features/TextExportDialog'
+import { JsonExportDialog } from './components/features/JsonExportDialog'
+import { HtmlExportDialog } from './components/features/HtmlExportDialog'
+import { JsonImportDialog } from './components/features/JsonImportDialog'
 import { useLayoutState } from './hooks/useLayoutState'
 import { VersionDisplay } from './components/common/VersionDisplay'
 
@@ -203,6 +206,9 @@ function App() {
           <VideoExportDialog />
           <SessionExportDialog />
           <TextExportDialog />
+          <JsonExportDialog />
+          <HtmlExportDialog />
+          <JsonImportDialog />
         </CanvasProvider>
         
         {/* Performance Overlay for Development */}

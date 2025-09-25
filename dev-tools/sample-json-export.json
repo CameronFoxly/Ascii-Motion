@@ -1,0 +1,72 @@
+{
+  "metadata": {
+    "exportedAt": "2025-09-24T18:30:00.000Z",
+    "exportVersion": "1.0.0",
+    "appVersion": "0.1.10",
+    "description": "ASCII Motion Animation - Human Readable Format",
+    "title": "sample-animation",
+    "frameCount": 3,
+    "canvasSize": {
+      "width": 20,
+      "height": 8
+    }
+  },
+  "canvas": {
+    "width": 20,
+    "height": 8,
+    "backgroundColor": "#000000"
+  },
+  "typography": {
+    "fontSize": 16,
+    "characterSpacing": 0,
+    "lineSpacing": 0
+  },
+  "animation": {
+    "frameRate": 12,
+    "looping": true,
+    "currentFrame": 0
+  },
+  "frames": [
+    {
+      "title": "Frame 0",
+      "duration": 80,
+      "content": "Hello World!",
+      "colors": {
+        "foreground": {
+          "0,0": "#ff0000",
+          "6,0": "#00ff00"
+        }
+      }
+    },
+    {
+      "title": "Frame 1", 
+      "duration": 80,
+      "content": "╔══════════╗\n║ ASCII    ║\n║ MOTION   ║\n╚══════════╝",
+      "colors": {
+        "foreground": {
+          "0,0": "#ffff00",
+          "0,1": "#ffff00",
+          "2,1": "#ff00ff",
+          "8,1": "#ff00ff",
+          "2,2": "#ff00ff",
+          "8,2": "#ff00ff"
+        },
+        "background": {
+          "2,1": "#001122",
+          "8,1": "#001122"
+        }
+      }
+    },
+    {
+      "title": "Frame 2",
+      "duration": 80,
+      "content": "┌─────────┐\n│ EXPORT  │\n│ TEST    │\n└─────────┘\n\n  ★ Cool! ★",
+      "colors": {
+        "foreground": {
+          "2,5": "#ffff00",
+          "8,5": "#ffff00"
+        }
+      }
+    }
+  ]
+}

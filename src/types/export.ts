@@ -2,7 +2,7 @@ import type { Frame, Cell, Tool } from './index';
 import type { FontMetrics } from '../utils/fontMetrics';
 
 // Export format identifiers
-export type ExportFormatId = 'png' | 'mp4' | 'session' | 'media' | 'text';
+export type ExportFormatId = 'png' | 'mp4' | 'session' | 'media' | 'text' | 'json' | 'html';
 
 // Base export format interface
 export interface ExportFormat {
@@ -44,8 +44,23 @@ export interface TextExportSettings {
   includeMetadata: boolean;
 }
 
+export interface JsonExportSettings {
+  includeMetadata: boolean;
+  humanReadable: boolean; // Pretty-print JSON
+  includeEmptyCells: boolean; // Include cells with default values
+}
+
+export interface HtmlExportSettings {
+  includeMetadata: boolean;
+  animationSpeed: number; // 0.1 to 5.0 speed multiplier
+  backgroundColor: string;
+  fontFamily: 'monospace' | 'courier' | 'consolas';
+  fontSize: number; // 8-24px
+  loops: 'infinite' | number; // 'infinite' or specific number
+}
+
 // Union type for all export settings
-export type ExportSettings = PngExportSettings | VideoExportSettings | SessionExportSettings | TextExportSettings;
+export type ExportSettings = PngExportSettings | VideoExportSettings | SessionExportSettings | TextExportSettings | JsonExportSettings | HtmlExportSettings;
 
 // Export data bundle - all data needed for any export
 export interface ExportDataBundle {
@@ -140,6 +155,8 @@ export interface ExportState {
   videoSettings: VideoExportSettings;
   sessionSettings: SessionExportSettings;
   textSettings: TextExportSettings;
+  jsonSettings: JsonExportSettings;
+  htmlSettings: HtmlExportSettings;
   
   // Export history
   history: ExportHistoryEntry[];

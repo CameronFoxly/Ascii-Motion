@@ -5,6 +5,8 @@ import type {
   VideoExportSettings, 
   SessionExportSettings,
   TextExportSettings,
+  JsonExportSettings,
+  HtmlExportSettings,
   ExportProgress 
 } from '../types/export';
 import type { Cell } from '../types';
@@ -276,6 +278,416 @@ export class ExportRenderer {
     } catch (error) {
       console.error('Text export failed:', error);
       throw new Error(`Text export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Export project data as human-readable JSON
+   */
+  async exportJson(
+    data: ExportDataBundle, 
+    settings: JsonExportSettings, 
+    filename: string
+  ): Promise<void> {
+    this.updateProgress('Preparing JSON export...', 0);
+
+    try {
+      this.updateProgress('Serializing project data...', 30);
+
+      // Create frames with text content and separate color data
+      const frames: any[] = [];
+
+      data.frames.forEach((frame, index) => {
+        this.updateProgress(`Processing frame ${index + 1}...`, 30 + (index / data.frames.length) * 40);
+        
+        // Build frame content as text lines
+        const lines: string[] = [];
+        const foregroundColors: { [key: string]: string } = {};
+        const backgroundColors: { [key: string]: string } = {};
+
+        // Process each row
+        for (let y = 0; y < data.canvasDimensions.height; y++) {
+          let line = '';
+          
+          for (let x = 0; x < data.canvasDimensions.width; x++) {
+            const cellKey = `${x},${y}`;
+            const cell = frame.data.get(cellKey);
+            
+            const character = cell?.char || ' ';
+            const fgColor = cell?.color || '#FFFFFF';
+            const bgColor = cell?.bgColor || 'transparent';
+
+            // Add character to line
+            line += character;
+
+            // Store color data only for non-empty/non-space cells
+            if (character !== ' ' && character !== '') {
+              if (fgColor !== '#FFFFFF') {
+                foregroundColors[`${x},${y}`] = fgColor;
+              }
+              if (bgColor !== 'transparent' && bgColor !== '#000000') {
+                backgroundColors[`${x},${y}`] = bgColor;
+              }
+            }
+          }
+          
+          // Remove trailing spaces from line
+          lines.push(line.replace(/\s+$/, ''));
+        }
+
+        // Remove trailing empty lines
+        while (lines.length > 0 && lines[lines.length - 1] === '') {
+          lines.pop();
+        }
+
+        // Create frame object
+        const frameData: any = {
+          title: `Frame ${index}`,
+          duration: frame.duration,
+          content: lines.join('\n')
+        };
+
+        // Add color data if present
+        if (Object.keys(foregroundColors).length > 0 || Object.keys(backgroundColors).length > 0) {
+          frameData.colors = {};
+          
+          if (Object.keys(foregroundColors).length > 0) {
+            frameData.colors.foreground = foregroundColors;
+          }
+          
+          if (Object.keys(backgroundColors).length > 0) {
+            frameData.colors.background = backgroundColors;
+          }
+        }
+
+        frames.push(frameData);
+      });
+
+      // Create the final JSON structure
+      const jsonData: any = {
+        ...(settings.includeMetadata && {
+          metadata: {
+            exportedAt: new Date().toISOString(),
+            exportVersion: '1.0.0',
+            appVersion: data.metadata.version,
+            description: 'ASCII Motion Animation - Human Readable Format',
+            title: filename,
+            frameCount: data.frames.length,
+            canvasSize: {
+              width: data.canvasDimensions.width,
+              height: data.canvasDimensions.height
+            }
+          }
+        }),
+
+        canvas: {
+          width: data.canvasDimensions.width,
+          height: data.canvasDimensions.height,
+          backgroundColor: data.canvasBackgroundColor
+        },
+
+        typography: {
+          fontSize: data.typography.fontSize,
+          characterSpacing: data.typography.characterSpacing,
+          lineSpacing: data.typography.lineSpacing
+        },
+
+        animation: {
+          frameRate: data.frameRate,
+          looping: data.looping,
+          currentFrame: data.currentFrameIndex
+        },
+
+        frames
+      };
+
+      this.updateProgress('Converting to JSON...', 80);
+
+      // Convert to JSON string with formatting
+      const jsonString = settings.humanReadable 
+        ? JSON.stringify(jsonData, null, 2)
+        : JSON.stringify(jsonData);
+      
+      this.updateProgress('Creating file...', 90);
+
+      // Create blob and download
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      saveAs(blob, `${filename}.json`);
+      
+      this.updateProgress('Export complete!', 100);
+    } catch (error) {
+      console.error('JSON export failed:', error);
+      throw new Error(`JSON export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Export animation as standalone HTML file with inline CSS/JS
+   */
+  async exportHtml(
+    data: ExportDataBundle, 
+    settings: HtmlExportSettings, 
+    filename: string
+  ): Promise<void> {
+    this.updateProgress('Preparing HTML export...', 0);
+
+    try {
+      this.updateProgress('Generating HTML structure...', 20);
+
+      // Prepare frame data as JSON for JavaScript
+      const frameDataJson = JSON.stringify(data.frames.map(frame => {
+        const frameGrid: string[][] = [];
+        const colorGrid: string[][] = [];
+        const bgColorGrid: string[][] = [];
+        
+        // Initialize grids
+        for (let y = 0; y < data.canvasDimensions.height; y++) {
+          frameGrid[y] = [];
+          colorGrid[y] = [];
+          bgColorGrid[y] = [];
+          for (let x = 0; x < data.canvasDimensions.width; x++) {
+            const cellKey = `${x},${y}`;
+            const cell = frame.data.get(cellKey);
+            frameGrid[y][x] = cell?.char || ' ';
+            colorGrid[y][x] = cell?.color || '#FFFFFF';
+            bgColorGrid[y][x] = cell?.bgColor || 'transparent';
+          }
+        }
+        
+        return {
+          id: frame.id,
+          name: frame.name,
+          duration: frame.duration,
+          characters: frameGrid,
+          colors: colorGrid,
+          backgrounds: bgColorGrid
+        };
+      }));
+
+      this.updateProgress('Building CSS styles...', 40);
+
+      const animationDuration = (data.frames.reduce((sum, frame) => sum + frame.duration, 0) / 1000) / settings.animationSpeed;
+
+      // Generate complete HTML document
+      const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${filename} - ASCII Motion Animation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: ${settings.backgroundColor};
+            font-family: ${settings.fontFamily}, monospace;
+            font-size: ${settings.fontSize}px;
+            line-height: 1;
+            overflow: auto;
+            color: #FFFFFF;
+        }
+        
+        .animation-container {
+            display: inline-block;
+            white-space: pre;
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 10px;
+            background-color: ${data.canvasBackgroundColor};
+            position: relative;
+        }
+        
+        .frame {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            opacity: 0;
+            white-space: pre;
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+        }
+        
+        .frame.active {
+            opacity: 1;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .controls button {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 16px;
+            margin: 0 4px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        
+        .controls button:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .info {
+            margin-top: 10px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="animation-container" id="animationContainer">
+        <!-- Frames will be inserted here by JavaScript -->
+    </div>
+    
+    <div class="controls">
+        <button onclick="togglePlay()">Play/Pause</button>
+        <button onclick="resetAnimation()">Reset</button>
+        <button onclick="changeSpeed(0.5)">0.5x</button>
+        <button onclick="changeSpeed(1)">1x</button>
+        <button onclick="changeSpeed(2)">2x</button>
+    </div>
+    
+    <div class="info">
+        ${settings.includeMetadata ? `
+        <div>ASCII Motion Animation</div>
+        <div>Frames: ${data.frames.length} | Duration: ${animationDuration.toFixed(1)}s</div>
+        <div>Resolution: ${data.canvasDimensions.width}×${data.canvasDimensions.height}</div>
+        <div>Exported: ${new Date().toLocaleDateString()}</div>
+        ` : ''}
+    </div>
+
+    <script>
+        const frameData = ${frameDataJson};
+        let currentFrameIndex = 0;
+        let animationInterval;
+        let isPlaying = true;
+        let speedMultiplier = ${settings.animationSpeed};
+        
+        // Create frame elements
+        function initializeFrames() {
+            const container = document.getElementById('animationContainer');
+            
+            frameData.forEach((frame, index) => {
+                const frameDiv = document.createElement('div');
+                frameDiv.className = 'frame';
+                frameDiv.id = 'frame-' + index;
+                
+                // Build frame content with proper styling
+                let frameContent = '';
+                for (let y = 0; y < frame.characters.length; y++) {
+                    for (let x = 0; x < frame.characters[y].length; x++) {
+                        const char = frame.characters[y][x];
+                        const color = frame.colors[y][x];
+                        const bgColor = frame.backgrounds[y][x];
+                        
+                        if (char !== ' ' || bgColor !== 'transparent') {
+                            const span = '<span style="color: ' + color + 
+                                       (bgColor !== 'transparent' ? '; background-color: ' + bgColor : '') +
+                                       '">' + (char === ' ' ? '&nbsp;' : char.replace(/</g, '&lt;').replace(/>/g, '&gt;')) + '</span>';
+                            frameContent += span;
+                        } else {
+                            frameContent += '&nbsp;';
+                        }
+                    }
+                    if (y < frame.characters.length - 1) {
+                        frameContent += '\\n';
+                    }
+                }
+                
+                frameDiv.innerHTML = frameContent;
+                container.appendChild(frameDiv);
+            });
+        }
+        
+        function showFrame(index) {
+            // Hide all frames
+            document.querySelectorAll('.frame').forEach(frame => {
+                frame.classList.remove('active');
+            });
+            
+            // Show current frame
+            const currentFrame = document.getElementById('frame-' + index);
+            if (currentFrame) {
+                currentFrame.classList.add('active');
+            }
+        }
+        
+        function nextFrame() {
+            if (frameData.length === 0) return;
+            
+            const currentFrame = frameData[currentFrameIndex];
+            const frameDuration = currentFrame.duration / speedMultiplier;
+            
+            showFrame(currentFrameIndex);
+            currentFrameIndex = (currentFrameIndex + 1) % frameData.length;
+            
+            if (isPlaying) {
+                animationInterval = setTimeout(nextFrame, frameDuration);
+            }
+        }
+        
+        function startAnimation() {
+            if (!isPlaying) {
+                isPlaying = true;
+                nextFrame();
+            }
+        }
+        
+        function stopAnimation() {
+            isPlaying = false;
+            if (animationInterval) {
+                clearTimeout(animationInterval);
+            }
+        }
+        
+        function togglePlay() {
+            if (isPlaying) {
+                stopAnimation();
+            } else {
+                startAnimation();
+            }
+        }
+        
+        function resetAnimation() {
+            stopAnimation();
+            currentFrameIndex = 0;
+            showFrame(0);
+        }
+        
+        function changeSpeed(multiplier) {
+            speedMultiplier = multiplier;
+            if (isPlaying) {
+                stopAnimation();
+                startAnimation();
+            }
+        }
+        
+        // Initialize the animation
+        window.onload = function() {
+            initializeFrames();
+            if (frameData.length > 0) {
+                showFrame(0);
+                setTimeout(startAnimation, 500); // Small delay before starting
+            }
+        };
+    </script>
+</body>
+</html>`;
+
+      this.updateProgress('Creating file...', 90);
+
+      // Create blob and download
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      saveAs(blob, `${filename}.html`);
+      
+      this.updateProgress('Export complete!', 100);
+    } catch (error) {
+      console.error('HTML export failed:', error);
+      throw new Error(`HTML export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

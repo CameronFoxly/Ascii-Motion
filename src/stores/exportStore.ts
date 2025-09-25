@@ -7,6 +7,8 @@ import type {
   VideoExportSettings, 
   SessionExportSettings,
   TextExportSettings,
+  JsonExportSettings,
+  HtmlExportSettings,
   ExportHistoryEntry 
 } from '../types/export';
 
@@ -25,6 +27,8 @@ interface ExportActions {
   setVideoSettings: (settings: Partial<VideoExportSettings>) => void;
   setSessionSettings: (settings: Partial<SessionExportSettings>) => void;
   setTextSettings: (settings: Partial<TextExportSettings>) => void;
+  setJsonSettings: (settings: Partial<JsonExportSettings>) => void;
+  setHtmlSettings: (settings: Partial<HtmlExportSettings>) => void;
   
   // History management
   addToHistory: (entry: ExportHistoryEntry) => void;
@@ -63,6 +67,21 @@ const DEFAULT_TEXT_SETTINGS: TextExportSettings = {
   includeMetadata: false,
 };
 
+const DEFAULT_JSON_SETTINGS: JsonExportSettings = {
+  includeMetadata: true,
+  humanReadable: true, // Pretty-print JSON for readability
+  includeEmptyCells: false, // Don't include default/empty cells to reduce file size
+};
+
+const DEFAULT_HTML_SETTINGS: HtmlExportSettings = {
+  includeMetadata: true,
+  animationSpeed: 1.0, // Normal speed
+  backgroundColor: '#000000', // Black background
+  fontFamily: 'monospace', // Standard monospace
+  fontSize: 14, // 14px default size
+  loops: 'infinite', // Loop infinitely
+};
+
 export const useExportStore = create<ExportStoreState>((set, get) => ({
   // Initial state
   activeFormat: null,
@@ -74,6 +93,8 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
   videoSettings: DEFAULT_VIDEO_SETTINGS,
   sessionSettings: DEFAULT_SESSION_SETTINGS,
   textSettings: DEFAULT_TEXT_SETTINGS,
+  jsonSettings: DEFAULT_JSON_SETTINGS,
+  htmlSettings: DEFAULT_HTML_SETTINGS,
   
   // UI state - updated for dropdown UX
   showExportModal: false, // Now used for format-specific dialogs
@@ -135,6 +156,18 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
     }));
   },
   
+  setJsonSettings: (settings: Partial<JsonExportSettings>) => {
+    set((state) => ({
+      jsonSettings: { ...state.jsonSettings, ...settings }
+    }));
+  },
+  
+  setHtmlSettings: (settings: Partial<HtmlExportSettings>) => {
+    set((state) => ({
+      htmlSettings: { ...state.htmlSettings, ...settings }
+    }));
+  },
+  
   addToHistory: (entry: ExportHistoryEntry) => {
     set((state) => ({
       history: [entry, ...state.history].slice(0, 10) // Keep last 10 exports
@@ -165,6 +198,10 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
         return state.sessionSettings;
       case 'text':
         return state.textSettings;
+      case 'json':
+        return state.jsonSettings;
+      case 'html':
+        return state.htmlSettings;
       default:
         return null;
     }

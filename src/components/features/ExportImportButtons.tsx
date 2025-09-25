@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 
-import { Download, Upload, FileImage, Film, Save, FileText, ChevronDown } from 'lucide-react';
+import { Download, Upload, FileImage, Film, Save, FileText, ChevronDown, Globe } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
 import { useImportModal } from '../../stores/importStore';
 import type { ExportFormatId } from '../../types/export';
@@ -33,6 +33,18 @@ const EXPORT_OPTIONS = [
     icon: Save,
   },
   {
+    id: 'json' as ExportFormatId,
+    name: 'JSON Data',
+    description: 'Human-readable format',
+    icon: FileText,
+  },
+  {
+    id: 'html' as ExportFormatId,
+    name: 'HTML Animation',
+    description: 'Standalone webpage',
+    icon: Globe,
+  },
+  {
     id: 'text' as ExportFormatId,
     name: 'Simple Text',
     description: 'Character data as txt file',
@@ -53,6 +65,12 @@ const IMPORT_OPTIONS = [
     name: 'Session File',
     description: 'Load complete project',
     icon: Save,
+  },
+  {
+    id: 'json' as ExportFormatId,
+    name: 'JSON Data',
+    description: 'Load JSON project',
+    icon: FileText,
   },
 ];
 
@@ -76,7 +94,7 @@ export const ExportImportButtons: React.FC = () => {
       // Use new media import modal
       openMediaImportModal();
     } else {
-      // Use existing session import modal
+      // Use existing session or json import modals
       setActiveFormat(formatId);
       setShowImportModal(true);
     }
