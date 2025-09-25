@@ -22,6 +22,8 @@ export const InteractiveGradientOverlay: React.FC = () => {
   const stopOffsetBase = 24;
   const stopSize = 18;
   const stopHitRadius = stopSize / 2 + 2;
+  const controlBorderColor = '#1f2937';
+  const controlOuterStrokeColor = '#ffffff';
   const displayEndPoint = endPoint ?? hoverEndPoint;
 
   const effectiveCellWidth = cellWidth * zoom;
@@ -197,7 +199,8 @@ export const InteractiveGradientOverlay: React.FC = () => {
           left: startPixelX,
           top: startPixelY,
           backgroundColor: '#ffffff',
-          borderColor: '#1f2937',
+          borderColor: controlBorderColor,
+          boxShadow: `0 0 0 1px ${controlOuterStrokeColor}`,
           pointerEvents: dragState?.isDragging ? 'none' : 'auto'
         }}
         onMouseDown={(e) => {
@@ -251,7 +254,8 @@ export const InteractiveGradientOverlay: React.FC = () => {
             left: endPixelX,
             top: endPixelY,
             backgroundColor: '#ffffff',
-            borderColor: '#1f2937',
+            borderColor: controlBorderColor,
+            boxShadow: `0 0 0 1px ${controlOuterStrokeColor}`,
             pointerEvents: dragState?.isDragging || !endPoint ? 'none' : 'auto'
           }}
         />
@@ -315,9 +319,10 @@ export const InteractiveGradientOverlay: React.FC = () => {
               width: stopSize,
               height: stopSize,
               backgroundColor: markerBackground,
-              borderColor: 'hsl(var(--border))',
+              borderColor: controlBorderColor,
               borderRadius: 4,
-              borderWidth: 1,
+              borderWidth: 2,
+              boxShadow: `0 0 0 1px ${controlOuterStrokeColor}`,
               pointerEvents: dragState?.isDragging ? 'none' : 'auto'
             }}
           />
