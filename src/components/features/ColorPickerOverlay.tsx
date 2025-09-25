@@ -31,7 +31,7 @@ interface ColorPickerOverlayProps {
   title?: string;
   showTransparentOption?: boolean; // whether to show the transparent quick-set button
   triggerRef?: React.RefObject<HTMLElement | null>; // Reference to trigger element for positioning
-  anchorPosition?: 'left-slide' | 'right-slide' | 'bottom-left' | 'bottom-right';
+  anchorPosition?: 'left-slide' | 'right-slide' | 'bottom-left' | 'bottom-right' | 'gradient-panel';
 }
 
 export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
@@ -179,13 +179,32 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
 
   // Position calculation
   const getPickerPosition = () => {
-    if (!triggerRef?.current) return { top: 100, left: 100 };
-    
-    const triggerRect = triggerRef.current.getBoundingClientRect();
     const pickerWidth = 400;
     const pickerHeight = 600;
     
-    // Center the picker vertically in the viewport
+    // Special handling for gradient panel
+    if (anchorPosition === 'gradient-panel') {
+      // Center the picker vertically in the viewport
+      const viewportHeight = window.innerHeight;
+      const top = Math.max(8, (viewportHeight - pickerHeight) / 2 + window.scrollY);
+      
+      // Position to the left of the gradient panel (which is 320px wide and on the right side)
+      const gradientPanelWidth = 320;
+      const left = window.innerWidth - gradientPanelWidth - pickerWidth - 16; // 16px gap
+      
+      return {
+        top,
+        left: Math.max(8, left), // Ensure it doesn't go off-screen
+        right: 'auto'
+      };
+    }
+    
+    // For other anchor positions, we need a triggerRef
+    if (!triggerRef?.current) return { top: 100, left: 100 };
+    
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+    
+    // Center the picker vertically in the viewport for other cases
     const viewportHeight = window.innerHeight;
     const top = Math.max(8, (viewportHeight - pickerHeight) / 2 + window.scrollY);
     
@@ -652,7 +671,8 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     <div
       ref={pickerRef}
       className={`fixed z-[99999] animate-in duration-200 ${
-        anchorPosition === 'right-slide' ? 'slide-in-from-left-2 fade-in-0' : 'slide-in-from-right-2 fade-in-0'
+        anchorPosition === 'right-slide' ? 'slide-in-from-left-2 fade-in-0' : 
+        anchorPosition === 'gradient-panel' ? 'slide-in-from-right-2 fade-in-0' : 'slide-in-from-right-2 fade-in-0'
       }`}
       style={{
         top: position.top,
