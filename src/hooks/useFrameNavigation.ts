@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
+import type { NavigateFrameHistoryAction } from '../types';
 
 /**
  * Hook that manages frame navigation and keyboard shortcuts
@@ -19,28 +20,54 @@ export const useFrameNavigation = () => {
     goToFrame 
   } = useAnimationStore();
   
-  const { textToolState, isPlaybackMode } = useToolStore();
+  const { textToolState, isPlaybackMode, pushToHistory } = useToolStore();
+
+  // Helper function to record frame navigation in history
+  const recordFrameNavigation = useCallback((newFrameIndex: number, description: string) => {
+    if (newFrameIndex === currentFrameIndex) return; // No change, no history record needed
+    
+    const historyAction: NavigateFrameHistoryAction = {
+      type: 'navigate_frame',
+      timestamp: Date.now(),
+      description,
+      data: {
+        previousFrameIndex: currentFrameIndex,
+        newFrameIndex
+      }
+    };
+    
+    pushToHistory(historyAction);
+  }, [currentFrameIndex, pushToHistory]);
 
   // Navigate to specific frame
   const navigateToFrame = useCallback((frameIndex: number) => {
     if (frameIndex >= 0 && frameIndex < frames.length && !isPlaying) {
+      recordFrameNavigation(frameIndex, `Navigate to frame ${frameIndex + 1}`);
       goToFrame(frameIndex);
     }
-  }, [frames.length, isPlaying, goToFrame]);
+  }, [frames.length, isPlaying, goToFrame, recordFrameNavigation]);
 
   // Navigate to next frame
   const navigateNext = useCallback(() => {
     if (!isPlaying && !isPlaybackMode) {
-      nextFrame();
+      const nextIndex = currentFrameIndex + 1;
+      if (nextIndex < frames.length) {
+        recordFrameNavigation(nextIndex, `Navigate to next frame (${nextIndex + 1})`);
+        nextFrame();
+      }
     }
-  }, [isPlaying, isPlaybackMode, nextFrame]);
+  }, [isPlaying, isPlaybackMode, nextFrame, currentFrameIndex, frames.length, recordFrameNavigation]);
 
   // Navigate to previous frame
   const navigatePrevious = useCallback(() => {
     if (!isPlaying && !isPlaybackMode) {
-      previousFrame();
+      const prevIndex = currentFrameIndex - 1;
+      if (prevIndex >= 0) {
+        recordFrameNavigation(prevIndex, `Navigate to previous frame (${prevIndex + 1})`);
+        previousFrame();
+      }
     }
-  }, [isPlaying, isPlaybackMode, previousFrame]);
+  }, [isPlaying, isPlaybackMode, previousFrame, currentFrameIndex, recordFrameNavigation]);
 
   return {
     navigateToFrame,

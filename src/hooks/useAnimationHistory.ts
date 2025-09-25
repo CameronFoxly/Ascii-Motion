@@ -8,7 +8,8 @@ import type {
   DeleteFrameHistoryAction, 
   ReorderFramesHistoryAction, 
   UpdateDurationHistoryAction,
-  UpdateNameHistoryAction
+  UpdateNameHistoryAction,
+  NavigateFrameHistoryAction
 } from '../types';
 
 /**
