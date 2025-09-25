@@ -12,11 +12,11 @@ https://ascii-motion.app
 
 ## 🎨 Current Features
 
-- **Grid-based ASCII Art Editor with full drawing toolset** 
-- **Animation Timeline for frame-by-frame editng and onion skinning** 
-- **Custom Color and Character Palettes** - including presets and import/export features**
-- **Import images or video** - Convert external assets to ASCII art, with fine tuned rendering control
-- **Multiple Export Formats** - Images, Videos, Text files, and full session export. 
+- Grid-based ASCII Art Editor with full drawing toolset
+- Animation Timeline for frame-by-frame editng and onion skinning
+- Custom Color and Character Palettes including presets and import/export features
+- Convert images or video assets to ASCII art, with fine-tuned rendering control
+- Multiple Export Format: Images, Videos, Text files, Json, HTML and full session export. 
 
 ## 🚀 Quick Start
 
@@ -140,6 +140,7 @@ Where I'm at with the concept:
 
 <details>
 <summary> ✅ Phase 3: Export/Import System (Complete) </summary>
+  
 - [x] High-DPI PNG image export with device pixel ratio scaling
 - [x] Complete session export/import (.asciimtn files)
 - [x] Typography settings preservation (font size, spacing)
@@ -151,10 +152,11 @@ Where I'm at with the concept:
 
 <details>
 <summary> 📅 Phase 4: Advanced Tools (Next) </summary>
+  
 - [ ] Custom brush system with pattern creation
 - [x] Advanced color palettes beyond ANSI
 - [x] Re-color brush (change colors without affecting characters)
-- [x] **Gradient fill tool** ✅ **COMPLETE** - Linear/radial gradients with interactive controls
+- [x] Gradient fill tool 
 - [ ] Figlet text system
 - [ ] Draw boxes and tables with ascii characters
 </details>
