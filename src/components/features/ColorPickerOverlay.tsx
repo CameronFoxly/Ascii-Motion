@@ -185,16 +185,13 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     const pickerWidth = 400;
     const pickerHeight = 600;
     
+    // Center the picker vertically in the viewport
+    const viewportHeight = window.innerHeight;
+    const top = Math.max(8, (viewportHeight - pickerHeight) / 2 + window.scrollY);
+    
     if (anchorPosition === 'left-slide') {
-      // Slide out from the left side of the trigger
-      let top = triggerRect.top + window.scrollY;
+      // Slide out from the left side of the trigger, but center vertically
       let right = window.innerWidth - triggerRect.left + 8; // 8px gap from trigger
-      
-      // Ensure picker doesn't go off-screen vertically
-      if (top + pickerHeight > window.innerHeight + window.scrollY) {
-        top = window.innerHeight + window.scrollY - pickerHeight - 8;
-      }
-      if (top < window.scrollY) top = window.scrollY + 8;
       
       return {
         top,
@@ -202,18 +199,13 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
         left: 'auto'
       };
     } else if (anchorPosition === 'right-slide') {
-      // Slide out from the right side of the trigger
-      let top = triggerRect.top + window.scrollY;
+      // Slide out from the right side of the trigger, but center vertically
       let left = triggerRect.right + 8; // 8px gap from trigger
       
-      // Ensure picker doesn't go off-screen
+      // Ensure picker doesn't go off-screen horizontally
       if (left + pickerWidth > window.innerWidth) {
         left = window.innerWidth - pickerWidth - 8;
       }
-      if (top + pickerHeight > window.innerHeight + window.scrollY) {
-        top = window.innerHeight + window.scrollY - pickerHeight - 8;
-      }
-      if (top < window.scrollY) top = window.scrollY + 8;
       
       return {
         top,
@@ -221,9 +213,9 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
         right: 'auto'
       };
     } else {
-      // Default left-slide behavior
+      // Default left-slide behavior with vertical centering
       return {
-        top: triggerRect.top + window.scrollY,
+        top,
         right: window.innerWidth - triggerRect.left + 8,
         left: 'auto'
       };
