@@ -47,7 +47,8 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
 }) => {
   const { updatePreviewColor, addRecentColor, recentColors } = usePaletteStore();
   const pickerRef = useRef<HTMLDivElement>(null);
-  
+  const previousColorRef = useRef<string | null>(null);
+
   // Check if initial color is transparent
   const isTransparent = initialColor === 'transparent' || initialColor === ANSI_COLORS.transparent;
   
@@ -229,32 +230,6 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     }
   };
 
-  // Real-time color change handler
-  const handleColorChange = useCallback((newColor: string) => {
-    setPreviewColor(newColor);
-    // Trigger real-time update if callback is provided
-    if (onColorChange) {
-      onColorChange(newColor);
-    }
-  }, [onColorChange]);
-
-  // Update the preview color when HSV or other values change
-  const updateColorFromValues = useCallback(() => {
-    if (isTransparentColor) {
-      const newColor = 'transparent';
-      setPreviewColor(newColor);
-      if (onColorChange) {
-        onColorChange(newColor);
-      }
-    } else {
-      const hexColor = hsvToHex(hsvValues);
-      setPreviewColor(hexColor);
-      if (onColorChange) {
-        onColorChange(hexColor);
-      }
-    }
-  }, [hsvValues, isTransparentColor, onColorChange]);
-
   // Trigger real-time updates when color values change
   useEffect(() => {
     // Update preview color and trigger real-time callbacks when values change
@@ -268,9 +243,9 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
       
       setPreviewColor(newColor);
       
-      // Trigger real-time update if callback is provided
-      // Use a timeout to debounce rapid changes and avoid infinite loops
-      if (onColorChange && newColor !== previewColor) {
+      // Trigger real-time update if callback is provided and color actually changed
+      if (onColorChange && newColor !== previousColorRef.current) {
+        previousColorRef.current = newColor;
         const timeoutId = setTimeout(() => {
           onColorChange(newColor);
         }, 50); // 50ms debounce
@@ -278,7 +253,7 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
         return () => clearTimeout(timeoutId);
       }
     }
-  }, [hsvValues, isTransparentColor, hasInitialized, isOpen, onColorChange, previewColor]);
+  }, [hsvValues, isTransparentColor, hasInitialized, isOpen, onColorChange]);
 
   // Update color wheel position based on HSV values
   const updateColorWheelPosition = useCallback((hsv: HSVColor) => {
