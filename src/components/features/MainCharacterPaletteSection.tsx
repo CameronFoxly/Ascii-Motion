@@ -11,9 +11,6 @@
 
 import React, { useState, useMemo } from 'react';
 import { Button } from '../ui/button';
-import { Label } from '../ui/label';
-import { Card, CardContent } from '../ui/card';
-import { Input } from '../ui/input';
 import { 
   Select,
   SelectContent,
@@ -24,19 +21,21 @@ import {
 import { 
   Collapsible,
   CollapsibleContent,
+  CollapsibleTrigger,
 } from '../ui/collapsible';
 
-import { 
-  Plus,
-  Trash2,
-  X,
-  GripVertical,
-  ArrowUpDown,
+import {
   ArrowLeft,
   ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  GripVertical,
+  Plus,
   Settings,
-  Palette,
-  Edit,
+  Trash2,
+  X,
+  Download,
+  Upload
 } from 'lucide-react';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
 import { ManageCharacterPalettesDialog } from './ManageCharacterPalettesDialog';
@@ -53,17 +52,17 @@ interface MainCharacterPaletteSectionProps {
 
 export function MainCharacterPaletteSection({ className = '' }: MainCharacterPaletteSectionProps) {
   const [isOpen, setIsOpen] = useState(true);
-  const [newCharacterInput, setNewCharacterInput] = useState('');
+  const [isCharacterSectionOpen, setIsCharacterSectionOpen] = useState(true);
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
   const [isManagePalettesOpen, setIsManagePalettesOpen] = useState(false);
   const [isCharacterPickerOpen, setIsCharacterPickerOpen] = useState(false);
-  const [pickerTriggerSource, setPickerTriggerSource] = useState<'edit-button' | 'palette-icon'>('palette-icon');
+  const [pickerTriggerSource, setPickerTriggerSource] = useState<'edit-button' | 'palette-icon' | 'character-preview'>('palette-icon');
   const [editingCharacterIndex, setEditingCharacterIndex] = useState<number | null>(null);
-  const addCharInputRef = React.useRef<HTMLInputElement | null>(null);
   const characterPickerTriggerRef = React.useRef<HTMLButtonElement>(null);
+  const characterPreviewRef = React.useRef<HTMLButtonElement>(null);
   const editButtonRef = React.useRef<HTMLButtonElement>(null);
   const paletteContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -102,24 +101,11 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
     setSelectedChar(character); // Update the drawing tool's selected character
   };
 
-  // Character editing handlers
-  const handleAddCharacter = () => {
-    if (newCharacterInput.trim()) {
-      const character = newCharacterInput.trim()[0]; // Take only first character
-      if (!activePalette.characters.includes(character)) {
-        const targetPalette = ensureCustomPalette();
-        addCharacterToPalette(targetPalette.id, character);
-        setNewCharacterInput('');
-        // Focus the input field for consistent UX
-        if (addCharInputRef.current) {
-          addCharInputRef.current.focus();
-        }
-      }
-    }
-  };
-
   const handleCharacterSelect = (character: string) => {
-    if (pickerTriggerSource === 'edit-button' && editingCharacterIndex !== null) {
+    if (pickerTriggerSource === 'character-preview') {
+      // Update active character (just change selection, don't modify palette)
+      setSelectedChar(character);
+    } else if (pickerTriggerSource === 'edit-button' && editingCharacterIndex !== null) {
       // Replace the character at editingCharacterIndex
       const targetPalette = ensureCustomPalette();
       const newCharacters = [...targetPalette.characters];
@@ -131,13 +117,16 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
       if (!activePalette.characters.includes(character)) {
         const targetPalette = ensureCustomPalette();
         addCharacterToPalette(targetPalette.id, character);
-        // Focus the input field for consistent UX
-        if (addCharInputRef.current) {
-          addCharInputRef.current.focus();
-        }
       }
     }
     setIsCharacterPickerOpen(false);
+  };
+
+  const handleAddCurrentCharacter = () => {
+    if (selectedChar && !activePalette.characters.includes(selectedChar)) {
+      const targetPalette = ensureCustomPalette();
+      addCharacterToPalette(targetPalette.id, selectedChar);
+    }
   };
 
   const handleMoveSelectedLeft = () => {
@@ -154,16 +143,6 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
     setSelectedIndex(selectedIndex + 1);
   };
 
-  const handleReverseOrder = () => {
-    const targetPalette = ensureCustomPalette();
-    const reversedChars = [...targetPalette.characters].reverse();
-    updateCustomPalette(targetPalette.id, { characters: reversedChars });
-    // Update selected index to reflect new position
-    if (selectedIndex !== null) {
-      setSelectedIndex(reversedChars.length - 1 - selectedIndex);
-    }
-  };
-
   const handleDeleteSelected = () => {
     if (selectedIndex === null) return;
     const targetPalette = ensureCustomPalette();
@@ -172,16 +151,6 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
     setSelectedIndex(activePalette.characters.length > 1 ? newIndex : null);
   };
   
-  const handleEditCharacters = () => {
-    // Only allow editing if a character is selected
-    if (selectedIndex === null) return;
-    
-    // Open character picker in edit mode
-    setPickerTriggerSource('edit-button');
-    setEditingCharacterIndex(selectedIndex);
-    setIsCharacterPickerOpen(true);
-  };
-
   // Helper function to ensure we're working with a custom palette for editing
   const ensureCustomPalette = (): CharacterPalette => {
     if (activePalette.isCustom) {
@@ -241,42 +210,64 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
   };
 
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div className={`space-y-3 ${className}`}>
+      {/* Character Section - Single character preview and picker */}
+      <Collapsible open={isCharacterSectionOpen} onOpenChange={setIsCharacterSectionOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full justify-between p-2 h-auto font-medium text-sm">
+            Character
+            {isCharacterSectionOpen ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-3">
+          {/* Large character preview - similar to color selector */}
+          <div className="flex justify-center">
+            <Button
+              ref={characterPreviewRef}
+              variant="outline"
+              className="w-16 h-16 text-3xl font-mono hover:bg-muted transition-colors"
+              onClick={() => {
+                setPickerTriggerSource('character-preview');
+                setIsCharacterPickerOpen(true);
+              }}
+              title={`Active Character: "${selectedChar === ' ' ? 'Space' : selectedChar}" - Click to change`}
+            >
+              {selectedChar === ' ' ? '␣' : selectedChar}
+            </Button>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Character Palette Section */}
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleHeader isOpen={isOpen}>
-          Characters
+          Character Palette
         </CollapsibleHeader>
-        <CollapsibleContent className="collapsible-content">
-          <div className="space-y-3 w-full">
-            {/* Character Palette Editor */}
-            <Card className="bg-card/50 border-border/50 overflow-hidden w-full">
-              <CardContent className="p-3 space-y-3 w-full">
-                
-                {/* Header */}
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium">Character Palette</Label>
+        <CollapsibleContent className="space-y-3">
+          {/* Character Palette Selector */}
+          <div className="space-y-2 w-full">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-muted-foreground">Active Palette</span>
+              <div className="flex gap-1">
+                <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={() => { const p = createCustomPalette('New Palette', [' ']); setActivePalette(p); startEditing(p.id); setSelectedIndex(0);}} title="Create palette">
+                  <Plus className="w-3 h-3" />
+                </Button>
+                <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={() => setIsManagePalettesOpen(true)} title="Manage palettes">
+                  <Settings className="w-3 h-3" />
+                </Button>
+              </div>
+            </div>
+            
+            <Select value={activePalette.id} onValueChange={handlePaletteChange}>
+              <SelectTrigger className="h-8 text-xs w-full">
+                <div className="truncate">
+                  <SelectValue placeholder="Select character palette" />
                 </div>
-
-                {/* Character Palette Selector */}
-                <div className="space-y-2 w-full">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-medium">Active Palette</Label>
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="outline" className="h-6 w-6 p-0 flex-shrink-0" onClick={() => { const p = createCustomPalette('New Palette', [' ']); setActivePalette(p); startEditing(p.id); setSelectedIndex(0);}} title="Create palette">
-                        <Plus className="w-3 h-3" />
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-6 w-6 p-0 flex-shrink-0" onClick={() => setIsManagePalettesOpen(true)} title="Manage palettes">
-                        <Settings className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="w-full">
-                    <Select value={activePalette.id} onValueChange={handlePaletteChange}>
-                      <SelectTrigger className="h-8 text-xs w-full">
-                        <div className="truncate">
-                          <SelectValue placeholder="Select character palette" />
-                        </div>
-                      </SelectTrigger>
+              </SelectTrigger>
                         <SelectContent className="border-border/50">
                           {/* Custom Palettes First */}
                           {customPalettes.length > 0 && (
@@ -313,13 +304,11 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
                           )}
                         </SelectContent>
                       </Select>
-                  </div>
-                </div>
+          </div>
                 
                 {/* Character Grid */}
                 <div className="space-y-2 w-full" ref={paletteContainerRef}>
-                  <Label className="text-xs font-medium">Characters ({activePalette.characters.length})</Label>
-                  <div className="bg-background/50 border border-border rounded p-2 min-h-[60px] overflow-auto w-full" onDragLeave={handleDragLeave}>
+                  <div className="bg-background/50 border border-border rounded p-2 min-h-[60px] max-h-[212px] overflow-auto w-full" onDragLeave={handleDragLeave}>
                     <div className="flex flex-wrap gap-1 relative max-w-full">
                       {activePalette.characters.map((character, index) => (
                         <div key={`${character}-${index}`} className="relative">
@@ -340,13 +329,19 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
                               } cursor-pointer`}
                             draggable={true}
                             onClick={() => handleSelectCharacter(index)}
+                            onDoubleClick={() => {
+                              setSelectedIndex(index);
+                              setEditingCharacterIndex(index);
+                              setPickerTriggerSource('edit-button');
+                              setIsCharacterPickerOpen(true);
+                            }}
                             onDragStart={(e) => handleDragStart(e, index)}
                             onDragOver={(e) => handleDragOver(e, index)}
                             onDrop={(e) => handleDrop(e, index)}
                             title={
                               activePalette.isCustom 
-                                ? `Character: "${character}" (drag to reorder, click X to remove)`
-                                : `Character: "${character}"`
+                                ? `Character: "${character}" (drag to reorder, double-click to edit, click X to remove)`
+                                : `Character: "${character}" (double-click to edit)`
                             }
                           >
                             {/* Character display */}
@@ -377,117 +372,53 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
                         </div>
                       ))}
                     </div>
-
-                    {/* Bottom controls: move, add, delete, reverse */}
-                    <div className="flex items-center justify-between pt-2">
-                      <div className="flex items-center gap-1">
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleMoveSelectedLeft} disabled={selectedIndex === null || selectedIndex === 0} title="Move left">
-                          <ArrowLeft className="w-3 h-3" />
-                        </Button>
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleMoveSelectedRight} disabled={selectedIndex === null || selectedIndex === activePalette.characters.length - 1} title="Move right">
-                          <ArrowRight className="w-3 h-3" />
-                        </Button>
-                        <Button ref={editButtonRef} size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleEditCharacters} disabled={selectedIndex === null} title="Edit character">
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-destructive" onClick={handleDeleteSelected} disabled={selectedIndex === null} title="Delete character">
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                      <div>
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleReverseOrder} title="Reverse order">
-                          <ArrowUpDown className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Manage Palettes Dialog */}
-                    <ManageCharacterPalettesDialog isOpen={isManagePalettesOpen} onOpenChange={setIsManagePalettesOpen} />
-
-                    {/* Character Picker */}
-                    <CharacterPicker
-                      isOpen={isCharacterPickerOpen}
-                      onClose={() => setIsCharacterPickerOpen(false)}
-                      onSelectCharacter={handleCharacterSelect}
-                      triggerRef={pickerTriggerSource === 'edit-button' ? editButtonRef : characterPickerTriggerRef}
-                      anchorPosition={pickerTriggerSource === 'edit-button' ? 'left-bottom-aligned' : 'left-bottom'}
-                    />
-
                   </div>
                 </div>
                 
-                {/* Add Character */}
-                <div className="space-y-2 w-full">
-                  <Label className="text-xs font-medium">Add Character</Label>
-                  <div className="flex gap-2 w-full relative">
-                    <Button
-                      ref={characterPickerTriggerRef}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (isCharacterPickerOpen && pickerTriggerSource === 'palette-icon') {
-                          // If already open from palette button, close it
-                          setIsCharacterPickerOpen(false);
-                        } else {
-                          // Open it from palette button
-                          setPickerTriggerSource('palette-icon');
-                          setIsCharacterPickerOpen(true);
-                        }
-                      }}
-                      className="h-8 w-8 p-0 flex-shrink-0"
-                      title="Character picker"
-                    >
-                      <Palette className="w-3 h-3" />
-                    </Button>
-                    <div className="flex flex-1 min-w-0">
-                      <Input
-                        ref={(el) => { addCharInputRef.current = el; }}
-                        value={newCharacterInput}
-                        onChange={(e) => setNewCharacterInput(e.target.value)}
-                        placeholder="Enter character"
-                        className="h-8 text-xs font-mono flex-1 min-w-0 rounded-r-none border-r-0"
-                        maxLength={1}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleAddCharacter();
-                        }}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleAddCharacter}
-                        disabled={!newCharacterInput.trim() || activePalette.characters.includes(newCharacterInput.trim()[0])}
-                        className="h-8 px-3 flex-shrink-0 rounded-l-none"
-                      >
-                        <Plus className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
+                {/* Character palette controls */}
+                <div className="flex items-center gap-1 w-full">
+                  <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={handleMoveSelectedLeft} disabled={selectedIndex === null || selectedIndex === 0} title="Move left">
+                    <ArrowLeft className="w-3 h-3" />
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={handleMoveSelectedRight} disabled={selectedIndex === null || selectedIndex === activePalette.characters.length - 1} title="Move right">
+                    <ArrowRight className="w-3 h-3" />
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={handleAddCurrentCharacter} disabled={!selectedChar || activePalette.characters.includes(selectedChar)} title="Add current character">
+                    <Plus className="w-3 h-3" />
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-6 w-6 p-0 text-destructive" onClick={handleDeleteSelected} disabled={selectedIndex === null} title="Delete character">
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                  <div className="flex-1" />
+                  <Button size="sm" variant="outline" className="h-6 w-6 p-0" disabled title="Import palette (coming soon)">
+                    <Download className="w-3 h-3" />
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-6 w-6 p-0" disabled title="Export palette (coming soon)">
+                    <Upload className="w-3 h-3" />
+                  </Button>
                 </div>
-
-                {/* Palette Info */}
-                <div className="bg-muted/30 rounded p-2 text-xs space-y-1 w-full">
-                  <div className="font-medium break-words">{activePalette.name}</div>
-                  <div className="text-muted-foreground break-words">
-                    {activePalette.characters.length} characters • {activePalette.category.charAt(0).toUpperCase() + activePalette.category.slice(1)} category
-                  </div>
-                  <div className="text-muted-foreground break-words">
-                    Selected: "{selectedChar === ' ' ? '␣' : selectedChar}" • Active drawing character
-                  </div>
-                  {activePalette.isCustom ? (
-                    <div className="text-muted-foreground break-words">
-                      Custom palette - drag characters to reorder, click reverse to flip mapping
-                    </div>
-                  ) : (
-                    <div className="text-muted-foreground break-words">
-                      Preset palette - click Edit to create an editable copy
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </CollapsibleContent>
       </Collapsible>
+
+      {/* Manage Palettes Dialog */}
+      <ManageCharacterPalettesDialog isOpen={isManagePalettesOpen} onOpenChange={setIsManagePalettesOpen} />
+
+      {/* Character Picker */}
+      <CharacterPicker
+        isOpen={isCharacterPickerOpen}
+        onClose={() => setIsCharacterPickerOpen(false)}
+        onSelectCharacter={handleCharacterSelect}
+        triggerRef={
+          pickerTriggerSource === 'edit-button' ? editButtonRef :
+          pickerTriggerSource === 'character-preview' ? characterPreviewRef :
+          characterPickerTriggerRef
+        }
+        anchorPosition={
+          pickerTriggerSource === 'edit-button' ? 'left-bottom-aligned' :
+          pickerTriggerSource === 'character-preview' ? 'bottom-right' :
+          'left-bottom'
+        }
+      />
     </div>
   );
 }
