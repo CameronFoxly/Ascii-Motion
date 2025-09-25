@@ -39,6 +39,8 @@ import {
 } from 'lucide-react';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
 import { ManageCharacterPalettesDialog } from './ManageCharacterPalettesDialog';
+import { ImportCharacterPaletteDialog } from './ImportCharacterPaletteDialog';
+import { ExportCharacterPaletteDialog } from './ExportCharacterPaletteDialog';
 import { CharacterPicker } from './CharacterPicker';
 import { 
   useCharacterPaletteStore
@@ -59,6 +61,8 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
   const [isManagePalettesOpen, setIsManagePalettesOpen] = useState(false);
   const [isCharacterPickerOpen, setIsCharacterPickerOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [pickerTriggerSource, setPickerTriggerSource] = useState<'edit-button' | 'palette-icon' | 'character-preview' | 'palette-swatch'>('palette-icon');
   const [editingCharacterIndex, setEditingCharacterIndex] = useState<number | null>(null);
   const characterPickerTriggerRef = React.useRef<HTMLButtonElement>(null);
@@ -254,9 +258,9 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
               <div className="flex-1 min-w-0">
                 <Select value={activePalette.id} onValueChange={handlePaletteChange}>
                   <SelectTrigger className="h-8 text-xs w-full">
-                    <div className="truncate">
-                      <SelectValue placeholder="Select character palette" />
-                    </div>
+                    <SelectValue placeholder="Select character palette">
+                      <span className="truncate text-left">{activePalette.name}</span>
+                    </SelectValue>
                   </SelectTrigger>
                         <SelectContent className="border-border/50">
                           {/* Custom Palettes First */}
@@ -390,18 +394,23 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
                     <Trash2 className="w-3 h-3" />
                   </Button>
                   <div className="flex-1" />
-                  <Button size="sm" variant="outline" className="h-6 w-6 p-0" disabled title="Import palette (coming soon)">
-                    <Download className="w-3 h-3" />
-                  </Button>
-                  <Button size="sm" variant="outline" className="h-6 w-6 p-0" disabled title="Export palette (coming soon)">
+                  <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={() => setIsImportDialogOpen(true)} title="Import character palette">
                     <Upload className="w-3 h-3" />
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={() => setIsExportDialogOpen(true)} title="Export character palette">
+                    <Download className="w-3 h-3" />
                   </Button>
                 </div>
         </CollapsibleContent>
       </Collapsible>
 
       {/* Manage Palettes Dialog */}
-      <ManageCharacterPalettesDialog isOpen={isManagePalettesOpen} onOpenChange={setIsManagePalettesOpen} />
+      <ManageCharacterPalettesDialog 
+        isOpen={isManagePalettesOpen} 
+        onOpenChange={setIsManagePalettesOpen}
+        onImportClick={() => setIsImportDialogOpen(true)}
+        onExportClick={() => setIsExportDialogOpen(true)}
+      />
 
       {/* Character Picker */}
       <CharacterPicker
@@ -419,6 +428,17 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
           pickerTriggerSource === 'character-preview' ? 'bottom-right' :
           'left-bottom'
         }
+      />
+
+      {/* Import/Export Dialogs */}
+      <ImportCharacterPaletteDialog
+        isOpen={isImportDialogOpen}
+        onOpenChange={setIsImportDialogOpen}
+      />
+      
+      <ExportCharacterPaletteDialog
+        isOpen={isExportDialogOpen}
+        onOpenChange={setIsExportDialogOpen}
       />
     </div>
   );

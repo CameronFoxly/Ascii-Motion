@@ -2,18 +2,23 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash2, Copy, Edit3, Plus, Type } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Trash2, Copy, Edit3, Plus, Type, Upload, Download } from 'lucide-react';
 import { useCharacterPaletteStore } from '../../stores/characterPaletteStore';
 import type { CharacterPalette } from '../../types/palette';
 
 interface ManageCharacterPalettesDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  onImportClick: () => void;
+  onExportClick: () => void;
 }
 
 export const ManageCharacterPalettesDialog: React.FC<ManageCharacterPalettesDialogProps> = ({
   isOpen,
-  onOpenChange
+  onOpenChange,
+  onImportClick,
+  onExportClick
 }) => {
   const availablePalettes = useCharacterPaletteStore(state => state.availablePalettes);
   const customPalettes = useCharacterPaletteStore(state => state.customPalettes);
@@ -76,10 +81,38 @@ export const ManageCharacterPalettesDialog: React.FC<ManageCharacterPalettesDial
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-muted-foreground">Custom Palettes</h3>
-              <Button size="sm" variant="outline" onClick={handleCreateNew} className="h-7 text-xs">
-                <Plus className="h-3 w-3 mr-1" />
-                New Palette
-              </Button>
+              <div className="flex gap-1">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button size="sm" variant="outline" onClick={onImportClick} className="h-7 w-7 p-0">
+                        <Upload className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Import character palette</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button size="sm" variant="outline" onClick={onExportClick} className="h-7 w-7 p-0">
+                        <Download className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Export active character palette</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                <Button size="sm" variant="outline" onClick={handleCreateNew} className="h-7 text-xs">
+                  <Plus className="h-3 w-3 mr-1" />
+                  New Palette
+                </Button>
+              </div>
             </div>
 
             {customPalettes.length === 0 ? (
