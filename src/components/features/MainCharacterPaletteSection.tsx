@@ -110,6 +110,10 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
         const targetPalette = ensureCustomPalette();
         addCharacterToPalette(targetPalette.id, character);
         setNewCharacterInput('');
+        // Focus the input field for consistent UX
+        if (addCharInputRef.current) {
+          addCharInputRef.current.focus();
+        }
       }
     }
   };
@@ -127,6 +131,10 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
       if (!activePalette.characters.includes(character)) {
         const targetPalette = ensureCustomPalette();
         addCharacterToPalette(targetPalette.id, character);
+        // Focus the input field for consistent UX
+        if (addCharInputRef.current) {
+          addCharInputRef.current.focus();
+        }
       }
     }
     setIsCharacterPickerOpen(false);
