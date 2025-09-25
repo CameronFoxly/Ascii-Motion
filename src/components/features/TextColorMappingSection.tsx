@@ -744,6 +744,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
         initialColor={colorPickerInitialColor}
         onColorSelect={handleColorPickerSelect}
         title="Edit Color"
+        anchorPosition="import-media-panel"
       />
 
       {/* Palette Management Dialog */}

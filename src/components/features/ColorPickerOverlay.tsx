@@ -31,7 +31,7 @@ interface ColorPickerOverlayProps {
   title?: string;
   showTransparentOption?: boolean; // whether to show the transparent quick-set button
   triggerRef?: React.RefObject<HTMLElement | null>; // Reference to trigger element for positioning
-  anchorPosition?: 'left-slide' | 'right-slide' | 'bottom-left' | 'bottom-right' | 'gradient-panel';
+  anchorPosition?: 'left-slide' | 'right-slide' | 'bottom-left' | 'bottom-right' | 'gradient-panel' | 'import-media-panel';
 }
 
 export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
@@ -191,6 +191,24 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
       // Position to the left of the gradient panel (which is 320px wide and on the right side)
       const gradientPanelWidth = 320;
       const left = window.innerWidth - gradientPanelWidth - pickerWidth - 16; // 16px gap
+      
+      return {
+        top,
+        left: Math.max(8, left), // Ensure it doesn't go off-screen
+        right: 'auto'
+      };
+    }
+    
+    // Special handling for import media panel
+    if (anchorPosition === 'import-media-panel') {
+      // Center the picker vertically in the viewport
+      const viewportHeight = window.innerHeight;
+      const top = Math.max(8, (viewportHeight - pickerHeight) / 2 + window.scrollY);
+      
+      // Position to the left of the import media panel (which is 320px wide and on the right side)
+      // Align with the left edge of the import media panel
+      const importPanelWidth = 320; // 80*4 = 320px as seen in the MediaImportPanel
+      const left = window.innerWidth - importPanelWidth - pickerWidth - 8; // 8px gap for alignment with panel edge
       
       return {
         top,
