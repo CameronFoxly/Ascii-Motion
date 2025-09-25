@@ -156,8 +156,6 @@ export const useGradientFillTool = () => {
 
   // Handle canvas click during gradient application
   const handleCanvasClick = useCallback((x: number, y: number) => {
-    console.log('handleCanvasClick called:', { x, y, activeTool, isApplying, startPoint, endPoint });
-    
     if (activeTool !== 'gradientfill') return;
 
     // Ignore clicks on UI elements or outside canvas bounds
@@ -165,7 +163,6 @@ export const useGradientFillTool = () => {
     
     if (!isApplying) {
       // First click - start applying gradient
-      console.log('Starting gradient application at:', { x, y });
       setApplying(true);
       setPoints({ x, y }, null);
       setHoverEndPoint({ x, y });
@@ -174,7 +171,6 @@ export const useGradientFillTool = () => {
     
     if (startPoint && !endPoint) {
       // Second click - set end point and generate preview
-      console.log('Setting end point at:', { x, y, startPoint });
       const newEndPoint = { x, y };
       setPoints(startPoint, newEndPoint);
       setHoverEndPoint(null);
@@ -185,7 +181,6 @@ export const useGradientFillTool = () => {
     // If we already have both points, treat this as a confirmation click
     // (unless it's on a control point - that would be handled by drag logic)
     if (startPoint && endPoint && previewData) {
-      console.log('Applying gradient');
       applyGradient();
     }
   }, [
@@ -262,7 +257,6 @@ export const useGradientFillTool = () => {
   useEffect(() => {
     const targetEndPoint = endPoint ?? hoverEndPoint;
     if (activeTool === 'gradientfill' && isApplying && startPoint && targetEndPoint) {
-      console.log('Regenerating preview due to definition change');
       generatePreview(startPoint, targetEndPoint);
     }
   }, [activeTool, isApplying, startPoint, endPoint, hoverEndPoint, definition, contiguous, matchChar, matchColor, matchBgColor, generatePreview]);

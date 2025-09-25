@@ -108,22 +108,12 @@ export const InteractiveGradientOverlay: React.FC = () => {
 
     const hit = hitTest(mouseX, mouseY);
     
-    console.log('InteractiveGradientOverlay handleMouseDown:', { 
-      mouseX, 
-      mouseY, 
-      hit, 
-      startPoint, 
-      endPoint 
-    });
-    
     if (!hit) {
       // No control hit - let the event bubble to canvas for end point placement
-      console.log('No control hit, letting event bubble through');
       return;
     }
 
     // We hit a control - prevent default and handle drag
-    console.log('Control hit, preventing default and handling drag');
     event.preventDefault();
     event.stopPropagation();
 

@@ -119,13 +119,9 @@ export const CanvasOverlay: React.FC = () => {
 
     // Draw shift+click line preview
     if (linePreview.active && linePreview.points.length > 0) {
-      console.log('Rendering line preview:', linePreview.points.length, 'points, effectiveCellWidth:', effectiveCellWidth, 'effectiveCellHeight:', effectiveCellHeight);
       ctx.fillStyle = 'rgba(168, 85, 247, 0.1)'; // Same purple as lasso selection
       
-      linePreview.points.forEach(({ x, y }, index) => {
-        if (index < 3) { // Log first few points for debugging
-          console.log(`Rendering point ${index}:`, { x, y }, 'at pixel:', x * effectiveCellWidth + panOffset.x, y * effectiveCellHeight + panOffset.y);
-        }
+      linePreview.points.forEach(({ x, y }) => {
         ctx.fillRect(
           x * effectiveCellWidth + panOffset.x,
           y * effectiveCellHeight + panOffset.y,
@@ -201,16 +197,6 @@ export const CanvasOverlay: React.FC = () => {
     
     // Draw gradient fill overlay
     if (activeTool === 'gradientfill' && gradientApplying) {
-      console.log('Drawing gradient overlay:', { 
-        gradientStart, 
-        gradientEnd, 
-        gradientApplying,
-        effectiveCellWidth,
-        effectiveCellHeight,
-        panOffset,
-        zoom: zoom
-      });
-      
       // Draw gradient start point
       if (gradientStart) {
         ctx.strokeStyle = '#22c55e'; // Green for start

@@ -965,17 +965,11 @@ export class ExportRenderer {
       throw new Error('No frames generated for video export');
     }
     
-    console.log(`📹 Generated ${frameCanvases.length} frames for video export`);
-    console.log(`📐 Frame dimensions: ${frameCanvases[0].width}x${frameCanvases[0].height}`);
-    console.log(`🎬 Frame rate: ${settings.frameRate} FPS`);
-    
     this.updateProgress('Encoding video...', 50);
     
     try {
       // Use WebCodecs to create WebM video
       const videoBlob = await this.encodeWebMVideo(frameCanvases, settings);
-      
-      console.log(`💾 Video blob created: ${(videoBlob.size / 1024 / 1024).toFixed(2)} MB`);
       
       this.updateProgress('Saving video file...', 90);
       
@@ -983,7 +977,6 @@ export class ExportRenderer {
       
       this.updateProgress('Video export complete!', 100);
       
-      console.log('✅ Video export completed successfully');
     } catch (error) {
       console.error('❌ Video encoding failed:', error);
       throw error;
@@ -1074,8 +1067,6 @@ export class ExportRenderer {
         outputFilename
       ];
       
-      console.log('🎬 FFmpeg command:', ['ffmpeg', ...ffmpegArgs].join(' '));
-      
       // Execute FFmpeg encoding
       await ffmpeg.exec(ffmpegArgs);
       
@@ -1088,13 +1079,9 @@ export class ExportRenderer {
       const uint8Array = new Uint8Array(outputData as unknown as ArrayBuffer);
       const mp4Blob = new Blob([uint8Array.buffer], { type: 'video/mp4' });
       
-      console.log(`💾 MP4 created: ${(mp4Blob.size / 1024 / 1024).toFixed(2)} MB`);
-      
       saveAs(mp4Blob, `${filename}.mp4`);
       
       this.updateProgress('MP4 export complete!', 100);
-      
-      console.log('✅ H.264 MP4 export completed successfully');
       
     } catch (error) {
       console.error('❌ FFmpeg MP4 export failed:', error);
@@ -1126,9 +1113,6 @@ export class ExportRenderer {
     );
     
     const totalVideoFrames = frameVideoFrameCounts.reduce((sum, count) => sum + count, 0) * loopMultiplier;
-    
-    console.log(`🎬 Generating ${totalVideoFrames} video frames from ${originalFrames.length} animation frames × ${loopMultiplier} loops`);
-    console.log(`📊 Frame durations: ${originalFrames.map((f, i) => `${i+1}: ${f.duration}ms → ${frameVideoFrameCounts[i]} video frames`).join(', ')}`);
     
     let globalVideoFrameIndex = 0;
     
@@ -1163,17 +1147,6 @@ export class ExportRenderer {
             scale: frameCanvas.scale
           }
         );
-        
-        // Debug: Check if frame has content (only for first loop to avoid spam)
-        if (loop === 0) {
-          const ctx = frameCanvas.canvas.getContext('2d');
-          if (ctx) {
-            const imageData = ctx.getImageData(0, 0, frameCanvas.canvas.width, frameCanvas.canvas.height);
-            const hasContent = imageData.data.some((value, index) => index % 4 !== 3 && value !== 0);
-            console.log(`🖼️ Animation frame ${animFrameIndex + 1}: ${animationFrame.duration}ms → ${videoFrameCount} video frames, has content: ${hasContent}`);
-          }
-        }
-        
         // Duplicate this canvas for the required number of video frames
         for (let videoFrameIndex = 0; videoFrameIndex < videoFrameCount; videoFrameIndex++) {
           // Clone the canvas for each video frame
@@ -1195,12 +1168,6 @@ export class ExportRenderer {
         frameCanvas.canvas.height = 0;
       }
     }
-    
-    const totalDurationMs = originalFrames.reduce((sum, frame) => sum + frame.duration, 0) * loopMultiplier;
-    const expectedVideoLength = totalVideoFrames / settings.frameRate;
-    
-    console.log(`✅ Generated ${videoFrames.length} video frames for ${totalDurationMs}ms animation`);
-    console.log(`🎥 Video will be ${expectedVideoLength.toFixed(2)}s at ${settings.frameRate} FPS (loops: ${settings.loops})`);
     
     return videoFrames;
   }

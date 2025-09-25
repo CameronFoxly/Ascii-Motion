@@ -441,13 +441,11 @@ export const useKeyboardShortcuts = () => {
       // Handle frame navigation shortcuts (comma and period keys)
       if (event.key === ',' && canNavigate) {
         event.preventDefault();
-        console.log('Previous frame navigation triggered');
         navigatePrevious();
         return;
       }
       if (event.key === '.' && canNavigate) {
         event.preventDefault();
-        console.log('Next frame navigation triggered');
         navigateNext();
         return;
       }
@@ -489,13 +487,9 @@ export const useKeyboardShortcuts = () => {
     
     // Handle Ctrl+Delete or Ctrl+Backspace for frame deletion (before the switch statement)
     if ((event.key === 'Delete' || event.key === 'Backspace') && (event.metaKey || event.ctrlKey)) {
-      console.log(`Ctrl+${event.key} detected, frames.length:`, frames.length, 'currentFrameIndex:', currentFrameIndex);
       if (frames.length > 1) {
         event.preventDefault();
         removeFrame(currentFrameIndex);
-        console.log('Frame removed successfully');
-      } else {
-        console.log('Cannot delete frame - only one frame remaining');
       }
       return;
     }
@@ -505,7 +499,6 @@ export const useKeyboardShortcuts = () => {
         // Ctrl+N = Add new frame after current frame
         if (!event.shiftKey) {
           event.preventDefault();
-          console.log('Ctrl+N detected, adding frame after index:', currentFrameIndex);
           addFrame(currentFrameIndex + 1);
         }
         break;
