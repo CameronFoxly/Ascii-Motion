@@ -20,7 +20,6 @@ import { ForegroundBackgroundSelector } from './ForegroundBackgroundSelector';
 import { ColorReadout } from './ColorReadout';
 import { ColorPickerOverlay } from './ColorPickerOverlay';
 import { useToolStore } from '../../stores/toolStore';
-import { useCharacterPaletteStore } from '../../stores/characterPaletteStore';
 import { useCanvasStore } from '../../stores/canvasStore';
 
 interface ActiveStyleSectionProps {
@@ -49,10 +48,6 @@ export function ActiveStyleSection({ className = '' }: ActiveStyleSectionProps) 
   
   // Canvas store for canvas background color
   const canvasBackgroundColor = useCanvasStore(state => state.canvasBackgroundColor);
-  
-  // Character palette store for updating palettes
-  const addCharacterToPalette = useCharacterPaletteStore(state => state.addCharacterToPalette);
-  const activePalette = useCharacterPaletteStore(state => state.activePalette);
 
   const handleCharacterSelect = (character: string) => {
     setSelectedChar(character);

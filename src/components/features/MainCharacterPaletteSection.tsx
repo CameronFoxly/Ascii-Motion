@@ -125,10 +125,8 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
   };
 
   const handleAddCurrentCharacter = () => {
-    if (selectedChar) {
+    if (selectedChar && !activePalette.characters.includes(selectedChar)) {
       const targetPalette = ensureCustomPalette();
-      // Always add the character, even if it already exists
-      // This allows users to add duplicates if they want to
       addCharacterToPalette(targetPalette.id, selectedChar);
       setSelectedIndex(null);  // Clear selection after adding
     }
@@ -357,7 +355,7 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
                   <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={handleMoveSelectedRight} disabled={selectedIndex === null || selectedIndex === activePalette.characters.length - 1} title="Move right">
                     <ArrowRight className="w-3 h-3" />
                   </Button>
-                  <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={handleAddCurrentCharacter} disabled={!selectedChar} title="Add current character">
+                  <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={handleAddCurrentCharacter} disabled={!selectedChar || activePalette.characters.includes(selectedChar)} title="Add current character">
                     <Plus className="w-3 h-3" />
                   </Button>
                   <Button size="sm" variant="outline" className="h-6 w-6 p-0 text-destructive" onClick={handleDeleteSelected} disabled={selectedIndex === null} title="Delete character">

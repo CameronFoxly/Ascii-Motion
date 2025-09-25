@@ -1,12 +1,44 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.12";
-export const BUILD_DATE = "2025-09-25T07:58:56.689Z";
-export const BUILD_HASH = "ae8fb68";
+export const VERSION = "0.1.13";
+export const BUILD_DATE = "2025-09-25T19:45:16.838Z";
+export const BUILD_HASH = "2d0732a";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.13",
+    "date": "2025-09-25T19:45:16.838Z",
+    "commits": [
+      "Added dynamic character picker render,  fixed palette bugs",
+      "Fixed color picker positioning",
+      "Added import and export feature to character palette",
+      "Fixed palette UI bugs",
+      "[Copilot SWE Agent] Added character palette to main active tool side panel",
+      "Fixed layout issues again.",
+      "Updated UI layout",
+      "Update readme",
+      "Update version",
+      "Merge pull request #11 from CameronFoxly/copilot/fix-80cebba6-2490-4faa-83d0-16623bf54c7d",
+      "Fix canvas background color button - add bottom positioning and proper trigger ref for dropdown behavior",
+      "Updated url",
+      "Fix UX inconsistencies in character input focus management",
+      "Implement enhanced character palette with full media import functionality",
+      "Initial analysis - Planning character palette enhancement",
+      "Initial plan",
+      "Fix import media panel color picker positioning - align with panel edge instead of far left",
+      "Fix gradient panel character picker positioning to match color picker alignment",
+      "Fix color picker vertical positioning on smaller screens - center vertically while maintaining horizontal slide animation",
+      "Merge branch 'main' into copilot/fix-80cebba6-2490-4faa-83d0-16623bf54c7d",
+      "Final polish: enhance comments and documentation for real-time update logic",
+      "Fix code review issues: remove duplicate functions and circular dependencies",
+      "Add real-time color updates during picker interaction",
+      "Implement color picker slide-out behavior with click-outside dismissal",
+      "Initial analysis and planning for color picker layout improvements",
+      "Initial plan"
+    ]
+  },
   {
     "version": "0.1.12",
     "date": "2025-09-25T07:58:56.689Z",
