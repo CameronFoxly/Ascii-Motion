@@ -101,6 +101,30 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  /* UI Text Selection Control - Make all text unselectable by default to prevent interface drag issues */
+  * {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+  }
+
+  /* Allow text selection for input elements and form controls */
+  input,
+  textarea,
+  [contenteditable="true"],
+  [contenteditable=""] {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    user-select: text;
+  }
+
+  /* Special class to allow text selection for the ASCII logo */
+  .ascii-logo-selectable {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    user-select: text;
+  }
+
   /* Prevent zoom on input focus on mobile */
   @media screen and (max-width: 768px) {
     input, select, textarea {
