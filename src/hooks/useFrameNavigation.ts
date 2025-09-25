@@ -42,8 +42,8 @@ export const useFrameNavigation = () => {
   // Navigate to specific frame
   const navigateToFrame = useCallback((frameIndex: number) => {
     if (frameIndex >= 0 && frameIndex < frames.length && !isPlaying) {
-      recordFrameNavigation(frameIndex, `Navigate to frame ${frameIndex + 1}`);
       goToFrame(frameIndex);
+      recordFrameNavigation(frameIndex, `Navigate to frame ${frameIndex + 1}`);
     }
   }, [frames.length, isPlaying, goToFrame, recordFrameNavigation]);
 
@@ -52,8 +52,8 @@ export const useFrameNavigation = () => {
     if (!isPlaying && !isPlaybackMode) {
       const nextIndex = currentFrameIndex + 1;
       if (nextIndex < frames.length) {
-        recordFrameNavigation(nextIndex, `Navigate to next frame (${nextIndex + 1})`);
         nextFrame();
+        recordFrameNavigation(nextIndex, `Navigate to next frame (${nextIndex + 1})`);
       }
     }
   }, [isPlaying, isPlaybackMode, nextFrame, currentFrameIndex, frames.length, recordFrameNavigation]);
@@ -63,8 +63,8 @@ export const useFrameNavigation = () => {
     if (!isPlaying && !isPlaybackMode) {
       const prevIndex = currentFrameIndex - 1;
       if (prevIndex >= 0) {
-        recordFrameNavigation(prevIndex, `Navigate to previous frame (${prevIndex + 1})`);
         previousFrame();
+        recordFrameNavigation(prevIndex, `Navigate to previous frame (${prevIndex + 1})`);
       }
     }
   }, [isPlaying, isPlaybackMode, previousFrame, currentFrameIndex, recordFrameNavigation]);
