@@ -149,18 +149,19 @@ export const calculateGradientCells = (options: GradientOptions): Map<string, Ce
 
 **Purpose**: Visual controls and draggable interface for gradient manipulation.
 
-**Visual Elements**:
-- **Start Point**: Black circle with white border (24px diameter)
-- **End Point**: Black circle with white border (24px diameter)
+- **Start Point**: Compact white circle with a dark grey outline (approx. 12px) for immediate visibility regardless of canvas tone
+- **End Point**: Matches start point styling with identical dimensions and no text label to reduce clutter
 - **Gradient Line**: Dashed line connecting start and end points (4px thick)
-- **Stop Controls**: Colored circles showing actual gradient values (24px diameter)
-- **Connection Lines**: Dashed lines connecting stops to gradient line (2px thick)
-- **Auto-contrast Text**: Color values with automatic contrast detection
+- **Character Stops**: Dark square controls (~18px) with the character rendered in light monospace text for legibility
+- **Color Stops**: Square controls (~18px) filled with the active text or background color value, bordered with light grey for visibility
+- **Connection Lines**: Dashed lines connecting offset stops to the gradient line (2px thick)
+- **Auto-contrast Text**: Color values with automatic contrast detection (used where textual overlays remain)
 
-**Layout Logic**:
+- **Layout Logic**:
 - **Before End Point**: Stops displayed vertically below start point
-- **After End Point**: Stops positioned perpendicular to gradient line
-- **Offset Positioning**: First stop offset by 30px to avoid overlapping endpoints
+- **After End Point**: All stops are offset perpendicular to the gradient line to avoid intercepting mouse events on the main path
+- **Overlay Persistence**: Once the start point is placed, the interactive overlay remains visible (even during mouse movement) until the gradient is applied or cancelled, ensuring consistent visual feedback throughout the workflow
+- **Offset Positioning**: Consecutive property tracks are spaced evenly to maintain separation between character, text color, and background color stops
 - **Multi-property Stacking**: Each property type (character, text, background) gets separate track
 
 **Drag System**:
@@ -197,12 +198,14 @@ export const calculateGradientCells = (options: GradientOptions): Map<string, Ce
 1. **Tool Selection**: User selects Gradient Fill tool from toolbar
 2. **Auto-initialization**: Tool automatically creates gradient with current colors
 3. **First Click**: 
-   - Start point placed (black circle appears)
+  - Start point placed (white circle with dark grey outline appears)
    - Gradient stops appear vertically below start point
    - Tool enters "applying" mode
-4. **Mouse Movement**: Live canvas preview shows gradient effect
+4. **Mouse Movement**:
+  - Live canvas preview shows gradient effect
+  - Provisional end handle and stop controls follow the cursor until the end point is committed with a click
 5. **Second Click**:
-   - End point placed (black circle appears)
+  - End point placed (white circle with dark grey outline appears)
    - Gradient line connects both points (dashed)
    - Stops move to positions along gradient line
    - Connection lines show stop positions

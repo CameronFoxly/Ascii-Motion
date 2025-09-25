@@ -294,6 +294,9 @@ src/
 | **Rectangle** | `useCanvasDragAndDrop` (shared) | Interactive: Drag-based drawing with preview, aspect ratio locking |
 | **Ellipse** | `useCanvasDragAndDrop` (shared) | Interactive: Drag-based drawing with preview, aspect ratio locking |
 | **Hand** | `useHandTool` (dedicated) | Navigation: Pan offset management, space key override, cursor states |
+| **Gradient Fill** | `useGradientFillTool` (dedicated) | Advanced fill workflow with hover-following end handle and interactive overlay |
+
+> **Gradient fill overlay state:** `gradientStore` now tracks a `hoverEndPoint` while the user is positioning the gradient. The overlay renders against this provisional value so the end handle and stops follow the cursor until a second click commits the final end point. Always reset `hoverEndPoint` when cancelling or applying to avoid stale overlays.
 
 **Architecture Benefits:**
 - **Dedicated hooks** for complex tools maintain clear separation of concerns

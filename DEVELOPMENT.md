@@ -75,6 +75,7 @@ npm run build:prod && npm run deploy
 - ✅ Image/video import with FFmpeg processing
 - ✅ Export functionality (GIF, MP4, PNG, TXT, JSON)
 - ✅ All drawing tools and selection modes
+- ✅ Gradient fill overlay with live preview and provisional end handle
 - ✅ Responsive design for various screen sizes
 
 **Environment Variables:**

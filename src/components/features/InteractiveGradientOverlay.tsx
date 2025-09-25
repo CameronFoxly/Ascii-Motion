@@ -11,12 +11,18 @@ export const InteractiveGradientOverlay: React.FC = () => {
     isApplying, 
     startPoint, 
     endPoint, 
+    hoverEndPoint,
     definition,
     dragState,
     startDrag,
     updateDrag,
     endDrag
   } = useGradientStore();
+
+  const stopOffsetBase = 24;
+  const stopSize = 18;
+  const stopHitRadius = stopSize / 2 + 2;
+  const displayEndPoint = endPoint ?? hoverEndPoint;
 
   const effectiveCellWidth = cellWidth * zoom;
   const effectiveCellHeight = cellHeight * zoom;
@@ -31,9 +37,9 @@ export const InteractiveGradientOverlay: React.FC = () => {
     // Test start point (6px radius)
     const startDist = Math.sqrt(Math.pow(mouseX - startPixelX, 2) + Math.pow(mouseY - startPixelY, 2));
     
-    if (endPoint) {
-      const endPixelX = endPoint.x * effectiveCellWidth + panOffset.x + effectiveCellWidth / 2;
-      const endPixelY = endPoint.y * effectiveCellHeight + panOffset.y + effectiveCellHeight / 2;
+    if (displayEndPoint) {
+      const endPixelX = displayEndPoint.x * effectiveCellWidth + panOffset.x + effectiveCellWidth / 2;
+      const endPixelY = displayEndPoint.y * effectiveCellHeight + panOffset.y + effectiveCellHeight / 2;
 
       // Test end point (6px radius)
       const endDist = Math.sqrt(Math.pow(mouseX - endPixelX, 2) + Math.pow(mouseY - endPixelY, 2));
@@ -59,14 +65,14 @@ export const InteractiveGradientOverlay: React.FC = () => {
           // Apply perpendicular offset
           const lineAngle = Math.atan2(endPixelY - startPixelY, endPixelX - startPixelX);
           const perpAngle = lineAngle + Math.PI / 2;
-          const offsetDistance = propIndex * 20;
+          const offsetDistance = (propIndex + 1) * stopOffsetBase;
 
           const stopX = lineX + Math.cos(perpAngle) * offsetDistance;
           const stopY = lineY + Math.sin(perpAngle) * offsetDistance;
 
           // Test stop hit (6px radius)
           const stopDist = Math.sqrt(Math.pow(mouseX - stopX, 2) + Math.pow(mouseY - stopY, 2));
-          if (stopDist <= 8) { // Slightly larger hit area for stops
+          if (stopDist <= stopHitRadius) {
             return {
               type: 'stop' as const,
               property,
@@ -77,7 +83,7 @@ export const InteractiveGradientOverlay: React.FC = () => {
       }
 
       // Test end point after stops (stops have precedence)
-      if (endDist <= 8) {
+      if (endDist <= 8 && endPoint) {
         return { type: 'end' as const };
       }
     }
@@ -88,7 +94,7 @@ export const InteractiveGradientOverlay: React.FC = () => {
     }
 
     return null;
-  }, [startPoint, endPoint, definition, effectiveCellWidth, effectiveCellHeight, panOffset]);
+  }, [startPoint, endPoint, hoverEndPoint, definition, effectiveCellWidth, effectiveCellHeight, panOffset]);
 
   // Mouse event handlers
   const handleMouseDown = useCallback((event: React.MouseEvent) => {
@@ -186,42 +192,39 @@ export const InteractiveGradientOverlay: React.FC = () => {
     elements.push(
       <div
         key="start-point"
-        className="absolute w-3 h-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white cursor-move"
+        className="absolute w-3 h-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 cursor-move"
         style={{
           left: startPixelX,
           top: startPixelY,
-          backgroundColor: '#22c55e',
+          backgroundColor: '#ffffff',
+          borderColor: '#1f2937',
           pointerEvents: dragState?.isDragging ? 'none' : 'auto'
         }}
         onMouseDown={(e) => {
           // Handle start point dragging even when container has pointer-events: none
           e.preventDefault();
           e.stopPropagation();
-          startDrag('start', { 
-            x: e.clientX - (overlayRef.current?.getBoundingClientRect()?.left || 0), 
+          startDrag('start', {
+            x: e.clientX - (overlayRef.current?.getBoundingClientRect()?.left || 0),
             y: e.clientY - (overlayRef.current?.getBoundingClientRect()?.top || 0)
           });
         }}
       />
     );
 
-
-
-    // Stop controls - show immediately when start point is placed
     const enabledProperties: Array<'character' | 'textColor' | 'backgroundColor'> = [];
     if (definition.character.enabled) enabledProperties.push('character');
     if (definition.textColor.enabled) enabledProperties.push('textColor');
     if (definition.backgroundColor.enabled) enabledProperties.push('backgroundColor');
 
-    // If we don't have an end point yet, show stops vertically below the start point
-    const hasEndPoint = !!endPoint;
-    let endPixelX, endPixelY;
+    const hasDisplayEndPoint = Boolean(displayEndPoint);
+    let endPixelX = 0;
+    let endPixelY = 0;
 
-    if (hasEndPoint) {
-      endPixelX = endPoint.x * effectiveCellWidth + panOffset.x + effectiveCellWidth / 2;
-      endPixelY = endPoint.y * effectiveCellHeight + panOffset.y + effectiveCellHeight / 2;
+    if (hasDisplayEndPoint) {
+      endPixelX = displayEndPoint!.x * effectiveCellWidth + panOffset.x + effectiveCellWidth / 2;
+      endPixelY = displayEndPoint!.y * effectiveCellHeight + panOffset.y + effectiveCellHeight / 2;
 
-      // Gradient line (only when both points exist)
       elements.push(
         <svg
           key="gradient-line"
@@ -240,58 +243,41 @@ export const InteractiveGradientOverlay: React.FC = () => {
         </svg>
       );
 
-      // End point
       elements.push(
         <div
           key="end-point"
-          className="absolute w-3 h-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white cursor-move"
+          className="absolute w-3 h-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 cursor-move"
           style={{
             left: endPixelX,
             top: endPixelY,
-            backgroundColor: '#ef4444',
-            pointerEvents: dragState?.isDragging ? 'none' : 'auto'
+            backgroundColor: '#ffffff',
+            borderColor: '#1f2937',
+            pointerEvents: dragState?.isDragging || !endPoint ? 'none' : 'auto'
           }}
         />
       );
-
-      // End label
-      elements.push(
-        <div
-          key="end-label"
-          className="absolute text-white text-xs font-mono -translate-x-1/2 pointer-events-none select-none"
-          style={{
-            left: endPixelX,
-            top: endPixelY - 18
-          }}
-        >
-          END
-        </div>
-      );
     }
 
-    // Render stops for each enabled property
     enabledProperties.forEach((property, propIndex) => {
       const stops = definition[property].stops;
 
       stops.forEach((stop, stopIndex) => {
         if (stop.position < 0 || stop.position > 1) return;
 
-        let stopX, stopY;
+        let stopX: number;
+        let stopY: number;
 
-        if (hasEndPoint) {
-          // Calculate stop position along the gradient line
-          const lineX = startPixelX + (endPixelX! - startPixelX) * stop.position;
-          const lineY = startPixelY + (endPixelY! - startPixelY) * stop.position;
+        if (hasDisplayEndPoint) {
+          const lineX = startPixelX + (endPixelX - startPixelX) * stop.position;
+          const lineY = startPixelY + (endPixelY - startPixelY) * stop.position;
 
-          // Apply perpendicular offset for multiple properties
-          const lineAngle = Math.atan2(endPixelY! - startPixelY, endPixelX! - startPixelX);
+          const lineAngle = Math.atan2(endPixelY - startPixelY, endPixelX - startPixelX);
           const perpAngle = lineAngle + Math.PI / 2;
-          const offsetDistance = propIndex * 20;
+          const offsetDistance = (propIndex + 1) * stopOffsetBase;
 
           stopX = lineX + Math.cos(perpAngle) * offsetDistance;
           stopY = lineY + Math.sin(perpAngle) * offsetDistance;
 
-          // Connection line to main gradient line (if offset)
           if (offsetDistance > 0) {
             elements.push(
               <svg
@@ -312,45 +298,46 @@ export const InteractiveGradientOverlay: React.FC = () => {
             );
           }
         } else {
-          // Show stops vertically below start point when no end point yet
-          stopX = startPixelX + propIndex * 25 - (enabledProperties.length - 1) * 12.5; // Center the stops
-          stopY = startPixelY + 40 + stopIndex * 25; // Stack stops vertically
+          stopX = startPixelX + propIndex * 25 - (enabledProperties.length - 1) * 12.5;
+          stopY = startPixelY + 40 + stopIndex * 25;
         }
 
-        // Stop marker
-        const stopColor = property === 'character' ? '#8b5cf6' : 
-                         property === 'textColor' ? '#3b82f6' : '#f59e0b';
+        const isColorStop = property === 'textColor' || property === 'backgroundColor';
+        const markerBackground = isColorStop ? stop.value : '#111827';
 
         elements.push(
           <div
             key={`stop-${property}-${stopIndex}`}
-            className="absolute w-3 h-3 -translate-x-1/2 -translate-y-1/2 border border-white cursor-move"
+            className="absolute -translate-x-1/2 -translate-y-1/2 border cursor-move"
             style={{
               left: stopX,
               top: stopY,
-              backgroundColor: stopColor,
+              width: stopSize,
+              height: stopSize,
+              backgroundColor: markerBackground,
+              borderColor: 'hsl(var(--border))',
+              borderRadius: 4,
+              borderWidth: 1,
               pointerEvents: dragState?.isDragging ? 'none' : 'auto'
             }}
           />
         );
 
-        // Stop value display
-        const displayValue = property === 'character' ? stop.value : '●';
-        const textColor = property === 'character' ? 'white' : stop.value;
-
-        elements.push(
-          <div
-            key={`stop-value-${property}-${stopIndex}`}
-            className="absolute text-xs font-mono -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none"
-            style={{
-              left: stopX,
-              top: stopY,
-              color: textColor
-            }}
-          >
-            {displayValue}
-          </div>
-        );
+        if (property === 'character') {
+          elements.push(
+            <div
+              key={`stop-value-${property}-${stopIndex}`}
+              className="absolute font-mono text-sm -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none"
+              style={{
+                left: stopX,
+                top: stopY,
+                color: '#f9fafb'
+              }}
+            >
+              {stop.value}
+            </div>
+          );
+        }
       });
     });
 

@@ -34,6 +34,7 @@ export const useGradientFillTool = () => {
     isApplying, 
     startPoint, 
     endPoint, 
+    hoverEndPoint,
     definition, 
     contiguous, 
     matchChar, 
@@ -42,6 +43,7 @@ export const useGradientFillTool = () => {
     previewData,
     setApplying, 
     setPoints, 
+    setHoverEndPoint,
     setPreview,
     reset: resetGradient
   } = useGradientStore();
@@ -166,6 +168,7 @@ export const useGradientFillTool = () => {
       console.log('Starting gradient application at:', { x, y });
       setApplying(true);
       setPoints({ x, y }, null);
+      setHoverEndPoint({ x, y });
       return;
     }
     
@@ -174,6 +177,7 @@ export const useGradientFillTool = () => {
       console.log('Setting end point at:', { x, y, startPoint });
       const newEndPoint = { x, y };
       setPoints(startPoint, newEndPoint);
+      setHoverEndPoint(null);
       generatePreview(startPoint, newEndPoint);
       return;
     }
@@ -194,6 +198,7 @@ export const useGradientFillTool = () => {
     canvasHeight,
     setApplying, 
     setPoints,
+    setHoverEndPoint,
     generatePreview,
     applyGradient
   ]);
@@ -205,13 +210,14 @@ export const useGradientFillTool = () => {
     if (!endPoint) {
       // Still dragging to set the end point - update preview with current mouse position
       const currentEndPoint = { x, y };
+      setHoverEndPoint(currentEndPoint);
       generatePreview(startPoint, currentEndPoint);
     } else {
       // Both points are set - allow dragging to adjust them
       // For now, we'll regenerate preview if definition changes
       // TODO: Add drag detection for start/end point adjustment
     }
-  }, [activeTool, isApplying, startPoint, endPoint, generatePreview]);
+  }, [activeTool, isApplying, startPoint, endPoint, setHoverEndPoint, generatePreview]);
 
   // Cancel gradient (Escape key)
   const cancelGradient = useCallback(() => {
@@ -254,11 +260,12 @@ export const useGradientFillTool = () => {
 
   // Regenerate preview when gradient definition changes (while both points are set)
   useEffect(() => {
-    if (activeTool === 'gradientfill' && isApplying && startPoint && endPoint) {
+    const targetEndPoint = endPoint ?? hoverEndPoint;
+    if (activeTool === 'gradientfill' && isApplying && startPoint && targetEndPoint) {
       console.log('Regenerating preview due to definition change');
-      generatePreview(startPoint, endPoint);
+      generatePreview(startPoint, targetEndPoint);
     }
-  }, [activeTool, isApplying, startPoint, endPoint, definition, contiguous, matchChar, matchColor, matchBgColor, generatePreview]);
+  }, [activeTool, isApplying, startPoint, endPoint, hoverEndPoint, definition, contiguous, matchChar, matchColor, matchBgColor, generatePreview]);
   
   // Cleanup on unmount
   useEffect(() => {
@@ -272,6 +279,7 @@ export const useGradientFillTool = () => {
     isApplying,
     startPoint,
     endPoint,
+  hoverEndPoint,
     previewData,
     
     // Actions

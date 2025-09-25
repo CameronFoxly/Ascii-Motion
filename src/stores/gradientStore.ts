@@ -17,6 +17,7 @@ interface GradientStore {
   isApplying: boolean;
   startPoint: { x: number; y: number } | null;
   endPoint: { x: number; y: number } | null;
+  hoverEndPoint: { x: number; y: number } | null;
   previewData: Map<string, Cell> | null;
   
   // Fill area configuration
@@ -55,6 +56,7 @@ interface GradientStore {
   // Application state
   setApplying: (isApplying: boolean) => void;
   setPoints: (start: { x: number; y: number } | null, end: { x: number; y: number } | null) => void;
+  setHoverEndPoint: (point: { x: number; y: number } | null) => void;
   setPreview: (previewData: Map<string, Cell> | null) => void;
   
   // Fill configuration
@@ -104,6 +106,7 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
   isApplying: false,
   startPoint: null,
   endPoint: null,
+  hoverEndPoint: null,
   previewData: null,
   contiguous: true,
   matchChar: true,
@@ -218,12 +221,19 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
     set({ isApplying });
     if (!isApplying) {
       // Reset interactive state when not applying
-      set({ startPoint: null, endPoint: null, previewData: null });
+      set({ startPoint: null, endPoint: null, hoverEndPoint: null, previewData: null });
     }
   },
 
   setPoints: (start: { x: number; y: number } | null, end: { x: number; y: number } | null) => {
     set({ startPoint: start, endPoint: end });
+    if (end) {
+      set({ hoverEndPoint: null });
+    }
+  },
+
+  setHoverEndPoint: (point: { x: number; y: number } | null) => {
+    set({ hoverEndPoint: point });
   },
 
   setPreview: (previewData: Map<string, Cell> | null) => {
@@ -361,6 +371,7 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
       isApplying: false,
       startPoint: null,
       endPoint: null,
+      hoverEndPoint: null,
       previewData: null,
       dragState: null
     });
