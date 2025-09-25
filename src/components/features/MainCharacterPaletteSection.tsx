@@ -59,7 +59,7 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
   const [isManagePalettesOpen, setIsManagePalettesOpen] = useState(false);
   const [isCharacterPickerOpen, setIsCharacterPickerOpen] = useState(false);
-  const [pickerTriggerSource, setPickerTriggerSource] = useState<'edit-button' | 'palette-icon' | 'character-preview'>('palette-icon');
+  const [pickerTriggerSource, setPickerTriggerSource] = useState<'edit-button' | 'palette-icon' | 'character-preview' | 'palette-swatch'>('palette-icon');
   const [editingCharacterIndex, setEditingCharacterIndex] = useState<number | null>(null);
   const characterPickerTriggerRef = React.useRef<HTMLButtonElement>(null);
   const characterPreviewRef = React.useRef<HTMLButtonElement>(null);
@@ -105,7 +105,7 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
     if (pickerTriggerSource === 'character-preview') {
       // Update active character (just change selection, don't modify palette)
       setSelectedChar(character);
-    } else if (pickerTriggerSource === 'edit-button' && editingCharacterIndex !== null) {
+    } else if ((pickerTriggerSource === 'edit-button' || pickerTriggerSource === 'palette-swatch') && editingCharacterIndex !== null) {
       // Replace the character at editingCharacterIndex
       const targetPalette = ensureCustomPalette();
       const newCharacters = [...targetPalette.characters];
@@ -332,7 +332,7 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
                             onDoubleClick={() => {
                               setSelectedIndex(index);
                               setEditingCharacterIndex(index);
-                              setPickerTriggerSource('edit-button');
+                              setPickerTriggerSource('palette-swatch');
                               setIsCharacterPickerOpen(true);
                             }}
                             onDragStart={(e) => handleDragStart(e, index)}
@@ -411,6 +411,7 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
         triggerRef={
           pickerTriggerSource === 'edit-button' ? editButtonRef :
           pickerTriggerSource === 'character-preview' ? characterPreviewRef :
+          pickerTriggerSource === 'palette-swatch' ? paletteContainerRef :
           characterPickerTriggerRef
         }
         anchorPosition={
