@@ -456,6 +456,8 @@ export const CanvasSettings: React.FC = () => {
           initialColor={canvasBackgroundColor}
           title="Edit Canvas Background Color"
           showTransparentOption
+          triggerRef={colorPickerRef}
+          anchorPosition="bottom-left"
         />
       </div>
     </TooltipProvider>
