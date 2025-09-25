@@ -31,7 +31,6 @@ export const JsonImportDialog: React.FC = () => {
 
     try {
       setIsImporting(true);
-      console.log('Importing JSON file:', file.name);
       
       // Pass typography callbacks to the import function
       await importJson(file, {
@@ -39,8 +38,6 @@ export const JsonImportDialog: React.FC = () => {
         setCharacterSpacing,
         setLineSpacing
       });
-      
-      console.log('JSON imported successfully');
       
       // Reset input and close modal
       event.target.value = '';

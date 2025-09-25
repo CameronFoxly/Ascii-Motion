@@ -144,14 +144,7 @@ class PerformanceMonitor {
   logStats(): void {
     if (!this.isEnabled) return;
 
-    const stats = this.getStats();
-    console.group('🎯 Canvas Performance Stats');
-    console.log(`Average Render Time: ${stats.averageRenderTime}ms`);
-    console.log(`Average FPS: ${stats.averageFPS}`);
-    console.log(`Total Renders: ${stats.totalRenders}`);
-    console.log(`Last Render: ${stats.lastRenderTime}ms`);
-    console.log(`Efficiency: ${stats.efficiency}`);
-    console.groupEnd();
+    // Performance stats logging disabled for cleaner console
   }
 
   /**
@@ -180,7 +173,7 @@ class PerformanceMonitor {
       };
     }
 
-    console.log(`🧪 Testing ${width}x${height} grid performance...`);
+    // Testing grid performance (logging disabled)
 
     // Clear previous measurements
     this.clear();
@@ -207,7 +200,6 @@ class PerformanceMonitor {
       recommendation
     };
 
-    console.log('📊 Large Grid Test Results:', result);
     return result;
   }
 

@@ -202,8 +202,6 @@ export class JsonImporter {
         });
       }
     }
-    
-    console.log(`Imported ${jsonData.frames.length} frames from JSON (text-based format)`);
   }
 }
 

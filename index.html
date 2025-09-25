@@ -108,7 +108,6 @@
         const emptyElement = document.getElementById('loading-bar-empty');
         
         if (!dotsElement || !filledElement || !emptyElement) {
-          console.log('Animation stopped - elements missing');
           return; // Elements gone, stop animating
         }
         
@@ -120,7 +119,6 @@
         // Animate progress bar (realistic progress that doesn't complete)
         if (barProgress < maxBarWidth - 5) {
           barProgress += Math.random() * 1.5 + 0.5;
-          console.log('Animating progress:', Math.floor(barProgress), '/', maxBarWidth);
         }
         
         const filled = Math.floor(barProgress);
@@ -136,7 +134,6 @@
       
       // Run HTML animation for fixed duration, then hand off to React
       setTimeout(() => {
-        console.log('Starting completion animation from:', barProgress);
         clearInterval(animationInterval);
         
         // Animate to 100% completion over 500ms
@@ -153,7 +150,6 @@
           const loader = document.getElementById('initial-loader');
           
           if (!filledElement || !emptyElement || !loader) {
-            console.log('Elements gone during completion');
             return;
           }
           
@@ -163,12 +159,10 @@
           
           filledElement.textContent = '█'.repeat(filled);
           emptyElement.textContent = '░'.repeat(empty);
-          console.log('Completion progress:', filled, '/', maxBarWidth);
           
           if (progress < 1) {
             requestAnimationFrame(completeAnimation);
           } else {
-            console.log('HTML animation complete, removing loader');
             loader.remove();
           }
         };

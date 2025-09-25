@@ -262,7 +262,7 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
         const result = await eyeDropper.open();
         updateFromHex(result.sRGBHex);
       } catch (error) {
-        console.log('Eyedropper cancelled or not supported');
+        // Eyedropper cancelled or not supported
       }
     }
   };

@@ -38,9 +38,6 @@ export const PngExportDialog: React.FC = () => {
   };
 
   const handleExport = async () => {
-    console.log('PNG Export started');
-    console.log('Export data:', exportData);
-    console.log('PNG settings:', pngSettings);
     
     if (!exportData) {
       console.error('No export data available');
@@ -51,20 +48,13 @@ export const PngExportDialog: React.FC = () => {
     try {
       setIsExporting(true);
       
-      console.log('Creating renderer...');
-      
       // Create renderer with progress callback
       const renderer = new ExportRenderer((progress) => {
-        console.log('Export progress:', progress);
         setProgress(progress);
       });
 
-      console.log('Starting PNG export...');
-      
       // Perform the export
       await renderer.exportPng(exportData, pngSettings, filename);
-      
-      console.log('PNG export completed successfully');
       
       // Close dialog on success
       handleClose();
