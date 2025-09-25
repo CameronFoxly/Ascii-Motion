@@ -249,6 +249,44 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
         left,
         right: 'auto'
       };
+    } else if (anchorPosition === 'bottom-left') {
+      // Position below the trigger element, aligned to the left edge
+      let top = triggerRect.bottom + 8; // 8px gap below trigger
+      let left = triggerRect.left;
+      
+      // Ensure picker doesn't go off-screen
+      if (left + pickerWidth > window.innerWidth) {
+        left = window.innerWidth - pickerWidth - 8;
+      }
+      if (top + pickerHeight > window.innerHeight + window.scrollY) {
+        // If it goes off bottom, position above the trigger instead
+        top = triggerRect.top + window.scrollY - pickerHeight - 8;
+      }
+      
+      return {
+        top,
+        left,
+        right: 'auto'
+      };
+    } else if (anchorPosition === 'bottom-right') {
+      // Position below the trigger element, aligned to the right edge
+      let top = triggerRect.bottom + 8; // 8px gap below trigger
+      let left = triggerRect.right - pickerWidth;
+      
+      // Ensure picker doesn't go off-screen
+      if (left < 8) {
+        left = 8;
+      }
+      if (top + pickerHeight > window.innerHeight + window.scrollY) {
+        // If it goes off bottom, position above the trigger instead
+        top = triggerRect.top + window.scrollY - pickerHeight - 8;
+      }
+      
+      return {
+        top,
+        left,
+        right: 'auto'
+      };
     } else {
       // Default left-slide behavior with vertical centering
       return {
