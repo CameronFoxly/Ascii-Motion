@@ -210,7 +210,8 @@ export type HistoryActionType =
   | 'delete_frame'     // Delete frame
   | 'reorder_frames'   // Reorder frame positions
   | 'update_duration'  // Change frame duration
-  | 'update_name';     // Change frame name
+  | 'update_name'      // Change frame name
+  | 'navigate_frame';  // Navigate to different frame
 
 export interface HistoryAction {
   type: HistoryActionType;
@@ -284,6 +285,14 @@ export interface UpdateNameHistoryAction extends HistoryAction {
   };
 }
 
+export interface NavigateFrameHistoryAction extends HistoryAction {
+  type: 'navigate_frame';
+  data: {
+    previousFrameIndex: number;
+    newFrameIndex: number;
+  };
+}
+
 export type AnyHistoryAction = 
   | CanvasHistoryAction
   | AddFrameHistoryAction 
@@ -291,4 +300,5 @@ export type AnyHistoryAction =
   | DeleteFrameHistoryAction
   | ReorderFramesHistoryAction
   | UpdateDurationHistoryAction
-  | UpdateNameHistoryAction;
+  | UpdateNameHistoryAction
+  | NavigateFrameHistoryAction;
