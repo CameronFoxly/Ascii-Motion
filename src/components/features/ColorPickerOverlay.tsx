@@ -257,16 +257,28 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
 
   // Trigger real-time updates when color values change
   useEffect(() => {
-    // Only update preview color, don't trigger real-time callbacks to avoid loops
+    // Update preview color and trigger real-time callbacks when values change
     if (hasInitialized && isOpen) {
+      let newColor: string;
       if (isTransparentColor) {
-        setPreviewColor('transparent');
+        newColor = 'transparent';
       } else {
-        const hexColor = hsvToHex(hsvValues);
-        setPreviewColor(hexColor);
+        newColor = hsvToHex(hsvValues);
+      }
+      
+      setPreviewColor(newColor);
+      
+      // Trigger real-time update if callback is provided
+      // Use a timeout to debounce rapid changes and avoid infinite loops
+      if (onColorChange && newColor !== previewColor) {
+        const timeoutId = setTimeout(() => {
+          onColorChange(newColor);
+        }, 50); // 50ms debounce
+        
+        return () => clearTimeout(timeoutId);
       }
     }
-  }, [hsvValues, isTransparentColor, hasInitialized, isOpen]);
+  }, [hsvValues, isTransparentColor, hasInitialized, isOpen, onColorChange, previewColor]);
 
   // Update color wheel position based on HSV values
   const updateColorWheelPosition = useCallback((hsv: HSVColor) => {
@@ -295,8 +307,13 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
       setValueSliderValue(hsv.v);
       updateColorWheelPosition(hsv);
       setIsTransparentColor(false);
+      
+      // Trigger real-time update
+      if (onColorChange) {
+        onColorChange(normalizedHex);
+      }
     }
-  }, [updateColorWheelPosition]);
+  }, [updateColorWheelPosition, onColorChange]);
 
   const updateFromRgb = useCallback((rgb: RGBColor) => {
     const hex = rgbToHex(rgb);
@@ -308,7 +325,12 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     setValueSliderValue(hsv.v);
     updateColorWheelPosition(hsv);
     setIsTransparentColor(false);
-  }, [updateColorWheelPosition]);
+    
+    // Trigger real-time update
+    if (onColorChange) {
+      onColorChange(hex);
+    }
+  }, [updateColorWheelPosition, onColorChange]);
 
   const updateFromHsv = useCallback((hsv: HSVColor, skipWheelPosition: boolean = false) => {
     const rgb = hsvToRgb(hsv);
@@ -321,7 +343,12 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
       updateColorWheelPosition(hsv);
     }
     setIsTransparentColor(false);
-  }, [updateColorWheelPosition]);
+    
+    // Trigger real-time update
+    if (onColorChange) {
+      onColorChange(hex);
+    }
+  }, [updateColorWheelPosition, onColorChange]);
 
   // Handle hex input change with live sanitization
   const handleHexChange = (value: string) => {
