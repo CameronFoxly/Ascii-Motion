@@ -244,11 +244,13 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
       setPreviewColor(newColor);
       
       // Trigger real-time update if callback is provided and color actually changed
+      // Using ref to track changes prevents circular dependencies in useEffect deps
+      // while ensuring we only fire callbacks when the color genuinely changes
       if (onColorChange && newColor !== previousColorRef.current) {
         previousColorRef.current = newColor;
         const timeoutId = setTimeout(() => {
           onColorChange(newColor);
-        }, 50); // 50ms debounce
+        }, 50); // 50ms debounce to prevent excessive calls during rapid changes
         
         return () => clearTimeout(timeoutId);
       }
