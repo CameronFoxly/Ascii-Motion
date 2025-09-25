@@ -26,11 +26,11 @@ export const calculateGradientCells = (options: GradientOptions): Map<string, Ce
     
     const gradientCell: Cell = {
       char: definition.character.enabled ? 
-        interpolateProperty(position, definition.character) : ' ',
+        sampleGradientProperty(position, definition.character) : ' ',
       color: definition.textColor.enabled ? 
-        interpolateProperty(position, definition.textColor) : '#FFFFFF',
+        sampleGradientProperty(position, definition.textColor) : '#FFFFFF',
       bgColor: definition.backgroundColor.enabled ? 
-        interpolateProperty(position, definition.backgroundColor) : 'transparent'
+        sampleGradientProperty(position, definition.backgroundColor) : 'transparent'
     };
     
     result.set(cellKey, gradientCell);
@@ -71,7 +71,7 @@ const calculatePositionOnGradient = (
 /**
  * Interpolate property value at given position based on stops and interpolation method
  */
-const interpolateProperty = (position: number, property: GradientProperty): string => {
+export const sampleGradientProperty = (position: number, property: GradientProperty): string => {
   const { stops, interpolation } = property;
   
   if (stops.length === 0) return '';

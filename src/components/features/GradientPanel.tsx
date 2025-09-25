@@ -27,6 +27,7 @@ import {
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
 import { GradientIcon } from '../icons';
 import { GradientStopPicker } from './GradientStopPicker';
+import { GradientPropertyPreview } from './GradientPropertyPreview';
 import { PANEL_ANIMATION } from '../../constants';
 import { 
   X,
@@ -241,7 +242,7 @@ export function GradientPanel() {
       </div>
       <CollapsibleContent className="collapsible-content">
         {property.enabled && (
-          <div className="space-y-3 mt-2">
+          <div className="flex flex-col gap-3 mt-2">
             {/* Interpolation Method */}
             <div className="space-y-1">
               <Label className="text-xs">Interpolation</Label>
@@ -261,8 +262,10 @@ export function GradientPanel() {
               </Select>
             </div>
 
+            <GradientPropertyPreview propertyKey={propertyKey} property={property} />
+
             {/* Gradient Stops */}
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <Label className="text-xs">Gradient Stops</Label>
                 <div className="flex gap-1">
@@ -278,7 +281,7 @@ export function GradientPanel() {
                 </div>
               </div>
               
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 {property.stops.map((stop, index) => (
                   <div key={index} className="flex items-center gap-2 p-2 border border-border rounded bg-card">
                     {/* Position Slider */}
