@@ -250,24 +250,14 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
         <CollapsibleContent className="space-y-3">
           {/* Character Palette Selector */}
           <div className="space-y-2 w-full">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-muted-foreground">Active Palette</span>
-              <div className="flex gap-1">
-                <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={() => { const p = createCustomPalette('New Palette', [' ']); setActivePalette(p); startEditing(p.id); setSelectedIndex(0);}} title="Create palette">
-                  <Plus className="w-3 h-3" />
-                </Button>
-                <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={() => setIsManagePalettesOpen(true)} title="Manage palettes">
-                  <Settings className="w-3 h-3" />
-                </Button>
-              </div>
-            </div>
-            
-            <Select value={activePalette.id} onValueChange={handlePaletteChange}>
-              <SelectTrigger className="h-8 text-xs w-full">
-                <div className="truncate">
-                  <SelectValue placeholder="Select character palette" />
-                </div>
-              </SelectTrigger>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <Select value={activePalette.id} onValueChange={handlePaletteChange}>
+                  <SelectTrigger className="h-8 text-xs w-full">
+                    <div className="truncate">
+                      <SelectValue placeholder="Select character palette" />
+                    </div>
+                  </SelectTrigger>
                         <SelectContent className="border-border/50">
                           {/* Custom Palettes First */}
                           {customPalettes.length > 0 && (
@@ -303,7 +293,17 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
                             </div>
                           )}
                         </SelectContent>
-                      </Select>
+                </Select>
+              </div>
+              <div className="flex gap-1">
+                <Button size="sm" variant="outline" className="h-8 w-8 p-0 flex-shrink-0" onClick={() => { const p = createCustomPalette('New Palette', [' ']); setActivePalette(p); startEditing(p.id); setSelectedIndex(0);}} title="Create palette">
+                  <Plus className="w-3 h-3" />
+                </Button>
+                <Button size="sm" variant="outline" className="h-8 w-8 p-0 flex-shrink-0" onClick={() => setIsManagePalettesOpen(true)} title="Manage palettes">
+                  <Settings className="w-3 h-3" />
+                </Button>
+              </div>
+            </div>
           </div>
                 
                 {/* Character Grid */}
