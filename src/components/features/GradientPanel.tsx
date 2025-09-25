@@ -9,7 +9,7 @@
  * - Multiple interpolation methods and gradient types
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '../ui/separator';
@@ -43,6 +43,11 @@ import { useGradientStore } from '../../stores/gradientStore';
 import { useToolStore } from '../../stores/toolStore';
 import type { GradientProperty, InterpolationMethod, GradientType } from '../../types';
 
+const parseTailwindDuration = (token: string): number | null => {
+  const match = token.match(/duration-(\d+)/);
+  return match ? Number(match[1]) : null;
+};
+
 export function GradientPanel() {
   const { activeTool, selectedChar, selectedColor, selectedBgColor, setActiveTool } = useToolStore();
   const { 
@@ -55,6 +60,11 @@ export function GradientPanel() {
     removeStop,
     updateStop
   } = useGradientStore();
+
+  const animationDurationMs = useMemo(
+    () => parseTailwindDuration(PANEL_ANIMATION.DURATION) ?? 300,
+    []
+  );
 
   // Animation state to handle transitions properly
   const [shouldRender, setShouldRender] = useState(isOpen);
@@ -74,10 +84,10 @@ export function GradientPanel() {
       // Wait for animation to complete before removing from DOM
       const timer = setTimeout(() => {
         setShouldRender(false);
-      }, 300); // Match PANEL_ANIMATION.DURATION
+      }, animationDurationMs);
       return () => clearTimeout(timer);
     }
-  }, [isOpen, shouldRender]);
+  }, [isOpen, shouldRender, animationDurationMs]);
 
   // Section collapse states
   const [gradientTypeOpen, setGradientTypeOpen] = useState(true);
@@ -105,10 +115,6 @@ export function GradientPanel() {
     }
   }, [activeTool, isOpen, setIsOpen]);
 
-  // Don't render if panel is not open
-  if (!isOpen) {
-    return null;
-  }
 
   const handleGradientTypeChange = (type: GradientType) => {
     updateDefinition({ type });
