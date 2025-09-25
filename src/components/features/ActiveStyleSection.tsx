@@ -21,6 +21,7 @@ import { ColorReadout } from './ColorReadout';
 import { ColorPickerOverlay } from './ColorPickerOverlay';
 import { useToolStore } from '../../stores/toolStore';
 import { useCharacterPaletteStore } from '../../stores/characterPaletteStore';
+import { useCanvasStore } from '../../stores/canvasStore';
 
 interface ActiveStyleSectionProps {
   className?: string;
@@ -46,18 +47,15 @@ export function ActiveStyleSection({ className = '' }: ActiveStyleSectionProps) 
   const setSelectedColor = useToolStore(state => state.setSelectedColor);
   const setSelectedBgColor = useToolStore(state => state.setSelectedBgColor);
   
+  // Canvas store for canvas background color
+  const canvasBackgroundColor = useCanvasStore(state => state.canvasBackgroundColor);
+  
   // Character palette store for updating palettes
   const addCharacterToPalette = useCharacterPaletteStore(state => state.addCharacterToPalette);
   const activePalette = useCharacterPaletteStore(state => state.activePalette);
 
   const handleCharacterSelect = (character: string) => {
     setSelectedChar(character);
-    
-    // Auto-add to active palette if not already present
-    if (activePalette && !activePalette.characters.includes(character)) {
-      addCharacterToPalette(activePalette.id, character);
-    }
-    
     setIsCharacterPickerOpen(false);
   };
 
@@ -103,13 +101,45 @@ export function ActiveStyleSection({ className = '' }: ActiveStyleSectionProps) 
                 <Button
                   ref={characterPreviewRef}
                   variant="outline"
-                  className="w-16 h-16 text-3xl font-mono hover:bg-muted transition-colors"
+                  className="w-16 h-16 text-3xl font-mono hover:border-primary transition-colors relative overflow-hidden flex items-center justify-center border-2"
                   onClick={() => {
                     setIsCharacterPickerOpen(true);
                   }}
                   title={`Active Character: "${selectedChar === ' ' ? 'Space' : selectedChar}" - Click to change`}
+                  style={{
+                    // Use canvas background color as the button background
+                    backgroundColor: canvasBackgroundColor === 'transparent' ? '#000000' : canvasBackgroundColor,
+                  }}
                 >
-                  {selectedChar === ' ' ? '␣' : selectedChar}
+                  {/* Character container with background color - sized to character bounds */}
+                  <div className="relative flex items-center justify-center">
+                    {/* Character background color - only covers character area */}
+                    {selectedBgColor !== 'transparent' && (
+                      <div
+                        className="absolute inset-0 flex items-center justify-center"
+                        style={{ 
+                          backgroundColor: selectedBgColor,
+                          // Size the background to roughly match character bounds
+                          width: '1.2em',
+                          height: '1.2em',
+                          left: '50%',
+                          top: '50%',
+                          transform: 'translate(-50%, -50%)'
+                        }}
+                      />
+                    )}
+                    {/* Character display - positioned above background */}
+                    <span 
+                      className="relative z-10 flex items-center justify-center"
+                      style={{ 
+                        color: selectedColor,
+                        width: '1.2em',
+                        height: '1.2em'
+                      }}
+                    >
+                      {selectedChar === ' ' ? '␣' : selectedChar}
+                    </span>
+                  </div>
                 </Button>
               </div>
             </div>

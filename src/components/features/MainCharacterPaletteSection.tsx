@@ -107,7 +107,10 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
       const newCharacters = [...targetPalette.characters];
       newCharacters[editingCharacterIndex] = character;
       updateCustomPalette(targetPalette.id, { characters: newCharacters });
+      
+      // Reset edit mode state
       setEditingCharacterIndex(null);
+      setPickerTriggerSource('palette-icon');
     } else {
       // Add new character
       if (!activePalette.characters.includes(character)) {
@@ -115,13 +118,19 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
         addCharacterToPalette(targetPalette.id, character);
       }
     }
+    
+    // Always close the picker and reset states
     setIsCharacterPickerOpen(false);
+    setSelectedIndex(null);  // Clear selection when adding/editing characters
   };
 
   const handleAddCurrentCharacter = () => {
-    if (selectedChar && !activePalette.characters.includes(selectedChar)) {
+    if (selectedChar) {
       const targetPalette = ensureCustomPalette();
+      // Always add the character, even if it already exists
+      // This allows users to add duplicates if they want to
       addCharacterToPalette(targetPalette.id, selectedChar);
+      setSelectedIndex(null);  // Clear selection after adding
     }
   };
 
@@ -348,7 +357,7 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
                   <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={handleMoveSelectedRight} disabled={selectedIndex === null || selectedIndex === activePalette.characters.length - 1} title="Move right">
                     <ArrowRight className="w-3 h-3" />
                   </Button>
-                  <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={handleAddCurrentCharacter} disabled={!selectedChar || activePalette.characters.includes(selectedChar)} title="Add current character">
+                  <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={handleAddCurrentCharacter} disabled={!selectedChar} title="Add current character">
                     <Plus className="w-3 h-3" />
                   </Button>
                   <Button size="sm" variant="outline" className="h-6 w-6 p-0 text-destructive" onClick={handleDeleteSelected} disabled={selectedIndex === null} title="Delete character">
@@ -376,7 +385,13 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
       {/* Character Picker */}
       <CharacterPicker
         isOpen={isCharacterPickerOpen}
-        onClose={() => setIsCharacterPickerOpen(false)}
+        onClose={() => {
+          setIsCharacterPickerOpen(false);
+          // Reset edit mode state when closing
+          setEditingCharacterIndex(null);
+          setPickerTriggerSource('palette-icon');
+          setSelectedIndex(null);
+        }}
         onSelectCharacter={handleCharacterSelect}
         triggerRef={
           pickerTriggerSource === 'edit-button' ? editButtonRef :
