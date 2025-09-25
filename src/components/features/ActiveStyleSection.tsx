@@ -5,6 +5,7 @@
  * - Character picker on the left with "Character" label
  * - FG/BG color controls on the right with "Color" label
  * - Grid layout similar to media import panel's alignment/nudge sections
+ * - Renamed to "Appearance" in the UI for better clarity
  */
 
 import React, { useState, useRef } from 'react';
@@ -84,9 +85,9 @@ export function ActiveStyleSection({ className = '' }: ActiveStyleSectionProps) 
     <div className={`space-y-3 ${className}`}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleHeader isOpen={isOpen}>
-          Active Style
+          Appearance
         </CollapsibleHeader>
-        <CollapsibleContent className="space-y-3">
+        <CollapsibleContent className="collapsible-content space-y-3">
           {/* Character & Color Controls - Two Equal Columns */}
           <div className="grid grid-cols-2 gap-4">
             {/* Character Section */}
