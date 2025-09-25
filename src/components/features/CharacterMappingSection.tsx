@@ -43,6 +43,8 @@ import {
 } from 'lucide-react';
 import { Checkbox } from '../ui/checkbox';
 import { ManageCharacterPalettesDialog } from './ManageCharacterPalettesDialog';
+import { ImportCharacterPaletteDialog } from './ImportCharacterPaletteDialog';
+import { ExportCharacterPaletteDialog } from './ExportCharacterPaletteDialog';
 import { CharacterPicker } from './CharacterPicker';
 import { 
   useCharacterPaletteStore
@@ -63,6 +65,8 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
   const [isManagePalettesOpen, setIsManagePalettesOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isCharacterPickerOpen, setIsCharacterPickerOpen] = useState(false);
   const [pickerTriggerSource, setPickerTriggerSource] = useState<'edit-button' | 'palette-icon'>('palette-icon');
   const [editingCharacterIndex, setEditingCharacterIndex] = useState<number | null>(null);
@@ -260,6 +264,7 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
   };
 
   return (
+    <>
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <div className="flex items-center justify-between">
         <CollapsibleTrigger asChild>
@@ -450,7 +455,12 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                   </div>
 
                   {/* Manage Palettes Dialog */}
-                  <ManageCharacterPalettesDialog isOpen={isManagePalettesOpen} onOpenChange={setIsManagePalettesOpen} />
+                  <ManageCharacterPalettesDialog 
+                    isOpen={isManagePalettesOpen} 
+                    onOpenChange={setIsManagePalettesOpen}
+                    onImportClick={() => setIsImportDialogOpen(true)}
+                    onExportClick={() => setIsExportDialogOpen(true)}
+                  />
 
                   {/* Character Picker */}
                   <CharacterPicker
@@ -535,5 +545,18 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
         </div>
       </CollapsibleContent>
     </Collapsible>
+
+    {/* Import Dialog */}
+    <ImportCharacterPaletteDialog 
+      isOpen={isImportDialogOpen} 
+      onOpenChange={setIsImportDialogOpen} 
+    />
+
+    {/* Export Dialog */}
+    <ExportCharacterPaletteDialog 
+      isOpen={isExportDialogOpen} 
+      onOpenChange={setIsExportDialogOpen} 
+    />
+    </>
   );
 }
