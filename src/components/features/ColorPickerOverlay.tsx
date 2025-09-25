@@ -1,12 +1,13 @@
 // Advanced color picker overlay with improved HSV/RGB/HEX controls and interactive color wheel
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Pipette, RotateCcw, Check, X } from 'lucide-react';
 import { usePaletteStore } from '../../stores/paletteStore';
 import type { HSVColor, RGBColor } from '../../types/palette';
@@ -25,20 +26,27 @@ interface ColorPickerOverlayProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onColorSelect: (color: string) => void;
+  onColorChange?: (color: string) => void; // For real-time updates
   initialColor?: string;
   title?: string;
   showTransparentOption?: boolean; // whether to show the transparent quick-set button
+  triggerRef?: React.RefObject<HTMLElement | null>; // Reference to trigger element for positioning
+  anchorPosition?: 'left-slide' | 'right-slide' | 'bottom-left' | 'bottom-right';
 }
 
 export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
   isOpen,
   onOpenChange,
   onColorSelect,
+  onColorChange,
   initialColor = '#000000',
   title = 'Color Picker',
-  showTransparentOption = false
+  showTransparentOption = false,
+  triggerRef,
+  anchorPosition = 'left-slide'
 }) => {
   const { updatePreviewColor, addRecentColor, recentColors } = usePaletteStore();
+  const pickerRef = useRef<HTMLDivElement>(null);
   
   // Check if initial color is transparent
   const isTransparent = initialColor === 'transparent' || initialColor === ANSI_COLORS.transparent;
@@ -133,6 +141,132 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
       });
     }
   }, [isOpen, isTransparentColor]);
+
+  // Close picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isOpen &&
+        pickerRef.current &&
+        !pickerRef.current.contains(event.target as Node) &&
+        triggerRef?.current &&
+        !triggerRef.current.contains(event.target as Node)
+      ) {
+        onOpenChange(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen, onOpenChange, triggerRef]);
+
+  // Close picker on escape key
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onOpenChange(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [isOpen, onOpenChange]);
+
+  // Position calculation
+  const getPickerPosition = () => {
+    if (!triggerRef?.current) return { top: 100, left: 100 };
+    
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const pickerWidth = 400;
+    const pickerHeight = 600;
+    
+    if (anchorPosition === 'left-slide') {
+      // Slide out from the left side of the trigger
+      let top = triggerRect.top + window.scrollY;
+      let right = window.innerWidth - triggerRect.left + 8; // 8px gap from trigger
+      
+      // Ensure picker doesn't go off-screen vertically
+      if (top + pickerHeight > window.innerHeight + window.scrollY) {
+        top = window.innerHeight + window.scrollY - pickerHeight - 8;
+      }
+      if (top < window.scrollY) top = window.scrollY + 8;
+      
+      return {
+        top,
+        right,
+        left: 'auto'
+      };
+    } else if (anchorPosition === 'right-slide') {
+      // Slide out from the right side of the trigger
+      let top = triggerRect.top + window.scrollY;
+      let left = triggerRect.right + 8; // 8px gap from trigger
+      
+      // Ensure picker doesn't go off-screen
+      if (left + pickerWidth > window.innerWidth) {
+        left = window.innerWidth - pickerWidth - 8;
+      }
+      if (top + pickerHeight > window.innerHeight + window.scrollY) {
+        top = window.innerHeight + window.scrollY - pickerHeight - 8;
+      }
+      if (top < window.scrollY) top = window.scrollY + 8;
+      
+      return {
+        top,
+        left,
+        right: 'auto'
+      };
+    } else {
+      // Default left-slide behavior
+      return {
+        top: triggerRect.top + window.scrollY,
+        right: window.innerWidth - triggerRect.left + 8,
+        left: 'auto'
+      };
+    }
+  };
+
+  // Real-time color change handler
+  const handleColorChange = useCallback((newColor: string) => {
+    setPreviewColor(newColor);
+    // Trigger real-time update if callback is provided
+    if (onColorChange) {
+      onColorChange(newColor);
+    }
+  }, [onColorChange]);
+
+  // Update the preview color when HSV or other values change
+  const updateColorFromValues = useCallback(() => {
+    if (isTransparentColor) {
+      const newColor = 'transparent';
+      setPreviewColor(newColor);
+      if (onColorChange) {
+        onColorChange(newColor);
+      }
+    } else {
+      const hexColor = hsvToHex(hsvValues);
+      setPreviewColor(hexColor);
+      if (onColorChange) {
+        onColorChange(hexColor);
+      }
+    }
+  }, [hsvValues, isTransparentColor, onColorChange]);
+
+  // Trigger real-time updates when color values change
+  useEffect(() => {
+    // Only update preview color, don't trigger real-time callbacks to avoid loops
+    if (hasInitialized && isOpen) {
+      if (isTransparentColor) {
+        setPreviewColor('transparent');
+      } else {
+        const hexColor = hsvToHex(hsvValues);
+        setPreviewColor(hexColor);
+      }
+    }
+  }, [hsvValues, isTransparentColor, hasInitialized, isOpen]);
 
   // Update color wheel position based on HSV values
   const updateColorWheelPosition = useCallback((hsv: HSVColor) => {
@@ -514,15 +648,31 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     lastAppliedValueRef.current = valueSliderValue;
   }, [valueSliderValue, isOpen]);
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md select-none">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-2">
-          {/* Color Preview */}
+  if (!isOpen) return null;
+
+  const position = getPickerPosition();
+
+  return createPortal(
+    <div
+      ref={pickerRef}
+      className={`fixed z-[99999] animate-in duration-200 ${
+        anchorPosition === 'right-slide' ? 'slide-in-from-left-2 fade-in-0' : 'slide-in-from-right-2 fade-in-0'
+      }`}
+      style={{
+        top: position.top,
+        right: position.right !== 'auto' ? position.right : undefined,
+        left: position.left !== 'auto' ? position.left : undefined,
+        maxWidth: '400px',
+        width: '400px'
+      }}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <Card className="border border-border/50 shadow-lg">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">{/* Color Preview */}
           <div className="flex items-center gap-2">
             <div className="flex-1">
               <div className="flex h-8 border border-border rounded overflow-hidden">
@@ -890,7 +1040,6 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
               </div>
             </div>
           )}
-        </div>
 
         {/* Dialog Footer */} 
         <div className="flex justify-between pt-3">
@@ -922,7 +1071,9 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+        </CardContent>
+      </Card>
+    </div>,
+    document.body
   );
 };

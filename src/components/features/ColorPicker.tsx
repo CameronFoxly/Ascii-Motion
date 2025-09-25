@@ -47,6 +47,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
   const [colorPickerMode, setColorPickerMode] = useState<'foreground' | 'background' | 'palette'>('foreground');
   const [colorPickerInitialColor, setColorPickerInitialColor] = useState('#000000');
+  const [colorPickerTriggerRef, setColorPickerTriggerRef] = useState<React.RefObject<HTMLElement | null> | undefined>(undefined);
   const [editingColorId, setEditingColorId] = useState<string | null>(null);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
@@ -204,9 +205,10 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
   };
 
   // Handle opening color picker from foreground/background selector
-  const handleOpenColorPicker = (mode: 'foreground' | 'background', currentColor: string) => {
+  const handleOpenColorPicker = (mode: 'foreground' | 'background', currentColor: string, triggerRef?: React.RefObject<HTMLElement | null>) => {
     setColorPickerMode(mode);
     setColorPickerInitialColor(currentColor);
+    setColorPickerTriggerRef(triggerRef || undefined);
     setIsColorPickerOpen(true);
   };
 
@@ -223,6 +225,17 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
     } else if (colorPickerMode === 'background') {
       setSelectedBgColor(newColor);
     }
+  };
+
+  // Handle real-time color changes (for live preview)
+  const handleColorPickerChange = (newColor: string) => {
+    // Apply color changes immediately for real-time feedback
+    if (colorPickerMode === 'foreground') {
+      setSelectedColor(newColor);
+    } else if (colorPickerMode === 'background') {
+      setSelectedBgColor(newColor);
+    }
+    // Note: palette colors don't get real-time updates to avoid confusion
   };
 
   // Check if color is currently selected 
@@ -607,9 +620,11 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
           if (!open && colorPickerMode === 'palette') {
             setEditingColorId(null);
             setColorPickerMode('foreground');
+            setColorPickerTriggerRef(undefined);
           }
         }}
         onColorSelect={handleColorPickerSelect}
+        onColorChange={colorPickerMode !== 'palette' ? handleColorPickerChange : undefined}
         initialColor={colorPickerInitialColor}
         title={
           colorPickerMode === 'palette' 
@@ -617,6 +632,8 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
             : `Edit ${colorPickerMode === 'foreground' ? 'Foreground' : 'Background'} Color`
         }
         showTransparentOption={colorPickerMode === 'background'}
+        triggerRef={colorPickerTriggerRef}
+        anchorPosition="left-slide"
       />
 
       {/* Import/Export Dialogs */}

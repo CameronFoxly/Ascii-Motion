@@ -1,6 +1,6 @@
 // Photoshop-style foreground/background color selector with large clickable squares
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { RotateCcw, Palette, Type, MoveDiagonal2 } from 'lucide-react';
@@ -9,7 +9,7 @@ import { usePaletteStore } from '../../stores/paletteStore';
 import { ANSI_COLORS } from '../../constants/colors';
 
 interface ForegroundBackgroundSelectorProps {
-  onOpenColorPicker: (mode: 'foreground' | 'background', currentColor: string) => void;
+  onOpenColorPicker: (mode: 'foreground' | 'background', currentColor: string, triggerRef?: React.RefObject<HTMLElement | null>) => void;
   className?: string;
 }
 
@@ -20,13 +20,17 @@ export const ForegroundBackgroundSelector: React.FC<ForegroundBackgroundSelector
   const { selectedColor, selectedBgColor, setSelectedColor, setSelectedBgColor } = useToolStore();
   const { addRecentColor } = usePaletteStore();
 
+  // Refs to track trigger elements for positioning
+  const foregroundButtonRef = useRef<HTMLButtonElement>(null);
+  const backgroundButtonRef = useRef<HTMLButtonElement>(null);
+
   // Handle color square clicks
   const handleForegroundClick = () => {
-    onOpenColorPicker('foreground', selectedColor);
+    onOpenColorPicker('foreground', selectedColor, foregroundButtonRef);
   };
 
   const handleBackgroundClick = () => {
-    onOpenColorPicker('background', selectedBgColor);
+    onOpenColorPicker('background', selectedBgColor, backgroundButtonRef);
   };
 
   // Handle swapping foreground/background colors
@@ -78,6 +82,7 @@ export const ForegroundBackgroundSelector: React.FC<ForegroundBackgroundSelector
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
+                    ref={backgroundButtonRef}
                     className="w-8 h-8 rounded border-2 border-border hover:border-primary transition-colors shadow-sm relative overflow-hidden"
                     style={{ 
                       backgroundColor: isBackgroundTransparent ? '#ffffff' : selectedBgColor,
@@ -128,6 +133,7 @@ export const ForegroundBackgroundSelector: React.FC<ForegroundBackgroundSelector
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
+                    ref={foregroundButtonRef}
                     className="w-8 h-8 rounded border-2 border-background shadow-md hover:border-primary transition-colors ring-1 ring-border"
                     style={{ backgroundColor: selectedColor }}
                     onClick={handleForegroundClick}
