@@ -361,23 +361,72 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
         };
         
         if (dragType === 'start') {
+          // Calculate how much the start point actually moved
+          const deltaX = newPoint.x - (state.startPoint?.x || 0);
+          const deltaY = newPoint.y - (state.startPoint?.y || 0);
+          
+          // Move start point
           set({ startPoint: newPoint });
+          
+          // Move end point and ellipse point by the same offset to maintain relationships
+          if (state.endPoint) {
+            const newEndPoint = {
+              x: Math.max(0, state.endPoint.x + deltaX),
+              y: Math.max(0, state.endPoint.y + deltaY)
+            };
+            set({ endPoint: newEndPoint });
+          }
+          
+          if (state.ellipsePoint) {
+            const newEllipsePoint = {
+              x: Math.max(0, state.ellipsePoint.x + deltaX),
+              y: Math.max(0, state.ellipsePoint.y + deltaY)
+            };
+            set({ ellipsePoint: newEllipsePoint });
+          }
         } else if (dragType === 'end') {
           set({ endPoint: newPoint });
           // For radial gradients, proportionally update ellipse point when end point moves
-          if (state.definition.type === 'radial' && state.ellipsePoint && state.startPoint && canvasContext) {
+          if (state.definition.type === 'radial' && state.ellipsePoint && state.startPoint && state.endPoint && canvasContext) {
             const cellAspectRatio = canvasContext.cellWidth / canvasContext.cellHeight;
-            const endDx = newPoint.x - state.startPoint.x;
-            const endDy = newPoint.y - state.startPoint.y;
             
-            // Apply aspect ratio correction to the perpendicular calculation
-            const aspectCorrectedDx = endDx * cellAspectRatio;
+            // Calculate current distances from start point (with aspect ratio correction)
+            const currentEllipseDx = (state.ellipsePoint.x - state.startPoint.x) * cellAspectRatio;
+            const currentEllipseDy = state.ellipsePoint.y - state.startPoint.y;
+            const currentEllipseDistance = Math.sqrt(currentEllipseDx * currentEllipseDx + currentEllipseDy * currentEllipseDy);
             
-            const newEllipsePoint = {
-              x: state.startPoint.x - endDy, // Perpendicular to new end point
-              y: state.startPoint.y + aspectCorrectedDx / cellAspectRatio // Adjust for aspect ratio
-            };
-            set({ ellipsePoint: newEllipsePoint });
+            const currentEndDx = (state.endPoint.x - state.startPoint.x) * cellAspectRatio;
+            const currentEndDy = state.endPoint.y - state.startPoint.y;
+            const currentEndDistance = Math.sqrt(currentEndDx * currentEndDx + currentEndDy * currentEndDy);
+            
+            // Calculate the proportional ratio
+            const distanceRatio = currentEndDistance > 0 ? currentEllipseDistance / currentEndDistance : 1;
+            
+            // Calculate new end point distance
+            const newEndDx = (newPoint.x - state.startPoint.x) * cellAspectRatio;
+            const newEndDy = newPoint.y - state.startPoint.y;
+            const newEndDistance = Math.sqrt(newEndDx * newEndDx + newEndDy * newEndDy);
+            
+            // Calculate new perpendicular direction
+            const perpDx = -newEndDy / cellAspectRatio; // Convert back for perpendicular calculation
+            const perpDy = newEndDx / cellAspectRatio;
+            const perpLength = Math.sqrt(perpDx * perpDx + perpDy * perpDy);
+            
+            if (perpLength > 0 && newEndDistance > 0) {
+              // Normalize perpendicular vector
+              const perpNormX = perpDx / perpLength;
+              const perpNormY = perpDy / perpLength;
+              
+              // Calculate new ellipse distance (proportional to new end distance)
+              const newEllipseDistance = newEndDistance * distanceRatio;
+              
+              // Place ellipse point at proportional distance along perpendicular
+              const newEllipsePoint = {
+                x: state.startPoint.x + perpNormX * newEllipseDistance / cellAspectRatio,
+                y: state.startPoint.y + perpNormY * newEllipseDistance
+              };
+              set({ ellipsePoint: newEllipsePoint });
+            }
           }
         } else if (dragType === 'ellipse') {
           // Constrain ellipse point to move only along perpendicular line
