@@ -93,12 +93,15 @@ export const useGradientFillTool = () => {
   }, [
     canvasWidth,
     canvasHeight,
+    cellWidth,
+    cellHeight,
     getCell,
     contiguous,
     matchChar,
     matchColor,
     matchBgColor,
     definition,
+    ellipsePoint,
     setPreview
   ]);
   
@@ -169,7 +172,8 @@ export const useGradientFillTool = () => {
     if (!isApplying) {
       // First click - start applying gradient
       setApplying(true);
-      setPoints({ x, y }, null);
+      const cellAspectRatio = cellWidth / cellHeight;
+      setPoints({ x, y }, null, cellAspectRatio);
       setHoverEndPoint({ x, y });
       return;
     }
@@ -177,7 +181,8 @@ export const useGradientFillTool = () => {
     if (startPoint && !endPoint) {
       // Second click - set end point and generate preview
       const newEndPoint = { x, y };
-      setPoints(startPoint, newEndPoint);
+      const cellAspectRatio = cellWidth / cellHeight;
+      setPoints(startPoint, newEndPoint, cellAspectRatio);
       setHoverEndPoint(null);
       generatePreview(startPoint, newEndPoint);
       return;

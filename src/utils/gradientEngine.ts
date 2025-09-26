@@ -66,33 +66,38 @@ const calculatePositionOnGradient = (
   } else {
     // Radial: distance from start point, normalized by end point distance
     if (ellipse) {
-      // Elliptical radial gradient using both end and ellipse points as radii
-      const dx = x - start.x;
+      // Elliptical radial gradient using end and ellipse points as the two axes
+      // Apply aspect ratio correction to coordinates
+      const dx = (x - start.x) * cellAspectRatio;
       const dy = y - start.y;
       
-      // Get the two radius vectors
-      const r1x = end.x - start.x;
-      const r1y = end.y - start.y;
-      const r2x = ellipse.x - start.x;
-      const r2y = ellipse.y - start.y;
+      // Get the two axis vectors (apply aspect ratio correction)
+      const axis1X = (end.x - start.x) * cellAspectRatio;
+      const axis1Y = end.y - start.y;
+      const axis2X = (ellipse.x - start.x) * cellAspectRatio;
+      const axis2Y = ellipse.y - start.y;
       
-      const r1Length = Math.sqrt(r1x * r1x + r1y * r1y);
-      const r2Length = Math.sqrt(r2x * r2x + r2y * r2y);
+      const axis1Length = Math.sqrt(axis1X * axis1X + axis1Y * axis1Y);
+      const axis2Length = Math.sqrt(axis2X * axis2X + axis2Y * axis2Y);
       
-      if (r1Length === 0 || r2Length === 0) return 0;
+      if (axis1Length === 0 || axis2Length === 0) return 0;
       
-      // Normalize radius vectors
-      const r1xNorm = r1x / r1Length;
-      const r1yNorm = r1y / r1Length;
-      const r2xNorm = r2x / r2Length;
-      const r2yNorm = r2y / r2Length;
+      // Normalize the axis vectors
+      const axis1NormX = axis1X / axis1Length;
+      const axis1NormY = axis1Y / axis1Length;
+      const axis2NormX = axis2X / axis2Length;
+      const axis2NormY = axis2Y / axis2Length;
       
-      // Project point onto both radius vectors
-      const proj1 = dx * r1xNorm + dy * r1yNorm;
-      const proj2 = dx * r2xNorm + dy * r2yNorm;
+      // Project the point vector onto both axes
+      const coord1 = dx * axis1NormX + dy * axis1NormY; // Distance along axis1
+      const coord2 = dx * axis2NormX + dy * axis2NormY; // Distance along axis2
       
-      // Calculate elliptical distance using the standard ellipse formula
-      const ellipseDistance = Math.sqrt((proj1 * proj1) / (r1Length * r1Length) + (proj2 * proj2) / (r2Length * r2Length));
+      // Calculate elliptical distance: sqrt((x/a)² + (y/b)²)
+      // where a and b are the semi-axis lengths
+      const ellipseDistance = Math.sqrt(
+        (coord1 * coord1) / (axis1Length * axis1Length) +
+        (coord2 * coord2) / (axis2Length * axis2Length)
+      );
       
       return Math.min(1, ellipseDistance);
     } else {

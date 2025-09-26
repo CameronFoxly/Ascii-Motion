@@ -57,7 +57,7 @@ interface GradientStore {
   
   // Application state
   setApplying: (isApplying: boolean) => void;
-  setPoints: (start: { x: number; y: number } | null, end: { x: number; y: number } | null) => void;
+  setPoints: (start: { x: number; y: number } | null, end: { x: number; y: number } | null, cellAspectRatio?: number) => void;
   setEllipsePoint: (point: { x: number; y: number } | null) => void;
   setHoverEndPoint: (point: { x: number; y: number } | null) => void;
   setPreview: (previewData: Map<string, Cell> | null) => void;
@@ -246,7 +246,7 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
     }
   },
 
-  setPoints: (start: { x: number; y: number } | null, end: { x: number; y: number } | null) => {
+  setPoints: (start: { x: number; y: number } | null, end: { x: number; y: number } | null, cellAspectRatio: number = 1.0) => {
     const { definition } = get();
     let ellipsePoint: { x: number; y: number } | null = null;
     
@@ -255,10 +255,15 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
       const dx = end.x - start.x;
       const dy = end.y - start.y;
       
-      // Create perpendicular vector with same magnitude
+      // Apply aspect ratio correction to the perpendicular calculation
+      // The perpendicular vector in screen space needs to account for aspect ratio
+      const aspectCorrectedDx = dx * cellAspectRatio;
+      
+      // Create perpendicular vector: rotate 90 degrees and maintain proper length
+      // In grid coordinates, but accounting for aspect ratio effect
       ellipsePoint = {
         x: start.x - dy, // Rotate 90 degrees: (dx, dy) -> (-dy, dx)
-        y: start.y + dx
+        y: start.y + aspectCorrectedDx / cellAspectRatio // Adjust for aspect ratio
       };
     }
     
@@ -360,17 +365,59 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
         } else if (dragType === 'end') {
           set({ endPoint: newPoint });
           // For radial gradients, proportionally update ellipse point when end point moves
-          if (state.definition.type === 'radial' && state.ellipsePoint && state.startPoint) {
+          if (state.definition.type === 'radial' && state.ellipsePoint && state.startPoint && canvasContext) {
+            const cellAspectRatio = canvasContext.cellWidth / canvasContext.cellHeight;
             const endDx = newPoint.x - state.startPoint.x;
             const endDy = newPoint.y - state.startPoint.y;
+            
+            // Apply aspect ratio correction to the perpendicular calculation
+            const aspectCorrectedDx = endDx * cellAspectRatio;
+            
             const newEllipsePoint = {
               x: state.startPoint.x - endDy, // Perpendicular to new end point
-              y: state.startPoint.y + endDx
+              y: state.startPoint.y + aspectCorrectedDx / cellAspectRatio // Adjust for aspect ratio
             };
             set({ ellipsePoint: newEllipsePoint });
           }
         } else if (dragType === 'ellipse') {
-          set({ ellipsePoint: newPoint });
+          // Constrain ellipse point to move only along perpendicular line
+          if (state.startPoint && state.endPoint && canvasContext) {
+            const cellAspectRatio = canvasContext.cellWidth / canvasContext.cellHeight;
+            
+            // Get the gradient direction vector (with aspect ratio correction)
+            const gradDx = (state.endPoint.x - state.startPoint.x) * cellAspectRatio;
+            const gradDy = state.endPoint.y - state.startPoint.y;
+            
+            // Get the perpendicular vector (rotated 90 degrees)
+            const perpDx = -gradDy;
+            const perpDy = gradDx;
+            
+            // Normalize perpendicular vector
+            const perpLength = Math.sqrt(perpDx * perpDx + perpDy * perpDy);
+            if (perpLength > 0) {
+              const perpNormX = perpDx / perpLength;
+              const perpNormY = perpDy / perpLength;
+              
+              // Project the drag movement onto the perpendicular line (with aspect ratio correction)
+              const dragVector = {
+                x: (newPoint.x - state.startPoint.x) * cellAspectRatio,
+                y: newPoint.y - state.startPoint.y
+              };
+              
+              // Dot product to get distance along perpendicular line
+              const projDistance = dragVector.x * perpNormX + dragVector.y * perpNormY;
+              
+              // Calculate constrained ellipse point (convert back to grid coordinates)
+              const constrainedEllipsePoint = {
+                x: state.startPoint.x + (perpNormX * projDistance) / cellAspectRatio,
+                y: state.startPoint.y + perpNormY * projDistance
+              };
+              
+              set({ ellipsePoint: constrainedEllipsePoint });
+            }
+          } else {
+            set({ ellipsePoint: newPoint });
+          }
         }
       }
     } else if (dragType === 'stop' && dragData?.property && dragData.stopIndex !== undefined) {
