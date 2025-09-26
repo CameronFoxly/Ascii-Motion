@@ -89,7 +89,8 @@ const createDefaultProperty = (enabled: boolean, defaultValue: string, secondVal
     { position: 0, value: defaultValue },
     { position: 1, value: secondValue }
   ] : [],
-  interpolation: 'linear'
+  interpolation: 'linear',
+  ditherStrength: 50 // Default to 50% strength for balanced dithering
 });
 
 // Default gradient definition
@@ -428,7 +429,8 @@ export const initializeGradientWithCurrentValues = (
     stops: [
       { position: 0, value: selectedChar },
       { position: 1, value: '*' }
-    ]
+    ],
+    ditherStrength: 50
   });
   
   // Initialize text color gradient
@@ -437,7 +439,8 @@ export const initializeGradientWithCurrentValues = (
     stops: [
       { position: 0, value: selectedColor },
       { position: 1, value: '#FFFFFF' }
-    ]
+    ],
+    ditherStrength: 50
   });
   
   // Initialize background color gradient (handle transparent case) - disabled by default
@@ -447,6 +450,7 @@ export const initializeGradientWithCurrentValues = (
     stops: [
       { position: 0, value: bgStartValue },
       { position: 1, value: '#FFFFFF' }
-    ]
+    ],
+    ditherStrength: 50
   });
 };

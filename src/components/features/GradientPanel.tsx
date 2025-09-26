@@ -146,6 +146,13 @@ export function GradientPanel() {
     updateProperty(property, { interpolation });
   };
 
+  const handleDitherStrengthChange = (
+    property: 'character' | 'textColor' | 'backgroundColor',
+    ditherStrength: number
+  ) => {
+    updateProperty(property, { ditherStrength });
+  };
+
   const handlePropertyEnabledChange = (
     property: 'character' | 'textColor' | 'backgroundColor',
     enabled: boolean
@@ -256,11 +263,34 @@ export function GradientPanel() {
                 <SelectContent>
                   <SelectItem value="linear">Linear</SelectItem>
                   <SelectItem value="constant">Constant (Steps)</SelectItem>
-                  <SelectItem value="bayer">Bayer Dithering</SelectItem>
+                  <SelectItem value="bayer2x2">Bayer Dithering 2x2</SelectItem>
+                  <SelectItem value="bayer4x4">Bayer Dithering 4x4</SelectItem>
                   <SelectItem value="noise">Noise Dithering</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Dithering Strength - only show for dithering methods */}
+            {(property.interpolation === 'bayer2x2' || property.interpolation === 'bayer4x4' || property.interpolation === 'noise') && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Dithering Strength</Label>
+                  <span className="text-xs text-muted-foreground">{property.ditherStrength}%</span>
+                </div>
+                <Slider
+                  value={property.ditherStrength}
+                  onValueChange={(value: number) => handleDitherStrengthChange(propertyKey, value)}
+                  min={0}
+                  max={100}
+                  step={1}
+                  className="h-6"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Step-like</span>
+                  <span>Full dither</span>
+                </div>
+              </div>
+            )}
 
             <GradientPropertyPreview propertyKey={propertyKey} property={property} />
 

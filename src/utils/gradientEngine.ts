@@ -72,7 +72,7 @@ const calculatePositionOnGradient = (
  * Interpolate property value at given position based on stops and interpolation method
  */
 export const sampleGradientProperty = (position: number, property: GradientProperty): string => {
-  const { stops, interpolation } = property;
+  const { stops, interpolation, ditherStrength } = property;
   
   if (stops.length === 0) return '';
   if (stops.length === 1) return stops[0].value;
@@ -114,9 +114,9 @@ export const sampleGradientProperty = (position: number, property: GradientPrope
       return interpolateLinear(position, leftStop, rightStop);
     case 'bayer2x2':
     case 'bayer4x4':
-      return applyBayerDither(normalizedPosition, leftStop, rightStop, interpolation);
+      return applyBayerDither(normalizedPosition, leftStop, rightStop, interpolation, ditherStrength);
     case 'noise':
-      return applyNoiseDither(normalizedPosition, leftStop, rightStop);
+      return applyNoiseDither(normalizedPosition, leftStop, rightStop, ditherStrength);
     default:
       return leftStop.value;
   }
@@ -170,12 +170,14 @@ const interpolateColor = (color1: string, color2: string, t: number): string => 
  * @param left Left gradient stop
  * @param right Right gradient stop  
  * @param method Bayer matrix size (2x2 or 4x4)
+ * @param ditherStrength Strength of dithering effect (0-100)
  */
 const applyBayerDither = (
   normalizedPosition: number, 
   left: GradientStop, 
   right: GradientStop, 
-  method: 'bayer2x2' | 'bayer4x4'
+  method: 'bayer2x2' | 'bayer4x4',
+  ditherStrength: number
 ): string => {
   // Bayer matrices for ordered dithering
   const bayer2x2 = [
@@ -194,16 +196,23 @@ const applyBayerDither = (
   const matrixSize = matrix.length;
   const maxValue = matrixSize * matrixSize;
   
+  // Convert ditherStrength (0-100) to influence factor (0-1)
+  const strengthFactor = ditherStrength / 100;
+  
   // Use normalizedPosition to determine matrix coordinates
-  // This creates a consistent pattern within the current stop pair
-  const positionScaled = Math.floor(normalizedPosition * 1000); // Scale for better distribution
+  const positionScaled = Math.floor(normalizedPosition * 1000);
   const matrixX = positionScaled % matrixSize;
   const matrixY = Math.floor(positionScaled / matrixSize) % matrixSize;
   
+  // Get threshold from Bayer matrix (0-1)
   const threshold = matrix[matrixY][matrixX] / maxValue;
   
-  // Compare normalized position against threshold to choose between left and right values
-  return (normalizedPosition + threshold * 0.5) < 0.5 ? left.value : right.value;
+  // Interpolate between step function (strength=0) and dithered function (strength=100)
+  // At strength 0: pure position comparison (0.5 threshold)
+  // At strength 100: full Bayer threshold influence
+  const effectiveThreshold = 0.5 + (threshold - 0.5) * strengthFactor;
+  
+  return normalizedPosition < effectiveThreshold ? left.value : right.value;
 };
 
 /**
@@ -212,17 +221,23 @@ const applyBayerDither = (
  * @param normalizedPosition Position within stop pair (0-1), not global gradient position
  * @param left Left gradient stop
  * @param right Right gradient stop
+ * @param ditherStrength Strength of dithering effect (0-100)
  */
-const applyNoiseDither = (normalizedPosition: number, left: GradientStop, right: GradientStop): string => {
+const applyNoiseDither = (normalizedPosition: number, left: GradientStop, right: GradientStop, ditherStrength: number): string => {
+  // Convert ditherStrength (0-100) to influence factor (0-1)
+  const strengthFactor = ditherStrength / 100;
+  
   // Create pseudo-random noise based on normalized position for consistency
   const noise1 = Math.sin(normalizedPosition * 12.9898) * 43758.5453;
   const noise2 = Math.sin(normalizedPosition * 78.233) * 25643.2831;
   const noise = ((noise1 - Math.floor(noise1)) + (noise2 - Math.floor(noise2))) / 2;
   
-  // Add noise to normalized position for threshold comparison
-  const noisyPosition = normalizedPosition + (noise - 0.5) * 0.3; // 30% noise influence
+  // Interpolate between step function (strength=0) and noisy function (strength=100)
+  // At strength 0: pure position comparison (0.5 threshold)
+  // At strength 100: full noise influence on threshold
+  const effectiveThreshold = 0.5 + (noise - 0.5) * strengthFactor;
   
-  return noisyPosition < 0.5 ? left.value : right.value;
+  return normalizedPosition < effectiveThreshold ? left.value : right.value;
 };
 
 /**

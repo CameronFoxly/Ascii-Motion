@@ -153,6 +153,7 @@ export interface GradientProperty {
   enabled: boolean;
   stops: GradientStop[];
   interpolation: InterpolationMethod;
+  ditherStrength: number; // 0-100, controls how much dithering spreads across stop range
 }
 
 export interface GradientDefinition {
