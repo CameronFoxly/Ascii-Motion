@@ -26,11 +26,11 @@ export const calculateGradientCells = (options: GradientOptions): Map<string, Ce
     
     const gradientCell: Cell = {
       char: definition.character.enabled ? 
-        sampleGradientProperty(position, definition.character) : ' ',
+        sampleGradientProperty(position, definition.character, x, y) : ' ',
       color: definition.textColor.enabled ? 
-        sampleGradientProperty(position, definition.textColor) : '#FFFFFF',
+        sampleGradientProperty(position, definition.textColor, x, y) : '#FFFFFF',
       bgColor: definition.backgroundColor.enabled ? 
-        sampleGradientProperty(position, definition.backgroundColor) : 'transparent'
+        sampleGradientProperty(position, definition.backgroundColor, x, y) : 'transparent'
     };
     
     result.set(cellKey, gradientCell);
@@ -71,7 +71,7 @@ const calculatePositionOnGradient = (
 /**
  * Interpolate property value at given position based on stops and interpolation method
  */
-export const sampleGradientProperty = (position: number, property: GradientProperty): string => {
+export const sampleGradientProperty = (position: number, property: GradientProperty, x: number, y: number): string => {
   const { stops, interpolation, ditherStrength } = property;
   
   if (stops.length === 0) return '';
@@ -114,9 +114,9 @@ export const sampleGradientProperty = (position: number, property: GradientPrope
       return interpolateLinear(position, leftStop, rightStop);
     case 'bayer2x2':
     case 'bayer4x4':
-      return applyBayerDither(normalizedPosition, leftStop, rightStop, interpolation, ditherStrength);
+      return applyBayerDither(normalizedPosition, leftStop, rightStop, interpolation, ditherStrength, x, y);
     case 'noise':
-      return applyNoiseDither(normalizedPosition, leftStop, rightStop, ditherStrength);
+      return applyNoiseDither(normalizedPosition, leftStop, rightStop, ditherStrength, x, y);
     default:
       return leftStop.value;
   }
@@ -171,13 +171,17 @@ const interpolateColor = (color1: string, color2: string, t: number): string => 
  * @param right Right gradient stop  
  * @param method Bayer matrix size (2x2 or 4x4)
  * @param ditherStrength Strength of dithering effect (0-100)
+ * @param x Cell X coordinate for 2D dithering pattern
+ * @param y Cell Y coordinate for 2D dithering pattern
  */
 const applyBayerDither = (
   normalizedPosition: number, 
   left: GradientStop, 
   right: GradientStop, 
   method: 'bayer2x2' | 'bayer4x4',
-  ditherStrength: number
+  ditherStrength: number,
+  x: number,
+  y: number
 ): string => {
   // Bayer matrices for ordered dithering
   const bayer2x2 = [
@@ -199,10 +203,10 @@ const applyBayerDither = (
   // Convert ditherStrength (0-100) to influence factor (0-1)
   const strengthFactor = ditherStrength / 100;
   
-  // Use normalizedPosition to determine matrix coordinates
-  const positionScaled = Math.floor(normalizedPosition * 1000);
-  const matrixX = positionScaled % matrixSize;
-  const matrixY = Math.floor(positionScaled / matrixSize) % matrixSize;
+  // Use 2D cell coordinates for matrix indexing to create proper 2D dithering pattern
+  // This prevents straight lines in horizontal/vertical gradients
+  const matrixX = Math.abs(x) % matrixSize;
+  const matrixY = Math.abs(y) % matrixSize;
   
   // Get threshold from Bayer matrix (0-1)
   const threshold = matrix[matrixY][matrixX] / maxValue;
@@ -222,14 +226,17 @@ const applyBayerDither = (
  * @param left Left gradient stop
  * @param right Right gradient stop
  * @param ditherStrength Strength of dithering effect (0-100)
+ * @param x Cell X coordinate for 2D noise pattern
+ * @param y Cell Y coordinate for 2D noise pattern
  */
-const applyNoiseDither = (normalizedPosition: number, left: GradientStop, right: GradientStop, ditherStrength: number): string => {
+const applyNoiseDither = (normalizedPosition: number, left: GradientStop, right: GradientStop, ditherStrength: number, x: number, y: number): string => {
   // Convert ditherStrength (0-100) to influence factor (0-1)
   const strengthFactor = ditherStrength / 100;
   
-  // Create pseudo-random noise based on normalized position for consistency
-  const noise1 = Math.sin(normalizedPosition * 12.9898) * 43758.5453;
-  const noise2 = Math.sin(normalizedPosition * 78.233) * 25643.2831;
+  // Create pseudo-random noise based on 2D coordinates for proper 2D patterns
+  // Use both coordinates to break up straight line patterns
+  const noise1 = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+  const noise2 = Math.sin(x * 93.9898 + y * 47.233) * 25643.2831;
   const noise = ((noise1 - Math.floor(noise1)) + (noise2 - Math.floor(noise2))) / 2;
   
   // Interpolate between step function (strength=0) and noisy function (strength=100)

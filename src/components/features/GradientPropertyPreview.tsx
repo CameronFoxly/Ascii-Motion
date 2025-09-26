@@ -79,7 +79,7 @@ const ColorPreview: React.FC<{
 
     for (let x = 0; x < sampleCount; x++) {
       const position = sampleCount === 1 ? 0 : x / (sampleCount - 1);
-      const value = sampleGradientProperty(position, property);
+      const value = sampleGradientProperty(position, property, x, 0); // Use x coordinate for preview
 
       if (!value || value === 'transparent') {
         continue;
