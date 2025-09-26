@@ -102,6 +102,10 @@ export const sampleGradientProperty = (position: number, property: GradientPrope
   if (position >= sortedStops[sortedStops.length - 1].position) {
     return sortedStops[sortedStops.length - 1].value;
   }
+
+  // Calculate normalized position within the current stop pair (0-1)
+  const normalizedPosition = leftStop.position === rightStop.position ? 0 : 
+    (position - leftStop.position) / (rightStop.position - leftStop.position);
   
   switch (interpolation) {
     case 'constant':
@@ -110,9 +114,9 @@ export const sampleGradientProperty = (position: number, property: GradientPrope
       return interpolateLinear(position, leftStop, rightStop);
     case 'bayer2x2':
     case 'bayer4x4':
-      return applyBayerDither(position, leftStop, rightStop, interpolation);
+      return applyBayerDither(normalizedPosition, leftStop, rightStop, interpolation);
     case 'noise':
-      return applyNoiseDither(position, leftStop, rightStop);
+      return applyNoiseDither(normalizedPosition, leftStop, rightStop);
     default:
       return leftStop.value;
   }
@@ -162,9 +166,13 @@ const interpolateColor = (color1: string, color2: string, t: number): string => 
 /**
  * Bayer dithering implementation
  * Creates ordered dithering patterns using only the stop values
+ * @param normalizedPosition Position within stop pair (0-1), not global gradient position
+ * @param left Left gradient stop
+ * @param right Right gradient stop  
+ * @param method Bayer matrix size (2x2 or 4x4)
  */
 const applyBayerDither = (
-  position: number, 
+  normalizedPosition: number, 
   left: GradientStop, 
   right: GradientStop, 
   method: 'bayer2x2' | 'bayer4x4'
@@ -186,30 +194,33 @@ const applyBayerDither = (
   const matrixSize = matrix.length;
   const maxValue = matrixSize * matrixSize;
   
-  // Use position to determine matrix coordinates
-  // This creates a consistent pattern across the gradient
-  const positionScaled = Math.floor(position * 1000); // Scale for better distribution
+  // Use normalizedPosition to determine matrix coordinates
+  // This creates a consistent pattern within the current stop pair
+  const positionScaled = Math.floor(normalizedPosition * 1000); // Scale for better distribution
   const matrixX = positionScaled % matrixSize;
   const matrixY = Math.floor(positionScaled / matrixSize) % matrixSize;
   
   const threshold = matrix[matrixY][matrixX] / maxValue;
   
-  // Compare position against threshold to choose between left and right values
-  return (position + threshold * 0.5) < 0.5 ? left.value : right.value;
+  // Compare normalized position against threshold to choose between left and right values
+  return (normalizedPosition + threshold * 0.5) < 0.5 ? left.value : right.value;
 };
 
 /**
  * Noise-based dithering implementation
  * Uses position-based pseudo-random for consistent results
+ * @param normalizedPosition Position within stop pair (0-1), not global gradient position
+ * @param left Left gradient stop
+ * @param right Right gradient stop
  */
-const applyNoiseDither = (position: number, left: GradientStop, right: GradientStop): string => {
-  // Create pseudo-random noise based on position for consistency
-  const noise1 = Math.sin(position * 12.9898) * 43758.5453;
-  const noise2 = Math.sin(position * 78.233) * 25643.2831;
+const applyNoiseDither = (normalizedPosition: number, left: GradientStop, right: GradientStop): string => {
+  // Create pseudo-random noise based on normalized position for consistency
+  const noise1 = Math.sin(normalizedPosition * 12.9898) * 43758.5453;
+  const noise2 = Math.sin(normalizedPosition * 78.233) * 25643.2831;
   const noise = ((noise1 - Math.floor(noise1)) + (noise2 - Math.floor(noise2))) / 2;
   
-  // Add noise to position for threshold comparison
-  const noisyPosition = position + (noise - 0.5) * 0.3; // 30% noise influence
+  // Add noise to normalized position for threshold comparison
+  const noisyPosition = normalizedPosition + (noise - 0.5) * 0.3; // 30% noise influence
   
   return noisyPosition < 0.5 ? left.value : right.value;
 };
