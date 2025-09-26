@@ -17,6 +17,7 @@ interface GradientStore {
   isApplying: boolean;
   startPoint: { x: number; y: number } | null;
   endPoint: { x: number; y: number } | null;
+  ellipsePoint: { x: number; y: number } | null;
   hoverEndPoint: { x: number; y: number } | null;
   previewData: Map<string, Cell> | null;
   
@@ -29,7 +30,7 @@ interface GradientStore {
   // Drag state for interactive controls
   dragState: {
     isDragging: boolean;
-    dragType: 'start' | 'end' | 'stop';
+    dragType: 'start' | 'end' | 'ellipse' | 'stop';
     dragData?: {
       property?: 'character' | 'textColor' | 'backgroundColor';
       stopIndex?: number;
@@ -57,6 +58,7 @@ interface GradientStore {
   // Application state
   setApplying: (isApplying: boolean) => void;
   setPoints: (start: { x: number; y: number } | null, end: { x: number; y: number } | null) => void;
+  setEllipsePoint: (point: { x: number; y: number } | null) => void;
   setHoverEndPoint: (point: { x: number; y: number } | null) => void;
   setPreview: (previewData: Map<string, Cell> | null) => void;
   
@@ -66,7 +68,7 @@ interface GradientStore {
   
   // Drag actions
   startDrag: (
-    dragType: 'start' | 'end' | 'stop',
+    dragType: 'start' | 'end' | 'ellipse' | 'stop',
     mousePos: { x: number; y: number },
     dragData?: { property?: 'character' | 'textColor' | 'backgroundColor'; stopIndex?: number }
   ) => void;
@@ -108,6 +110,7 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
   isApplying: false,
   startPoint: null,
   endPoint: null,
+  ellipsePoint: null,
   hoverEndPoint: null,
   previewData: null,
   contiguous: true,
@@ -239,12 +242,27 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
     set({ isApplying });
     if (!isApplying) {
       // Reset interactive state when not applying
-      set({ startPoint: null, endPoint: null, hoverEndPoint: null, previewData: null });
+      set({ startPoint: null, endPoint: null, ellipsePoint: null, hoverEndPoint: null, previewData: null });
     }
   },
 
   setPoints: (start: { x: number; y: number } | null, end: { x: number; y: number } | null) => {
-    set({ startPoint: start, endPoint: end });
+    const { definition } = get();
+    let ellipsePoint: { x: number; y: number } | null = null;
+    
+    // For radial gradients, automatically calculate ellipse point perpendicular to radius
+    if (definition.type === 'radial' && start && end) {
+      const dx = end.x - start.x;
+      const dy = end.y - start.y;
+      
+      // Create perpendicular vector with same magnitude
+      ellipsePoint = {
+        x: start.x - dy, // Rotate 90 degrees: (dx, dy) -> (-dy, dx)
+        y: start.y + dx
+      };
+    }
+    
+    set({ startPoint: start, endPoint: end, ellipsePoint });
     if (end) {
       set({ hoverEndPoint: null });
     }
@@ -252,6 +270,10 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
 
   setHoverEndPoint: (point: { x: number; y: number } | null) => {
     set({ hoverEndPoint: point });
+  },
+
+  setEllipsePoint: (point: { x: number; y: number } | null) => {
+    set({ ellipsePoint: point });
   },
 
   setPreview: (previewData: Map<string, Cell> | null) => {
@@ -273,7 +295,7 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
 
   // Drag actions
   startDrag: (
-    dragType: 'start' | 'end' | 'stop',
+    dragType: 'start' | 'end' | 'ellipse' | 'stop',
     mousePos: { x: number; y: number },
     dragData?: { property?: 'character' | 'textColor' | 'backgroundColor'; stopIndex?: number }
   ) => {
@@ -284,6 +306,8 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
       startValue = { ...state.startPoint };
     } else if (dragType === 'end' && state.endPoint) {
       startValue = { ...state.endPoint };
+    } else if (dragType === 'ellipse' && state.ellipsePoint) {
+      startValue = { ...state.ellipsePoint };
     } else if (dragType === 'stop' && dragData?.property && dragData.stopIndex !== undefined) {
       const stops = state.definition[dragData.property].stops;
       if (stops[dragData.stopIndex]) {
@@ -314,7 +338,7 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
     const { dragType, dragData, startMousePos, startValue } = state.dragState;
     if (!startMousePos || startValue === undefined) return;
     
-    if (dragType === 'start' || dragType === 'end') {
+    if (dragType === 'start' || dragType === 'end' || dragType === 'ellipse') {
       if (typeof startValue === 'object' && canvasContext) {
         // Convert mouse delta to grid delta
         const deltaX = mousePos.x - startMousePos.x;
@@ -335,6 +359,18 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
           set({ startPoint: newPoint });
         } else if (dragType === 'end') {
           set({ endPoint: newPoint });
+          // For radial gradients, proportionally update ellipse point when end point moves
+          if (state.definition.type === 'radial' && state.ellipsePoint && state.startPoint) {
+            const endDx = newPoint.x - state.startPoint.x;
+            const endDy = newPoint.y - state.startPoint.y;
+            const newEllipsePoint = {
+              x: state.startPoint.x - endDy, // Perpendicular to new end point
+              y: state.startPoint.y + endDx
+            };
+            set({ ellipsePoint: newEllipsePoint });
+          }
+        } else if (dragType === 'ellipse') {
+          set({ ellipsePoint: newPoint });
         }
       }
     } else if (dragType === 'stop' && dragData?.property && dragData.stopIndex !== undefined) {
@@ -408,6 +444,7 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
       isApplying: false,
       startPoint: null,
       endPoint: null,
+      ellipsePoint: null,
       hoverEndPoint: null,
       previewData: null,
       dragState: null

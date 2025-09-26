@@ -11,6 +11,7 @@ export const InteractiveGradientOverlay: React.FC = () => {
     isApplying, 
     startPoint, 
     endPoint, 
+    ellipsePoint,
     hoverEndPoint,
     definition,
     dragState,
@@ -88,6 +89,17 @@ export const InteractiveGradientOverlay: React.FC = () => {
       if (endDist <= 8 && endPoint) {
         return { type: 'end' as const };
       }
+      
+      // Test ellipse point for radial gradients
+      if (definition.type === 'radial' && ellipsePoint) {
+        const ellipsePixelX = ellipsePoint.x * effectiveCellWidth + panOffset.x + effectiveCellWidth / 2;
+        const ellipsePixelY = ellipsePoint.y * effectiveCellHeight + panOffset.y + effectiveCellHeight / 2;
+        const ellipseDist = Math.sqrt(Math.pow(mouseX - ellipsePixelX, 2) + Math.pow(mouseY - ellipsePixelY, 2));
+        
+        if (ellipseDist <= 8) {
+          return { type: 'ellipse' as const };
+        }
+      }
     }
 
     // Test start point last
@@ -96,7 +108,7 @@ export const InteractiveGradientOverlay: React.FC = () => {
     }
 
     return null;
-  }, [startPoint, endPoint, hoverEndPoint, definition, effectiveCellWidth, effectiveCellHeight, panOffset]);
+  }, [startPoint, endPoint, ellipsePoint, hoverEndPoint, definition, effectiveCellWidth, effectiveCellHeight, panOffset]);
 
   // Mouse event handlers
   const handleMouseDown = useCallback((event: React.MouseEvent) => {
@@ -117,7 +129,7 @@ export const InteractiveGradientOverlay: React.FC = () => {
     event.preventDefault();
     event.stopPropagation();
 
-    if (hit.type === 'start' || hit.type === 'end') {
+    if (hit.type === 'start' || hit.type === 'end' || hit.type === 'ellipse') {
       startDrag(hit.type, { x: mouseX, y: mouseY });
     } else if (hit.type === 'stop') {
       startDrag('stop', { x: mouseX, y: mouseY }, {
@@ -247,6 +259,35 @@ export const InteractiveGradientOverlay: React.FC = () => {
             borderColor: controlBorderColor,
             boxShadow: `0 0 0 1px ${controlOuterStrokeColor}`,
             pointerEvents: dragState?.isDragging || !endPoint ? 'none' : 'auto'
+          }}
+        />
+      );
+    }
+
+    // Ellipse point for radial gradients
+    if (definition.type === 'radial' && ellipsePoint) {
+      const ellipsePixelX = ellipsePoint.x * effectiveCellWidth + panOffset.x + effectiveCellWidth / 2;
+      const ellipsePixelY = ellipsePoint.y * effectiveCellHeight + panOffset.y + effectiveCellHeight / 2;
+
+      elements.push(
+        <div
+          key="ellipse-point"
+          className="absolute w-3 h-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 cursor-move"
+          style={{
+            left: ellipsePixelX,
+            top: ellipsePixelY,
+            backgroundColor: '#ffffff',
+            borderColor: '#dc2626', // Different color to distinguish from end point
+            boxShadow: `0 0 0 1px ${controlOuterStrokeColor}`,
+            pointerEvents: dragState?.isDragging ? 'none' : 'auto'
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            startDrag('ellipse', {
+              x: e.clientX - (overlayRef.current?.getBoundingClientRect()?.left || 0),
+              y: e.clientY - (overlayRef.current?.getBoundingClientRect()?.top || 0)
+            });
           }}
         />
       );

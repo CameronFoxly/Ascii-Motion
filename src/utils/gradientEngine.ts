@@ -8,8 +8,10 @@ export interface GradientPoint {
 export interface GradientOptions {
   startPoint: GradientPoint;
   endPoint: GradientPoint;
+  ellipsePoint?: GradientPoint; // For elliptical radial gradients
   definition: GradientDefinition;
   fillArea: Set<string>; // Cell keys to apply gradient to
+  cellAspectRatio?: number; // cellWidth / cellHeight for proper circular gradients
 }
 
 /**
@@ -17,12 +19,12 @@ export interface GradientOptions {
  * Applies gradient to a set of cell positions based on gradient definition
  */
 export const calculateGradientCells = (options: GradientOptions): Map<string, Cell> => {
-  const { startPoint, endPoint, definition, fillArea } = options;
+  const { startPoint, endPoint, ellipsePoint, definition, fillArea, cellAspectRatio = 1.0 } = options;
   const result = new Map<string, Cell>();
   
   fillArea.forEach(cellKey => {
     const [x, y] = cellKey.split(',').map(Number);
-    const position = calculatePositionOnGradient(x, y, startPoint, endPoint, definition.type);
+    const position = calculatePositionOnGradient(x, y, startPoint, endPoint, ellipsePoint, definition.type, cellAspectRatio);
     
     const gradientCell: Cell = {
       char: definition.character.enabled ? 
@@ -47,7 +49,9 @@ const calculatePositionOnGradient = (
   y: number, 
   start: GradientPoint, 
   end: GradientPoint, 
-  type: 'linear' | 'radial'
+  ellipse: GradientPoint | undefined,
+  type: 'linear' | 'radial',
+  cellAspectRatio: number = 1.0
 ): number => {
   if (type === 'linear') {
     // Project point onto line and calculate 0-1 position
@@ -61,10 +65,48 @@ const calculatePositionOnGradient = (
     return Math.max(0, Math.min(1, dot / (length * length)));
   } else {
     // Radial: distance from start point, normalized by end point distance
-    const distToStart = Math.sqrt((x - start.x) ** 2 + (y - start.y) ** 2);
-    const maxRadius = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
-    
-    return maxRadius === 0 ? 0 : Math.min(1, distToStart / maxRadius);
+    if (ellipse) {
+      // Elliptical radial gradient using both end and ellipse points as radii
+      const dx = x - start.x;
+      const dy = y - start.y;
+      
+      // Get the two radius vectors
+      const r1x = end.x - start.x;
+      const r1y = end.y - start.y;
+      const r2x = ellipse.x - start.x;
+      const r2y = ellipse.y - start.y;
+      
+      const r1Length = Math.sqrt(r1x * r1x + r1y * r1y);
+      const r2Length = Math.sqrt(r2x * r2x + r2y * r2y);
+      
+      if (r1Length === 0 || r2Length === 0) return 0;
+      
+      // Normalize radius vectors
+      const r1xNorm = r1x / r1Length;
+      const r1yNorm = r1y / r1Length;
+      const r2xNorm = r2x / r2Length;
+      const r2yNorm = r2y / r2Length;
+      
+      // Project point onto both radius vectors
+      const proj1 = dx * r1xNorm + dy * r1yNorm;
+      const proj2 = dx * r2xNorm + dy * r2yNorm;
+      
+      // Calculate elliptical distance using the standard ellipse formula
+      const ellipseDistance = Math.sqrt((proj1 * proj1) / (r1Length * r1Length) + (proj2 * proj2) / (r2Length * r2Length));
+      
+      return Math.min(1, ellipseDistance);
+    } else {
+      // Apply aspect ratio correction for true circular gradients
+      const dx = (x - start.x) * cellAspectRatio; // Scale X by aspect ratio
+      const dy = y - start.y; // Y remains unscaled
+      const distToStart = Math.sqrt(dx * dx + dy * dy);
+      
+      const maxDx = (end.x - start.x) * cellAspectRatio;
+      const maxDy = end.y - start.y;
+      const maxRadius = Math.sqrt(maxDx * maxDx + maxDy * maxDy);
+      
+      return maxRadius === 0 ? 0 : Math.min(1, distToStart / maxRadius);
+    }
   }
 };
 

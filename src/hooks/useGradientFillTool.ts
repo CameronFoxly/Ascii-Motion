@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from 'react';
 import { useCanvasStore } from '../stores/canvasStore';
+import { useCanvasContext } from '../contexts/CanvasContext';
 import { useGradientStore, initializeGradientWithCurrentValues } from '../stores/gradientStore';
 import { useToolStore } from '../stores/toolStore';
 import { useAnimationStore } from '../stores/animationStore';
@@ -20,6 +21,8 @@ export const useGradientFillTool = () => {
     setCanvasData 
   } = useCanvasStore();
   
+  const { cellWidth, cellHeight } = useCanvasContext();
+  
   const { currentFrameIndex } = useAnimationStore();
   
   const { 
@@ -33,7 +36,8 @@ export const useGradientFillTool = () => {
   const { 
     isApplying, 
     startPoint, 
-    endPoint, 
+    endPoint,
+    ellipsePoint,
     hoverEndPoint,
     definition, 
     contiguous, 
@@ -46,9 +50,7 @@ export const useGradientFillTool = () => {
     setHoverEndPoint,
     setPreview,
     reset: resetGradient
-  } = useGradientStore();
-
-  // Initialize gradient with current tool values when tool becomes active
+  } = useGradientStore();  // Initialize gradient with current tool values when tool becomes active
   useEffect(() => {
     if (activeTool === 'gradientfill') {
       // Initialize gradient definition with current tool values
@@ -73,11 +75,14 @@ export const useGradientFillTool = () => {
       }
       
       // Calculate gradient cells
+      const cellAspectRatio = cellWidth / cellHeight;
       const gradientCells = calculateGradientCells({
         startPoint: start,
         endPoint: end,
+        ellipsePoint: ellipsePoint || undefined,
         definition,
-        fillArea
+        fillArea,
+        cellAspectRatio
       });
       
       setPreview(gradientCells);
@@ -212,7 +217,7 @@ export const useGradientFillTool = () => {
       // For now, we'll regenerate preview if definition changes
       // TODO: Add drag detection for start/end point adjustment
     }
-  }, [activeTool, isApplying, startPoint, endPoint, setHoverEndPoint, generatePreview]);
+  }, [activeTool, isApplying, startPoint, endPoint, ellipsePoint, setHoverEndPoint, generatePreview]);
 
   // Cancel gradient (Escape key)
   const cancelGradient = useCallback(() => {
@@ -259,7 +264,7 @@ export const useGradientFillTool = () => {
     if (activeTool === 'gradientfill' && isApplying && startPoint && targetEndPoint) {
       generatePreview(startPoint, targetEndPoint);
     }
-  }, [activeTool, isApplying, startPoint, endPoint, hoverEndPoint, definition, contiguous, matchChar, matchColor, matchBgColor, generatePreview]);
+  }, [activeTool, isApplying, startPoint, endPoint, ellipsePoint, hoverEndPoint, definition, contiguous, matchChar, matchColor, matchBgColor, generatePreview]);
   
   // Cleanup on unmount
   useEffect(() => {

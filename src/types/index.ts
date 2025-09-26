@@ -177,6 +177,7 @@ export interface GradientState {
   isApplying: boolean;
   startPoint: { x: number; y: number } | null;
   endPoint: { x: number; y: number } | null;
+  ellipsePoint: { x: number; y: number } | null;
   previewData: Map<string, Cell> | null;
 }
 
