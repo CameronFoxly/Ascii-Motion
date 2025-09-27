@@ -119,7 +119,7 @@ const calculatePositionOnGradient = (
  * Interpolate property value at given position based on stops and interpolation method
  */
 export const sampleGradientProperty = (position: number, property: GradientProperty, x: number, y: number): string => {
-  const { stops, interpolation, ditherStrength } = property;
+  const { stops, interpolation, ditherStrength, quantizeSteps } = property;
   
   if (stops.length === 0) return '';
   if (stops.length === 1) return stops[0].value;
@@ -153,12 +153,15 @@ export const sampleGradientProperty = (position: number, property: GradientPrope
   // Calculate normalized position within the current stop pair (0-1)
   const normalizedPosition = leftStop.position === rightStop.position ? 0 : 
     (position - leftStop.position) / (rightStop.position - leftStop.position);
+  const effectiveQuantizeSteps = quantizeSteps ?? 'infinite';
   
   switch (interpolation) {
     case 'constant':
       return leftStop.value;
-    case 'linear':
-      return interpolateLinear(position, leftStop, rightStop);
+    case 'linear': {
+      const quantizedNormalizedPosition = applyQuantization(normalizedPosition, effectiveQuantizeSteps);
+      return interpolateLinear(quantizedNormalizedPosition, leftStop, rightStop);
+    }
     case 'bayer2x2':
     case 'bayer4x4':
       return applyBayerDither(normalizedPosition, leftStop, rightStop, interpolation, ditherStrength, x, y);
@@ -172,10 +175,20 @@ export const sampleGradientProperty = (position: number, property: GradientPrope
 /**
  * Linear interpolation between two stops
  */
-const interpolateLinear = (position: number, left: GradientStop, right: GradientStop): string => {
+const applyQuantization = (normalizedPosition: number, steps: GradientProperty['quantizeSteps']): number => {
+  if (steps === 'infinite' || steps === undefined) {
+    return Math.max(0, Math.min(1, normalizedPosition));
+  }
+
+  const clamped = Math.max(0, Math.min(1, normalizedPosition));
+  const quantized = Math.round(clamped * steps) / steps;
+  return Math.max(0, Math.min(1, quantized));
+};
+
+const interpolateLinear = (normalizedPosition: number, left: GradientStop, right: GradientStop): string => {
   if (left.position === right.position) return left.value;
-  
-  const t = (position - left.position) / (right.position - left.position);
+
+  const t = Math.max(0, Math.min(1, normalizedPosition));
   
   // Character interpolation (Unicode code point blending)
   if (left.value.length === 1 && right.value.length === 1) {

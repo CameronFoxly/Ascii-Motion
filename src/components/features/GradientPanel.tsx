@@ -43,7 +43,7 @@ import {
 import { cn } from '../../lib/utils';
 import { useGradientStore } from '../../stores/gradientStore';
 import { useToolStore } from '../../stores/toolStore';
-import type { GradientProperty, InterpolationMethod, GradientType } from '../../types';
+import type { GradientProperty, InterpolationMethod, GradientType, QuantizeStepCount } from '../../types';
 
 const parseTailwindDuration = (token: string): number | null => {
   const match = token.match(/duration-(\d+)/);
@@ -153,6 +153,15 @@ export function GradientPanel() {
     updateProperty(property, { ditherStrength });
   };
 
+  const handleQuantizeStepsChange = (
+    property: 'character' | 'textColor' | 'backgroundColor',
+    value: number
+  ) => {
+    const clampedValue = Math.max(1, Math.min(11, Math.round(value)));
+    const quantizeSteps = (clampedValue === 11 ? 'infinite' : clampedValue) as QuantizeStepCount;
+    updateProperty(property, { quantizeSteps });
+  };
+
   const handlePropertyEnabledChange = (
     property: 'character' | 'textColor' | 'backgroundColor',
     enabled: boolean
@@ -227,8 +236,11 @@ export function GradientPanel() {
     icon: React.ReactNode,
     isOpen: boolean,
     setIsOpen: (open: boolean) => void
-  ) => (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+  ) => {
+    const quantizeSetting = property.quantizeSteps ?? 'infinite';
+
+    return (
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <div className="flex items-center gap-2 mb-1">
         <CollapsibleTrigger asChild>
           <Button variant="ghost" className="flex-1 h-auto text-xs justify-between py-1 px-1 my-1">
@@ -270,6 +282,29 @@ export function GradientPanel() {
               </Select>
             </div>
 
+            {/* Quantize Steps - only for linear interpolation */}
+            {property.interpolation === 'linear' && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Quantize Steps</Label>
+                  <span className="text-xs text-muted-foreground">
+                    {quantizeSetting === 'infinite' ? '∞' : quantizeSetting}
+                  </span>
+                </div>
+                <Slider
+                  value={quantizeSetting === 'infinite' ? 11 : quantizeSetting}
+                  onValueChange={(value: number) => handleQuantizeStepsChange(propertyKey, value)}
+                  min={1}
+                  max={11}
+                  step={1}
+                  className="h-6"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Stepped</span>
+                  <span>Smooth</span>
+                </div>
+              </div>
+            )}
             {/* Dithering Strength - only show for dithering methods */}
             {(property.interpolation === 'bayer2x2' || property.interpolation === 'bayer4x4' || property.interpolation === 'noise') && (
               <div className="space-y-2">
@@ -408,8 +443,9 @@ export function GradientPanel() {
           </div>
         )}
       </CollapsibleContent>
-    </Collapsible>
-  );
+      </Collapsible>
+    );
+  };
 
   return (
     <TooltipProvider>

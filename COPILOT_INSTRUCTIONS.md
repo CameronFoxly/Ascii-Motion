@@ -2272,8 +2272,15 @@ const useCanvasStore = create<CanvasState>((set) => ({
 
 **If any checkbox above is unchecked, your work is not finished!**
 
-## Current Architecture Status (Enhanced September 16, 2025):
-🚨 **LATEST**: Phase 3 Export/Import System Complete
+## Current Architecture Status (Enhanced September 26, 2025):
+🚨 **LATEST**: Gradient Fill Quantization Controls Landed (Sept 26, 2025)
+
+**Gradient Fill Quantization Controls (Sept 26, 2025):**
+- ✅ **Quantize Slider**: Linear interpolation now has a 1–10 step slider plus an ∞ setting for fully smooth blends
+- ✅ **Unified Behavior**: Characters, text color, and background gradients all respect quantize steps when interpolation is linear
+- ✅ **Engine Support**: `sampleGradientProperty` snaps linear interpolation to discrete levels while preserving existing dithering modes
+- ✅ **UI Integration**: Gradient panel includes a shadcn-aligned slider mirroring the dithering control UX
+- ✅ **Safe Defaults**: Gradient definitions default to `'infinite'` to retain smooth gradients on legacy projects
 
 **Phase 3 Export/Import System Complete** (Sept 16, 2025):
 - ✅ **PNG Export**: High-DPI image export with device pixel ratio scaling for crisp output

@@ -142,6 +142,18 @@ export interface ExportSettings {
 
 // Gradient Fill Tool Types
 export type InterpolationMethod = 'linear' | 'constant' | 'bayer2x2' | 'bayer4x4' | 'noise';
+export type QuantizeStepCount =
+  | 1
+  | 2
+  | 3
+  | 4
+  | 5
+  | 6
+  | 7
+  | 8
+  | 9
+  | 10
+  | 'infinite';
 export type GradientType = 'linear' | 'radial';
 
 export interface GradientStop {
@@ -154,6 +166,7 @@ export interface GradientProperty {
   stops: GradientStop[];
   interpolation: InterpolationMethod;
   ditherStrength: number; // 0-100, controls how much dithering spreads across stop range
+  quantizeSteps: QuantizeStepCount; // Number of discrete steps for linear interpolation ('infinite' for smooth)
 }
 
 export interface GradientDefinition {

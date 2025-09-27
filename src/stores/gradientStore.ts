@@ -92,7 +92,8 @@ const createDefaultProperty = (enabled: boolean, defaultValue: string, secondVal
     { position: 1, value: secondValue }
   ] : [],
   interpolation: 'linear',
-  ditherStrength: 50 // Default to 50% strength for balanced dithering
+  ditherStrength: 50, // Default to 50% strength for balanced dithering
+  quantizeSteps: 'infinite'
 });
 
 // Default gradient definition
@@ -132,12 +133,17 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
   },
 
   updateProperty: (property: 'character' | 'textColor' | 'backgroundColor', update: Partial<GradientProperty>) => {
-    set((state) => ({
-      definition: {
-        ...state.definition,
-        [property]: { ...state.definition[property], ...update }
-      }
-    }));
+    set((state) => {
+      const currentProperty = state.definition[property];
+      const nextQuantizeSteps = update.quantizeSteps ?? currentProperty.quantizeSteps ?? 'infinite';
+
+      return {
+        definition: {
+          ...state.definition,
+          [property]: { ...currentProperty, ...update, quantizeSteps: nextQuantizeSteps }
+        }
+      };
+    });
   },
 
   addStop: (property: 'character' | 'textColor' | 'backgroundColor') => {
@@ -563,7 +569,8 @@ export const initializeGradientWithCurrentValues = (
       { position: 0, value: selectedChar },
       { position: 1, value: '*' }
     ],
-    ditherStrength: 50
+    ditherStrength: 50,
+    quantizeSteps: 'infinite'
   });
   
   // Initialize text color gradient
@@ -573,7 +580,8 @@ export const initializeGradientWithCurrentValues = (
       { position: 0, value: selectedColor },
       { position: 1, value: '#FFFFFF' }
     ],
-    ditherStrength: 50
+    ditherStrength: 50,
+    quantizeSteps: 'infinite'
   });
   
   // Initialize background color gradient (handle transparent case) - disabled by default
@@ -584,6 +592,7 @@ export const initializeGradientWithCurrentValues = (
       { position: 0, value: bgStartValue },
       { position: 1, value: '#FFFFFF' }
     ],
-    ditherStrength: 50
+    ditherStrength: 50,
+    quantizeSteps: 'infinite'
   });
 };

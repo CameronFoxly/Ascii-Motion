@@ -1802,6 +1802,7 @@ const navigatePaletteColor = (direction: 'previous' | 'next') => {
   - *Multi-property*: Character, text color, and background color gradients
   - *Interactive UI*: Draggable start/end points and color stops with real-time preview
   - *Multiple Interpolation*: Linear, constant, Bayer dithering, and noise patterns
+  - *Quantized Linear Steps*: Linear interpolation offers 1–10 stepped levels plus ∞ for smooth blends across all properties
   - *Smart Fill Detection*: Configurable matching criteria (contiguous, character, colors)
   - *Professional Workflow*: Enter to apply, Escape to cancel, full undo/redo integration
 
@@ -3676,6 +3677,18 @@ export type Tool =
 // Gradient-specific types
 export type InterpolationMethod = 'linear' | 'constant' | 'bayer2x2' | 'bayer4x4' | 'noise';
 export type GradientType = 'linear' | 'radial';
+export type QuantizeStepCount =
+  | 1
+  | 2
+  | 3
+  | 4
+  | 5
+  | 6
+  | 7
+  | 8
+  | 9
+  | 10
+  | 'infinite';
 
 export interface GradientStop {
   position: number; // 0-1 along gradient line
@@ -3686,6 +3699,8 @@ export interface GradientProperty {
   enabled: boolean;
   stops: GradientStop[];
   interpolation: InterpolationMethod;
+  ditherStrength: number; // 0-100 strength applied only to dithering modes
+  quantizeSteps: QuantizeStepCount; // Linear interpolation step count ('infinite' for smooth)
 }
 
 export interface GradientDefinition {
