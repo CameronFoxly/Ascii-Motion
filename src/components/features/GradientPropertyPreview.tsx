@@ -115,7 +115,7 @@ const drawCheckboard = (ctx: CanvasRenderingContext2D, width: number, height: nu
 const CharacterPreview: React.FC<{ property: GradientProperty }> = ({ property }) => {
   return (
     <div
-      className="relative w-full border border-border rounded bg-muted/20"
+      className="relative w-full border border-border rounded bg-muted/20 px-3"
       style={{ height: PREVIEW_HEIGHT }}
     >
       <div className="absolute inset-0 flex items-center" role="presentation">
@@ -125,11 +125,17 @@ const CharacterPreview: React.FC<{ property: GradientProperty }> = ({ property }
         const clamped = Math.max(0, Math.min(1, stop.position));
         const leftPercent = clamped * 100;
         const fontSize = Math.max(10, PREVIEW_HEIGHT * 0.6);
+        let translateX = -50;
+        if (clamped <= 0.01) {
+          translateX = 0;
+        } else if (clamped >= 0.99) {
+          translateX = -100;
+        }
         return (
           <div
             key={`${stop.value}-${index}`}
             className="absolute top-1/2"
-            style={{ left: `${leftPercent}%`, transform: 'translate(-50%, -50%)' }}
+            style={{ left: `${leftPercent}%`, transform: `translate(${translateX}%, -50%)` }}
           >
             <span
               className={cn('font-mono leading-none text-foreground', stop.value ? 'px-1' : '')}

@@ -1,12 +1,31 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.15";
-export const BUILD_DATE = "2025-09-25T20:01:18.490Z";
-export const BUILD_HASH = "731ce63";
+export const VERSION = "0.1.16";
+export const BUILD_DATE = "2025-09-27T04:02:58.846Z";
+export const BUILD_HASH = "65a48eb";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.16",
+    "date": "2025-09-27T04:02:58.846Z",
+    "commits": [
+      "Added quantize settings to gradient linear interpoloation",
+      "Radial fill eddits",
+      "Fixed tabbing between frame durations.",
+      "Added ellipse control to radial gradients",
+      "Initial investigation: Tab functionality already works correctly",
+      "Initial plan",
+      "Radial gradient respects canvas aspect ratio",
+      "Fixed 2-dimensional dithering",
+      "Added dither strength to gradients",
+      "Merge readme with gradient update",
+      "Fixed dithering position logic for gradient",
+      "Update readme",
+      "Fixed syntax issue."
+    ]
+  },
   {
     "version": "0.1.15",
     "date": "2025-09-25T20:01:18.490Z",
