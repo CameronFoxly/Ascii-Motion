@@ -1078,33 +1078,17 @@ interface GifExportSettings {
 
 *Note: GIF export will be implemented in a future phase to focus on core MP4 and PNG functionality first.*
 
-#### **3. JSON Data Export (.json)** - *Future Enhancement*
-**Technical Requirements:**
-- **Pure Animation Data**: Frames, timing, and canvas data only
-- **Compact Format**: Optimized JSON structure for smaller files
-- **Version Compatibility**: Forward/backward compatible schema
+#### **3. JSON Data Export (.json)** - ✅ Updated September 27, 2025
+**Current Behavior:**
+- **Dual Formatting Modes**: Compact exports retain the original string-based schema; pretty-print mode now outputs `content` as per-line string arrays for easy human inspection while preserving a `contentString` fallback
+- **Color Payload Compaction**: When pretty print is enabled, foreground/background color maps serialize as single-line JSON strings to keep files concise without sacrificing readability elsewhere
+- **Importer Compatibility**: `JsonImporter` seamlessly accepts legacy string content, the new array format, and stringified color maps—allowing mixed-version projects to round-trip safely
+- **Typography & Metadata**: Font sizing, spacing, and optional metadata fields continue to mirror session exports for consistency
 
-**Data Structure:**
-```typescript
-interface AnimationDataExport {
-  version: string;
-  metadata: {
-    name: string;
-    createdAt: string;
-    canvasDimensions: { width: number; height: number };
-    totalFrames: number;
-    totalDuration: number;
-  };
-  frames: {
-    id: string;
-    name: string;
-    duration: number;
-    cells: Array<{ x: number; y: number; char: string; color: string; bgColor: string }>;
-  }[];
-}
-```
-
-*Note: JSON export will be implemented in a future phase to focus on core functionality first.*
+**Implementation Notes:**
+- Export adjustments live in `src/utils/exportRenderer.ts` (`exportJson` pipeline)
+- Import parsing upgrades are centralized in `src/utils/jsonImporter.ts`
+- When updating export schema again, always provide backward compatibility in the importer before adjusting UI copy
 
 #### **2. PNG Export (.png)**
 **Technical Requirements:**

@@ -75,13 +75,19 @@ export class JsonImporter {
         if (typeof frame !== 'object' || frame === null) return false;
         if (typeof frame.title !== 'string') return false;
         if (typeof frame.duration !== 'number') return false;
-        if (typeof frame.content !== 'string') return false;
+
+        const contentField = frame.content ?? frame.contentString;
+        const isStringContent = typeof contentField === 'string';
+        const isArrayContent = Array.isArray(contentField) && contentField.every((line: unknown) => typeof line === 'string');
+        if (!isStringContent && !isArrayContent) return false;
         
         // Validate colors (optional)
         if (frame.colors) {
           if (typeof frame.colors !== 'object') return false;
-          if (frame.colors.foreground && typeof frame.colors.foreground !== 'object') return false;
-          if (frame.colors.background && typeof frame.colors.background !== 'object') return false;
+
+          const { foreground, background } = frame.colors;
+          if (foreground && typeof foreground !== 'object' && typeof foreground !== 'string') return false;
+          if (background && typeof background !== 'object' && typeof background !== 'string') return false;
         }
       }
       
@@ -132,7 +138,34 @@ export class JsonImporter {
       // Convert text-based frames to internal format
       const importedFrames = jsonData.frames.map((frameData: any, index: number) => {
         // Parse the text content into cells
-        const lines = frameData.content.split('\n');
+        const contentField = frameData.content ?? frameData.contentString;
+        const lines: string[] = Array.isArray(contentField)
+          ? contentField
+          : typeof contentField === 'string'
+            ? contentField.split('\n')
+            : [];
+
+        const parseColorMap = (input: unknown): Record<string, string> => {
+          if (!input) return {};
+          if (typeof input === 'string') {
+            try {
+              const parsed = JSON.parse(input);
+              return typeof parsed === 'object' && parsed !== null
+                ? parsed as Record<string, string>
+                : {};
+            } catch {
+              return {};
+            }
+          }
+          if (typeof input === 'object' && input !== null) {
+            return input as Record<string, string>;
+          }
+          return {};
+        };
+
+        const foregroundMap = parseColorMap(frameData.colors?.foreground);
+        const backgroundMap = parseColorMap(frameData.colors?.background);
+
         const frameMap = new Map<string, Cell>();
         
         lines.forEach((line: string, y: number) => {
@@ -145,11 +178,11 @@ export class JsonImporter {
               let backgroundColor = 'transparent';
               
               // Apply colors from color data
-              if (frameData.colors?.foreground?.[cellKey]) {
-                foregroundColor = frameData.colors.foreground[cellKey];
+              if (foregroundMap[cellKey]) {
+                foregroundColor = foregroundMap[cellKey];
               }
-              if (frameData.colors?.background?.[cellKey]) {
-                backgroundColor = frameData.colors.background[cellKey];
+              if (backgroundMap[cellKey]) {
+                backgroundColor = backgroundMap[cellKey];
               }
               
               frameMap.set(cellKey, {

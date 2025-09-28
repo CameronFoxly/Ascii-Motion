@@ -2272,8 +2272,14 @@ const useCanvasStore = create<CanvasState>((set) => ({
 
 **If any checkbox above is unchecked, your work is not finished!**
 
-## Current Architecture Status (Enhanced September 26, 2025):
-🚨 **LATEST**: Gradient Fill Quantization Controls Landed (Sept 26, 2025)
+## Current Architecture Status (Enhanced September 27, 2025):
+🚨 **LATEST**: JSON Export Pretty-Print Overhaul (Sept 27, 2025)
+
+**JSON Export Pretty-Print Overhaul (Sept 27, 2025):**
+- ✅ **Human-Readable Frames**: Pretty-printed exports now emit `content` as an array of per-line strings for easy inspection, while retaining `contentString` for compatibility tooling
+- ✅ **Compact Color Blocks**: Foreground/background color maps are serialized as single-line JSON strings when pretty print is enabled to keep files concise
+- ✅ **Importer Compatibility**: JSON importer accepts both legacy string content and new array formats, and automatically parses stringified color payloads
+- ✅ **Non-Pretty Exports Unchanged**: Compact export mode continues to produce the original schema for automated pipelines
 
 **Gradient Fill Quantization Controls (Sept 26, 2025):**
 - ✅ **Quantize Slider**: Linear interpolation now has a 1–10 step slider plus an ∞ setting for fully smooth blends

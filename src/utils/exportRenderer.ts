@@ -340,23 +340,34 @@ export class ExportRenderer {
           lines.pop();
         }
 
+        const contentLines = [...lines];
+        const joinedContent = contentLines.join('\n');
+
         // Create frame object
         const frameData: any = {
           title: `Frame ${index}`,
           duration: frame.duration,
-          content: lines.join('\n')
+          content: settings.humanReadable ? contentLines : joinedContent
         };
+
+        if (settings.humanReadable) {
+          frameData.contentString = joinedContent;
+        }
 
         // Add color data if present
         if (Object.keys(foregroundColors).length > 0 || Object.keys(backgroundColors).length > 0) {
           frameData.colors = {};
           
           if (Object.keys(foregroundColors).length > 0) {
-            frameData.colors.foreground = foregroundColors;
+            frameData.colors.foreground = settings.humanReadable
+              ? JSON.stringify(foregroundColors)
+              : foregroundColors;
           }
           
           if (Object.keys(backgroundColors).length > 0) {
-            frameData.colors.background = backgroundColors;
+            frameData.colors.background = settings.humanReadable
+              ? JSON.stringify(backgroundColors)
+              : backgroundColors;
           }
         }
 
