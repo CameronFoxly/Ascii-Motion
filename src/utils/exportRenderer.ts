@@ -486,205 +486,480 @@ export class ExportRenderer {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${filename} - ASCII Motion Animation</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            background-color: ${settings.backgroundColor};
-            font-family: ${settings.fontFamily}, monospace;
-            font-size: ${settings.fontSize}px;
-            line-height: 1;
-            overflow: auto;
-            color: #FFFFFF;
-        }
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 32px 24px;
+      background-color: ${settings.backgroundColor};
+      font-family: ${settings.fontFamily}, monospace;
+      font-size: ${settings.fontSize}px;
+      line-height: 1;
+      color: #f8f9fb;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    .layout {
+      width: min(100%, 960px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .animation-shell {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .animation-stage {
+      --cols: ${data.canvasDimensions.width};
+      --rows: ${data.canvasDimensions.height};
+      background-color: ${data.canvasBackgroundColor};
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 6px;
+      padding: 16px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.25) inset;
+    }
+
+    .animation-canvas {
+      position: relative;
+      display: block;
+      white-space: pre;
+      font-family: inherit;
+      font-size: inherit;
+      line-height: inherit;
+      min-width: calc(var(--cols) * 1ch);
+      min-height: calc(var(--rows) * 1em);
+    }
+
+    .frame {
+      position: absolute;
+      inset: 0;
+      display: none;
+      white-space: pre;
+      font-family: inherit;
+      font-size: inherit;
+      line-height: inherit;
+      pointer-events: none;
+    }
         
-        .animation-container {
-            display: inline-block;
-            white-space: pre;
-            border: 1px solid rgba(255,255,255,0.2);
-            padding: 10px;
-            background-color: ${data.canvasBackgroundColor};
-            position: relative;
-        }
-        
-        .frame {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            opacity: 0;
-            white-space: pre;
-            font-family: inherit;
-            font-size: inherit;
-            line-height: inherit;
-        }
-        
-        .frame.active {
-            opacity: 1;
-        }
-        
-        .controls {
-            margin-top: 20px;
-            text-align: center;
-        }
-        
-        .controls button {
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 8px 16px;
-            margin: 0 4px;
-            cursor: pointer;
-            font-family: inherit;
-        }
-        
-        .controls button:hover {
-            background: rgba(255,255,255,0.2);
-        }
-        
-        .info {
-            margin-top: 10px;
-            font-size: 12px;
-            color: rgba(255,255,255,0.7);
-            text-align: center;
-        }
-    </style>
+    .frame.active {
+      display: block;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .playback-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(14, 14, 16, 0.65);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.35);
+    }
+
+    .playback-button {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(22,22,26,0.9);
+      color: #f8f9fb;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 150ms ease, border-color 150ms ease, transform 120ms ease;
+    }
+
+    .playback-button svg {
+      width: 20px;
+      height: 20px;
+      display: block;
+    }
+
+    .playback-button:hover:not(:disabled),
+    .playback-button:focus-visible {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.28);
+      outline: none;
+    }
+
+    .playback-button:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .playback-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.4;
+    }
+
+    .playback-button.is-primary,
+    .playback-button.is-active {
+      background: rgba(139, 92, 246, 0.9);
+      border-color: rgba(139, 92, 246, 0.95);
+      color: #fff;
+    }
+
+    .playback-button.is-primary:hover:not(:disabled),
+    .playback-button.is-active:hover:not(:disabled) {
+      background: rgba(167, 139, 250, 0.95);
+      border-color: rgba(167, 139, 250, 1);
+    }
+
+    .playback-divider {
+      width: 1px;
+      height: 24px;
+      background: rgba(255,255,255,0.14);
+      margin: 0 4px;
+    }
+
+    .frame-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .frame-value {
+      padding: 4px 12px;
+      min-width: 3.75rem;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: #f8f9fb;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+      text-align: center;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: center;
+      font-size: 12px;
+      color: rgba(255,255,255,0.72);
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
-    <div class="animation-container" id="animationContainer">
-        <!-- Frames will be inserted here by JavaScript -->
-    </div>
-    
-    <div class="controls">
-        <button onclick="togglePlay()">Play/Pause</button>
-        <button onclick="resetAnimation()">Reset</button>
-        <button onclick="changeSpeed(0.5)">0.5x</button>
-        <button onclick="changeSpeed(1)">1x</button>
-        <button onclick="changeSpeed(2)">2x</button>
-    </div>
-    
-    <div class="info">
+  <main class="layout">
+    <div class="animation-shell">
+      <div class="animation-stage" id="animationStage">
+        <div class="animation-canvas" id="animationCanvas"></div>
+      </div>
+
+      <div class="controls">
+        <div class="playback-controls" role="group" aria-label="Playback controls">
+          <button class="playback-button" id="control-prev" aria-label="Previous frame" type="button"></button>
+          <button class="playback-button" id="control-play" aria-label="Play animation" type="button"></button>
+          <button class="playback-button" id="control-stop" aria-label="Stop animation" type="button"></button>
+          <button class="playback-button" id="control-next" aria-label="Next frame" type="button"></button>
+          <div class="playback-divider" aria-hidden="true"></div>
+          <div class="frame-indicator">
+            <span class="frame-label">Frame:</span>
+            <span class="frame-value" id="frame-indicator">1 / 1</span>
+          </div>
+          <button class="playback-button" id="control-loop" aria-label="Toggle loop" aria-pressed="false" type="button"></button>
+        </div>
+      </div>
+
+      <div class="info">
         ${settings.includeMetadata ? `
         <div>ASCII Motion Animation</div>
         <div>Frames: ${data.frames.length} | Duration: ${animationDuration.toFixed(1)}s</div>
         <div>Resolution: ${data.canvasDimensions.width}×${data.canvasDimensions.height}</div>
         <div>Exported: ${new Date().toLocaleDateString()}</div>
         ` : ''}
+      </div>
     </div>
+  </main>
 
     <script>
-        const frameData = ${frameDataJson};
-        let currentFrameIndex = 0;
-        let animationInterval;
-        let isPlaying = true;
-        let speedMultiplier = ${settings.animationSpeed};
-        
-        // Create frame elements
-        function initializeFrames() {
-            const container = document.getElementById('animationContainer');
-            
-            frameData.forEach((frame, index) => {
-                const frameDiv = document.createElement('div');
-                frameDiv.className = 'frame';
-                frameDiv.id = 'frame-' + index;
-                
-                // Build frame content with proper styling
-                let frameContent = '';
-                for (let y = 0; y < frame.characters.length; y++) {
-                    for (let x = 0; x < frame.characters[y].length; x++) {
-                        const char = frame.characters[y][x];
-                        const color = frame.colors[y][x];
-                        const bgColor = frame.backgrounds[y][x];
-                        
-                        if (char !== ' ' || bgColor !== 'transparent') {
-                            const span = '<span style="color: ' + color + 
-                                       (bgColor !== 'transparent' ? '; background-color: ' + bgColor : '') +
-                                       '">' + (char === ' ' ? '&nbsp;' : char.replace(/</g, '&lt;').replace(/>/g, '&gt;')) + '</span>';
-                            frameContent += span;
-                        } else {
-                            frameContent += '&nbsp;';
-                        }
-                    }
-                    if (y < frame.characters.length - 1) {
-                        frameContent += '\\n';
-                    }
-                }
-                
-                frameDiv.innerHTML = frameContent;
-                container.appendChild(frameDiv);
-            });
+      const frameData = ${frameDataJson};
+      const playbackSpeed = Math.max(${settings.animationSpeed}, 0.1);
+      let currentFrameIndex = 0;
+      let animationTimeout = null;
+      let isPlaying = false;
+  let isLooping = true;
+      let activeFrameElement = null;
+
+      const animationCanvas = document.getElementById('animationCanvas');
+      const controls = {
+        prev: document.getElementById('control-prev'),
+        play: document.getElementById('control-play'),
+        stop: document.getElementById('control-stop'),
+        next: document.getElementById('control-next'),
+        loop: document.getElementById('control-loop'),
+        frameValue: document.getElementById('frame-indicator')
+      };
+
+      const ICONS = {
+        skipBack: '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 20 4 12l6-8"></path><path d="M20 19V5"></path></svg>',
+        play: '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18l15-9Z"></path></svg>',
+        stop: '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect></svg>',
+        skipForward: '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 4 6 8-6 8"></path><path d="M4 5v14"></path></svg>',
+        loop: '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"></path><path d="M3 11v-1a4 4 0 0 1 4-4h14"></path><path d="M7 22l-4-4 4-4"></path><path d="M21 13v1a4 4 0 0 1-4 4H3"></path></svg>'
+      };
+
+      const iconAssignments = [
+        ['prev', ICONS.skipBack],
+        ['play', ICONS.play],
+        ['stop', ICONS.stop],
+        ['next', ICONS.skipForward],
+        ['loop', ICONS.loop]
+      ];
+
+      iconAssignments.forEach(([key, icon]) => {
+        const button = controls[key];
+        if (button) {
+          button.innerHTML = icon;
         }
-        
-        function showFrame(index) {
-            // Hide all frames
-            document.querySelectorAll('.frame').forEach(frame => {
-                frame.classList.remove('active');
-            });
-            
-            // Show current frame
-            const currentFrame = document.getElementById('frame-' + index);
-            if (currentFrame) {
-                currentFrame.classList.add('active');
+      });
+
+      function initializeFrames() {
+        if (!animationCanvas) return;
+
+        animationCanvas.innerHTML = '';
+
+        frameData.forEach((frame, index) => {
+          const frameDiv = document.createElement('div');
+          frameDiv.className = 'frame';
+          frameDiv.id = 'frame-' + index;
+
+          let frameContent = '';
+          for (let y = 0; y < frame.characters.length; y++) {
+            for (let x = 0; x < frame.characters[y].length; x++) {
+              const char = frame.characters[y][x];
+              const color = frame.colors[y][x];
+              const bgColor = frame.backgrounds[y][x];
+
+              if (char !== ' ' || bgColor !== 'transparent') {
+                const span = '<span style="color: ' + color +
+                  (bgColor !== 'transparent' ? '; background-color: ' + bgColor : '') +
+                  '">' + (char === ' ' ? '&nbsp;' : char.replace(/</g, '&lt;').replace(/>/g, '&gt;')) + '</span>';
+                frameContent += span;
+              } else {
+                frameContent += '&nbsp;';
+              }
             }
-        }
-        
-        function nextFrame() {
-            if (frameData.length === 0) return;
-            
-            const currentFrame = frameData[currentFrameIndex];
-            const frameDuration = currentFrame.duration / speedMultiplier;
-            
-            showFrame(currentFrameIndex);
-            currentFrameIndex = (currentFrameIndex + 1) % frameData.length;
-            
-            if (isPlaying) {
-                animationInterval = setTimeout(nextFrame, frameDuration);
+            if (y < frame.characters.length - 1) {
+              frameContent += '\\n';
             }
+          }
+
+          frameDiv.innerHTML = frameContent;
+          animationCanvas.appendChild(frameDiv);
+        });
+      }
+
+      function updateFrameIndicator() {
+        if (!controls.frameValue) return;
+
+        const totalFrames = frameData.length;
+        if (totalFrames === 0) {
+          controls.frameValue.textContent = '0 / 0';
+          return;
         }
-        
-        function startAnimation() {
-            if (!isPlaying) {
-                isPlaying = true;
-                nextFrame();
-            }
+
+        const totalDigits = Math.max(1, String(totalFrames).length);
+        const currentValue = String(currentFrameIndex + 1).padStart(totalDigits, '0');
+        const totalValue = String(totalFrames).padStart(totalDigits, '0');
+
+        controls.frameValue.textContent = currentValue + ' / ' + totalValue;
+      }
+
+      function updatePlayButton() {
+        if (!controls.play) return;
+        controls.play.innerHTML = ICONS.play;
+        controls.play.classList.remove('is-primary');
+        controls.play.setAttribute('aria-label', 'Play animation');
+      }
+
+      function updateLoopButton() {
+        if (!controls.loop) return;
+        controls.loop.classList.toggle('is-active', isLooping);
+        controls.loop.setAttribute('aria-pressed', String(isLooping));
+        controls.loop.setAttribute('aria-label', isLooping ? 'Disable loop' : 'Enable loop');
+      }
+
+      function updateControlStates() {
+        const totalFrames = frameData.length;
+        const hasFrames = totalFrames > 0;
+
+        if (controls.prev) {
+          controls.prev.disabled = !hasFrames || isPlaying || currentFrameIndex === 0;
         }
-        
-        function stopAnimation() {
-            isPlaying = false;
-            if (animationInterval) {
-                clearTimeout(animationInterval);
-            }
+        if (controls.next) {
+          controls.next.disabled = !hasFrames || isPlaying || currentFrameIndex >= totalFrames - 1;
         }
-        
-        function togglePlay() {
-            if (isPlaying) {
-                stopAnimation();
+        if (controls.stop) {
+          controls.stop.disabled = !hasFrames || !isPlaying;
+        }
+        if (controls.play) {
+          controls.play.disabled = !hasFrames || isPlaying;
+        }
+
+        updatePlayButton();
+        updateLoopButton();
+      }
+
+      function clearAnimationTimer() {
+        if (animationTimeout !== null) {
+          clearTimeout(animationTimeout);
+          animationTimeout = null;
+        }
+      }
+
+      function showFrame(index) {
+        if (index < 0 || index >= frameData.length) return;
+        const nextFrame = document.getElementById('frame-' + index);
+        if (!nextFrame) return;
+
+        nextFrame.classList.add('active');
+
+        if (activeFrameElement && activeFrameElement !== nextFrame) {
+          activeFrameElement.classList.remove('active');
+        }
+
+        activeFrameElement = nextFrame;
+        currentFrameIndex = index;
+        updateFrameIndicator();
+        updateControlStates();
+      }
+
+      function scheduleNextFrame() {
+        if (!isPlaying || frameData.length === 0) return;
+
+        const currentFrame = frameData[currentFrameIndex];
+        const duration = Math.max((currentFrame?.duration || 100) / playbackSpeed, 16);
+
+        animationTimeout = window.setTimeout(() => {
+          animationTimeout = null;
+
+          if (!isPlaying) {
+            return;
+          }
+
+          let nextIndex = currentFrameIndex + 1;
+
+          if (nextIndex >= frameData.length) {
+            if (isLooping) {
+              nextIndex = 0;
             } else {
-                startAnimation();
+              stopAnimation({ reset: false });
+              return;
             }
+          }
+
+          showFrame(nextIndex);
+          scheduleNextFrame();
+        }, duration);
+      }
+
+      function startAnimation() {
+        if (frameData.length === 0 || isPlaying) return;
+        isPlaying = true;
+        updateControlStates();
+        scheduleNextFrame();
+      }
+
+      function stopAnimation({ reset = true } = {}) {
+        const wasPlaying = isPlaying;
+
+        if (!wasPlaying && !reset) {
+          updateControlStates();
+          return;
         }
-        
-        function resetAnimation() {
-            stopAnimation();
-            currentFrameIndex = 0;
-            showFrame(0);
+
+        isPlaying = false;
+        clearAnimationTimer();
+
+        if (reset && frameData.length > 0) {
+          showFrame(0);
+          return;
         }
-        
-        function changeSpeed(multiplier) {
-            speedMultiplier = multiplier;
-            if (isPlaying) {
-                stopAnimation();
-                startAnimation();
-            }
+
+        updateControlStates();
+      }
+
+      function goToPreviousFrame() {
+        if (isPlaying || currentFrameIndex === 0) return;
+        showFrame(currentFrameIndex - 1);
+      }
+
+      function goToNextFrame() {
+        if (isPlaying || currentFrameIndex >= frameData.length - 1) return;
+        showFrame(currentFrameIndex + 1);
+      }
+
+      if (controls.prev) {
+        controls.prev.addEventListener('click', goToPreviousFrame);
+      }
+      if (controls.play) {
+        controls.play.addEventListener('click', () => {
+          if (!isPlaying) {
+            startAnimation();
+          }
+        });
+      }
+      if (controls.stop) {
+        controls.stop.addEventListener('click', () => stopAnimation({ reset: true }));
+      }
+      if (controls.next) {
+        controls.next.addEventListener('click', goToNextFrame);
+      }
+      if (controls.loop) {
+        controls.loop.addEventListener('click', () => {
+          isLooping = !isLooping;
+          updateLoopButton();
+        });
+      }
+
+      window.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          stopAnimation({ reset: false });
         }
-        
-        // Initialize the animation
-        window.onload = function() {
-            initializeFrames();
-            if (frameData.length > 0) {
-                showFrame(0);
-                setTimeout(startAnimation, 500); // Small delay before starting
-            }
-        };
+      });
+
+      window.onload = function() {
+        initializeFrames();
+
+        if (frameData.length > 0) {
+          showFrame(0);
+          startAnimation();
+        } else {
+          updateFrameIndicator();
+          updateControlStates();
+        }
+
+      };
     </script>
 </body>
 </html>`;

@@ -2273,7 +2273,20 @@ const useCanvasStore = create<CanvasState>((set) => ({
 **If any checkbox above is unchecked, your work is not finished!**
 
 ## Current Architecture Status (Enhanced September 27, 2025):
-🚨 **LATEST**: Export Dialog Responsive Layout Standard (Sept 28, 2025)
+🚨 **LATEST**: HTML Export Canvas Presentation Refresh (Sept 28, 2025)
+
+**HTML Export Canvas Presentation Refresh (Sept 28, 2025):**
+- ✅ **True Canvas Outline**: Exported pages now wrap frames in a dedicated `.animation-stage` sized via CSS variables so the grey border reflects the full canvas dimensions—no more phantom 20px placeholder box in the top-left corner
+- ✅ **Stacked Layout Flow**: Controls and metadata now sit inside an `.animation-shell` column beneath the stage, ensuring skinny viewports never overlap playback buttons with the animation surface
+- ✅ **Robust Runtime**: The inlined player reconstructs frames inside `#animationCanvas`, uses guarded timeouts, and starts playback immediately while still letting the first Play/Pause click respond correctly
+- ✅ **Flicker-Free Playback**: Frame toggling now keeps one layer visible at all times using display swaps (no opacity fades) so animation runs without flashing between frames
+- ✅ **Playback UI Parity**: Control bar mirrors the in-app timeline—skip, play/pause, stop, next, loop toggle, and frame badge—using embedded Lucide SVGs so exports stay completely self-contained
+- ✅ **Styling Cleanup**: New dark-friendly styling, focus states, and pointer-safe frame overlays keep the export accessible while mirroring the app’s typography
+- ✅ **Icon Fidelity**: Inline SVGs match Lucide’s published 2px stroke geometry exactly, ensuring perfect parity even without the React icon runtime
+- ✅ **Stable Frame Badge**: Numeric readout pads digits and uses tabular numerals within a fixed pill so the control bar never jitters when frame counts change
+- ✅ **Simplified Controls**: Pause button removed—play disables while playback is active, stop is the sole interrupt, and the guarded timers ensure the "click but still running" race never resurfaces
+
+🚨 **PREVIOUS**: Export Dialog Responsive Layout Standard (Sept 28, 2025)
 
 **Export Dialog Responsive Layout Standard (Sept 28, 2025):**
 - ✅ **Sticky Structure**: All export dialogs now share a `DialogContent` scaffold with `p-0`, `max-h-[80vh]`, and sticky header/footer sections for consistent behavior on short viewports
@@ -2282,7 +2295,7 @@ const useCanvasStore = create<CanvasState>((set) => ({
 - ✅ **Persistent Actions**: Export/cancel buttons reside in a sticky bottom bar with `border-t` framing to prevent accidental scroll-away and to align with the HTML dialog pattern
 - ✅ **Disabled-State Consistency**: Interactive controls respect the shared `isExporting` flag, preventing mid-export edits and ensuring UI feedback remains consistent across formats
 
-🚨 **PREVIOUS**: JSON Export Pretty-Print Overhaul (Sept 27, 2025)
+🚨 **EARLIER**: JSON Export Pretty-Print Overhaul (Sept 27, 2025)
 
 **JSON Export Pretty-Print Overhaul (Sept 27, 2025):**
 - ✅ **Human-Readable Frames**: Pretty-printed exports now emit `content` as an array of per-line strings for easy inspection, while retaining `contentString` for compatibility tooling

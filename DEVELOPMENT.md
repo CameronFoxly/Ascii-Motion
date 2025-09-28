@@ -1104,6 +1104,22 @@ interface GifExportSettings {
 - Progress UI: Video and text exports display progress bars within the sticky header block to keep status visible during long operations
 - Validation note: Buttons now guard against empty filenames where appropriate to prevent accidental blank exports
 
+#### **5. HTML Export Canvas Presentation Refresh** - ✅ Completed September 28, 2025
+**Goals Achieved:**
+- **Accurate Canvas Frame**: Exported HTML now wraps frame layers in an `.animation-stage` sized via CSS variables so the visible grey outline communicates the true canvas dimensions instead of a 20px placeholder square
+- **Columnar Layout**: Playback controls and metadata live in an `.animation-shell` flex column under the stage, guaranteeing narrow breakpoints never overlap buttons with the animation surface
+- **Responsive Styling**: Dark-friendly button styling, hover/focus states, and centered metadata mirror in-app UI polish while keeping exports printer-friendly
+- **Player Reliability**: The runtime rebuilds frames inside `#animationCanvas`, resets timeouts safely, allows the very first Play/Pause interaction to respond immediately, and swaps frames via display toggles so playback stays flicker-free
+- **Control Parity**: Exported playback controls now clone the in-app timeline bar (skip back/forward, play/pause, stop, loop toggle, frame badge) with embedded Lucide SVGs so the HTML file stays dependency-free
+
+**Implementation Notes:**
+- Core updates live in `src/utils/exportRenderer.ts` within the `exportHtml` template (CSS, markup, and playback helpers)
+- Stage dimensions leverage the recorded canvas width/height, so future typography tweaks automatically inherit correct sizing
+- Playback changes remove hanging timers and ensure `resetAnimation` cleanly restores frame zero without ghost intervals
+- Icon fidelity: Inline SVG definitions now mirror Lucide's 2px stroke paths verbatim so exported controls stay pixel-identical to the in-app bar without external dependencies
+- Frame badge stability: The indicator pads digits and relies on tabular numerals within a fixed pill to prevent width shifts when entering double- or triple-digit frames
+- Simplified controls: Pause button removed—play disables while playback is active, stop becomes the primary interrupt, and the guarded timer logic prevents mid-frame clicks from slipping through
+
 #### **2. PNG Export (.png)**
 **Technical Requirements:**
 - **Current Frame Only**: Exports active frame as high-quality PNG
