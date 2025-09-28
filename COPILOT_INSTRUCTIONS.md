@@ -2273,7 +2273,16 @@ const useCanvasStore = create<CanvasState>((set) => ({
 **If any checkbox above is unchecked, your work is not finished!**
 
 ## Current Architecture Status (Enhanced September 27, 2025):
-🚨 **LATEST**: JSON Export Pretty-Print Overhaul (Sept 27, 2025)
+🚨 **LATEST**: Export Dialog Responsive Layout Standard (Sept 28, 2025)
+
+**Export Dialog Responsive Layout Standard (Sept 28, 2025):**
+- ✅ **Sticky Structure**: All export dialogs now share a `DialogContent` scaffold with `p-0`, `max-h-[80vh]`, and sticky header/footer sections for consistent behavior on short viewports
+- ✅ **Scroll-Safe Inputs**: Filename inputs (and progress indicators when present) live in a sticky top block so users can edit filenames without losing context while scrolling through settings
+- ✅ **Scrollable Settings**: Format-specific controls sit inside a `flex-1 overflow-y-auto px-6 py-4 space-y-4` container to provide independent scrolling without clipping action buttons
+- ✅ **Persistent Actions**: Export/cancel buttons reside in a sticky bottom bar with `border-t` framing to prevent accidental scroll-away and to align with the HTML dialog pattern
+- ✅ **Disabled-State Consistency**: Interactive controls respect the shared `isExporting` flag, preventing mid-export edits and ensuring UI feedback remains consistent across formats
+
+🚨 **PREVIOUS**: JSON Export Pretty-Print Overhaul (Sept 27, 2025)
 
 **JSON Export Pretty-Print Overhaul (Sept 27, 2025):**
 - ✅ **Human-Readable Frames**: Pretty-printed exports now emit `content` as an array of per-line strings for easy inspection, while retaining `contentString` for compatibility tooling

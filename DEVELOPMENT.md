@@ -1090,6 +1090,20 @@ interface GifExportSettings {
 - Import parsing upgrades are centralized in `src/utils/jsonImporter.ts`
 - When updating export schema again, always provide backward compatibility in the importer before adjusting UI copy
 
+#### **4. Export Dialog Responsive Layout Standard** - ✅ Completed September 28, 2025
+**Goals Achieved:**
+- **Unified Scaffold**: All export dialogs (HTML, PNG, Text, JSON, Video, Session) now use a shared layout pattern with `DialogContent` stripped of default padding, a max-height viewport, and sticky sections to keep controls accessible on smaller screens
+- **Sticky Top Controls**: File name inputs (and progress bars where applicable) live inside a sticky header block so users can rename exports or monitor progress without losing scroll position in settings
+- **Scrollable Settings Stage**: Format-specific controls sit within a `flex-1 overflow-y-auto px-6 py-4 space-y-4` container, preventing tall settings stacks from forcing the dialog beyond the viewport
+- **Persistent Action Bar**: Export and cancel actions occupy a sticky bottom toolbar with `border-t`, mirroring the HTML dialog precedent and ensuring buttons remain in reach at all times
+- **Consistent Disabled States**: Inputs, selects, switches, sliders, and checkboxes honor the shared `isExporting` state to prevent edits mid-export and provide uniform feedback across formats
+
+**Implementation Notes:**
+- Updated files: `HtmlExportDialog.tsx`, `PngExportDialog.tsx`, `TextExportDialog.tsx`, `JsonExportDialog.tsx`, `VideoExportDialog.tsx`, `SessionExportDialog.tsx`
+- Tailwind structure: `max-w-* p-0 overflow-hidden` on `DialogContent`, sticky sections leveraging `bg-background`, `border-b`, and `border-t` to delineate zones cleanly
+- Progress UI: Video and text exports display progress bars within the sticky header block to keep status visible during long operations
+- Validation note: Buttons now guard against empty filenames where appropriate to prevent accidental blank exports
+
 #### **2. PNG Export (.png)**
 **Technical Requirements:**
 - **Current Frame Only**: Exports active frame as high-quality PNG

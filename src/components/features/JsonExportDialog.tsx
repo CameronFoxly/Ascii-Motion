@@ -77,17 +77,17 @@ export const JsonExportDialog: React.FC = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={setShowExportModal}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+      <DialogContent className="max-w-md p-0 overflow-hidden">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b bg-background">
           <DialogTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
             Export JSON Data
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* File Name Input */}
-          <div className="space-y-2">
+        <div className="flex flex-col max-h-[80vh]">
+          {/* Sticky File Name Input */}
+          <div className="sticky top-0 z-10 bg-background px-6 py-4 border-b space-y-2">
             <Label htmlFor="filename">File Name</Label>
             <div className="flex">
               <Input
@@ -104,78 +104,80 @@ export const JsonExportDialog: React.FC = () => {
             </div>
           </div>
 
-          {/* Export Settings */}
-          <Card>
-            <CardContent className="pt-4 space-y-4">
-              <div className="flex items-center gap-2">
-                <Settings className="w-4 h-4" />
-                <Label className="text-sm font-medium">JSON Format Settings</Label>
-              </div>
-
-              {/* Human Readable */}
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Label className="text-sm">Pretty Print</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Format JSON with indentation for readability
-                  </p>
+          {/* Scrollable Settings */}
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            <Card>
+              <CardContent className="pt-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Settings className="w-4 h-4" />
+                  <Label className="text-sm font-medium">JSON Format Settings</Label>
                 </div>
-                <Switch
-                  checked={jsonSettings.humanReadable}
-                  onCheckedChange={handleHumanReadableToggle}
-                  disabled={isExporting}
-                />
-              </div>
 
-              {/* Include Empty Cells */}
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Label className="text-sm">Include Empty Cells</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Include cells with default values (larger file size)
-                  </p>
+                {/* Human Readable */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label className="text-sm">Pretty Print</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Format JSON with indentation for readability
+                    </p>
+                  </div>
+                  <Switch
+                    checked={jsonSettings.humanReadable}
+                    onCheckedChange={handleHumanReadableToggle}
+                    disabled={isExporting}
+                  />
                 </div>
-                <Switch
-                  checked={jsonSettings.includeEmptyCells}
-                  onCheckedChange={handleIncludeEmptyCellsToggle}
-                  disabled={isExporting}
-                />
-              </div>
 
-              {/* Include Metadata */}
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Label className="text-sm">Include Metadata</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Include export timestamp and version information
-                  </p>
+                {/* Include Empty Cells */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label className="text-sm">Include Empty Cells</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Include cells with default values (larger file size)
+                    </p>
+                  </div>
+                  <Switch
+                    checked={jsonSettings.includeEmptyCells}
+                    onCheckedChange={handleIncludeEmptyCellsToggle}
+                    disabled={isExporting}
+                  />
                 </div>
-                <Switch
-                  checked={jsonSettings.includeMetadata}
-                  onCheckedChange={handleMetadataToggle}
-                  disabled={isExporting}
-                />
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Info Card */}
-          <Card className="bg-muted/50">
-            <CardContent className="pt-4">
-              <div className="text-xs text-muted-foreground">
-                <div className="font-medium mb-2">JSON Export Format:</div>
-                <ul className="space-y-1">
-                  <li>• Human-readable structure with organized frame data</li>
-                  <li>• Character, foreground color, and background color per cell</li>
-                  <li>• Compatible with JSON import for round-trip data preservation</li>
-                  <li>• Suitable for external processing and data analysis</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
+                {/* Include Metadata */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label className="text-sm">Include Metadata</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Include export timestamp and version information
+                    </p>
+                  </div>
+                  <Switch
+                    checked={jsonSettings.includeMetadata}
+                    onCheckedChange={handleMetadataToggle}
+                    disabled={isExporting}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-2">
+            {/* Info Card */}
+            <Card className="bg-muted/50">
+              <CardContent className="pt-4">
+                <div className="text-xs text-muted-foreground">
+                  <div className="font-medium mb-2">JSON Export Format:</div>
+                  <ul className="space-y-1">
+                    <li>• Human-readable structure with organized frame data</li>
+                    <li>• Character, foreground color, and background color per cell</li>
+                    <li>• Compatible with JSON import for round-trip data preservation</li>
+                    <li>• Suitable for external processing and data analysis</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sticky Action Buttons */}
+          <div className="sticky bottom-0 z-10 bg-background px-6 py-4 border-t flex justify-end gap-2">
             <Button variant="outline" onClick={handleClose} disabled={isExporting}>
               Cancel
             </Button>

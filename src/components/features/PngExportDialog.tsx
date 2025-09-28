@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -77,17 +77,17 @@ export const PngExportDialog: React.FC = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={setShowExportModal}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+      <DialogContent className="max-w-md p-0 overflow-hidden">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b bg-background">
           <DialogTitle className="flex items-center gap-2">
             <FileImage className="w-5 h-5" />
             Export PNG Image
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* File Name Input */}
-          <div className="space-y-2">
+        <div className="flex flex-col max-h-[80vh]">
+          {/* Sticky File Name Input */}
+          <div className="sticky top-0 z-10 bg-background px-6 py-4 border-b space-y-2">
             <Label htmlFor="filename">File Name</Label>
             <div className="flex">
               <Input
@@ -96,6 +96,7 @@ export const PngExportDialog: React.FC = () => {
                 onChange={(e) => setFilename(e.target.value)}
                 placeholder="Enter filename"
                 className="flex-1"
+                disabled={isExporting}
               />
               <Badge variant="outline" className="ml-2 self-center">
                 .png
@@ -103,112 +104,117 @@ export const PngExportDialog: React.FC = () => {
             </div>
           </div>
 
-          {/* Export Settings */}
-          <Card>
-            <CardContent className="pt-4 space-y-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Settings className="w-4 h-4" />
-                <span className="text-sm font-medium">Export Settings</span>
-              </div>
-
-              {/* Size Multiplier */}
-              <div className="space-y-2">
-                <Label htmlFor="size-multiplier">Size Multiplier</Label>
-                <Select
-                  value={pngSettings.sizeMultiplier.toString()}
-                  onValueChange={handleSizeChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1x (Original)</SelectItem>
-                    <SelectItem value="2">2x (Double)</SelectItem>
-                    <SelectItem value="3">3x (Triple)</SelectItem>
-                    <SelectItem value="4">4x (Quadruple)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Higher multipliers create larger, more detailed images
-                </p>
-                {exportData && (
-                  <div className="mt-2 p-2 bg-muted/30 rounded text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Output size:</span>
-                      <span className="font-mono">
-                        {formatPixelDimensions(calculateExportPixelDimensions({
-                          gridWidth: exportData.canvasDimensions.width,
-                          gridHeight: exportData.canvasDimensions.height,
-                          sizeMultiplier: pngSettings.sizeMultiplier,
-                          fontSize: exportData.typography.fontSize,
-                          characterSpacing: exportData.typography.characterSpacing,
-                          lineSpacing: exportData.typography.lineSpacing
-                        }))}
-                      </span>
-                    </div>
-                    <div className="flex justify-between mt-1">
-                      <span className="text-muted-foreground">Est. file size:</span>
-                      <span className="font-mono">
-                        {estimatePngFileSize(calculateExportPixelDimensions({
-                          gridWidth: exportData.canvasDimensions.width,
-                          gridHeight: exportData.canvasDimensions.height,
-                          sizeMultiplier: pngSettings.sizeMultiplier,
-                          fontSize: exportData.typography.fontSize,
-                          characterSpacing: exportData.typography.characterSpacing,
-                          lineSpacing: exportData.typography.lineSpacing
-                        }))}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Include Grid */}
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="include-grid">Include Grid</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Show grid lines in exported image
-                  </p>
+          {/* Scrollable Settings */}
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            <Card>
+              <CardContent className="pt-4 space-y-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Settings className="w-4 h-4" />
+                  <span className="text-sm font-medium">Export Settings</span>
                 </div>
-                <Switch
-                  id="include-grid"
-                  checked={pngSettings.includeGrid}
-                  onCheckedChange={handleGridToggle}
-                />
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Preview Info */}
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
-            <p className="text-sm text-muted-foreground">
-              Current frame will be exported as
-            </p>
-            <p className="text-sm font-medium">
-              {filename}.png ({pngSettings.sizeMultiplier}x scale)
-            </p>
+                {/* Size Multiplier */}
+                <div className="space-y-2">
+                  <Label htmlFor="size-multiplier">Size Multiplier</Label>
+                  <Select
+                    value={pngSettings.sizeMultiplier.toString()}
+                    onValueChange={handleSizeChange}
+                    disabled={isExporting}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1x (Original)</SelectItem>
+                      <SelectItem value="2">2x (Double)</SelectItem>
+                      <SelectItem value="3">3x (Triple)</SelectItem>
+                      <SelectItem value="4">4x (Quadruple)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Higher multipliers create larger, more detailed images
+                  </p>
+                  {exportData && (
+                    <div className="mt-2 p-2 bg-muted/30 rounded text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Output size:</span>
+                        <span className="font-mono">
+                          {formatPixelDimensions(calculateExportPixelDimensions({
+                            gridWidth: exportData.canvasDimensions.width,
+                            gridHeight: exportData.canvasDimensions.height,
+                            sizeMultiplier: pngSettings.sizeMultiplier,
+                            fontSize: exportData.typography.fontSize,
+                            characterSpacing: exportData.typography.characterSpacing,
+                            lineSpacing: exportData.typography.lineSpacing
+                          }))}
+                        </span>
+                      </div>
+                      <div className="flex justify-between mt-1">
+                        <span className="text-muted-foreground">Est. file size:</span>
+                        <span className="font-mono">
+                          {estimatePngFileSize(calculateExportPixelDimensions({
+                            gridWidth: exportData.canvasDimensions.width,
+                            gridHeight: exportData.canvasDimensions.height,
+                            sizeMultiplier: pngSettings.sizeMultiplier,
+                            fontSize: exportData.typography.fontSize,
+                            characterSpacing: exportData.typography.characterSpacing,
+                            lineSpacing: exportData.typography.lineSpacing
+                          }))}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Include Grid */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="include-grid">Include Grid</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Show grid lines in exported image
+                    </p>
+                  </div>
+                  <Switch
+                    id="include-grid"
+                    checked={pngSettings.includeGrid}
+                    onCheckedChange={handleGridToggle}
+                    disabled={isExporting}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Preview Info */}
+            <div className="text-center p-3 bg-muted/50 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                Current frame will be exported as
+              </p>
+              <p className="text-sm font-medium">
+                {filename}.png ({pngSettings.sizeMultiplier}x scale)
+              </p>
+            </div>
+          </div>
+
+          {/* Sticky Action Buttons */}
+          <div className="sticky bottom-0 z-10 bg-background px-6 py-4 border-t flex justify-end gap-2">
+            <Button variant="outline" onClick={handleClose} disabled={isExporting}>
+              Cancel
+            </Button>
+            <Button onClick={handleExport} disabled={isExporting || !filename.trim()}>
+              {isExporting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export PNG
+                </>
+              )}
+            </Button>
           </div>
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={isExporting}>
-            Cancel
-          </Button>
-          <Button onClick={handleExport} disabled={isExporting}>
-            {isExporting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Exporting...
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4 mr-2" />
-                Export PNG
-              </>
-            )}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
