@@ -1,7 +1,7 @@
 import { saveAs } from 'file-saver';
 import type { 
   ExportDataBundle, 
-  PngExportSettings, 
+  ImageExportSettings, 
   VideoExportSettings, 
   SessionExportSettings,
   TextExportSettings,
@@ -15,7 +15,7 @@ import { calculateAdaptiveGridColor } from './gridColor';
 
 /**
  * High-quality export renderer for ASCII Motion
- * Handles PNG, MP4, and Session exports with optimal quality settings
+ * Handles image (PNG/JPEG), MP4, and Session exports with optimal quality settings
  */
 export class ExportRenderer {
   private progressCallback?: (progress: ExportProgress) => void;
@@ -25,20 +25,18 @@ export class ExportRenderer {
   }
 
   /**
-   * Export current frame as PNG image
+   * Export current frame as an image (PNG or JPEG)
    */
-  async exportPng(
-    data: ExportDataBundle, 
-    settings: PngExportSettings, 
+  async exportImage(
+    data: ExportDataBundle,
+    settings: ImageExportSettings,
     filename: string
   ): Promise<void> {
-    this.updateProgress('Preparing PNG export...', 0);
+    this.updateProgress('Preparing image export...', 0);
 
     try {
-      // Get current frame data
       const currentFrame = data.frames[data.currentFrameIndex]?.data || data.canvasData;
-      
-      // Create high-resolution canvas for export
+
       const exportCanvas = this.createExportCanvas(
         data.canvasDimensions.width,
         data.canvasDimensions.height,
@@ -49,7 +47,6 @@ export class ExportRenderer {
 
       this.updateProgress('Rendering canvas...', 30);
 
-      // Render the frame
       await this.renderFrame(
         exportCanvas.canvas,
         currentFrame,
@@ -66,19 +63,21 @@ export class ExportRenderer {
         }
       );
 
-      this.updateProgress('Converting to PNG...', 70);
+      this.updateProgress('Converting to image...', 70);
 
-      // Convert to blob and download
-      const blob = await this.canvasToBlob(exportCanvas.canvas, 'image/png');
-      
+      const mimeType = settings.format === 'jpg' ? 'image/jpeg' : 'image/png';
+      const quality = settings.format === 'jpg' ? Math.min(Math.max(settings.quality, 10), 100) / 100 : undefined;
+      const blob = await this.canvasToBlob(exportCanvas.canvas, mimeType, quality);
+
       this.updateProgress('Saving file...', 90);
-      
-      saveAs(blob, `${filename}.png`);
-      
+
+      const extension = settings.format === 'jpg' ? 'jpg' : 'png';
+      saveAs(blob, `${filename}.${extension}`);
+
       this.updateProgress('Export complete!', 100);
     } catch (error) {
-      console.error('PNG export failed:', error);
-      throw new Error(`PNG export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Image export failed:', error);
+      throw new Error(`Image export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -174,7 +173,22 @@ export class ExportRenderer {
           fontSize: data.typography.fontSize,
           characterSpacing: data.typography.characterSpacing,
           lineSpacing: data.typography.lineSpacing
-        }
+        },
+        palettes: data.paletteState ? {
+          activePaletteId: data.paletteState.activePaletteId,
+          customPalettes: data.paletteState.customPalettes,
+          recentColors: data.paletteState.recentColors
+        } : undefined,
+        characterPalettes: data.characterPaletteState ? {
+          activePaletteId: data.characterPaletteState.activePaletteId,
+          customPalettes: data.characterPaletteState.customPalettes.map(palette => ({
+            ...palette,
+            characters: [...palette.characters]
+          })),
+          mappingMethod: data.characterPaletteState.mappingMethod,
+          invertDensity: data.characterPaletteState.invertDensity,
+          characterSpacing: data.characterPaletteState.characterSpacing
+        } : undefined
       };
 
       this.updateProgress('Converting to JSON...', 70);
@@ -1198,7 +1212,7 @@ export class ExportRenderer {
   /**
    * Convert canvas to blob
    */
-  private canvasToBlob(canvas: HTMLCanvasElement, type: string): Promise<Blob> {
+  private canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob> {
     // Check if canvas has valid dimensions
     if (canvas.width <= 0 || canvas.height <= 0) {
       throw new Error(`Invalid canvas dimensions: ${canvas.width}x${canvas.height}`);
@@ -1218,7 +1232,7 @@ export class ExportRenderer {
           } else {
             reject(new Error('Failed to create blob from canvas - toBlob returned null'));
           }
-        }, type);
+  }, type, quality);
       } catch (error) {
         reject(new Error(`Canvas toBlob failed: ${error instanceof Error ? error.message : String(error)}`));
       }

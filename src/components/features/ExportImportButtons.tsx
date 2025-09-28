@@ -16,39 +16,39 @@ import type { ExportFormatId } from '../../types/export';
 const EXPORT_OPTIONS = [
   {
     id: 'png' as ExportFormatId,
-    name: 'PNG Image',
-    description: 'Current frame as PNG',
+    name: 'Image',
+    description: 'Current frame as .png or .jpg',
     icon: FileImage,
   },
   {
     id: 'mp4' as ExportFormatId,
-    name: 'MP4 Video',
-    description: 'Animation as video',
+    name: 'Video',
+    description: 'Animation as .mp4 or .webm',
     icon: Film,
   },
   {
-    id: 'session' as ExportFormatId,
-    name: 'Session File',
-    description: 'Complete project',
-    icon: Save,
-  },
-  {
-    id: 'json' as ExportFormatId,
-    name: 'JSON Data',
-    description: 'Human-readable format',
-    icon: FileText,
-  },
-  {
     id: 'html' as ExportFormatId,
-    name: 'HTML Animation',
+    name: 'HTML',
     description: 'Standalone webpage',
     icon: Globe,
   },
   {
+    id: 'json' as ExportFormatId,
+    name: 'JSON',
+    description: 'Importable & human readable',
+    icon: FileText,
+  },
+  {
     id: 'text' as ExportFormatId,
     name: 'Simple Text',
-    description: 'Character data as txt file',
+    description: 'Character data as a .txt file',
     icon: FileText,
+  },
+  {
+    id: 'session' as ExportFormatId,
+    name: 'Session File',
+    description: 'Complete .asciimtn project file',
+    icon: Save,
   },
 ];
 

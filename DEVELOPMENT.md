@@ -908,11 +908,12 @@ A modular, extensible export/import system providing multiple output formats for
 ### **✅ Implementation Status - COMPLETED**
 
 **Successfully Implemented Features:**
-- ✅ **PNG Export**: High-DPI image export with proper typography settings
+- ✅ **Image Export (PNG & JPEG)**: High-DPI image export with proper typography settings and adjustable JPEG quality
 - ✅ **Session Export/Import**: Complete project state preservation including:
   - Canvas data and dimensions
   - Animation frames and timeline state
   - Tool state and selected colors/characters
+  - Custom color palettes, character palettes (with mapping preferences), and recent color history
   - Typography settings (font size, character spacing, line spacing)
   - UI state (theme, zoom, pan offset)
 - ✅ **Dropdown-based Export UI**: Clean interface with format-specific dialogs
@@ -924,7 +925,7 @@ A modular, extensible export/import system providing multiple output formats for
 - `src/utils/exportRenderer.ts` - Core export functionality with high-DPI support
 - `src/utils/sessionImporter.ts` - Complete session restore with typography callbacks
 - `src/utils/exportDataCollector.ts` - Comprehensive data collection for all export formats
-- `src/components/features/PngExportDialog.tsx` - PNG export interface
+- `src/components/features/PngExportDialog.tsx` - Image export interface (PNG & JPEG)
 - `src/components/features/SessionExportDialog.tsx` - Session export interface
 - `src/components/features/ImportModal.tsx` - Session import interface
 - `src/stores/exportStore.ts` - Export state management

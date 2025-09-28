@@ -1,6 +1,8 @@
 import { useCanvasStore } from '../stores/canvasStore';
 import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
+import { usePaletteStore } from '../stores/paletteStore';
+import { useCharacterPaletteStore } from '../stores/characterPaletteStore';
 import type { Cell } from '../types';
 import { DEFAULT_FRAME_DURATION } from '../constants';
 
@@ -93,6 +95,8 @@ export class SessionImporter {
     const canvasStore = useCanvasStore.getState();
     const animationStore = useAnimationStore.getState();
     const toolStore = useToolStore.getState();
+    const paletteStore = usePaletteStore.getState();
+    const characterPaletteStore = useCharacterPaletteStore.getState();
     
     // Restore canvas data
     canvasStore.setCanvasSize(sessionData.canvas.width, sessionData.canvas.height);
@@ -174,6 +178,25 @@ export class SessionImporter {
     }
     if (sessionData.tools.rectangleFilled !== undefined) {
       toolStore.setRectangleFilled(sessionData.tools.rectangleFilled);
+    }
+
+    // Restore palette data
+    if (sessionData.palettes) {
+      paletteStore.loadSessionPalettes({
+        customPalettes: Array.isArray(sessionData.palettes.customPalettes) ? sessionData.palettes.customPalettes : [],
+        activePaletteId: sessionData.palettes.activePaletteId,
+        recentColors: sessionData.palettes.recentColors
+      });
+    }
+
+    if (sessionData.characterPalettes) {
+      characterPaletteStore.loadSessionCharacterPalettes({
+        customPalettes: Array.isArray(sessionData.characterPalettes.customPalettes) ? sessionData.characterPalettes.customPalettes : [],
+        activePaletteId: sessionData.characterPalettes.activePaletteId,
+        mappingMethod: sessionData.characterPalettes.mappingMethod,
+        invertDensity: sessionData.characterPalettes.invertDensity,
+        characterSpacing: sessionData.characterPalettes.characterSpacing
+      });
     }
     
     // Restore typography settings

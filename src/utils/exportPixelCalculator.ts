@@ -70,19 +70,40 @@ export const calculateAspectRatio = (dimensions: PixelDimensions): number => {
   return dimensions.width / dimensions.height;
 };
 
-/**
- * Estimate file size for PNG export (rough approximation)
- */
-export const estimatePngFileSize = (dimensions: PixelDimensions): string => {
-  // Very rough estimate: 4 bytes per pixel (RGBA) with some compression
-  const bytesPerPixel = 2; // Assuming decent PNG compression
-  const totalBytes = dimensions.width * dimensions.height * bytesPerPixel;
-  
-  if (totalBytes < 1024) {
-    return `${totalBytes} B`;
-  } else if (totalBytes < 1024 * 1024) {
-    return `${Math.round(totalBytes / 1024)} KB`;
-  } else {
-    return `${(totalBytes / (1024 * 1024)).toFixed(1)} MB`;
+const formatBytes = (bytes: number): string => {
+  if (bytes < 1024) {
+    return `${Math.max(1, Math.round(bytes))} B`;
   }
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+interface ImageEstimateOptions {
+  format: 'png' | 'jpg';
+  quality?: number; // 1-100
+}
+
+/**
+ * Estimate file size for image export (rough approximation)
+ */
+export const estimateImageFileSize = (
+  dimensions: PixelDimensions,
+  { format, quality = 90 }: ImageEstimateOptions
+): string => {
+  const totalPixels = dimensions.width * dimensions.height;
+  const normalizedQuality = Math.min(Math.max(quality, 1), 100) / 100;
+
+  if (format === 'png') {
+    const bytesPerPixel = 2; // Assuming decent PNG compression (RGBA)
+    return formatBytes(totalPixels * bytesPerPixel);
+  }
+
+  // JPEG typically ranges between ~0.2-1.5 bytes per pixel depending on quality/content
+  const baseBytesPerPixel = 0.25; // Base overhead for JPEG structure
+  const variableBytesPerPixel = 1.0 * normalizedQuality; // Scale with quality slider
+  const totalBytes = totalPixels * (baseBytesPerPixel + variableBytesPerPixel);
+
+  return formatBytes(totalBytes);
 };

@@ -17,7 +17,7 @@ https://ascii-motion.app
 - Animation Timeline for frame-by-frame editng and onion skinning
 - Custom Color and Character Palettes including presets and import/export features
 - Convert images or video assets to ASCII art, with fine-tuned rendering control
-- Multiple Export Format: Images, Videos, Text files, Json, HTML and full session export. 
+- Multiple Export Format: Images (PNG & JPEG), Videos, Text files, JSON, HTML, and full session export. 
 
 ## 🚀 Quick Start
 
@@ -142,8 +142,8 @@ Where I'm at with the concept:
 <details>
 <summary> ✅ Phase 3: Export/Import System (Complete) </summary>
   
-- [x] High-DPI PNG image export with device pixel ratio scaling
-- [x] Complete session export/import (.asciimtn files)
+- [x] High-DPI image export (PNG & JPEG) with device pixel ratio scaling and quality controls
+- [x] Complete session export/import (.asciimtn files with custom color & character palettes)
 - [x] Typography settings preservation (font size, spacing)
 - [x] Professional export UI with format-specific dialogs
 - [x] Robust error handling and validation

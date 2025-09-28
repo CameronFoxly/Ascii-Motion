@@ -3,7 +3,7 @@ import type {
   ExportState, 
   ExportFormatId, 
   ExportProgress, 
-  PngExportSettings, 
+  ImageExportSettings, 
   VideoExportSettings, 
   SessionExportSettings,
   TextExportSettings,
@@ -23,7 +23,7 @@ interface ExportActions {
   setProgress: (progress: ExportProgress | null) => void;
   
   // Settings management
-  setPngSettings: (settings: Partial<PngExportSettings>) => void;
+  setImageSettings: (settings: Partial<ImageExportSettings>) => void;
   setVideoSettings: (settings: Partial<VideoExportSettings>) => void;
   setSessionSettings: (settings: Partial<SessionExportSettings>) => void;
   setTextSettings: (settings: Partial<TextExportSettings>) => void;
@@ -41,9 +41,11 @@ interface ExportActions {
 interface ExportStoreState extends ExportState, ExportActions {}
 
 // Default settings for each export format
-const DEFAULT_PNG_SETTINGS: PngExportSettings = {
+const DEFAULT_IMAGE_SETTINGS: ImageExportSettings = {
   sizeMultiplier: 1,
   includeGrid: false,
+  format: 'png',
+  quality: 90,
 };
 
 const DEFAULT_VIDEO_SETTINGS: VideoExportSettings = {
@@ -55,7 +57,9 @@ const DEFAULT_VIDEO_SETTINGS: VideoExportSettings = {
   format: 'mp4', // Default to MP4 format
   includeGrid: false, // Default to no grid in video
   loops: 'none', // Default to no looping
-};const DEFAULT_SESSION_SETTINGS: SessionExportSettings = {
+};
+
+const DEFAULT_SESSION_SETTINGS: SessionExportSettings = {
   includeMetadata: true,
 };
 
@@ -89,7 +93,7 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
   progress: null,
   
   // Default settings
-  pngSettings: DEFAULT_PNG_SETTINGS,
+  imageSettings: DEFAULT_IMAGE_SETTINGS,
   videoSettings: DEFAULT_VIDEO_SETTINGS,
   sessionSettings: DEFAULT_SESSION_SETTINGS,
   textSettings: DEFAULT_TEXT_SETTINGS,
@@ -132,9 +136,9 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
     set({ progress });
   },
   
-  setPngSettings: (settings: Partial<PngExportSettings>) => {
+  setImageSettings: (settings: Partial<ImageExportSettings>) => {
     set((state) => ({
-      pngSettings: { ...state.pngSettings, ...settings }
+      imageSettings: { ...state.imageSettings, ...settings }
     }));
   },
   
@@ -191,7 +195,7 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
     const state = get();
     switch (state.activeFormat) {
       case 'png':
-        return state.pngSettings;
+        return state.imageSettings;
       case 'mp4':
         return state.videoSettings;
       case 'session':

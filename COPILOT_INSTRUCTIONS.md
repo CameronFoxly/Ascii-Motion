@@ -2310,9 +2310,8 @@ const useCanvasStore = create<CanvasState>((set) => ({
 - ✅ **UI Integration**: Gradient panel includes a shadcn-aligned slider mirroring the dithering control UX
 - ✅ **Safe Defaults**: Gradient definitions default to `'infinite'` to retain smooth gradients on legacy projects
 
-**Phase 3 Export/Import System Complete** (Sept 16, 2025):
-- ✅ **PNG Export**: High-DPI image export with device pixel ratio scaling for crisp output
-- ✅ **Session Export/Import**: Complete project state preservation with `.asciimtn` files
+- ✅ **Image Export (PNG & JPEG)**: High-DPI image export with device pixel ratio scaling and adjustable JPEG quality
+- ✅ **Session Export/Import**: Complete project state preservation with `.asciimtn` files, including custom color + character palettes, mapping preferences, and recent color history
 - ✅ **Typography Integration**: Font size, character spacing, and line spacing properly captured and restored
 - ✅ **Canvas Content Loading**: Session import correctly loads current frame content to canvas
 - ✅ **Export Renderer**: Unified `ExportRenderer` class with high-quality canvas rendering

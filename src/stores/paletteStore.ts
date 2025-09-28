@@ -56,6 +56,13 @@ interface PaletteStore {
   setSelectedColor: (colorId: string | null) => void;
   addRecentColor: (color: string) => void;
 
+  // Session restore
+  loadSessionPalettes: (payload: {
+    customPalettes: ColorPalette[];
+    activePaletteId?: string;
+    recentColors?: string[];
+  }) => void;
+
   // Color picker state
   openColorPicker: (mode: 'foreground' | 'background', currentColor: string) => void;
   closeColorPicker: () => void;
@@ -467,6 +474,39 @@ export const usePaletteStore = create<PaletteStore>()((set, get) => ({
             previewColor: color
           }
         }));
+      },
+
+      loadSessionPalettes: ({ customPalettes, activePaletteId, recentColors }) => {
+        set(state => {
+          const sanitizedCustomPalettes = Array.isArray(customPalettes)
+            ? customPalettes.map(palette => ({
+                ...palette,
+                isPreset: false,
+                isCustom: true,
+                colors: (palette.colors || []).map(color => ({
+                  id: color.id ?? generateColorId(),
+                  value: color.value,
+                  name: color.name
+                }))
+              }))
+            : state.customPalettes;
+
+          const allPalettes = [...state.palettes, ...sanitizedCustomPalettes];
+          const resolvedActiveId = activePaletteId && allPalettes.some(p => p.id === activePaletteId)
+            ? activePaletteId
+            : (allPalettes.some(p => p.id === state.activePaletteId) ? state.activePaletteId : DEFAULT_ACTIVE_PALETTE_ID);
+
+          const normalizedRecentColors = Array.isArray(recentColors)
+            ? [...new Set(recentColors.filter(Boolean))].slice(0, 32)
+            : state.recentColors;
+
+          return {
+            customPalettes: sanitizedCustomPalettes,
+            activePaletteId: resolvedActiveId,
+            selectedColorId: null,
+            recentColors: normalizedRecentColors
+          };
+        });
       },
 
       // Drag state

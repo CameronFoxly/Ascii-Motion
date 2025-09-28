@@ -1,5 +1,6 @@
 import type { Frame, Cell, Tool } from './index';
 import type { FontMetrics } from '../utils/fontMetrics';
+import type { ColorPalette, CharacterPalette, CharacterMappingSettings } from './palette';
 
 // Export format identifiers
 export type ExportFormatId = 'png' | 'mp4' | 'session' | 'media' | 'text' | 'json' | 'html';
@@ -15,9 +16,11 @@ export interface ExportFormat {
 }
 
 // Export settings for each format
-export interface PngExportSettings {
-  sizeMultiplier: 1 | 2;
+export interface ImageExportSettings {
+  sizeMultiplier: 1 | 2 | 3 | 4;
   includeGrid: boolean;
+  format: 'png' | 'jpg';
+  quality: number; // 1-100 JPEG quality scale (ignored for PNG)
 }
 
 export interface VideoExportSettings {
@@ -59,8 +62,22 @@ export interface HtmlExportSettings {
   loops: 'infinite' | number; // 'infinite' or specific number
 }
 
+export interface PaletteExportState {
+  activePaletteId: string;
+  customPalettes: ColorPalette[];
+  recentColors: string[];
+}
+
+export interface CharacterPaletteExportState {
+  activePaletteId: string;
+  customPalettes: CharacterPalette[];
+  mappingMethod: CharacterMappingSettings['mappingMethod'];
+  invertDensity: boolean;
+  characterSpacing: number;
+}
+
 // Union type for all export settings
-export type ExportSettings = PngExportSettings | VideoExportSettings | SessionExportSettings | TextExportSettings | JsonExportSettings | HtmlExportSettings;
+export type ExportSettings = ImageExportSettings | VideoExportSettings | SessionExportSettings | TextExportSettings | JsonExportSettings | HtmlExportSettings;
 
 // Export data bundle - all data needed for any export
 export interface ExportDataBundle {
@@ -108,6 +125,12 @@ export interface ExportDataBundle {
     panOffset: { x: number; y: number };
     theme: 'light' | 'dark';
   };
+
+  // Palette state
+  paletteState: PaletteExportState;
+
+  // Character palette state
+  characterPaletteState: CharacterPaletteExportState;
 }
 
 // Export result from exporters
@@ -151,7 +174,7 @@ export interface ExportState {
   progress: ExportProgress | null;
   
   // Export settings for each format
-  pngSettings: PngExportSettings;
+  imageSettings: ImageExportSettings;
   videoSettings: VideoExportSettings;
   sessionSettings: SessionExportSettings;
   textSettings: TextExportSettings;
@@ -224,5 +247,21 @@ export interface SessionExportData {
     zoom: number;
     panOffset: { x: number; y: number };
     theme: 'light' | 'dark';
+  };
+
+  // Palette data
+  palettes?: {
+    activePaletteId: string;
+    customPalettes: ColorPalette[];
+    recentColors?: string[];
+  };
+
+  // Character palette data
+  characterPalettes?: {
+    activePaletteId: string;
+    customPalettes: CharacterPalette[];
+    mappingMethod: CharacterMappingSettings['mappingMethod'];
+    invertDensity: boolean;
+    characterSpacing: number;
   };
 }

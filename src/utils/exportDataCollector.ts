@@ -4,7 +4,9 @@ import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
 import { useCanvasContext } from '../contexts/CanvasContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { usePaletteStore } from '../stores/paletteStore';
 import { VERSION, BUILD_DATE, BUILD_HASH } from '../constants/version';
+import { useCharacterPaletteStore } from '../stores/characterPaletteStore';
 
 /**
  * Collects all data needed for export operations
@@ -44,6 +46,22 @@ export class ExportDataCollector {
       paintBucketContiguous,
       rectangleFilled
     } = toolState;
+
+    const paletteStore = usePaletteStore.getState();
+    const {
+      customPalettes,
+      activePaletteId,
+      recentColors
+    } = paletteStore;
+
+    const characterPaletteStore = useCharacterPaletteStore.getState();
+    const {
+      customPalettes: customCharacterPalettes,
+      activePalette,
+      mappingMethod,
+      invertDensity,
+      characterSpacing
+    } = characterPaletteStore;
 
     // Get UI context data (we'll need to pass this in since we can't use hooks here)
     // This will be handled by the calling component
@@ -101,6 +119,28 @@ export class ExportDataCollector {
         zoom: 1.0,
         panOffset: { x: 0, y: 0 },
         theme: 'light'
+      },
+
+      // Palette state
+      paletteState: {
+        activePaletteId,
+        customPalettes: customPalettes.map(palette => ({
+          ...palette,
+          colors: palette.colors.map(color => ({ ...color }))
+        })),
+        recentColors: [...recentColors]
+      },
+
+      // Character palette state
+      characterPaletteState: {
+        activePaletteId: activePalette?.id ?? 'minimal-ascii',
+        customPalettes: customCharacterPalettes.map(palette => ({
+          ...palette,
+          characters: [...palette.characters]
+        })),
+        mappingMethod,
+        invertDensity,
+        characterSpacing
       }
     };
   }
@@ -137,6 +177,16 @@ export const useExportDataCollector = (): ExportDataBundle => {
     paintBucketContiguous,
     rectangleFilled
   } = useToolStore();
+
+  const customPalettes = usePaletteStore(state => state.customPalettes);
+  const activePaletteId = usePaletteStore(state => state.activePaletteId);
+  const recentColors = usePaletteStore(state => state.recentColors);
+
+  const customCharacterPalettes = useCharacterPaletteStore(state => state.customPalettes);
+  const activeCharacterPalette = useCharacterPaletteStore(state => state.activePalette);
+  const characterMappingMethod = useCharacterPaletteStore(state => state.mappingMethod);
+  const invertCharacterDensity = useCharacterPaletteStore(state => state.invertDensity);
+  const characterSpacingSetting = useCharacterPaletteStore(state => state.characterSpacing);
 
   // Get canvas context data
   const {
@@ -198,6 +248,26 @@ export const useExportDataCollector = (): ExportDataBundle => {
       zoom,
       panOffset,
       theme
+    },
+
+    paletteState: {
+      activePaletteId,
+      customPalettes: customPalettes.map(palette => ({
+        ...palette,
+        colors: palette.colors.map(color => ({ ...color }))
+      })),
+      recentColors: [...recentColors]
+    },
+
+    characterPaletteState: {
+      activePaletteId: activeCharacterPalette?.id ?? 'minimal-ascii',
+      customPalettes: customCharacterPalettes.map(palette => ({
+        ...palette,
+        characters: [...palette.characters]
+      })),
+      mappingMethod: characterMappingMethod,
+      invertDensity: invertCharacterDensity,
+      characterSpacing: characterSpacingSetting
     }
   };
 };

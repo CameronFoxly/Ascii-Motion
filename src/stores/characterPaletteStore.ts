@@ -10,6 +10,7 @@
 
 import { create } from 'zustand';
 import type { CharacterPalette, CharacterMappingSettings, CharacterPaletteExportFormat } from '../types/palette';
+import { generateCharacterPaletteId } from '../types/palette';
 import { DEFAULT_CHARACTER_PALETTES, MINIMAL_ASCII_PALETTE, createCustomCharacterPalette } from '../constants/defaultCharacterPalettes';
 
 export interface CharacterPaletteState {
@@ -56,6 +57,15 @@ export interface CharacterPaletteState {
   resetToDefaults: () => void;
   getAllPalettes: () => CharacterPalette[];
   getPaletteById: (id: string) => CharacterPalette | undefined;
+
+  // Session restore
+  loadSessionCharacterPalettes: (payload: {
+    customPalettes: CharacterPalette[];
+    activePaletteId?: string;
+    mappingMethod?: CharacterMappingSettings['mappingMethod'];
+    invertDensity?: boolean;
+    characterSpacing?: number;
+  }) => void;
 }
 
 export const useCharacterPaletteStore = create<CharacterPaletteState>((set, get) => ({
@@ -224,6 +234,91 @@ export const useCharacterPaletteStore = create<CharacterPaletteState>((set, get)
     }));
     
     return newPalette;
+  },
+  
+  loadSessionCharacterPalettes: ({ customPalettes, activePaletteId, mappingMethod, invertDensity, characterSpacing }) => {
+    set(state => {
+      const sanitizeCharacters = (characters: unknown): string[] => {
+        if (!Array.isArray(characters)) {
+          return [' '];
+        }
+
+        const cleaned = characters
+          .map(char => (typeof char === 'string' && char.length > 0 ? char[0] : null))
+          .filter((char): char is string => Boolean(char));
+
+        return cleaned.length > 0 ? cleaned : [' '];
+      };
+
+      const sanitizedCustomPalettes = Array.isArray(customPalettes)
+        ? customPalettes.map((palette, index) => {
+            const id = typeof palette?.id === 'string' && palette.id.trim().length > 0
+              ? palette.id
+              : `${generateCharacterPaletteId()}_${index}`;
+
+            const name = typeof palette?.name === 'string' && palette.name.trim().length > 0
+              ? palette.name
+              : 'Custom Palette';
+
+            const category = typeof palette?.category === 'string' && ['ascii', 'unicode', 'blocks', 'custom'].includes(palette.category)
+              ? palette.category as CharacterPalette['category']
+              : 'custom';
+
+            return {
+              id,
+              name,
+              characters: sanitizeCharacters(palette?.characters),
+              category,
+              isPreset: false,
+              isCustom: true
+            } as CharacterPalette;
+          })
+          // Deduplicate by id to avoid duplicates after sanitization
+          .filter((palette, index, array) => array.findIndex(item => item.id === palette.id) === index)
+        : state.customPalettes;
+
+      const findPaletteById = (id?: string | null): CharacterPalette | undefined => {
+        if (!id) return undefined;
+        return sanitizedCustomPalettes.find(palette => palette.id === id)
+          || state.availablePalettes.find(palette => palette.id === id);
+      };
+
+      const resolvedActivePalette = findPaletteById(activePaletteId)
+        || (state.activePalette ? findPaletteById(state.activePalette.id) : undefined)
+        || state.activePalette
+        || MINIMAL_ASCII_PALETTE;
+
+      const validMappingMethods: CharacterMappingSettings['mappingMethod'][] = [
+        'brightness',
+        'luminance',
+        'contrast',
+        'edge-detection',
+        'saturation',
+        'red-channel',
+        'green-channel',
+        'blue-channel'
+      ];
+
+      const resolvedMappingMethod = mappingMethod && validMappingMethods.includes(mappingMethod)
+        ? mappingMethod
+        : state.mappingMethod;
+
+      const resolvedInvertDensity = typeof invertDensity === 'boolean' ? invertDensity : state.invertDensity;
+
+      const resolvedCharacterSpacing = typeof characterSpacing === 'number'
+        ? Math.max(0.1, Math.min(3.0, characterSpacing))
+        : state.characterSpacing;
+
+      return {
+        customPalettes: sanitizedCustomPalettes,
+        activePalette: resolvedActivePalette,
+        mappingMethod: resolvedMappingMethod,
+        invertDensity: resolvedInvertDensity,
+        characterSpacing: resolvedCharacterSpacing,
+        isEditing: false,
+        editingPaletteId: null
+      };
+    });
   },
   
   // Utility Actions

@@ -26,7 +26,7 @@ With the core functionality (Phase 1), animation system (Phase 2), and export/im
 - Animation history system
 
 ### ✅ **Phase 3: Export/Import System** - COMPLETE
-- PNG export with high-DPI support
+- PNG/JPEG export with high-DPI support
 - Session export/import (.asciimtn files)
 - Typography settings preservation
 - Professional export UI
