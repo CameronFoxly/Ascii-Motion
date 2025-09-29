@@ -11,6 +11,7 @@ import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { Switch } from '../../ui/switch';
 import { useEffectsStore } from '../../../stores/effectsStore';
+import { useCanvasStore } from '../../../stores/canvasStore';
 import { RotateCcw, Plus, X, Eye, EyeOff } from 'lucide-react';
 
 export function RemapColorsEffectPanel() {
@@ -25,6 +26,8 @@ export function RemapColorsEffectPanel() {
     stopPreview,
     updatePreview
   } = useEffectsStore();
+
+  const { cells } = useCanvasStore();
 
   const [newFromColor, setNewFromColor] = useState('#000000');
   const [newToColor, setNewToColor] = useState('#ffffff');
@@ -53,6 +56,15 @@ export function RemapColorsEffectPanel() {
       });
     }
   }, [remapColorsSettings, isCurrentlyPreviewing, updatePreview]);
+
+  // Update preview when canvas data changes (e.g., frame change)
+  useEffect(() => {
+    if (isCurrentlyPreviewing) {
+      updatePreview().catch(error => {
+        console.error('Preview update after canvas change failed:', error);
+      });
+    }
+  }, [cells, isCurrentlyPreviewing, updatePreview]);
 
   // Toggle preview
   const handleTogglePreview = useCallback(() => {

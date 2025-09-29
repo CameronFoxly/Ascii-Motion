@@ -11,6 +11,7 @@ import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { Switch } from '../../ui/switch';
 import { useEffectsStore } from '../../../stores/effectsStore';
+import { useCanvasStore } from '../../../stores/canvasStore';
 import { RotateCcw, Plus, X, Eye, EyeOff } from 'lucide-react';
 
 export function RemapCharactersEffectPanel() {
@@ -25,6 +26,8 @@ export function RemapCharactersEffectPanel() {
     stopPreview,
     updatePreview
   } = useEffectsStore();
+  
+  const canvas = useCanvasStore();
 
   const [newFromChar, setNewFromChar] = useState('');
   const [newToChar, setNewToChar] = useState('');
@@ -53,6 +56,15 @@ export function RemapCharactersEffectPanel() {
       });
     }
   }, [remapCharactersSettings, isCurrentlyPreviewing, updatePreview]);
+
+  // Update preview when active frame changes
+  useEffect(() => {
+    if (isCurrentlyPreviewing) {
+      updatePreview().catch(error => {
+        console.error('Preview update failed:', error);
+      });
+    }
+  }, [canvas.cells, isCurrentlyPreviewing, updatePreview]);
 
   // Toggle preview
   const handleTogglePreview = useCallback(() => {

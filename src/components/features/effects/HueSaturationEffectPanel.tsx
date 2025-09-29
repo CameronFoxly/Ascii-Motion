@@ -10,6 +10,7 @@ import { Slider } from '../../ui/slider';
 import { Button } from '../../ui/button';
 import { Label } from '../../ui/label';
 import { useEffectsStore } from '../../../stores/effectsStore';
+import { useCanvasStore } from '../../../stores/canvasStore';
 import { RotateCcw, Eye, EyeOff } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 
@@ -25,6 +26,8 @@ export function HueSaturationEffectPanel() {
     stopPreview,
     updatePreview
   } = useEffectsStore();
+
+  const { cells } = useCanvasStore();
 
   const isCurrentlyPreviewing = isPreviewActive && previewEffect === 'hue-saturation';
 
@@ -50,6 +53,15 @@ export function HueSaturationEffectPanel() {
       });
     }
   }, [hueSaturationSettings, isCurrentlyPreviewing, updatePreview]);
+
+  // Update preview when canvas data changes (e.g., frame change)
+  useEffect(() => {
+    if (isCurrentlyPreviewing) {
+      updatePreview().catch(error => {
+        console.error('Preview update after canvas change failed:', error);
+      });
+    }
+  }, [cells, isCurrentlyPreviewing, updatePreview]);
 
   // Reset to default values
   const handleReset = useCallback(() => {

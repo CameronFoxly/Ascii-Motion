@@ -11,6 +11,7 @@ import { Button } from '../../ui/button';
 import { Label } from '../../ui/label';
 import { Separator } from '../../ui/separator';
 import { useEffectsStore } from '../../../stores/effectsStore';
+import { useCanvasStore } from '../../../stores/canvasStore';
 import { RotateCcw, Eye, EyeOff } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 
@@ -26,6 +27,8 @@ export function LevelsEffectPanel() {
     stopPreview,
     updatePreview
   } = useEffectsStore();
+
+  const { cells } = useCanvasStore();
 
   const isCurrentlyPreviewing = isPreviewActive && previewEffect === 'levels';
 
@@ -51,6 +54,15 @@ export function LevelsEffectPanel() {
       });
     }
   }, [levelsSettings, isCurrentlyPreviewing, updatePreview]);
+
+  // Update preview when canvas data changes (e.g., frame change)
+  useEffect(() => {
+    if (isCurrentlyPreviewing) {
+      updatePreview().catch(error => {
+        console.error('Preview update after canvas change failed:', error);
+      });
+    }
+  }, [cells, isCurrentlyPreviewing, updatePreview]);
 
   // Reset to default values
   const handleReset = useCallback(() => {
