@@ -1,12 +1,25 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.16";
-export const BUILD_DATE = "2025-09-27T04:02:58.846Z";
-export const BUILD_HASH = "65a48eb";
+export const VERSION = "0.1.17";
+export const BUILD_DATE = "2025-09-28T08:11:10.198Z";
+export const BUILD_HASH = "73a7283";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.17",
+    "date": "2025-09-28T08:11:10.198Z",
+    "commits": [
+      "Added jpg export, palettes to session export",
+      "Cleaned up HTML export styling",
+      "Fixed Export dialog vertical responsiveness",
+      "Fixed html export dialog sizing",
+      "Prettify Json Export system",
+      "Fixed text preview of gradient fill",
+      "Added quantize settings to gradient linear interpoloation"
+    ]
+  },
   {
     "version": "0.1.16",
     "date": "2025-09-27T04:02:58.846Z",

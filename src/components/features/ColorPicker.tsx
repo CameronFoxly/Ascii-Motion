@@ -13,6 +13,7 @@ import { ColorPickerOverlay } from './ColorPickerOverlay';
 import { ImportPaletteDialog } from './ImportPaletteDialog';
 import { ExportPaletteDialog } from './ExportPaletteDialog';
 import { ManagePalettesDialog } from './ManagePalettesDialog';
+import { EffectsSection } from './EffectsSection';
 import { ANSI_COLORS } from '../../constants/colors';
 
 interface ColorPickerProps {
@@ -589,6 +590,9 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
           )}
         </CollapsibleContent>
       </Collapsible>
+
+      {/* Effects Section */}
+      <EffectsSection />
 
       {/* Color Picker Modal */}
       <ColorPickerOverlay
