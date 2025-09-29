@@ -382,7 +382,7 @@ export function RemapColorsEffectPanel() {
                     type="text"
                     value={currentHexInput}
                     onChange={(e) => handleHexInputChange(fromColor, e.target.value)}
-                    className="flex-1 h-6 text-[9px] font-mono min-w-0 mx-1"
+                    className="flex-1 h-6 text-[9px] font-mono min-w-0 mx-1 px-1"
                     placeholder="#ffffff"
                   />
                   
@@ -402,16 +402,6 @@ export function RemapColorsEffectPanel() {
                 </div>
               );
             })}
-          </div>
-        )}
-        
-        {/* Status indicator */}
-        {mappingCount > 0 && (
-          <div className="text-xs text-muted-foreground text-center pt-2 border-t">
-            {hasIdenticalMappings ? 
-              'All colors mapped to themselves (no changes)' : 
-              `${mappingCount} color${mappingCount === 1 ? '' : 's'} will be remapped`
-            }
           </div>
         )}
       </div>
