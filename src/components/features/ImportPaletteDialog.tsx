@@ -235,8 +235,8 @@ export const ImportPaletteDialog: React.FC<ImportPaletteDialogProps> = ({
                 {/* Color Preview */}
                 <div className="space-y-1">
                   <span className="text-sm font-medium">Preview:</span>
-                  <div className="flex flex-wrap gap-1">
-                    <TooltipProvider>
+                  <TooltipProvider>
+                    <div className="flex flex-wrap gap-1">
                       {previewData.colors.slice(0, 16).map((color, index) => (
                         <Tooltip key={index}>
                           <TooltipTrigger asChild>
@@ -250,13 +250,13 @@ export const ImportPaletteDialog: React.FC<ImportPaletteDialogProps> = ({
                           </TooltipContent>
                         </Tooltip>
                       ))}
-                    </TooltipProvider>
-                    {previewData.colors.length > 16 && (
-                      <div className="flex items-center justify-center w-6 h-6 text-xs text-muted-foreground border border-border rounded">
-                        +{previewData.colors.length - 16}
-                      </div>
-                    )}
-                  </div>
+                      {previewData.colors.length > 16 && (
+                        <div className="flex items-center justify-center w-6 h-6 text-xs text-muted-foreground border border-border rounded">
+                          +{previewData.colors.length - 16}
+                        </div>
+                      )}
+                    </div>
+                  </TooltipProvider>
                 </div>
               </div>
             </div>

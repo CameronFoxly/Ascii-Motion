@@ -536,52 +536,52 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                     {/* Color swatches grid */}
                     <Card className="bg-card/50 border-border/50">
                       <CardContent className="p-2">
-                        <div className="grid grid-cols-8 gap-0.5 mb-2" onDragLeave={handleDragLeave}>
-                          {selectedPalette.colors.map((color, index) => (
+                        <TooltipProvider>
+                          <div className="grid grid-cols-8 gap-0.5 mb-2" onDragLeave={handleDragLeave}>
+                            {selectedPalette.colors.map((color, index) => (
                             <div key={color.id} className="relative flex items-center justify-center">
                               {/* Drop indicator line */}
                               {dropIndicatorIndex === index && (
                                 <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
                               )}
                               
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div
-                                      className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 cursor-pointer ${
-                                        draggedColorId === color.id ? 'opacity-50 scale-95' : ''
-                                      } ${
-                                        selectedColorId === color.id
-                                          ? 'border-primary ring-2 ring-primary/20 shadow-lg'
-                                          : 'border-border hover:border-border/80'
-                                      } cursor-move`}
-                                      style={{ backgroundColor: color.value }}
-                                      draggable={!selectedPalette.isPreset}
-                                      onClick={() => setSelectedColor(color.id)}
-                                      onDoubleClick={() => handleColorDoubleClick(color.value)}
-                                      onDragStart={(e) => handleDragStart(e, color.id)}
-                                      onDragOver={(e) => handleDragOver(e, color.id)}
-                                      onDrop={(e) => handleDrop(e, color.id)}
-                                    />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>
-                                      {color.name || 'Unnamed'}: {color.value}
-                                      {selectedPalette.isPreset 
-                                        ? ' (double-click to edit)' 
-                                        : ' (drag to reorder, double-click to edit)'}
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div
+                                    className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 cursor-pointer ${
+                                      draggedColorId === color.id ? 'opacity-50 scale-95' : ''
+                                    } ${
+                                      selectedColorId === color.id
+                                        ? 'border-primary ring-2 ring-primary/20 shadow-lg'
+                                        : 'border-border hover:border-border/80'
+                                    } cursor-move`}
+                                    style={{ backgroundColor: color.value }}
+                                    draggable={!selectedPalette.isPreset}
+                                    onClick={() => setSelectedColor(color.id)}
+                                    onDoubleClick={() => handleColorDoubleClick(color.value)}
+                                    onDragStart={(e) => handleDragStart(e, color.id)}
+                                    onDragOver={(e) => handleDragOver(e, color.id)}
+                                    onDrop={(e) => handleDrop(e, color.id)}
+                                  />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>
+                                    {color.name || 'Unnamed'}: {color.value}
+                                    {selectedPalette.isPreset 
+                                      ? ' (double-click to edit)' 
+                                      : ' (drag to reorder, double-click to edit)'}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
                               
                               {/* Drop indicator line after last item */}
                               {dropIndicatorIndex === index + 1 && (
                                 <div className="absolute -right-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
                               )}
                             </div>
-                          ))}
-                        </div>
+                            ))}
+                          </div>
+                        </TooltipProvider>
                         
                         {/* Palette controls */}
                         <div className="flex items-center justify-between">
