@@ -184,6 +184,101 @@ src/
 
 ## Development Guidelines
 
+### **🚨 MANDATORY: Tooltip Best Practices**
+When implementing tooltips in ASCII Motion, follow these guidelines to maintain consistent purple Radix UI tooltips throughout the application:
+
+#### **1. Always Use Radix Tooltips (Never HTML title attributes)**
+```tsx
+// ❌ INCORRECT - HTML title attribute creates dark grey browser tooltip
+<Button title="My tooltip">Click me</Button>
+
+// ✅ CORRECT - Radix tooltip with purple styling
+<Tooltip>
+  <TooltipTrigger asChild>
+    <Button>Click me</Button>
+  </TooltipTrigger>
+  <TooltipContent>
+    <p>My tooltip</p>
+  </TooltipContent>
+</Tooltip>
+```
+
+#### **2. TooltipProvider Placement**
+```tsx
+// ❌ INCORRECT - Multiple providers in loops hurt performance
+{items.map(item => (
+  <TooltipProvider key={item.id}>
+    <Tooltip>...</Tooltip>
+  </TooltipProvider>
+))}
+
+// ✅ CORRECT - Single provider wraps the entire collection
+<TooltipProvider>
+  {items.map(item => (
+    <Tooltip key={item.id}>...</Tooltip>
+  ))}
+</TooltipProvider>
+```
+
+#### **3. Import Requirements**
+```tsx
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+```
+
+#### **4. Common Patterns**
+
+**Button with tooltip:**
+```tsx
+<Tooltip>
+  <TooltipTrigger asChild>
+    <Button variant="outline" size="sm">
+      <Icon className="w-3 h-3" />
+    </Button>
+  </TooltipTrigger>
+  <TooltipContent>
+    <p>Action description</p>
+  </TooltipContent>
+</Tooltip>
+```
+
+**Interactive element with tooltip:**
+```tsx
+<Tooltip>
+  <TooltipTrigger asChild>
+    <div className="cursor-pointer" onClick={handleClick}>
+      Content
+    </div>
+  </TooltipTrigger>
+  <TooltipContent>
+    <p>Click to perform action</p>
+  </TooltipContent>
+</Tooltip>
+```
+
+**Dynamic tooltip content:**
+```tsx
+<Tooltip>
+  <TooltipTrigger asChild>
+    <Button>{isActive ? "Unlink" : "Link"}</Button>
+  </TooltipTrigger>
+  <TooltipContent>
+    <p>{isActive ? "Unlink aspect ratio" : "Maintain aspect ratio"}</p>
+  </TooltipContent>
+</Tooltip>
+```
+
+#### **5. Accessibility Considerations**
+- Use `aria-label` on interactive elements for screen readers (independent of tooltips)
+- Keep tooltip text concise and descriptive
+- Avoid duplicating `aria-label` and tooltip content unnecessarily
+
+#### **Benefits of Following Tooltip Guidelines:**
+- ✅ Consistent purple Radix UI styling throughout application
+- ✅ No dual tooltip conflicts (HTML + Radix)
+- ✅ Better performance with proper TooltipProvider placement
+- ✅ Professional user experience matching design system
+- ✅ Accessibility support with proper ARIA attributes
+
 ### **🚨 MANDATORY: New Tool Requirements**
 When adding ANY new drawing tool to ASCII Motion, you MUST follow these requirements:
 

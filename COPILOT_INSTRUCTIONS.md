@@ -198,6 +198,187 @@ button { /* This overrides shadcn button styling */ }
 // ✅ Solution: Use shadcn variants instead of custom classes
 ```
 
+## 🚨 **CRITICAL: Tooltip Implementation Guidelines**
+
+**When implementing tooltips in ASCII Motion, ALWAYS use Radix tooltips. NEVER use HTML `title` attributes.**
+
+### **⚠️ TOOLTIP REQUIREMENT**
+All interactive buttons and elements must use the purple Radix tooltip system for consistency and professional UX.
+
+### **Tooltip Implementation Patterns**
+
+#### **✅ DO: Use Radix Tooltips**
+```tsx
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+// ✅ CORRECT - Single button with tooltip
+<Tooltip>
+  <TooltipTrigger asChild>
+    <Button variant="outline" size="sm">
+      <Icon className="w-3 h-3" />
+    </Button>
+  </TooltipTrigger>
+  <TooltipContent>
+    <p>Action description</p>
+  </TooltipContent>
+</Tooltip>
+
+// ✅ CORRECT - Multiple buttons with shared provider
+<TooltipProvider>
+  {items.map(item => (
+    <Tooltip key={item.id}>
+      <TooltipTrigger asChild>
+        <Button>{item.name}</Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{item.description}</p>
+      </TooltipContent>
+    </Tooltip>
+  ))}
+</TooltipProvider>
+
+// ✅ CORRECT - Dynamic tooltip content
+<Tooltip>
+  <TooltipTrigger asChild>
+    <Button>{isActive ? "Unlink" : "Link"}</Button>
+  </TooltipTrigger>
+  <TooltipContent>
+    <p>{isActive ? "Unlink aspect ratio" : "Maintain aspect ratio"}</p>
+  </TooltipContent>
+</Tooltip>
+```
+
+#### **❌ DON'T: Use HTML title Attributes**
+```tsx
+// ❌ WRONG - HTML title creates dark grey browser tooltip
+<Button title="My tooltip">Click me</Button>
+
+// ❌ WRONG - Dual tooltips (HTML + Radix)
+<Tooltip>
+  <TooltipTrigger asChild>
+    <Button title="Description">Click me</Button>  {/* Remove title! */}
+  </TooltipTrigger>
+  <TooltipContent>
+    <p>Description</p>
+  </TooltipContent>
+</Tooltip>
+
+// ❌ WRONG - Multiple TooltipProviders in loops
+{items.map(item => (
+  <TooltipProvider key={item.id}>  {/* Move outside map! */}
+    <Tooltip>...</Tooltip>
+  </TooltipProvider>
+))}
+```
+
+### **TooltipProvider Performance Best Practices**
+
+**Rule: Place TooltipProvider OUTSIDE loops and map functions**
+
+```tsx
+// ❌ BAD PERFORMANCE - Provider re-created for each item
+const ColorGrid = () => (
+  <div className="grid">
+    {colors.map(color => (
+      <TooltipProvider key={color.id}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button style={{backgroundColor: color.value}} />
+          </TooltipTrigger>
+          <TooltipContent><p>{color.name}</p></TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    ))}
+  </div>
+);
+
+// ✅ GOOD PERFORMANCE - Single provider wraps all tooltips
+const ColorGrid = () => (
+  <TooltipProvider>
+    <div className="grid">
+      {colors.map(color => (
+        <Tooltip key={color.id}>
+          <TooltipTrigger asChild>
+            <button style={{backgroundColor: color.value}} />
+          </TooltipTrigger>
+          <TooltipContent><p>{color.name}</p></TooltipContent>
+        </Tooltip>
+      ))}
+    </div>
+  </TooltipProvider>
+);
+```
+
+### **Accessibility Considerations**
+
+**Use `aria-label` for screen readers, independent of tooltips:**
+```tsx
+<Tooltip>
+  <TooltipTrigger asChild>
+    <Button 
+      aria-label="Delete item"  // Screen reader description
+      variant="ghost"
+    >
+      <Trash className="w-3 h-3" />
+    </Button>
+  </TooltipTrigger>
+  <TooltipContent>
+    <p>Delete</p>  {/* Visual tooltip for sighted users */}
+  </TooltipContent>
+</Tooltip>
+```
+
+### **Common Tooltip Patterns**
+
+**Frame navigation buttons:**
+```tsx
+<TooltipProvider>
+  <div className="flex gap-1">
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button variant="outline" size="sm" onClick={() => goToFirst()}>
+          <ChevronsLeft className="w-3 h-3" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent><p>First frame</p></TooltipContent>
+    </Tooltip>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button variant="outline" size="sm" onClick={() => goToPrev()}>
+          <ChevronLeft className="w-3 h-3" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent><p>Previous frame</p></TooltipContent>
+    </Tooltip>
+  </div>
+</TooltipProvider>
+```
+
+**Alignment grid with tooltips:**
+```tsx
+<TooltipProvider>
+  <div className="grid grid-cols-3">
+    {alignmentOptions.map(({ mode, label }) => (
+      <Tooltip key={mode}>
+        <TooltipTrigger asChild>
+          <Button onClick={() => setAlignment(mode)}>
+            {/* alignment icon */}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent><p>{label}</p></TooltipContent>
+      </Tooltip>
+    ))}
+  </div>
+</TooltipProvider>
+```
+
+### **Benefits of Following Tooltip Guidelines:**
+- ✅ Consistent purple Radix UI styling throughout application
+- ✅ No dual tooltip conflicts (browser tooltip + Radix tooltip)
+- ✅ Better performance with proper provider placement  
+- ✅ Professional user experience matching design system
+- ✅ Proper accessibility with ARIA attributes
+
 ## 🚨 **CRITICAL: Adding New Tools**
 **When adding ANY new drawing tool, ALWAYS follow the 8-step componentized pattern in Section 3 below.** This maintains architectural consistency and ensures all tools work seamlessly together. Do NOT add tool logic directly to CanvasGrid or mouse handlers.
 
