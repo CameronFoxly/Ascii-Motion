@@ -19,6 +19,7 @@ import { Alert, AlertDescription } from '../ui/alert';
 import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '../ui/separator';
 import { Slider } from '../ui/slider';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { 
   Collapsible,
   CollapsibleContent,
@@ -817,51 +818,77 @@ export function MediaImportPanel() {
                         </div>
                         
                         {previewFrames.length > 1 && (
-                          <div className="flex items-center justify-between gap-1">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setFrameIndex(0)}
-                              disabled={frameIndex === 0}
-                              className="h-6 w-6 p-0"
-                              title="First frame"
-                            >
-                              <ChevronsLeft className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setFrameIndex(Math.max(0, frameIndex - 1))}
-                              disabled={frameIndex === 0}
-                              className="h-6 w-6 p-0"
-                              title="Previous frame"
-                            >
-                              <ChevronLeft className="w-3 h-3" />
-                            </Button>
-                            <span className="text-xs flex-1 text-center">
-                              Frame {frameIndex + 1} of {previewFrames.length}
-                            </span>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setFrameIndex(Math.min(previewFrames.length - 1, frameIndex + 1))}
-                              disabled={frameIndex === previewFrames.length - 1}
-                              className="h-6 w-6 p-0"
-                              title="Next frame"
-                            >
-                              <ChevronRight className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setFrameIndex(previewFrames.length - 1)}
-                              disabled={frameIndex === previewFrames.length - 1}
-                              className="h-6 w-6 p-0"
-                              title="Last frame"
-                            >
-                              <ChevronsRight className="w-3 h-3" />
-                            </Button>
-                          </div>
+                          <TooltipProvider>
+                            <div className="flex items-center justify-between gap-1">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setFrameIndex(0)}
+                                    disabled={frameIndex === 0}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <ChevronsLeft className="w-3 h-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>First frame</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setFrameIndex(Math.max(0, frameIndex - 1))}
+                                    disabled={frameIndex === 0}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <ChevronLeft className="w-3 h-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Previous frame</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <span className="text-xs flex-1 text-center">
+                                Frame {frameIndex + 1} of {previewFrames.length}
+                              </span>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setFrameIndex(Math.min(previewFrames.length - 1, frameIndex + 1))}
+                                    disabled={frameIndex === previewFrames.length - 1}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <ChevronRight className="w-3 h-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Next frame</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setFrameIndex(previewFrames.length - 1)}
+                                    disabled={frameIndex === previewFrames.length - 1}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <ChevronsRight className="w-3 h-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Last frame</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TooltipProvider>
                         )}
 
                         {/* Video Scrubbing Slider */}
@@ -989,17 +1016,23 @@ export function MediaImportPanel() {
                           </div>
                         </div>
                         <div className="flex items-end">
-                          <Button
-                            type="button"
-                            variant={settings.maintainAspectRatio ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => updateSettings({ maintainAspectRatio: !settings.maintainAspectRatio })}
-                            disabled={!originalImageAspectRatio}
-                            className="h-8 w-8 p-0"
-                            title={settings.maintainAspectRatio ? "Unlink aspect ratio" : "Maintain original image aspect ratio"}
-                          >
-                            <Link className="w-3 h-3" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant={settings.maintainAspectRatio ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => updateSettings({ maintainAspectRatio: !settings.maintainAspectRatio })}
+                                disabled={!originalImageAspectRatio}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Link className="w-3 h-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{settings.maintainAspectRatio ? "Unlink aspect ratio" : "Maintain original image aspect ratio"}</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </div>
                       
@@ -1013,107 +1046,146 @@ export function MediaImportPanel() {
                       {/* Alignment Section */}
                       <div className="flex flex-col items-center space-y-2">
                         <Label className="text-xs font-medium">Alignment</Label>
-                        <div className="grid grid-cols-3 gap-[3px]">
-                          {[
-                            { mode: 'top-left', tooltip: 'Top Left' },
-                            { mode: 'top', tooltip: 'Top Center' },
-                            { mode: 'top-right', tooltip: 'Top Right' },
-                            { mode: 'left', tooltip: 'Center Left' },
-                            { mode: 'center', tooltip: 'Center' },
-                            { mode: 'right', tooltip: 'Center Right' },
-                            { mode: 'bottom-left', tooltip: 'Bottom Left' },
-                            { mode: 'bottom', tooltip: 'Bottom Center' },
-                            { mode: 'bottom-right', tooltip: 'Bottom Right' }
-                          ].map(({ mode, tooltip }) => {
-                            const isActive = settings.cropMode === mode;
-                            return (
-                              <Button
-                                key={mode}
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => updateSettings({ cropMode: mode as any })}
-                                className={`h-6 w-6 p-0 transition-colors ${
-                                  isActive 
-                                    ? 'bg-purple-500 text-white hover:bg-purple-600' 
-                                    : 'bg-background hover:bg-muted border border-border'
-                                }`}
-                                title={tooltip}
-                              >
-                                {isActive ? (
-                                  <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                  </svg>
-                                ) : (
-                                  <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                                  </svg>
-                                )}
-                              </Button>
-                            );
-                          })}
-                        </div>
+                        <TooltipProvider>
+                          <div className="grid grid-cols-3 gap-[3px]">
+                            {[
+                              { mode: 'top-left', tooltip: 'Top Left' },
+                              { mode: 'top', tooltip: 'Top Center' },
+                              { mode: 'top-right', tooltip: 'Top Right' },
+                              { mode: 'left', tooltip: 'Center Left' },
+                              { mode: 'center', tooltip: 'Center' },
+                              { mode: 'right', tooltip: 'Center Right' },
+                              { mode: 'bottom-left', tooltip: 'Bottom Left' },
+                              { mode: 'bottom', tooltip: 'Bottom Center' },
+                              { mode: 'bottom-right', tooltip: 'Bottom Right' }
+                            ].map(({ mode, tooltip }) => {
+                              const isActive = settings.cropMode === mode;
+                              return (
+                                <Tooltip key={mode}>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => updateSettings({ cropMode: mode as any })}
+                                      className={`h-6 w-6 p-0 transition-colors ${
+                                        isActive 
+                                          ? 'bg-purple-500 text-white hover:bg-purple-600' 
+                                          : 'bg-background hover:bg-muted border border-border'
+                                      }`}
+                                    >
+                                      {isActive ? (
+                                        <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
+                                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                        </svg>
+                                      ) : (
+                                        <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
+                                          <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                                        </svg>
+                                      )}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{tooltip}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              );
+                            })}
+                          </div>
+                        </TooltipProvider>
                       </div>
                       
                       {/* Nudge Section */}
                       <div className="flex flex-col items-center space-y-2">
                         <Label className="text-xs font-medium">Nudge</Label>
-                        <div className="grid grid-cols-3 gap-[3px]">
-                          {/* Top row */}
-                          <div></div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => updateSettings({ nudgeY: settings.nudgeY - 1 })}
-                            className="h-6 w-6 p-0"
-                            title="Nudge up"
-                          >
-                            <ArrowUp className="w-3 h-3" />
-                          </Button>
-                          <div></div>
-                          
-                          {/* Middle row */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => updateSettings({ nudgeX: settings.nudgeX - 1 })}
-                            className="h-6 w-6 p-0"
-                            title="Nudge left"
-                          >
-                            <ArrowLeft className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => updateSettings({ nudgeX: 0, nudgeY: 0 })}
-                            className="h-6 w-6 p-0"
-                            title="Reset nudge"
-                            disabled={settings.nudgeX === 0 && settings.nudgeY === 0}
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => updateSettings({ nudgeX: settings.nudgeX + 1 })}
-                            className="h-6 w-6 p-0"
-                            title="Nudge right"
-                          >
-                            <ArrowRight className="w-3 h-3" />
-                          </Button>
-                          
-                          {/* Bottom row */}
-                          <div></div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => updateSettings({ nudgeY: settings.nudgeY + 1 })}
-                            className="h-6 w-6 p-0"
-                            title="Nudge down"
-                          >
-                            <ArrowDown className="w-3 h-3" />
-                          </Button>
-                          <div></div>
-                        </div>
+                        <TooltipProvider>
+                          <div className="grid grid-cols-3 gap-[3px]">
+                            {/* Top row */}
+                            <div></div>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => updateSettings({ nudgeY: settings.nudgeY - 1 })}
+                                  className="h-6 w-6 p-0"
+                                >
+                                  <ArrowUp className="w-3 h-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Nudge up</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <div></div>
+                            
+                            {/* Middle row */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => updateSettings({ nudgeX: settings.nudgeX - 1 })}
+                                  className="h-6 w-6 p-0"
+                                >
+                                  <ArrowLeft className="w-3 h-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Nudge left</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => updateSettings({ nudgeX: 0, nudgeY: 0 })}
+                                  className="h-6 w-6 p-0"
+                                  disabled={settings.nudgeX === 0 && settings.nudgeY === 0}
+                                >
+                                  <RotateCcw className="w-3 h-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Reset nudge</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => updateSettings({ nudgeX: settings.nudgeX + 1 })}
+                                  className="h-6 w-6 p-0"
+                                >
+                                  <ArrowRight className="w-3 h-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Nudge right</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            
+                            {/* Bottom row */}
+                            <div></div>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => updateSettings({ nudgeY: settings.nudgeY + 1 })}
+                                  className="h-6 w-6 p-0"
+                                >
+                                  <ArrowDown className="w-3 h-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Nudge down</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <div></div>
+                          </div>
+                        </TooltipProvider>
                       </div>
                     </div>
                   </div>
