@@ -48,7 +48,7 @@ export const EFFECT_DEFINITIONS: EffectDefinition[] = [
 export const DEFAULT_LEVELS_SETTINGS: LevelsEffectSettings = {
   // Input levels (standard range)
   shadowsInput: 0,
-  midtonesInput: 128,
+  midtonesInput: 1.0,  // Gamma value: 1.0 = no change
   highlightsInput: 255,
   
   // Output levels (no change)

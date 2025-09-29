@@ -181,7 +181,7 @@ export function LevelsEffectPanel() {
             )}
           />
           <div className="text-xs text-muted-foreground">
-            Mid-tone brightness - values &lt; 1 brighten, &gt; 1 darken
+            Mid-tone gamma correction - values &lt; 1 darken, &gt; 1 brighten
           </div>
         </div>
         

@@ -15,10 +15,10 @@ export interface ColorRange {
 
 // Individual effect settings interfaces
 export interface LevelsEffectSettings {
-  // Input levels (0-255)
-  shadowsInput: number;
-  midtonesInput: number;
-  highlightsInput: number;
+  // Input levels
+  shadowsInput: number;      // 0-255: Black point
+  midtonesInput: number;     // 0.1-3.0: Gamma correction (1.0 = no change)
+  highlightsInput: number;   // 0-255: White point
   
   // Output levels (0-255)
   outputMin: number;
