@@ -17,7 +17,7 @@ import {
   CollapsibleContent,
 } from '../ui/collapsible';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
-import { CharacterPicker } from './CharacterPicker';
+import { EnhancedCharacterPicker } from './EnhancedCharacterPicker';
 import { ForegroundBackgroundSelector } from './ForegroundBackgroundSelector';
 import { ColorReadout } from './ColorReadout';
 import { ColorPickerOverlay } from './ColorPickerOverlay';
@@ -157,12 +157,14 @@ export function ActiveStyleSection({ className = '' }: ActiveStyleSectionProps) 
       </Collapsible>
 
       {/* Character Picker */}
-      <CharacterPicker
+      <EnhancedCharacterPicker
         isOpen={isCharacterPickerOpen}
         onClose={() => setIsCharacterPickerOpen(false)}
         onSelectCharacter={handleCharacterSelect}
         triggerRef={characterPreviewRef}
         anchorPosition="bottom-right"
+        initialValue={selectedChar}
+        title="Select Character"
       />
 
       {/* Color Picker Overlay */}

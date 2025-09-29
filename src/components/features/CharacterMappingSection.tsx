@@ -45,7 +45,7 @@ import { Checkbox } from '../ui/checkbox';
 import { ManageCharacterPalettesDialog } from './ManageCharacterPalettesDialog';
 import { ImportCharacterPaletteDialog } from './ImportCharacterPaletteDialog';
 import { ExportCharacterPaletteDialog } from './ExportCharacterPaletteDialog';
-import { CharacterPicker } from './CharacterPicker';
+import { EnhancedCharacterPicker } from './EnhancedCharacterPicker';
 import { 
   useCharacterPaletteStore
 } from '../../stores/characterPaletteStore';
@@ -463,12 +463,14 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                   />
 
                   {/* Character Picker */}
-                  <CharacterPicker
+                  <EnhancedCharacterPicker
                     isOpen={isCharacterPickerOpen}
                     onClose={() => setIsCharacterPickerOpen(false)}
                     onSelectCharacter={handleCharacterSelect}
                     triggerRef={pickerTriggerSource === 'edit-button' ? editButtonRef : characterPickerTriggerRef}
                     anchorPosition={pickerTriggerSource === 'edit-button' ? 'left-bottom-aligned' : 'left-bottom'}
+                    initialValue=""
+                    title="Select Character for Mapping"
                   />
 
                 </div>

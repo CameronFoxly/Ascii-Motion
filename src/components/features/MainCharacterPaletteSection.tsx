@@ -39,7 +39,7 @@ import { CollapsibleHeader } from '../common/CollapsibleHeader';
 import { ManageCharacterPalettesDialog } from './ManageCharacterPalettesDialog';
 import { ImportCharacterPaletteDialog } from './ImportCharacterPaletteDialog';
 import { ExportCharacterPaletteDialog } from './ExportCharacterPaletteDialog';
-import { CharacterPicker } from './CharacterPicker';
+import { EnhancedCharacterPicker } from './EnhancedCharacterPicker';
 import { 
   useCharacterPaletteStore
 } from '../../stores/characterPaletteStore';
@@ -385,7 +385,7 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
       />
 
       {/* Character Picker */}
-      <CharacterPicker
+      <EnhancedCharacterPicker
         isOpen={isCharacterPickerOpen}
         onClose={() => {
           setIsCharacterPickerOpen(false);
@@ -404,6 +404,8 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
           pickerTriggerSource === 'edit-button' ? 'left-bottom-aligned' :
           'left-bottom'
         }
+        initialValue={editingCharacterIndex !== null ? activePalette.characters[editingCharacterIndex] : ''}
+        title="Select Character for Palette"
       />
 
       {/* Import/Export Dialogs */}
