@@ -226,7 +226,8 @@ export type HistoryActionType =
   | 'reorder_frames'   // Reorder frame positions
   | 'update_duration'  // Change frame duration
   | 'update_name'      // Change frame name
-  | 'navigate_frame';  // Navigate to different frame
+  | 'navigate_frame'   // Navigate to different frame
+  | 'apply_effect';    // Apply effect to canvas or timeline
 
 export interface HistoryAction {
   type: HistoryActionType;
@@ -308,6 +309,18 @@ export interface NavigateFrameHistoryAction extends HistoryAction {
   };
 }
 
+export interface ApplyEffectHistoryAction extends HistoryAction {
+  type: 'apply_effect';
+  data: {
+    effectType: import('./effects').EffectType;
+    effectSettings: any; // Settings object for the effect
+    applyToTimeline: boolean;
+    affectedFrameIndices: number[];
+    previousCanvasData?: Map<string, Cell>; // For single canvas effects
+    previousFramesData?: Array<{ frameIndex: number; data: Map<string, Cell> }>; // For timeline effects
+  };
+}
+
 export type AnyHistoryAction = 
   | CanvasHistoryAction
   | AddFrameHistoryAction 
@@ -316,4 +329,5 @@ export type AnyHistoryAction =
   | ReorderFramesHistoryAction
   | UpdateDurationHistoryAction
   | UpdateNameHistoryAction
-  | NavigateFrameHistoryAction;
+  | NavigateFrameHistoryAction
+  | ApplyEffectHistoryAction;

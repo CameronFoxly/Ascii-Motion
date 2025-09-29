@@ -111,6 +111,35 @@ const processHistoryAction = (
       }
       break;
       
+    case 'apply_effect':
+      const effectAction = action as import('../types').ApplyEffectHistoryAction;
+      if (isRedo) {
+        // Redo: Re-apply the effect
+        console.log(`Redo: Re-applying ${effectAction.data.effectType} effect`);
+        // Note: For redo, we would need to re-run the effect processing
+        // This is complex because we'd need to re-apply the effect with the same settings
+        // For now, we'll show a message that redo for effects is not yet implemented
+        console.warn('Redo for effects is not yet implemented - would need to re-apply effect');
+      } else {
+        // Undo: Restore previous data
+        if (effectAction.data.applyToTimeline) {
+          // Restore all affected frames
+          if (effectAction.data.previousFramesData) {
+            effectAction.data.previousFramesData.forEach(({ frameIndex, data }) => {
+              animationStore.setFrameData(frameIndex, data);
+            });
+            console.log(`✅ Undo: Restored ${effectAction.data.previousFramesData.length} frames from ${effectAction.data.effectType} effect`);
+          }
+        } else {
+          // Restore single canvas
+          if (effectAction.data.previousCanvasData) {
+            canvasStore.setCanvasData(effectAction.data.previousCanvasData);
+            console.log(`✅ Undo: Restored canvas from ${effectAction.data.effectType} effect`);
+          }
+        }
+      }
+      break;
+      
     default:
       console.warn('Unknown history action type:', (action as any).type);
   }

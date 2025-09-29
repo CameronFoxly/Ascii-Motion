@@ -15,6 +15,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '../ui/separator';
 import { Switch } from '../ui/switch';
 import { useEffectsStore } from '../../stores/effectsStore';
+import { useEffectsHistory } from '../../hooks/useEffectsHistory';
 import { EFFECT_DEFINITIONS } from '../../constants/effectsDefaults';
 import { PANEL_ANIMATION } from '../../constants';
 import { cn } from '../../lib/utils';
@@ -55,9 +56,15 @@ export function EffectsPanel({}: EffectsPanelProps) {
     applyToTimeline,
     setApplyToTimeline,
     closeEffectPanel,
-    applyEffect,
     isAnalyzing
   } = useEffectsStore();
+  
+  // Use history-aware effects hook
+  const { 
+    applyEffectWithHistory, 
+    canApplyEffect,
+    getEffectDescription 
+  } = useEffectsHistory();
 
   const animationDurationMs = useMemo(
     () => parseTailwindDuration(PANEL_ANIMATION.DURATION) ?? 300,
@@ -101,10 +108,10 @@ export function EffectsPanel({}: EffectsPanelProps) {
   const handleApplyEffect = async () => {
     if (!activeEffect) return;
     
-    const success = await applyEffect(activeEffect);
+    const success = await applyEffectWithHistory(activeEffect);
     if (success) {
       // Panel will close automatically via store
-      console.log(`${activeEffect} effect applied successfully`);
+      console.log(`${activeEffect} effect applied successfully with history tracking`);
     } else {
       console.error(`Failed to apply ${activeEffect} effect`);
     }
@@ -204,8 +211,13 @@ export function EffectsPanel({}: EffectsPanelProps) {
             variant="default"
             size="sm"
             onClick={handleApplyEffect}
-            disabled={!activeEffect || isAnalyzing}
+            disabled={!activeEffect || isAnalyzing || !canApplyEffect()}
             className="flex-1 h-8"
+            title={
+              !canApplyEffect() 
+                ? 'No canvas data to apply effect to' 
+                : `Apply ${getEffectDescription(activeEffect || 'levels')} effect`
+            }
           >
             Apply
           </Button>
