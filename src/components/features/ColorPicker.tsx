@@ -603,6 +603,11 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
       {/* Effects Section */}
       <EffectsSection />
 
+      {/* Divider after Effects */}
+      <div className="relative -mx-4 h-px">
+        <Separator className="absolute inset-0" />
+      </div>
+
       {/* Color Picker Modal */}
       <ColorPickerOverlay
         isOpen={isColorPickerOpen}

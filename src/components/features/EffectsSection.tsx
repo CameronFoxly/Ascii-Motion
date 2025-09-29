@@ -10,7 +10,6 @@
 
 import { useState } from 'react';
 import { Button } from '../ui/button';
-import { Switch } from '../ui/switch';
 import { 
   Collapsible,
   CollapsibleContent,
@@ -43,8 +42,6 @@ export function EffectsSection({ className = '' }: EffectsSectionProps) {
   
   const { 
     openEffectPanel, 
-    applyToTimeline, 
-    setApplyToTimeline,
     isAnalyzing
   } = useEffectsStore();
 
@@ -84,23 +81,6 @@ export function EffectsSection({ className = '' }: EffectsSectionProps) {
                   </Button>
                 );
               })}
-            </div>
-            
-            {/* Timeline Toggle */}
-            <div className="pt-2 border-t border-border/50">
-              <label className="flex items-center gap-2 text-xs cursor-pointer">
-                <Switch
-                  checked={applyToTimeline}
-                  onCheckedChange={setApplyToTimeline}
-                />
-                <span>Apply to entire timeline</span>
-              </label>
-              <div className="text-xs text-muted-foreground mt-1">
-                {applyToTimeline 
-                  ? 'Effects will be applied to all frames' 
-                  : 'Effects will be applied to current canvas only'
-                }
-              </div>
             </div>
             
             {/* Analysis Status */}
