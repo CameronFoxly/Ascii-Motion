@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 import { Slider } from '../ui/slider';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { useAnimationStore } from '../../stores/animationStore';
 
 /**
@@ -20,17 +21,25 @@ export const TimelineZoomControl: React.FC = () => {
   };
   
   return (
-    <div className="flex items-center gap-1.5 text-xs">
-      <Slider
-        value={zoomPercentage}
-        onValueChange={handleZoomChange}
-        min={60}
-        max={100}
-        step={5}
-        className="w-24 h-1.5"
-        title={`Timeline zoom: ${zoomPercentage}%`}
-      />
-      <Search className="h-3 w-3 text-muted-foreground/70" />
-    </div>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center gap-1.5 text-xs">
+            <Slider
+              value={zoomPercentage}
+              onValueChange={handleZoomChange}
+              min={60}
+              max={100}
+              step={5}
+              className="w-24 h-1.5"
+            />
+            <Search className="h-3 w-3 text-muted-foreground/70" />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Timeline zoom: {zoomPercentage}%</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };

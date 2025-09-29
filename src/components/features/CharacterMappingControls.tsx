@@ -15,6 +15,7 @@ import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Card, CardContent } from '../ui/card';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Type, RotateCcw, Settings } from 'lucide-react';
 import { useMemo } from 'react';
 import { useCharacterPaletteStore } from '../../stores/characterPaletteStore';
@@ -83,15 +84,23 @@ export function CharacterMappingControls({ onSettingsChange }: CharacterMappingC
         <div className="flex items-center gap-2">
           <Type className="w-4 h-4 text-muted-foreground" />
           <Label className="text-sm font-medium">Character Mapping</Label>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleResetToDefaults}
-            className="h-6 w-6 p-0 ml-auto"
-            title="Reset to defaults"
-          >
-            <RotateCcw className="w-3 h-3" />
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResetToDefaults}
+                  className="h-6 w-6 p-0 ml-auto"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Reset to defaults</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         {/* Character Palette Selector */}

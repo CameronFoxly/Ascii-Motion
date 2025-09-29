@@ -172,18 +172,54 @@ export const ManageCharacterPalettesDialog: React.FC<ManageCharacterPalettesDial
 
                     {editingPaletteId !== palette.id && (
                       <div className="flex gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => setActivePalette(palette)} className="h-6 w-6 p-0" disabled={palette.id === activePalette.id} title="Set active">
-                          <Type className="h-3 w-3" />
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => handleStartRename(palette)} className="h-6 w-6 p-0" title="Rename">
-                          <Edit3 className="h-3 w-3" />
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => handleDuplicate(palette.id)} className="h-6 w-6 p-0" title="Duplicate">
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => handleDelete(palette.id)} className="h-6 w-6 p-0 text-destructive" title="Delete">
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="sm" variant="ghost" onClick={() => setActivePalette(palette)} className="h-6 w-6 p-0" disabled={palette.id === activePalette.id}>
+                                <Type className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Set active</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="sm" variant="ghost" onClick={() => handleStartRename(palette)} className="h-6 w-6 p-0">
+                                <Edit3 className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Rename</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="sm" variant="ghost" onClick={() => handleDuplicate(palette.id)} className="h-6 w-6 p-0">
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Duplicate</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="sm" variant="ghost" onClick={() => handleDelete(palette.id)} className="h-6 w-6 p-0 text-destructive">
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Delete</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     )}
                   </div>
@@ -232,12 +268,30 @@ export const ManageCharacterPalettesDialog: React.FC<ManageCharacterPalettesDial
                   </div>
 
                   <div className="flex gap-1">
-                    <Button size="sm" variant="ghost" onClick={() => setActivePalette(palette)} className="h-6 w-6 p-0" disabled={palette.id === activePalette.id} title="Set active">
-                      <Type className="h-3 w-3" />
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => handleDuplicate(palette.id)} className="h-6 w-6 p-0" title="Duplicate to custom palette">
-                      <Copy className="h-3 w-3" />
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="sm" variant="ghost" onClick={() => setActivePalette(palette)} className="h-6 w-6 p-0" disabled={palette.id === activePalette.id}>
+                            <Type className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Set active</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="sm" variant="ghost" onClick={() => handleDuplicate(palette.id)} className="h-6 w-6 p-0">
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Duplicate to custom palette</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </div>
               ))}
