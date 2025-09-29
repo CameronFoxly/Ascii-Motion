@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { CHARACTER_CATEGORIES } from '@/constants';
@@ -154,17 +155,24 @@ export const CharacterPicker: React.FC<CharacterPickerProps> = ({
             {Object.entries(CHARACTER_CATEGORIES).map(([category, characters]) => (
               <TabsContent key={category} value={category} className="mt-0">
                 <div className="grid grid-cols-6 gap-1 max-h-48 overflow-y-auto">
-                  {characters.map((char, index) => (
-                    <Button
-                      key={index}
-                      variant="ghost"
-                      className="h-8 w-8 p-0 text-sm font-mono hover:bg-accent hover:text-accent-foreground flex items-center justify-center"
-                      onClick={() => handleCharacterSelect(char)}
-                      title={`Insert "${char}"`}
-                    >
-                      {char}
-                    </Button>
-                  ))}
+                  <TooltipProvider>
+                    {characters.map((char, index) => (
+                      <Tooltip key={index}>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-sm font-mono hover:bg-accent hover:text-accent-foreground flex items-center justify-center"
+                            onClick={() => handleCharacterSelect(char)}
+                          >
+                            {char}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Insert "{char}"</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </TooltipProvider>
                 </div>
               </TabsContent>
             ))}

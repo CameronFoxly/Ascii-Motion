@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Minus, Plus, RotateCcw } from 'lucide-react';
 import { useCanvasContext } from '../../contexts/CanvasContext';
 
@@ -40,53 +41,79 @@ export const ZoomControls: React.FC = () => {
   const zoomPercentage = Math.round(zoom * 100);
   
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-sm font-medium text-muted-foreground">Zoom:</span>
-      
-      <div className="flex items-center gap-1">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={zoomOut}
-          disabled={zoom <= 0.2}
-          title="Zoom out (-)"
-          className="h-7 w-7 p-0"
-        >
-          <Minus className="w-3 h-3" />
-        </Button>
+    <TooltipProvider>
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-muted-foreground">Zoom:</span>
         
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={resetZoom}
-          title="Reset zoom to 100%"
-          className="h-7 px-3 min-w-[60px]"
-        >
-          <span className="text-xs font-medium">{zoomPercentage}%</span>
-        </Button>
+        <div className="flex items-center gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={zoomOut}
+                disabled={zoom <= 0.2}
+                className="h-7 w-7 p-0"
+              >
+                <Minus className="w-3 h-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Zoom out (-)</p>
+            </TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={resetZoom}
+                className="h-7 px-3 min-w-[60px]"
+              >
+                <span className="text-xs font-medium">{zoomPercentage}%</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Reset zoom to 100%</p>
+            </TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={zoomIn}
+                disabled={zoom >= 4.0}
+                className="h-7 w-7 p-0"
+              >
+                <Plus className="w-3 h-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Zoom in (+)</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
         
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={zoomIn}
-          disabled={zoom >= 4.0}
-          title="Zoom in (+)"
-          className="h-7 w-7 p-0"
-        >
-          <Plus className="w-3 h-3" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetView}
+              disabled={isViewAtDefault}
+              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground disabled:opacity-50"
+            >
+              <RotateCcw className="w-3 h-3" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Reset view (zoom and position)</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
-      
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={resetView}
-        disabled={isViewAtDefault}
-        title="Reset view (zoom and position)"
-        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground disabled:opacity-50"
-      >
-        <RotateCcw className="w-3 h-3" />
-      </Button>
-    </div>
+    </TooltipProvider>
   );
 };

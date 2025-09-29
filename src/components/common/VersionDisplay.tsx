@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Calendar, GitCommit, Hash } from 'lucide-react';
@@ -21,13 +22,21 @@ export const VersionDisplay: React.FC = () => {
 
   return (
     <>
-      <button
-        onClick={() => setShowModal(true)}
-        className="text-xs font-mono text-muted-foreground/60 hover:text-muted-foreground/80 transition-colors cursor-pointer select-none border-none bg-transparent p-0 m-0"
-        title={`Built on ${formatDate(BUILD_DATE)} • Click for version history`}
-      >
-        v{VERSION}
-      </button>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setShowModal(true)}
+              className="text-xs font-mono text-muted-foreground/60 hover:text-muted-foreground/80 transition-colors cursor-pointer select-none border-none bg-transparent p-0 m-0"
+            >
+              v{VERSION}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Built on {formatDate(BUILD_DATE)} • Click for version history</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="max-w-lg w-[90vw] h-[85vh] max-h-[600px] flex flex-col p-0">
