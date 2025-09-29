@@ -93,23 +93,18 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
   };
 
   const ToolButton: React.FC<{ tool: { id: Tool; name: string; icon: React.ReactNode; description: string } }> = ({ tool }) => (
-    <Tooltip key={tool.id}>
-      <TooltipTrigger asChild>
-        <Button
-          variant={effectiveTool === tool.id ? 'default' : 'outline'}
-          size="sm"
-          className="h-8 w-8 p-0 touch-manipulation"
-          onClick={() => setActiveTool(tool.id)}
-          aria-label={`${tool.name} tool - ${tool.description}`}
-          aria-pressed={effectiveTool === tool.id}
-        >
-          {tool.icon}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="right">
-        <p className="text-xs">{getToolTooltipText(tool.id, tool.description)}</p>
-      </TooltipContent>
-    </Tooltip>
+    <Button
+      key={tool.id}
+      variant={effectiveTool === tool.id ? 'default' : 'outline'}
+      size="sm"
+      className="h-8 w-8 p-0 touch-manipulation"
+      onClick={() => setActiveTool(tool.id)}
+      aria-label={`${tool.name} tool - ${tool.description}`}
+      aria-pressed={effectiveTool === tool.id}
+      title={getToolTooltipText(tool.id, tool.description)}
+    >
+      {tool.icon}
+    </Button>
   );
 
   return (
