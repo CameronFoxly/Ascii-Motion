@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PANEL_ANIMATION } from '@/constants';
@@ -46,16 +47,24 @@ export const PanelToggleButton: React.FC<PanelToggleButtonProps> = ({
   };
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={onToggle}
-      className={getButtonClasses()}
-      title={`${isOpen ? 'Collapse' : 'Expand'} panel`}
-      aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${side} panel`}
-      aria-expanded={isOpen}
-    >
-      {getToggleIcon()}
-    </Button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onToggle}
+            className={getButtonClasses()}
+            aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${side} panel`}
+            aria-expanded={isOpen}
+          >
+            {getToggleIcon()}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{isOpen ? 'Collapse' : 'Expand'} panel</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };

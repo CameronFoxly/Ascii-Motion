@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useToolStore } from '../../stores/toolStore';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
@@ -88,18 +89,25 @@ export const CharacterPalette: React.FC<CharacterPaletteProps> = ({ className = 
                   className="grid grid-cols-6 gap-0.5 w-full overflow-y-auto"
                   style={{ maxHeight: '120px' }} // Approximately 5 rows: 5 * (button height + gap)
                 >
-                  {characters.map((char) => (
-                    <Button
-                      key={char}
-                      variant={selectedChar === char ? 'default' : 'outline'}
-                      size="sm"
-                      className="w-full aspect-square p-0 font-mono text-xs flex items-center justify-center min-w-0 flex-shrink-0 h-6"
-                      onClick={() => setSelectedChar(char)}
-                      title={`Character: ${char} (${char.charCodeAt(0)})`}
-                    >
-                      <span className="leading-none text-xs">{char}</span>
-                    </Button>
-                  ))}
+                  <TooltipProvider>
+                    {characters.map((char) => (
+                      <Tooltip key={char}>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant={selectedChar === char ? 'default' : 'outline'}
+                            size="sm"
+                            className="w-full aspect-square p-0 font-mono text-xs flex items-center justify-center min-w-0 flex-shrink-0 h-6"
+                            onClick={() => setSelectedChar(char)}
+                          >
+                            <span className="leading-none text-xs">{char}</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Character: {char} ({char.charCodeAt(0)})</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </TooltipProvider>
                 </div>
               </CardContent>
             </Card>
