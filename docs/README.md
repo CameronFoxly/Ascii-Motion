@@ -5,10 +5,16 @@ This directory contains comprehensive documentation for the ASCII Motion project
 ## 📁 **Documentation Structure**
 
 ### **Development & Implementation**
+- [`EFFECTS_SYSTEM_IMPLEMENTATION.md`](./EFFECTS_SYSTEM_IMPLEMENTATION.md) - Complete effects system architecture and implementation patterns
 - [`GRADIENT_FILL_IMPLEMENTATION.md`](./GRADIENT_FILL_IMPLEMENTATION.md) - Complete gradient tool implementation analysis
 - [`ANIMATION_SYSTEM_GUIDE.md`](./ANIMATION_SYSTEM_GUIDE.md) - Animation system architecture and implementation
 - [`TOOL_BEHAVIOR_IMPLEMENTATION.md`](./TOOL_BEHAVIOR_IMPLEMENTATION.md) - Tool behavior patterns and implementations
 - [`TYPOGRAPHY_IMPLEMENTATION.md`](./TYPOGRAPHY_IMPLEMENTATION.md) - Typography and character rendering system
+
+### **Effects System Documentation**
+- [`EFFECTS_IMPLEMENTATION_SUMMARY.md`](./EFFECTS_IMPLEMENTATION_SUMMARY.md) - Production-ready effects system summary and technical overview
+- [`EFFECTS_SYSTEM_USER_GUIDE.md`](./EFFECTS_SYSTEM_USER_GUIDE.md) - Complete user guide for all effects with workflows and best practices
+- [`EFFECTS_DEVELOPER_GUIDE.md`](./EFFECTS_DEVELOPER_GUIDE.md) - Step-by-step guide for adding new effects with code examples
 
 ### **Planning & Architecture**
 - [`PHASE_4_ADVANCED_TOOLS_PLAN.md`](./PHASE_4_ADVANCED_TOOLS_PLAN.md) - Phase 4 development plan and progress

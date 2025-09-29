@@ -1,53 +1,169 @@
 # Effects System User Guide
 
-The ASCII Motion Effects System provides powerful tools to enhance and transform your ASCII art with professional-quality effects. This guide covers all features and provides usage examples.
+The ASCII Motion Effects System provides powerful, easy-to-use tools to transform your ASCII art with professional-quality effects. All effects feature live preview and intuitive interfaces designed for both beginners and advanced users.
 
-## Overview
+## 🎯 **Quick Start**
 
-The Effects system includes four main effect types:
-- **Levels**: Adjust brightness, contrast, and color ranges
-- **Hue & Saturation**: Modify hue, saturation, and lightness  
-- **Remap Colors**: Replace specific colors with new colors
-- **Remap Characters**: Replace specific characters with new characters
+### **Accessing Effects**
+1. **Open Effects**: In the right sidebar, click the "Effects" section below the Color Palette
+2. **Choose Effect**: Click any of the 4 effect buttons (Levels, Hue & Saturation, Remap Colors, Remap Characters)  
+3. **Live Preview**: Changes appear instantly on canvas with 80% opacity overlay
+4. **Apply or Cancel**: Click "Apply" to make permanent, or "Cancel"/"X" to revert changes
 
-## Accessing Effects
+### **Effect Panel Features**
+- **Auto-Start Preview**: Preview begins automatically when opening any effect
+- **Live Preview Toggle**: Blue section at top with On/Off button (Eye/EyeOff icon)
+- **Timeline Toggle**: Apply effects to current frame or entire timeline  
+- **Individual Resets**: Reset specific settings without affecting others
+- **Keyboard Support**: Press Escape to cancel and close any effect panel
 
-1. **Open the Effects Panel**: In the right sidebar, expand the "Effects" section below the color palette
-2. **Choose an Effect**: Click any of the four effect buttons to open the effect panel
-3. **Live Preview**: Effects automatically show a live preview on the canvas
-4. **Apply or Cancel**: Use the Apply button to make changes permanent, or Cancel to revert
+## 🎨 **Available Effects**
 
-## Effect Types
-
-### 1. Levels Effect
-
-**Purpose**: Adjust the brightness and contrast of your ASCII art by controlling input and output color ranges.
-
-**Controls**:
-- **Shadows Input** (0-255): Controls the darkest colors
-- **Midtones Input** (0-128-255): Controls middle brightness colors  
-- **Highlights Input** (0-255): Controls the brightest colors
-- **Output Min/Max** (0-255): Sets the final color range
-
-**Usage Example**:
-1. Open Levels effect
-2. Drag Shadows Input right to brighten dark colors
-3. Drag Highlights Input left to darken bright colors  
-4. Adjust Output Min/Max to limit the final color range
-5. Click Apply to save changes
-
-**Tips**:
-- Use for increasing contrast in faded ASCII art
-- Great for making colors more vibrant
-- The live preview shows changes instantly
-
-### 2. Hue & Saturation Effect
-
-**Purpose**: Modify the color properties of your ASCII art without changing brightness.
+### **1. Levels Effect**
+*Adjust brightness, contrast, and gamma for overall tonal correction*
 
 **Controls**:
-- **Hue** (-180° to +180°): Shifts colors around the color wheel
-- **Saturation** (-100% to +100%): Controls color intensity
+- **Brightness** (-100 to +100): Overall lightness adjustment
+- **Contrast** (-100 to +100): Difference between light and dark areas
+- **Gamma** (0.1 to 3.0): Non-linear brightness adjustment (default: 1.0)
+
+**How to Use**:
+1. Open Levels effect panel
+2. Adjust Brightness slider for overall lightness
+3. Adjust Contrast slider to increase/decrease tonal range
+4. Fine-tune with Gamma slider for natural-looking adjustments
+5. Watch live preview and click Apply when satisfied
+
+**Best For**:
+- Brightening dark ASCII art
+- Adding punch to flat, low-contrast images
+- Fine-tuning overall appearance
+
+---
+
+### **2. Hue & Saturation Effect**  
+*Shift colors and adjust color intensity without affecting brightness*
+
+**Controls**:
+- **Hue** (-180° to +180°): Shifts all colors around the color wheel
+- **Saturation** (-100% to +100%): Controls color intensity/vividness
+- **Lightness** (-100% to +100%): Adjusts perceived brightness
+
+**How to Use**:
+1. Open Hue & Saturation effect panel
+2. Drag Hue slider to shift color palette (red→green→blue→red)
+3. Adjust Saturation to make colors more vivid or muted
+4. Fine-tune with Lightness for brightness without losing color
+5. Watch live preview and click Apply when satisfied
+
+**Best For**:
+- Creating color variations of the same artwork
+- Adjusting mood (warm vs cool colors)
+- Creating monochromatic or sepia effects
+- Fixing color balance issues
+
+---
+
+### **3. Remap Colors Effect**
+*Replace specific colors with new colors using visual color mapping*
+
+**Features**:
+- **Auto-Population**: Automatically detects all colors used in your canvas
+- **Frequency Sorting**: Most-used colors appear first for easy access
+- **Visual Interface**: From/To color swatches with arrow indicators
+- **Color Picker Integration**: Click any "To" color to open advanced color picker
+- **Hex Input**: Direct hex code entry (#FFFFFF) with validation
+- **Individual Reset**: Reset each color mapping independently
+
+**How to Use**:
+1. Open Remap Colors effect panel  
+2. Canvas colors automatically populate in From→To grid
+3. Click any "To Color" swatch to open color picker
+4. Or type hex codes directly in input fields  
+5. Use individual reset buttons (↻) to reset specific mappings
+6. Use main Reset All button to reset all colors
+7. Click Apply to make changes permanent
+
+**Best For**:
+- Changing color schemes without redrawing
+- Creating color variations for A/B testing
+- Fixing individual color issues
+- Adapting artwork for different backgrounds
+
+---
+
+### **4. Remap Characters Effect**
+*Replace specific characters with new characters using visual character mapping*
+
+**Features**:
+- **Auto-Population**: Automatically detects all characters used in your canvas
+- **Frequency Sorting**: Most-used characters appear first
+- **Visual Interface**: From/To character buttons with arrow indicators  
+- **Character Picker Integration**: Click any "To Character" to open character selector
+- **Space Handling**: Space characters shown as '␣' for visibility
+- **Individual Reset**: Reset each character mapping independently
+
+**How to Use**:
+1. Open Remap Characters effect panel
+2. Canvas characters automatically populate in From→To grid
+3. Click any "To Character" button to open character picker
+4. Browse categories: Basic, Extended, Symbols, Math, etc.
+5. Use individual reset buttons (↻) to reset specific mappings  
+6. Use main Reset All button to reset all characters
+7. Click Apply to make changes permanent
+
+**Best For**:
+- Changing ASCII art style (solid blocks ↔ outline characters)
+- Creating variations with different character sets
+- Replacing hard-to-read characters
+- Converting between ASCII art conventions
+
+## 💡 **Tips & Best Practices**
+
+### **General Usage**
+- **Start Small**: Make subtle adjustments first, then increase if needed
+- **Use Live Preview**: Take advantage of real-time preview to see results instantly
+- **Combine Effects**: Apply multiple effects in sequence for complex transformations
+- **Save Frequently**: Apply effects you're happy with before experimenting further
+
+### **Color Effects (Levels, Hue & Saturation)**
+- **Levels First**: Apply Levels adjustments before Hue & Saturation for best results
+- **Gamma Power**: Use Gamma for natural-looking brightness adjustments
+- **Subtle Hue Shifts**: Small hue changes (±30°) often look more natural
+- **Saturation Balance**: Too much saturation can make colors appear artificial
+
+### **Remap Effects (Colors, Characters)**
+- **Analyze First**: Let auto-population show you what's actually in your canvas
+- **Frequency Focus**: Start with the most-used colors/characters for biggest impact
+- **Test Combinations**: Try different character combinations for varied artistic styles
+- **Preserve Contrast**: When remapping colors, maintain good contrast for readability
+
+### **Timeline Effects**
+- **Timeline Toggle**: Enable "Apply to entire timeline" for consistent effects across all frames
+- **Preview Single Frame**: Leave toggle off to preview effect on current frame first
+- **Performance**: Timeline effects take longer but ensure consistency across animation
+
+## 🚀 **Advanced Workflows**
+
+### **Color Scheme Creation**
+1. Start with base artwork using placeholder colors
+2. Use Remap Colors to systematically replace with final palette
+3. Use Hue & Saturation for fine-tuning color mood
+4. Apply Levels for final contrast adjustments
+
+### **Style Transformation**
+1. Create original artwork with basic characters
+2. Use Remap Characters to experiment with different character sets
+3. Try solid blocks for filled look, or line characters for outline style
+4. Combine with color remapping for complete style transformation
+
+### **Animation Consistency**
+1. Enable "Apply to entire timeline" toggle
+2. Apply effects to ensure consistency across all frames
+3. Use Timeline preview to check smooth animation flow
+4. Make frame-specific adjustments if needed
+
+The Effects System is designed to enhance your creative workflow while maintaining the quality and precision that ASCII Motion is known for. Experiment with different combinations to discover unique artistic possibilities!
 - **Lightness** (-100% to +100%): Controls brightness
 
 **Usage Example**:
