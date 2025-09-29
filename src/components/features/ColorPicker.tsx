@@ -334,49 +334,56 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
             <TabsContent value="text" className="mt-2">
               <Card className="bg-card/50 border-border/50">
                 <CardContent className="p-2">
-                  <div className="grid grid-cols-6 gap-0.5 relative flex items-center justify-center" onDragLeave={handleDragLeave}>
-                    {foregroundColors.map((color, index) => (
-                      <div key={`text-${color.id}`} className="relative flex items-center justify-center">
-                        {/* Drop indicator line */}
-                        {dropIndicatorIndex === index && (
-                          <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
-                        )}
-                        
-                        <button
-                          draggable={!!activePalette}
-                          className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 relative ${
-                            draggedColorId === color.id ? 'opacity-50 scale-95' : ''
-                          } ${
-                            selectedColorId === color.id
-                              ? 'border-primary ring-2 ring-primary/20 shadow-lg' 
-                              : isColorSelected(color.value, false)
-                              ? 'border-primary ring-1 ring-primary/20' 
-                              : 'border-border'
-                          } cursor-move`}
-                          style={{ backgroundColor: color.value }}
-                          onClick={() => {
-                            // Single click sets drawing color and selects for editing
-                            handleColorSelect(color.value, false);
-                            handleColorPaletteSelect(color.id);
-                          }}
-                          onDoubleClick={(e) => handleColorDoubleClick(color.value, e)}
-                          onDragStart={(e) => handleDragStart(e, color.id)}
-                          onDragOver={(e) => handleDragOver(e, color.id)}
-                          onDrop={(e) => handleDrop(e, color.id)}
-                          title={
-                            activePalette?.isCustom 
-                              ? `${color.name ? `${color.name}: ${color.value}` : color.value} (drag to reorder)` 
-                              : color.name ? `${color.name}: ${color.value}` : color.value
-                          }
-                        />
+                  <TooltipProvider>
+                    <div className="grid grid-cols-6 gap-0.5 relative flex items-center justify-center" onDragLeave={handleDragLeave}>
+                      {foregroundColors.map((color, index) => (
+                        <div key={`text-${color.id}`} className="relative flex items-center justify-center">
+                          {/* Drop indicator line */}
+                          {dropIndicatorIndex === index && (
+                            <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
+                          )}
+                          
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                draggable={!!activePalette}
+                                className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 relative ${
+                                  draggedColorId === color.id ? 'opacity-50 scale-95' : ''
+                                } ${
+                                  selectedColorId === color.id
+                                    ? 'border-primary ring-2 ring-primary/20 shadow-lg' 
+                                    : isColorSelected(color.value, false)
+                                    ? 'border-primary ring-1 ring-primary/20' 
+                                    : 'border-border'
+                                } cursor-move`}
+                                style={{ backgroundColor: color.value }}
+                                onClick={() => {
+                                  // Single click sets drawing color and selects for editing
+                                  handleColorSelect(color.value, false);
+                                  handleColorPaletteSelect(color.id);
+                                }}
+                                onDoubleClick={(e) => handleColorDoubleClick(color.value, e)}
+                                onDragStart={(e) => handleDragStart(e, color.id)}
+                                onDragOver={(e) => handleDragOver(e, color.id)}
+                                onDrop={(e) => handleDrop(e, color.id)}
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>
+                                {color.name ? `${color.name}: ${color.value}` : color.value}
+                                {activePalette?.isCustom && ' (drag to reorder)'}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         
                         {/* Drop indicator line after last item */}
                         {dropIndicatorIndex === index + 1 && (
                           <div className="absolute -right-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
                         )}
-                      </div>
-                    ))}
-                  </div>
+                        </div>
+                      ))}
+                    </div>
+                  </TooltipProvider>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -385,51 +392,47 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
             <TabsContent value="bg" className="mt-2">
               <Card className="bg-card/50 border-border/50">
                 <CardContent className="p-2">
-                  <div className="grid grid-cols-6 gap-0.5 relative flex items-center justify-center" onDragLeave={handleDragLeave}>
-                    {backgroundColors.map((color, index) => {
-                      const isTransparent = color.value === 'transparent';
-                      return (
-                        <div key={`bg-${color.id}`} className="relative flex items-center justify-center">
-                          {/* Drop indicator line */}
-                          {dropIndicatorIndex === index && (
-                            <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
-                          )}
-                          
-                          <button
-                            draggable={!!activePalette && !isTransparent}
-                            className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 relative overflow-hidden ${
-                              draggedColorId === color.id ? 'opacity-50 scale-95' : ''
-                            } ${
-                              selectedColorId === color.id
-                                ? 'border-primary ring-2 ring-primary/20 shadow-lg' 
-                                : isColorSelected(color.value, true)
-                                ? 'border-primary ring-1 ring-primary/20' 
-                                : 'border-border'
-                            } ${!isTransparent ? 'cursor-move' : 'cursor-pointer'}`}
-                            style={{
-                              backgroundColor: isTransparent ? '#ffffff' : color.value,
-                              backgroundImage: isTransparent 
-                                ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)'
-                                : 'none',
-                              backgroundSize: isTransparent ? '8px 8px' : 'auto',
-                              backgroundPosition: isTransparent ? '0 0, 0 4px, 4px -4px, -4px 0px' : 'auto'
-                            }}
-                            onClick={() => {
-                              handleColorSelect(color.value, true);
-                              handleColorPaletteSelect(color.id);
-                            }}
-                            onDoubleClick={(e) => !isTransparent && handleColorDoubleClick(color.value, e)}
-                            onDragStart={(e) => handleDragStart(e, color.id)}
-                            onDragOver={(e) => handleDragOver(e, color.id)}
-                            onDrop={(e) => handleDrop(e, color.id)}
-                            title={
-                              isTransparent 
-                                ? 'Transparent background' 
-                                : activePalette?.isCustom 
-                                ? `${color.name ? `${color.name}: ${color.value}` : color.value} (drag to reorder)` 
-                                : color.name ? `${color.name}: ${color.value}` : color.value
-                            }
-                          >
+                  <TooltipProvider>
+                    <div className="grid grid-cols-6 gap-0.5 relative flex items-center justify-center" onDragLeave={handleDragLeave}>
+                      {backgroundColors.map((color, index) => {
+                        const isTransparent = color.value === 'transparent';
+                        return (
+                          <div key={`bg-${color.id}`} className="relative flex items-center justify-center">
+                            {/* Drop indicator line */}
+                            {dropIndicatorIndex === index && (
+                              <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
+                            )}
+                            
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  draggable={!!activePalette && !isTransparent}
+                                  className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 relative overflow-hidden ${
+                                    draggedColorId === color.id ? 'opacity-50 scale-95' : ''
+                                  } ${
+                                    selectedColorId === color.id
+                                      ? 'border-primary ring-2 ring-primary/20 shadow-lg' 
+                                      : isColorSelected(color.value, true)
+                                      ? 'border-primary ring-1 ring-primary/20' 
+                                      : 'border-border'
+                                  } ${!isTransparent ? 'cursor-move' : 'cursor-pointer'}`}
+                                  style={{
+                                    backgroundColor: isTransparent ? '#ffffff' : color.value,
+                                    backgroundImage: isTransparent 
+                                      ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)'
+                                      : 'none',
+                                    backgroundSize: isTransparent ? '8px 8px' : 'auto',
+                                    backgroundPosition: isTransparent ? '0 0, 0 4px, 4px -4px, -4px 0px' : 'auto'
+                                  }}
+                                  onClick={() => {
+                                    handleColorSelect(color.value, true);
+                                    handleColorPaletteSelect(color.id);
+                                  }}
+                                  onDoubleClick={(e) => !isTransparent && handleColorDoubleClick(color.value, e)}
+                                  onDragStart={(e) => handleDragStart(e, color.id)}
+                                  onDragOver={(e) => handleDragOver(e, color.id)}
+                                  onDrop={(e) => handleDrop(e, color.id)}
+                                >
                             {isTransparent && (
                               <svg 
                                 className="absolute inset-0 w-full h-full pointer-events-none" 
@@ -444,16 +447,27 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                                 />
                               </svg>
                             )}
-                          </button>
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>
+                                  {isTransparent 
+                                    ? 'Transparent background' 
+                                    : color.name ? `${color.name}: ${color.value}` : color.value}
+                                  {!isTransparent && activePalette?.isCustom && ' (drag to reorder)'}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
                           
-                          {/* Drop indicator line after last item */}
-                          {dropIndicatorIndex === index + 1 && (
-                            <div className="absolute -right-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                            {/* Drop indicator line after last item */}
+                            {dropIndicatorIndex === index + 1 && (
+                              <div className="absolute -right-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </TooltipProvider>
                 </CardContent>
               </Card>
             </TabsContent>
