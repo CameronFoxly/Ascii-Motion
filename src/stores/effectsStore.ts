@@ -46,6 +46,9 @@ export interface EffectsState {
   isPreviewActive: boolean;                  // Live preview enabled
   previewEffect: EffectType | null;          // Effect being previewed
   
+  // Error State
+  lastError: string | null;                  // Last error message
+  
   // Actions - Panel Management
   openEffectPanel: (effect: EffectType) => void;
   closeEffectPanel: () => void;
@@ -70,6 +73,9 @@ export interface EffectsState {
   
   // Actions - Effect Application
   applyEffect: (effect: EffectType) => Promise<boolean>;
+  
+  // Actions - Error Management
+  clearError: () => void;
   
   // Utility Actions
   reset: () => void;
@@ -111,6 +117,9 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
   // Preview state
   isPreviewActive: false,
   previewEffect: null,
+  
+  // Error state
+  lastError: null,
   
   // Panel Management Actions
   openEffectPanel: (effect: EffectType) => {
@@ -358,25 +367,116 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
   // Effect Application Actions
   applyEffect: async (effect: EffectType): Promise<boolean> => {
     try {
-      // TODO: Implement effect application logic
-      console.log(`Applying ${effect} effect...`);
+      const state = get();
+      
+      // Clear any previous errors
+      state.clearError();
       
       // Stop preview if active
-      if (get().isPreviewActive) {
-        get().stopPreview();
+      if (state.isPreviewActive) {
+        state.stopPreview();
       }
+
+      // Get effect settings
+      const getEffectSettings = () => {
+        switch (effect) {
+          case 'levels':
+            return state.levelsSettings;
+          case 'hue-saturation':
+            return state.hueSaturationSettings;
+          case 'remap-colors':
+            return state.remapColorsSettings;
+          case 'remap-characters':
+            return state.remapCharactersSettings;
+          default:
+            throw new Error(`Unknown effect type: ${effect}`);
+        }
+      };
+
+      const settings = getEffectSettings();
+
+      // Import processing engine dynamically
+      const { processEffect, processEffectOnFrames } = await import('../utils/effectsProcessing');
+
+      if (state.applyToTimeline) {
+        // Apply to entire timeline
+        const { useAnimationStore } = await import('./animationStore');
+        const { useCanvasStore } = await import('./canvasStore');
+        
+        const animationStore = useAnimationStore.getState();
+        const canvasStore = useCanvasStore.getState();
+        
+        console.log(`Applying ${effect} effect to ${animationStore.frames.length} frames...`);
+        
+        const result = await processEffectOnFrames(
+          effect,
+          animationStore.frames,
+          settings,
+          canvasStore.width,
+          canvasStore.height,
+          (frameIndex, totalFrames) => {
+            console.log(`Processing frame ${frameIndex + 1}/${totalFrames}`);
+          }
+        );
+
+        if (result.errors.length > 0) {
+          console.warn('Effect processing had errors:', result.errors);
+        }
+
+        // Update animation store with processed frames
+        // Use the set function directly to update frames
+        useAnimationStore.setState((state) => ({
+          ...state,
+          frames: result.processedFrames
+        }));
+
+        console.log(`✅ Applied ${effect} to timeline: ${result.totalAffectedCells} cells modified in ${result.processingTime.toFixed(2)}ms`);
+        
+      } else {
+        // Apply to current canvas only
+        const { useCanvasStore } = await import('./canvasStore');
+        const canvasStore = useCanvasStore.getState();
+        
+        console.log(`Applying ${effect} effect to current canvas...`);
+        
+        const result = await processEffect(
+          effect,
+          canvasStore.cells,
+          settings,
+          canvasStore.width,
+          canvasStore.height
+        );
+
+        if (result.success && result.processedCells) {
+          // Update canvas store with processed cells
+          const { setCanvasData } = canvasStore;
+          setCanvasData(result.processedCells);
+          
+          console.log(`✅ Applied ${effect} to canvas: ${result.affectedCells} cells modified in ${result.processingTime.toFixed(2)}ms`);
+        } else {
+          throw new Error(result.error || 'Effect processing failed');
+        }
+      }
+
+      // Clear analysis cache since canvas changed
+      state.clearAnalysisCache();
       
       // Close panel after successful application
-      get().closeEffectPanel();
+      state.closeEffectPanel();
       
       return true;
     } catch (error) {
       console.error(`Failed to apply ${effect} effect:`, error);
+      set(state => ({ ...state, lastError: `Failed to apply effect: ${error instanceof Error ? error.message : 'Unknown error'}` }));
       return false;
     }
   },
   
   // Utility Actions
+  clearError: () => {
+    set({ lastError: null });
+  },
+  
   reset: () => {
     set({
       isOpen: false,
@@ -389,7 +489,8 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
       canvasAnalysis: null,
       isAnalyzing: false,
       isPreviewActive: false,
-      previewEffect: null
+      previewEffect: null,
+      lastError: null
     });
   }
 }));
