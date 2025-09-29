@@ -9,9 +9,7 @@ import type { Frame, Canvas } from '../types';
 import type { 
   CanvasAnalysis, 
   ColorFrequency, 
-  CharacterFrequency,
-  ColorDistribution,
-  CharacterDistribution 
+  CharacterFrequency
 } from '../types/effects';
 
 /**

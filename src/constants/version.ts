@@ -1,12 +1,31 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.17";
-export const BUILD_DATE = "2025-09-28T08:11:10.198Z";
-export const BUILD_HASH = "73a7283";
+export const VERSION = "0.1.19";
+export const BUILD_DATE = "2025-09-29T02:56:46.562Z";
+export const BUILD_HASH = "1801bd1";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.19",
+    "date": "2025-09-29T02:56:46.562Z",
+    "commits": [
+      "Initial version"
+    ]
+  },
+  {
+    "version": "0.1.18",
+    "date": "2025-09-29T02:55:31.686Z",
+    "commits": [
+      "Updated effects system docs",
+      "Fixed effects panel bugs part 1",
+      "Phase 6 full implementaiton",
+      "Phase 6 inital commit",
+      "Added basic effects scaffold",
+      "Phase 1-4 effects panel development"
+    ]
+  },
   {
     "version": "0.1.17",
     "date": "2025-09-28T08:11:10.198Z",
