@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Upload, FileText, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { usePaletteStore } from '../../stores/paletteStore';
 import { validatePaletteJSON, getValidationSummary } from '../../utils/paletteValidation';
@@ -235,14 +236,21 @@ export const ImportPaletteDialog: React.FC<ImportPaletteDialogProps> = ({
                 <div className="space-y-1">
                   <span className="text-sm font-medium">Preview:</span>
                   <div className="flex flex-wrap gap-1">
-                    {previewData.colors.slice(0, 16).map((color, index) => (
-                      <div
-                        key={index}
-                        className="w-6 h-6 rounded border border-border"
-                        style={{ backgroundColor: color }}
-                        title={color}
-                      />
-                    ))}
+                    <TooltipProvider>
+                      {previewData.colors.slice(0, 16).map((color, index) => (
+                        <Tooltip key={index}>
+                          <TooltipTrigger asChild>
+                            <div
+                              className="w-6 h-6 rounded border border-border"
+                              style={{ backgroundColor: color }}
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{color}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ))}
+                    </TooltipProvider>
                     {previewData.colors.length > 16 && (
                       <div className="flex items-center justify-center w-6 h-6 text-xs text-muted-foreground border border-border rounded">
                         +{previewData.colors.length - 16}

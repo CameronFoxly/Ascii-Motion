@@ -544,27 +544,36 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                                 <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
                               )}
                               
-                              <div
-                                className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 cursor-pointer ${
-                                  draggedColorId === color.id ? 'opacity-50 scale-95' : ''
-                                } ${
-                                  selectedColorId === color.id
-                                    ? 'border-primary ring-2 ring-primary/20 shadow-lg'
-                                    : 'border-border hover:border-border/80'
-                                } cursor-move`}
-                                style={{ backgroundColor: color.value }}
-                                draggable={!selectedPalette.isPreset}
-                                onClick={() => setSelectedColor(color.id)}
-                                onDoubleClick={() => handleColorDoubleClick(color.value)}
-                                onDragStart={(e) => handleDragStart(e, color.id)}
-                                onDragOver={(e) => handleDragOver(e, color.id)}
-                                onDrop={(e) => handleDrop(e, color.id)}
-                                title={
-                                  selectedPalette.isPreset 
-                                    ? `${color.name || 'Unnamed'}: ${color.value} (double-click to edit)` 
-                                    : `${color.name || 'Unnamed'}: ${color.value} (drag to reorder, double-click to edit)`
-                                }
-                              />
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div
+                                      className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 cursor-pointer ${
+                                        draggedColorId === color.id ? 'opacity-50 scale-95' : ''
+                                      } ${
+                                        selectedColorId === color.id
+                                          ? 'border-primary ring-2 ring-primary/20 shadow-lg'
+                                          : 'border-border hover:border-border/80'
+                                      } cursor-move`}
+                                      style={{ backgroundColor: color.value }}
+                                      draggable={!selectedPalette.isPreset}
+                                      onClick={() => setSelectedColor(color.id)}
+                                      onDoubleClick={() => handleColorDoubleClick(color.value)}
+                                      onDragStart={(e) => handleDragStart(e, color.id)}
+                                      onDragOver={(e) => handleDragOver(e, color.id)}
+                                      onDrop={(e) => handleDrop(e, color.id)}
+                                    />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>
+                                      {color.name || 'Unnamed'}: {color.value}
+                                      {selectedPalette.isPreset 
+                                        ? ' (double-click to edit)' 
+                                        : ' (drag to reorder, double-click to edit)'}
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                               
                               {/* Drop indicator line after last item */}
                               {dropIndicatorIndex === index + 1 && (

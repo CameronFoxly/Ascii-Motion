@@ -93,7 +93,6 @@ export const ForegroundBackgroundSelector: React.FC<ForegroundBackgroundSelector
                       backgroundPosition: isBackgroundTransparent ? '0 0, 0 4px, 4px -4px, -4px 0px' : 'auto'
                     }}
                     onClick={handleBackgroundClick}
-                    title="Background Color"
                   >
                     {isBackgroundTransparent && (
                       <svg
@@ -137,7 +136,6 @@ export const ForegroundBackgroundSelector: React.FC<ForegroundBackgroundSelector
                     className="w-8 h-8 rounded border-2 border-background shadow-md hover:border-primary transition-colors ring-1 ring-border"
                     style={{ backgroundColor: selectedColor }}
                     onClick={handleForegroundClick}
-                    title="Foreground Color"
                   >
                     {/* Foreground label */}
                     <div className="absolute -bottom-0.5 -right-0.5">
