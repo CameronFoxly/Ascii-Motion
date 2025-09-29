@@ -1,38 +1,137 @@
 /**
  * RemapCharactersEffectPanel - Character remapping controls
  * 
- * Provides controls for replacing specific characters with new characters
- * in ASCII art with character selection and mapping interface.
+ * Provides intuitive character remapping with automatic canvas character detection
+ * and direct From/To character editing interface.
  */
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '../../ui/button';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
-import { Switch } from '../../ui/switch';
 import { useEffectsStore } from '../../../stores/effectsStore';
 import { useCanvasStore } from '../../../stores/canvasStore';
-import { RotateCcw, Plus, X, Eye, EyeOff } from 'lucide-react';
+import { CharacterPicker } from '../CharacterPicker';
+import { RotateCcw, Eye, EyeOff, MoveRight, RotateCcwSquare } from 'lucide-react';
+
+// Character utility functions
+const sortCharactersByFrequency = (characters: string[], canvasAnalysis: any): string[] => {
+  const charFrequency = canvasAnalysis?.charactersByFrequency || [];
+  const frequencyMap = charFrequency.reduce((map: Record<string, number>, { char, count }: { char: string, count: number }) => {
+    map[char] = count;
+    return map;
+  }, {});
+
+  return characters.sort((a, b) => {
+    const freqA = frequencyMap[a] || 0;
+    const freqB = frequencyMap[b] || 0;
+    // Sort by frequency (descending), then alphabetically
+    if (freqA !== freqB) {
+      return freqB - freqA;
+    }
+    return a.localeCompare(b);
+  });
+};
 
 export function RemapCharactersEffectPanel() {
   const { 
     remapCharactersSettings,
     updateRemapCharactersSettings,
     resetEffectSettings,
-    canvasAnalysis,
     isPreviewActive,
     previewEffect,
     startPreview,
     stopPreview,
-    updatePreview
+    updatePreview,
+    getUniqueCharacters,
+    analyzeCanvas,
+    canvasAnalysis,
+    isAnalyzing,
+    clearAnalysisCache
   } = useEffectsStore();
-  
-  const canvas = useCanvasStore();
 
-  const [newFromChar, setNewFromChar] = useState('');
-  const [newToChar, setNewToChar] = useState('');
+  const { cells } = useCanvasStore();
 
   const isCurrentlyPreviewing = isPreviewActive && previewEffect === 'remap-characters';
+
+  // Character picker state
+  const [isCharacterPickerOpen, setIsCharacterPickerOpen] = useState(false);
+  const [characterPickerTarget, setCharacterPickerTarget] = useState<{ 
+    fromChar: string; 
+    isToChar: boolean; 
+    triggerRef: React.RefObject<HTMLElement | null> | null 
+  }>({ fromChar: '', isToChar: false, triggerRef: null });
+
+  // Get all unique characters from canvas analysis, sorted by frequency
+  const allCanvasCharacters = useMemo(() => {
+    // Only get characters if analysis is complete (not analyzing and has results)
+    if (isAnalyzing || !canvasAnalysis) {
+      return [];
+    }
+    const characters = getUniqueCharacters().filter(char => char.trim() !== ''); // Filter out empty/whitespace
+    return sortCharactersByFrequency(characters, canvasAnalysis);
+  }, [getUniqueCharacters, isAnalyzing, canvasAnalysis]);
+
+  // Create refs for all character picker buttons (must be at top level)
+  const characterPickerButtonRefs = useMemo(() => {
+    const refs: Record<string, React.RefObject<HTMLButtonElement | null>> = {};
+    allCanvasCharacters.forEach((fromChar) => {
+      refs[`${fromChar}-from`] = { current: null };
+      refs[`${fromChar}-to`] = { current: null };
+    });
+    return refs;
+  }, [allCanvasCharacters]);
+
+  // Auto-start preview when panel opens and analyze canvas
+  useEffect(() => {
+    // Clear cache and ensure fresh analysis every time panel opens
+    clearAnalysisCache();
+    analyzeCanvas();
+    
+    if (!isCurrentlyPreviewing) {
+      startPreview('remap-characters');
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      if (isCurrentlyPreviewing) {
+        stopPreview();
+      }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-analyze when canvas data changes (e.g., edits made outside the effect)
+  useEffect(() => {
+    // Clear cache and re-analyze when canvas cells change
+    clearAnalysisCache();
+    analyzeCanvas();
+  }, [cells, clearAnalysisCache, analyzeCanvas]);
+
+  // Initialize character mappings with identity mappings when canvas characters change
+  useEffect(() => {
+    // Only initialize if we have characters and analysis is complete
+    if (allCanvasCharacters.length > 0 && !isAnalyzing) {
+      const currentMappings = remapCharactersSettings.characterMappings;
+      const identityMappings: Record<string, string> = {};
+      
+      // Create identity mappings for all current canvas characters
+      allCanvasCharacters.forEach(char => {
+        // Preserve existing mapping if it exists, otherwise map to self
+        identityMappings[char] = currentMappings[char] || char;
+      });
+      
+      // Only update if the mappings have changed
+      const currentKeys = Object.keys(currentMappings).sort();
+      const newKeys = Object.keys(identityMappings).sort();
+      const keysChanged = JSON.stringify(currentKeys) !== JSON.stringify(newKeys);
+      
+      if (keysChanged || Object.keys(currentMappings).length === 0) {
+        updateRemapCharactersSettings({
+          characterMappings: identityMappings
+        });
+      }
+    }
+  }, [allCanvasCharacters, remapCharactersSettings.characterMappings, updateRemapCharactersSettings, isAnalyzing]);
+
 
   // Auto-start preview when panel opens
   useEffect(() => {
@@ -64,7 +163,7 @@ export function RemapCharactersEffectPanel() {
         console.error('Preview update failed:', error);
       });
     }
-  }, [canvas.cells, isCurrentlyPreviewing, updatePreview]);
+  }, [cells, isCurrentlyPreviewing, updatePreview]);
 
   // Toggle preview
   const handleTogglePreview = useCallback(() => {
@@ -80,82 +179,59 @@ export function RemapCharactersEffectPanel() {
     resetEffectSettings('remap-characters');
   }, [resetEffectSettings]);
 
-  // Add new character mapping
-  const handleAddMapping = useCallback(() => {
-    if (!newFromChar || !newToChar) return;
-    
-    const newMappings = {
-      ...remapCharactersSettings.characterMappings,
-      [newFromChar]: newToChar
-    };
-    updateRemapCharactersSettings({
-      characterMappings: newMappings
-    });
-    
-    // Clear input fields
-    setNewFromChar('');
-    setNewToChar('');
-  }, [remapCharactersSettings, updateRemapCharactersSettings, newFromChar, newToChar]);
-
-  // Remove character mapping
-  const handleRemoveMapping = useCallback((fromChar: string) => {
+  // Update character mapping
+  const handleUpdateMapping = useCallback((fromChar: string, toChar: string, isToChar: boolean) => {
     const newMappings = { ...remapCharactersSettings.characterMappings };
-    delete newMappings[fromChar];
+    
+    if (isToChar) {
+      // Update the 'to' character
+      newMappings[fromChar] = toChar;
+    } else {
+      // This shouldn't happen in our UX, but handle just in case
+      console.warn('Updating from character not supported in this interface');
+    }
+    
     updateRemapCharactersSettings({
       characterMappings: newMappings
     });
-  }, [remapCharactersSettings, updateRemapCharactersSettings]);
+  }, [remapCharactersSettings.characterMappings, updateRemapCharactersSettings]);
 
-  // Select character from canvas analysis
-  const handleSelectCanvasCharacter = useCallback((char: string) => {
-    setNewFromChar(char);
-  }, []);
-
-  // Update preserve spacing setting
-  const handlePreserveSpacingChange = useCallback((preserveSpacing: boolean) => {
+  // Reset individual character mapping
+  const handleResetMapping = useCallback((fromChar: string) => {
+    const newMappings = { ...remapCharactersSettings.characterMappings };
+    newMappings[fromChar] = fromChar; // Reset to identity mapping
+    
     updateRemapCharactersSettings({
-      preserveSpacing
+      characterMappings: newMappings
     });
-  }, [updateRemapCharactersSettings]);
+  }, [remapCharactersSettings.characterMappings, updateRemapCharactersSettings]);
 
-  // Handle character input (limit to single character)
-  const handleFromCharChange = useCallback((value: string) => {
-    setNewFromChar(value.slice(0, 1));
+  // Handle character picker
+  const handleOpenCharacterPicker = useCallback((fromChar: string, isToChar: boolean, triggerElement: HTMLElement | null) => {
+    setCharacterPickerTarget({
+      fromChar,
+      isToChar,
+      triggerRef: { current: triggerElement }
+    });
+    setIsCharacterPickerOpen(true);
   }, []);
 
-  const handleToCharChange = useCallback((value: string) => {
-    setNewToChar(value.slice(0, 1));
-  }, []);
+  const handleCharacterPick = useCallback((character: string) => {
+    if (characterPickerTarget.fromChar && characterPickerTarget.isToChar) {
+      handleUpdateMapping(characterPickerTarget.fromChar, character, true);
+    }
+    setIsCharacterPickerOpen(false);
+    setCharacterPickerTarget({ fromChar: '', isToChar: false, triggerRef: null });
+  }, [characterPickerTarget, handleUpdateMapping]);
 
-  // Character analysis preview
-  const charCount = canvasAnalysis?.uniqueCharacters?.length || 0;
-  const topChars = canvasAnalysis?.charactersByFrequency?.slice(0, 15) || [];
-  const mappingCount = Object.keys(remapCharactersSettings.characterMappings).length;
+  const handleCloseCharacterPicker = useCallback(() => {
+    setIsCharacterPickerOpen(false);
+    setCharacterPickerTarget({ fromChar: '', isToChar: false, triggerRef: null });
+  }, []);
 
   return (
     <div className="space-y-4">
       
-      {/* Settings */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs font-medium">Character Options</Label>
-        </div>
-        
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <span>Preserve spacing</span>
-            <Switch
-              checked={remapCharactersSettings.preserveSpacing}
-              onCheckedChange={handlePreserveSpacingChange}
-            />
-          </div>
-        </div>
-        
-        <div className="text-xs text-muted-foreground p-2 bg-muted/50 rounded">
-          When enabled, spacing characters (spaces, tabs) are preserved and not remapped.
-        </div>
-      </div>
-
       {/* Live Preview Toggle */}
       <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/30 rounded border border-blue-200 dark:border-blue-800">
         <div className="space-y-1">
@@ -175,80 +251,11 @@ export function RemapCharactersEffectPanel() {
         </Button>
       </div>
 
-      {/* Character Analysis Summary */}
-      {canvasAnalysis && (
-        <div className="bg-muted/50 rounded p-3 text-xs space-y-2">
-          <div className="font-medium">Canvas Characters ({charCount}):</div>
-          <div className="grid grid-cols-5 gap-1">
-            {topChars.map(({ char, count }) => (
-              <button
-                key={char}
-                onClick={() => handleSelectCanvasCharacter(char)}
-                className="flex flex-col items-center gap-1 p-1 rounded hover:bg-background/80 transition-colors border"
-                title={`Click to select '${char === ' ' ? 'space' : char}' (used ${count} times)`}
-              >
-                <div className="w-6 h-6 bg-background border rounded text-center font-mono text-xs flex items-center justify-center">
-                  {char === ' ' ? '␣' : char}
-                </div>
-                <span className="text-[10px] text-muted-foreground">{count}</span>
-              </button>
-            ))}
-          </div>
-          <div className="text-[10px] text-muted-foreground">
-            Click any character to select as source character
-          </div>
-        </div>
-      )}
-      
-      {/* Add New Mapping */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs font-medium">Add Character Mapping</Label>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">From Character</Label>
-            <Input
-              type="text"
-              value={newFromChar}
-              onChange={(e) => handleFromCharChange(e.target.value)}
-              className="h-8 text-center font-mono"
-              placeholder="A"
-              maxLength={1}
-            />
-          </div>
-          
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">To Character</Label>
-            <Input
-              type="text"
-              value={newToChar}
-              onChange={(e) => handleToCharChange(e.target.value)}
-              className="h-8 text-center font-mono"
-              placeholder="B"
-              maxLength={1}
-            />
-          </div>
-        </div>
-        
-        <Button
-          onClick={handleAddMapping}
-          variant="outline"
-          size="sm"
-          className="w-full h-8 text-xs"
-          disabled={!newFromChar || !newToChar}
-        >
-          <Plus className="w-3 h-3 mr-1" />
-          Add Mapping
-        </Button>
-      </div>
-      
-      {/* Current Mappings */}
+      {/* Character Mappings */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <Label className="text-xs font-medium">
-            Character Mappings ({mappingCount})
+            Character Mappings ({allCanvasCharacters.length})
           </Label>
           <Button
             onClick={handleReset}
@@ -256,46 +263,97 @@ export function RemapCharactersEffectPanel() {
             size="sm"
             className="h-6 w-6 p-0"
             title="Reset all mappings"
-            disabled={mappingCount === 0}
+            disabled={allCanvasCharacters.length === 0}
           >
             <RotateCcw className="w-3 h-3" />
           </Button>
         </div>
-        
-        {mappingCount === 0 ? (
+
+        {isAnalyzing ? (
           <div className="p-4 border border-dashed border-muted-foreground/50 rounded text-center text-xs text-muted-foreground">
-            No character mappings defined. Use the controls above to add mappings.
+            Analyzing canvas characters...
+          </div>
+        ) : allCanvasCharacters.length === 0 ? (
+          <div className="p-4 border border-dashed border-muted-foreground/50 rounded text-center text-xs text-muted-foreground">
+            No characters found in canvas. Draw something to see character mappings.
           </div>
         ) : (
-          <div className="space-y-2 max-h-32 overflow-y-auto">
-            {Object.entries(remapCharactersSettings.characterMappings).map(([fromChar, toChar]) => (
-              <div key={fromChar} className="flex items-center gap-2 text-xs p-2 bg-background rounded border">
-                <div className="w-6 h-6 bg-muted border rounded text-center font-mono text-xs flex items-center justify-center">
-                  {fromChar === ' ' ? '␣' : fromChar}
-                </div>
-                <span className="text-muted-foreground">→</span>
-                <div className="w-6 h-6 bg-muted border rounded text-center font-mono text-xs flex items-center justify-center">
-                  {toChar === ' ' ? '␣' : toChar}
-                </div>
-                <div className="flex-1 font-mono text-[11px]">
-                  <div>
-                    '{fromChar === ' ' ? 'space' : fromChar}' → '{toChar === ' ' ? 'space' : toChar}'
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {/* Header */}
+            <div className="grid grid-cols-[32px_32px_32px_24px_24px] gap-2 items-center text-xs font-medium text-muted-foreground px-1">
+              <div>From</div>
+              <div></div>
+              <div>To</div>
+              <div></div>
+              <div></div>
+            </div>
+
+            {/* Character mappings */}
+            <div className="space-y-1">
+              {allCanvasCharacters.map((fromChar) => {
+                const toChar = remapCharactersSettings.characterMappings[fromChar] || fromChar;
+                const toButtonRef = characterPickerButtonRefs[`${fromChar}-to`];
+
+                return (
+                  <div 
+                    key={fromChar} 
+                    className="grid grid-cols-[32px_32px_32px_24px_24px] gap-2 items-center p-2 bg-background rounded border border-muted/30 hover:bg-muted/50 hover:border-muted/50 transition-colors text-xs"
+                  >
+                    {/* From Character (read-only display) */}
+                    <div className="flex items-center justify-center">
+                      <div className="w-6 h-6 bg-muted/50 border rounded text-center font-mono text-xs flex items-center justify-center">
+                        {fromChar === ' ' ? '␣' : fromChar}
+                      </div>
+                    </div>
+
+                    {/* Arrow */}
+                    <div className="flex justify-center">
+                      <MoveRight className="w-4 h-4 text-muted-foreground" />
+                    </div>
+
+                    {/* To Character (editable) */}
+                    <div className="flex items-center justify-center">
+                      <button
+                        ref={toButtonRef}
+                        onClick={(e) => handleOpenCharacterPicker(fromChar, true, e.currentTarget)}
+                        className="w-6 h-6 bg-background border rounded text-center font-mono text-xs flex items-center justify-center hover:border-blue-500 transition-colors cursor-pointer"
+                        title={`Click to change target character for '${fromChar === ' ' ? 'space' : fromChar}'`}
+                      >
+                        {toChar === ' ' ? '␣' : toChar}
+                      </button>
+                    </div>
+
+                    {/* Individual Reset Button */}
+                    <Button
+                      onClick={() => handleResetMapping(fromChar)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-blue-600"
+                      title={`Reset '${fromChar === ' ' ? 'space' : fromChar}' to map to itself`}
+                      disabled={fromChar === toChar}
+                    >
+                      <RotateCcwSquare className="w-3 h-3" />
+                    </Button>
+
+                    {/* Remove Button - Hidden for auto-populated mappings */}
+                    <div className="w-6 h-6"></div>
                   </div>
-                </div>
-                <Button
-                  onClick={() => handleRemoveMapping(fromChar)}
-                  variant="ghost"
-                  size="sm"
-                  className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
-                  title="Remove mapping"
-                >
-                  <X className="w-3 h-3" />
-                </Button>
-              </div>
-            ))}
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
+
+      {/* Character Picker */}
+      {isCharacterPickerOpen && characterPickerTarget.triggerRef && (
+        <CharacterPicker
+          isOpen={isCharacterPickerOpen}
+          onClose={handleCloseCharacterPicker}
+          onSelectCharacter={handleCharacterPick}
+          triggerRef={characterPickerTarget.triggerRef}
+        />
+      )}
       
     </div>
   );
