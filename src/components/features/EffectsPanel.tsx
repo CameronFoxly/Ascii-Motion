@@ -18,6 +18,10 @@ import { useEffectsStore } from '../../stores/effectsStore';
 import { EFFECT_DEFINITIONS } from '../../constants/effectsDefaults';
 import { PANEL_ANIMATION } from '../../constants';
 import { cn } from '../../lib/utils';
+import { LevelsEffectPanel } from './effects/LevelsEffectPanel';
+import { HueSaturationEffectPanel } from './effects/HueSaturationEffectPanel';
+import { RemapColorsEffectPanel } from './effects/RemapColorsEffectPanel';
+import { RemapCharactersEffectPanel } from './effects/RemapCharactersEffectPanel';
 import {
   X,
   BarChart3,
@@ -138,51 +142,19 @@ export function EffectsPanel({}: EffectsPanelProps) {
           
           {/* Effect-specific content will be rendered here */}
           {activeEffect === 'levels' && (
-            <div className="space-y-4">
-              <div className="text-sm text-muted-foreground">
-                Adjust brightness, contrast, and color ranges for your ASCII art.
-              </div>
-              {/* TODO: Replace with LevelsEffectPanel */}
-              <div className="p-4 border border-dashed border-muted-foreground/50 rounded text-center text-sm text-muted-foreground">
-                Levels controls will appear here
-              </div>
-            </div>
+            <LevelsEffectPanel />
           )}
           
           {activeEffect === 'hue-saturation' && (
-            <div className="space-y-4">
-              <div className="text-sm text-muted-foreground">
-                Modify hue, saturation, and lightness of your ASCII art colors.
-              </div>
-              {/* TODO: Replace with HueSaturationEffectPanel */}
-              <div className="p-4 border border-dashed border-muted-foreground/50 rounded text-center text-sm text-muted-foreground">
-                Hue & Saturation controls will appear here
-              </div>
-            </div>
+            <HueSaturationEffectPanel />
           )}
           
           {activeEffect === 'remap-colors' && (
-            <div className="space-y-4">
-              <div className="text-sm text-muted-foreground">
-                Replace specific colors in your ASCII art with new colors.
-              </div>
-              {/* TODO: Replace with RemapColorsEffectPanel */}
-              <div className="p-4 border border-dashed border-muted-foreground/50 rounded text-center text-sm text-muted-foreground">
-                Color remap controls will appear here
-              </div>
-            </div>
+            <RemapColorsEffectPanel />
           )}
           
           {activeEffect === 'remap-characters' && (
-            <div className="space-y-4">
-              <div className="text-sm text-muted-foreground">
-                Replace specific characters in your ASCII art with new characters.
-              </div>
-              {/* TODO: Replace with RemapCharactersEffectPanel */}
-              <div className="p-4 border border-dashed border-muted-foreground/50 rounded text-center text-sm text-muted-foreground">
-                Character remap controls will appear here
-              </div>
-            </div>
+            <RemapCharactersEffectPanel />
           )}
           
           {/* Analysis status */}
