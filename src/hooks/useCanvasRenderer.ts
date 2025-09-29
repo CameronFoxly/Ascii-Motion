@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useToolStore } from '../stores/toolStore';
 import { usePreviewStore } from '../stores/previewStore';
+import { useEffectsStore } from '../stores/effectsStore';
 import { useCanvasContext } from '../contexts/CanvasContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCanvasState } from './useCanvasState';
@@ -83,6 +84,7 @@ export const useCanvasRenderer = () => {
 
   const { activeTool, rectangleFilled, lassoSelection, magicWandSelection, textToolState, linePreview } = useToolStore();
   const { previewData, isPreviewActive } = usePreviewStore();
+  const { isPreviewActive: isEffectPreviewActive } = useEffectsStore();
   const { getEllipsePoints } = useDrawingTool();
 
   // Use onion skin renderer for frame overlays
@@ -574,16 +576,20 @@ export const useCanvasRenderer = () => {
       );
     }
 
-    // Draw preview overlay (for video import previews)
+    // Draw preview overlay 
     if (isPreviewActive && previewData.size > 0) {
+      // Check if this is an effects preview (should be fully opaque) or other preview (semi-transparent)
+      const isEffectsPreview = isEffectPreviewActive;
+      const previewAlpha = isEffectsPreview ? 1.0 : 0.8; // Effects: full opacity, others: semi-transparent
+      
       previewData.forEach((cell, key) => {
         const [x, y] = key.split(',').map(Number);
         
         // Only draw if within canvas bounds
         if (x >= 0 && x < canvasConfig.width && y >= 0 && y < canvasConfig.height) {
-          // Draw preview cell with slight transparency to distinguish from actual content
+          // Draw preview cell with appropriate transparency
           ctx.save();
-          ctx.globalAlpha = 0.8; // Make preview slightly transparent
+          ctx.globalAlpha = previewAlpha; 
           
           drawCell(ctx, x, y, cell);
           
@@ -628,7 +634,9 @@ export const useCanvasRenderer = () => {
     renderOnionSkins,
     // Preview store values
     previewData,
-    isPreviewActive
+    isPreviewActive,
+    // Effects preview state
+    isEffectPreviewActive
   ]);
 
   // Throttled render function that uses requestAnimationFrame
