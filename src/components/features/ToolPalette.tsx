@@ -102,7 +102,6 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
           onClick={() => setActiveTool(tool.id)}
           aria-label={`${tool.name} tool - ${tool.description}`}
           aria-pressed={effectiveTool === tool.id}
-          title={`${tool.name} - ${tool.description}`}
         >
           {tool.icon}
         </Button>
