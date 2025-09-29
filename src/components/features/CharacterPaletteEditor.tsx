@@ -14,6 +14,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Badge } from '../ui/badge';
 import { 
   Plus, 
@@ -218,26 +219,56 @@ export function CharacterPaletteEditor({ onPaletteChange }: CharacterPaletteEdit
             </CardTitle>
           </div>
           
-          <div className="flex items-center gap-1">
-            {!isEditing && (
-              <>
-                <Button variant="ghost" size="sm" onClick={handleStartEditing} className="h-6 w-6 p-0" title="Edit palette">
-                  <Edit3 className="w-3 h-3" />
-                </Button>
-                <Button variant="ghost" size="sm" onClick={handleDuplicatePalette} className="h-6 w-6 p-0" title="Duplicate palette">
-                  <Copy className="w-3 h-3" />
-                </Button>
-                <Button variant="ghost" size="sm" onClick={handleCreateNewPalette} className="h-6 w-6 p-0" title="Create new palette">
-                  <Plus className="w-3 h-3" />
-                </Button>
-                {activePalette.isCustom && (
-                  <Button variant="ghost" size="sm" onClick={handleDeletePalette} className="h-6 w-6 p-0 text-destructive" title="Delete palette">
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                )}
-              </>
-            )}
-          </div>
+          <TooltipProvider>
+            <div className="flex items-center gap-1">
+              {!isEditing && (
+                <>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="sm" onClick={handleStartEditing} className="h-6 w-6 p-0">
+                        <Edit3 className="w-3 h-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Edit palette</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="sm" onClick={handleDuplicatePalette} className="h-6 w-6 p-0">
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Duplicate palette</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="sm" onClick={handleCreateNewPalette} className="h-6 w-6 p-0">
+                        <Plus className="w-3 h-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Create new palette</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  {activePalette.isCustom && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="sm" onClick={handleDeletePalette} className="h-6 w-6 p-0 text-destructive">
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Delete palette</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </>
+              )}
+            </div>
+          </TooltipProvider>
         </div>
       </CardHeader>
 
@@ -246,30 +277,28 @@ export function CharacterPaletteEditor({ onPaletteChange }: CharacterPaletteEdit
         <div className="space-y-2" style={{ width: '272px', maxWidth: '272px' }}>
           <Label className="text-xs font-medium">Characters ({activePalette.characters.length})</Label>
           <div className="bg-background/50 border border-border rounded p-2 min-h-[60px] overflow-hidden" style={{ width: '272px', maxWidth: '272px' }} onDragLeave={handleDragLeave}>
-            <div className="flex flex-wrap gap-1 relative max-w-full">
-              {activePalette.characters.map((character, index) => (
-                <div key={`${character}-${index}`} className="relative">
+            <TooltipProvider>
+              <div className="flex flex-wrap gap-1 relative max-w-full">
+                {activePalette.characters.map((character, index) => (
+                  <div key={`${character}-${index}`} className="relative">
                   {/* Drop indicator */}
                   {dropIndicatorIndex === index && draggedIndex !== null && (
                     <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
                   )}
                   
-                  <div
-                    className={`relative flex items-center justify-center w-8 h-8 bg-muted/50 border border-border rounded transition-all hover:bg-muted ${
-                      draggedIndex === index ? 'opacity-50 scale-95' : ''
-                    } ${
-                      activePalette.isCustom ? 'cursor-move hover:border-primary/50' : 'cursor-default'
-                    }`}
-                    draggable={activePalette.isCustom}
-                    onDragStart={(e) => handleDragStart(e, index)}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDrop={(e) => handleDrop(e, index)}
-                    title={
-                      activePalette.isCustom 
-                        ? `Character: "${character}" (drag to reorder, click X to remove)`
-                        : `Character: "${character}"`
-                    }
-                  >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        className={`relative flex items-center justify-center w-8 h-8 bg-muted/50 border border-border rounded transition-all hover:bg-muted ${
+                          draggedIndex === index ? 'opacity-50 scale-95' : ''
+                        } ${
+                          activePalette.isCustom ? 'cursor-move hover:border-primary/50' : 'cursor-default'
+                        }`}
+                        draggable={activePalette.isCustom}
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDrop={(e) => handleDrop(e, index)}
+                      >
                     {/* Character display */}
                     <span className="font-mono text-sm select-none">
                       {character === ' ' ? '␣' : character}
@@ -291,15 +320,26 @@ export function CharacterPaletteEditor({ onPaletteChange }: CharacterPaletteEdit
                         <X className="w-2 h-2" />
                       </Button>
                     )}
-                  </div>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        Character: "{character}"
+                        {activePalette.isCustom 
+                          ? ' (drag to reorder, click X to remove)'
+                          : ''}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
                   
                   {/* Drop indicator at end */}
                   {dropIndicatorIndex === index + 1 && draggedIndex !== null && (
                     <div className="absolute -right-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
                   )}
                 </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </TooltipProvider>
           </div>
         </div>
 

@@ -11,6 +11,7 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Eye } from 'lucide-react';
 import { 
   Collapsible,
@@ -98,19 +99,21 @@ export function ActiveStyleSection({ className = '' }: ActiveStyleSectionProps) 
             <div className="flex flex-col items-center space-y-2">
               <Label className="text-xs font-medium">Character</Label>
               <div className="flex justify-center">
-                <Button
-                  ref={characterPreviewRef}
-                  variant="outline"
-                  className="w-16 h-16 text-3xl font-mono hover:border-primary transition-colors relative overflow-hidden flex items-center justify-center border-2"
-                  onClick={() => {
-                    setIsCharacterPickerOpen(true);
-                  }}
-                  title={`Active Character: "${selectedChar === ' ' ? 'Space' : selectedChar}" - Click to change`}
-                  style={{
-                    // Use canvas background color as the button background
-                    backgroundColor: canvasBackgroundColor === 'transparent' ? '#000000' : canvasBackgroundColor,
-                  }}
-                >
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        ref={characterPreviewRef}
+                        variant="outline"
+                        className="w-16 h-16 text-3xl font-mono hover:border-primary transition-colors relative overflow-hidden flex items-center justify-center border-2"
+                        onClick={() => {
+                          setIsCharacterPickerOpen(true);
+                        }}
+                        style={{
+                          // Use canvas background color as the button background
+                          backgroundColor: canvasBackgroundColor === 'transparent' ? '#000000' : canvasBackgroundColor,
+                        }}
+                      >
                   {/* Character container with background color - sized to character bounds */}
                   <div className="relative flex items-center justify-center">
                     {/* Character background color - only covers character area */}
@@ -140,7 +143,13 @@ export function ActiveStyleSection({ className = '' }: ActiveStyleSectionProps) 
                       {selectedChar === ' ' ? '␣' : selectedChar}
                     </span>
                   </div>
-                </Button>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Active Character: "{selectedChar === ' ' ? 'Space' : selectedChar}" - Click to change</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
 

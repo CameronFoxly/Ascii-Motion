@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Download, Copy, CheckCircle, X, FileText } from 'lucide-react';
 import { usePaletteStore } from '../../stores/paletteStore';
 import type { PaletteExportFormat } from '../../types/palette';
@@ -177,21 +178,28 @@ export const ExportPaletteDialog: React.FC<ExportPaletteDialogProps> = ({
               {/* Color Preview */}
               <div className="space-y-1">
                 <span className="text-sm font-medium">Preview:</span>
-                <div className="flex flex-wrap gap-1">
-                  {exportData.colors.slice(0, 16).map((color, index) => (
-                    <div
-                      key={index}
-                      className="w-6 h-6 rounded border border-border"
-                      style={{ backgroundColor: color }}
-                      title={color}
-                    />
-                  ))}
-                  {exportData.colors.length > 16 && (
-                    <div className="flex items-center justify-center w-6 h-6 text-xs text-muted-foreground border border-border rounded">
-                      +{exportData.colors.length - 16}
-                    </div>
-                  )}
-                </div>
+                <TooltipProvider>
+                  <div className="flex flex-wrap gap-1">
+                    {exportData.colors.slice(0, 16).map((color, index) => (
+                      <Tooltip key={index}>
+                        <TooltipTrigger asChild>
+                          <div
+                            className="w-6 h-6 rounded border border-border cursor-pointer"
+                            style={{ backgroundColor: color }}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{color}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                    {exportData.colors.length > 16 && (
+                      <div className="flex items-center justify-center w-6 h-6 text-xs text-muted-foreground border border-border rounded">
+                        +{exportData.colors.length - 16}
+                      </div>
+                    )}
+                  </div>
+                </TooltipProvider>
               </div>
             </div>
           </div>

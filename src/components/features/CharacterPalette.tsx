@@ -3,6 +3,7 @@ import { useToolStore } from '../../stores/toolStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
 import { CHARACTER_CATEGORIES } from '../../constants';
@@ -47,38 +48,49 @@ export const CharacterPalette: React.FC<CharacterPaletteProps> = ({ className = 
         </CollapsibleHeader>
         <CollapsibleContent className="collapsible-content">
       
-      <Tabs value={activeCategory} onValueChange={setActiveCategory} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 h-auto p-0.5 gap-0.5">
-          {categoryEntries.slice(0, 4).map(([categoryName]) => {
-            const IconComponent = CATEGORY_ICONS[categoryName as keyof typeof CATEGORY_ICONS];
-            return (
-              <TabsTrigger 
-                key={categoryName} 
-                value={categoryName}
-                className="flex items-center justify-center p-0.5 h-5 text-xs"
-                title={categoryName}
-              >
-                <IconComponent className="w-2.5 h-2.5" />
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
-        
-        <TabsList className="grid w-full grid-cols-4 h-auto p-0.5 gap-0.5 mt-0.5">
-          {categoryEntries.slice(4).map(([categoryName]) => {
-            const IconComponent = CATEGORY_ICONS[categoryName as keyof typeof CATEGORY_ICONS];
-            return (
-              <TabsTrigger 
-                key={categoryName} 
-                value={categoryName}
-                className="flex items-center justify-center p-0.5 h-5 text-xs"
-                title={categoryName}
-              >
-                <IconComponent className="w-2.5 h-2.5" />
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
+      <TooltipProvider>
+        <Tabs value={activeCategory} onValueChange={setActiveCategory} className="w-full">
+          <TabsList className="grid w-full grid-cols-4 h-auto p-0.5 gap-0.5">
+            {categoryEntries.slice(0, 4).map(([categoryName]) => {
+              const IconComponent = CATEGORY_ICONS[categoryName as keyof typeof CATEGORY_ICONS];
+              return (
+                <Tooltip key={categoryName}>
+                  <TooltipTrigger asChild>
+                    <TabsTrigger 
+                      value={categoryName}
+                      className="flex items-center justify-center p-0.5 h-5 text-xs"
+                    >
+                      <IconComponent className="w-2.5 h-2.5" />
+                    </TabsTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{categoryName}</p>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </TabsList>
+          
+          <TabsList className="grid w-full grid-cols-4 h-auto p-0.5 gap-0.5 mt-0.5">
+            {categoryEntries.slice(4).map(([categoryName]) => {
+              const IconComponent = CATEGORY_ICONS[categoryName as keyof typeof CATEGORY_ICONS];
+              return (
+                <Tooltip key={categoryName}>
+                  <TooltipTrigger asChild>
+                    <TabsTrigger 
+                      value={categoryName}
+                      className="flex items-center justify-center p-0.5 h-5 text-xs"
+                    >
+                      <IconComponent className="w-2.5 h-2.5" />
+                    </TabsTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{categoryName}</p>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </TabsList>
 
         {categoryEntries.map(([categoryName, characters]) => (
           <TabsContent key={categoryName} value={categoryName} className="mt-2">
@@ -89,23 +101,29 @@ export const CharacterPalette: React.FC<CharacterPaletteProps> = ({ className = 
                   style={{ maxHeight: '120px' }} // Approximately 5 rows: 5 * (button height + gap)
                 >
                   {characters.map((char) => (
-                    <Button
-                      key={char}
-                      variant={selectedChar === char ? 'default' : 'outline'}
-                      size="sm"
-                      className="w-full aspect-square p-0 font-mono text-xs flex items-center justify-center min-w-0 flex-shrink-0 h-6"
-                      onClick={() => setSelectedChar(char)}
-                      title={`Character: ${char} (${char.charCodeAt(0)})`}
-                    >
-                      <span className="leading-none text-xs">{char}</span>
-                    </Button>
+                    <Tooltip key={char}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={selectedChar === char ? 'default' : 'outline'}
+                          size="sm"
+                          className="w-full aspect-square p-0 font-mono text-xs flex items-center justify-center min-w-0 flex-shrink-0 h-6"
+                          onClick={() => setSelectedChar(char)}
+                        >
+                          <span className="leading-none text-xs">{char}</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Character: {char} ({char.charCodeAt(0)})</p>
+                      </TooltipContent>
+                    </Tooltip>
                   ))}
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
         ))}
-      </Tabs>
+        </Tabs>
+      </TooltipProvider>
         </CollapsibleContent>
       </Collapsible>
     </div>
