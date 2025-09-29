@@ -14,6 +14,7 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Card, CardContent } from '../ui/card';
 import { Input } from '../ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { 
   Select,
   SelectContent,
@@ -317,12 +318,30 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-medium">Character Palette</Label>
                   <div className="flex gap-1">
-                    <Button size="sm" variant="outline" className="h-6 w-6 p-0 flex-shrink-0" onClick={() => { const p = createCustomPalette('New Palette', [' ']); setActivePalette(p); startEditing(p.id); setSelectedIndex(0);}} title="Create palette">
-                      <Plus className="w-3 h-3" />
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-6 w-6 p-0 flex-shrink-0" onClick={() => setIsManagePalettesOpen(true)} title="Manage palettes">
-                      <Settings className="w-3 h-3" />
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="sm" variant="outline" className="h-6 w-6 p-0 flex-shrink-0" onClick={() => { const p = createCustomPalette('New Palette', [' ']); setActivePalette(p); startEditing(p.id); setSelectedIndex(0);}}>
+                            <Plus className="w-3 h-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Create palette</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="sm" variant="outline" className="h-6 w-6 p-0 flex-shrink-0" onClick={() => setIsManagePalettesOpen(true)}>
+                            <Settings className="w-3 h-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Manage palettes</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </div>
                 <div className="w-full">
@@ -383,45 +402,52 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                           <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
                         )}
                         
-                        <div
-                          className={`relative flex items-center justify-center w-8 h-8 bg-muted/50 border border-border rounded transition-all hover:bg-muted ${
-                              draggedIndex === index ? 'opacity-50 scale-95' : ''
-                            } ${
-                              'cursor-move hover:border-primary/50'
-                            } ${
-                              selectedIndex === index ? 'ring-2 ring-primary' : ''
-                            } cursor-pointer`}
-                          draggable={true}
-                          onClick={() => handleSelectCharacter(index)}
-                          onDragStart={(e) => handleDragStart(e, index)}
-                          onDragOver={(e) => handleDragOver(e, index)}
-                          onDrop={(e) => handleDrop(e, index)}
-                          title={
-                            activePalette.isCustom 
-                              ? `Character: "${character}" (drag to reorder, click X to remove)`
-                              : `Character: "${character}"`
-                          }
-                        >
-                          {/* Character display */}
-                          <span className="font-mono text-sm select-none">
-                            {character === ' ' ? '␣' : character}
-                          </span>
-                          
-                          {/* Drag handle */}
-                          <GripVertical className="absolute top-0 right-0 w-2 h-2 text-muted-foreground/50" />
-                          
-                          {/* Remove button */}
-                          {activePalette.characters.length > 1 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => { e.stopPropagation(); handleRemoveCharacter(index); setSelectedIndex(null); onSettingsChange?.(); }}
-                              className="absolute -top-1 -right-1 h-4 w-4 p-0 bg-destructive text-destructive-foreground hover:bg-destructive/80 rounded-full opacity-0 hover:opacity-100 transition-opacity"
-                            >
-                              <X className="w-2 h-2" />
-                            </Button>
-                          )}
-                        </div>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div
+                                className={`relative flex items-center justify-center w-8 h-8 bg-muted/50 border border-border rounded transition-all hover:bg-muted ${
+                                    draggedIndex === index ? 'opacity-50 scale-95' : ''
+                                  } ${
+                                    'cursor-move hover:border-primary/50'
+                                  } ${
+                                    selectedIndex === index ? 'ring-2 ring-primary' : ''
+                                  } cursor-pointer`}
+                                draggable={true}
+                                onClick={() => handleSelectCharacter(index)}
+                                onDragStart={(e) => handleDragStart(e, index)}
+                                onDragOver={(e) => handleDragOver(e, index)}
+                                onDrop={(e) => handleDrop(e, index)}
+                              >
+                                {/* Character display */}
+                                <span className="font-mono text-sm select-none">
+                                  {character === ' ' ? '␣' : character}
+                                </span>
+                                
+                                {/* Drag handle */}
+                                <GripVertical className="absolute top-0 right-0 w-2 h-2 text-muted-foreground/50" />
+                                
+                                {/* Remove button */}
+                                {activePalette.characters.length > 1 && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => { e.stopPropagation(); handleRemoveCharacter(index); setSelectedIndex(null); onSettingsChange?.(); }}
+                                    className="absolute -top-1 -right-1 h-4 w-4 p-0 bg-destructive text-destructive-foreground hover:bg-destructive/80 rounded-full opacity-0 hover:opacity-100 transition-opacity"
+                                  >
+                                    <X className="w-2 h-2" />
+                                  </Button>
+                                )}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>
+                                Character: "{character}"
+                                {activePalette.isCustom && " (drag to reorder, click X to remove)"}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         
                         {/* Drop indicator at end */}
                         {dropIndicatorIndex === index + 1 && draggedIndex !== null && (
@@ -433,25 +459,62 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
 
                   {/* Bottom controls: move, add, delete, reverse */}
                   <div className="flex items-center justify-between pt-2">
-                    <div className="flex items-center gap-1">
-                      <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleMoveSelectedLeft} disabled={selectedIndex === null || selectedIndex === 0} title="Move left">
-                        <ArrowLeft className="w-3 h-3" />
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleMoveSelectedRight} disabled={selectedIndex === null || selectedIndex === activePalette.characters.length - 1} title="Move right">
-                        <ArrowRight className="w-3 h-3" />
-                      </Button>
-                      <Button ref={editButtonRef} size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleEditCharacters} title="Edit character">
-                        <Edit className="w-3 h-3" />
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-destructive" onClick={handleDeleteSelected} disabled={selectedIndex === null} title="Delete character">
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                    <div>
-                      <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleReverseOrder} title="Reverse order">
-                        <ArrowUpDown className="w-3 h-3" />
-                      </Button>
-                    </div>
+                    <TooltipProvider>
+                      <div className="flex items-center gap-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleMoveSelectedLeft} disabled={selectedIndex === null || selectedIndex === 0}>
+                              <ArrowLeft className="w-3 h-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Move left</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleMoveSelectedRight} disabled={selectedIndex === null || selectedIndex === activePalette.characters.length - 1}>
+                              <ArrowRight className="w-3 h-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Move right</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button ref={editButtonRef} size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleEditCharacters}>
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Edit character</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-destructive" onClick={handleDeleteSelected} disabled={selectedIndex === null}>
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Delete character</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleReverseOrder}>
+                              <ArrowUpDown className="w-3 h-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Reverse order</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TooltipProvider>
                   </div>
 
                   {/* Manage Palettes Dialog */}
@@ -478,25 +541,33 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
               <div className="space-y-2 w-full">
                 <Label className="text-xs font-medium">Add Character</Label>
                 <div className="flex gap-2 w-full relative">
-                  <Button
-                    ref={characterPickerTriggerRef}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (isCharacterPickerOpen && pickerTriggerSource === 'palette-icon') {
-                        // If already open from palette button, close it
-                        setIsCharacterPickerOpen(false);
-                      } else {
-                        // Open it from palette button
-                        setPickerTriggerSource('palette-icon');
-                        setIsCharacterPickerOpen(true);
-                      }
-                    }}
-                    className="h-8 w-8 p-0 flex-shrink-0"
-                    title="Character picker"
-                  >
-                    <Palette className="w-3 h-3" />
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          ref={characterPickerTriggerRef}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (isCharacterPickerOpen && pickerTriggerSource === 'palette-icon') {
+                              // If already open from palette button, close it
+                              setIsCharacterPickerOpen(false);
+                            } else {
+                              // Open it from palette button
+                              setPickerTriggerSource('palette-icon');
+                              setIsCharacterPickerOpen(true);
+                            }
+                          }}
+                          className="h-8 w-8 p-0 flex-shrink-0"
+                        >
+                          <Palette className="w-3 h-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Character picker</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   <div className="flex flex-1 min-w-0">
                     <Input
                       ref={(el) => { addCharInputRef.current = el; }}
