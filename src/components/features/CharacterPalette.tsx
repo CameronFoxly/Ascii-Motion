@@ -85,11 +85,11 @@ export const CharacterPalette: React.FC<CharacterPaletteProps> = ({ className = 
           <TabsContent key={categoryName} value={categoryName} className="mt-2">
             <Card className="bg-card border border-border/50">
               <CardContent className="p-2">
-                <div 
-                  className="grid grid-cols-6 gap-0.5 w-full overflow-y-auto"
-                  style={{ maxHeight: '120px' }} // Approximately 5 rows: 5 * (button height + gap)
-                >
-                  <TooltipProvider>
+                <TooltipProvider>
+                  <div 
+                    className="grid grid-cols-6 gap-0.5 w-full overflow-y-auto"
+                    style={{ maxHeight: '120px' }} // Approximately 5 rows: 5 * (button height + gap)
+                  >
                     {characters.map((char) => (
                       <Tooltip key={char}>
                         <TooltipTrigger asChild>
@@ -107,8 +107,8 @@ export const CharacterPalette: React.FC<CharacterPaletteProps> = ({ className = 
                         </TooltipContent>
                       </Tooltip>
                     ))}
-                  </TooltipProvider>
-                </div>
+                  </div>
+                </TooltipProvider>
               </CardContent>
             </Card>
           </TabsContent>

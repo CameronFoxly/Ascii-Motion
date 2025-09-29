@@ -154,8 +154,8 @@ export const CharacterPicker: React.FC<CharacterPickerProps> = ({
 
             {Object.entries(CHARACTER_CATEGORIES).map(([category, characters]) => (
               <TabsContent key={category} value={category} className="mt-0">
-                <div className="grid grid-cols-6 gap-1 max-h-48 overflow-y-auto">
-                  <TooltipProvider>
+                <TooltipProvider>
+                  <div className="grid grid-cols-6 gap-1 max-h-48 overflow-y-auto">
                     {characters.map((char, index) => (
                       <Tooltip key={index}>
                         <TooltipTrigger asChild>
@@ -172,8 +172,8 @@ export const CharacterPicker: React.FC<CharacterPickerProps> = ({
                         </TooltipContent>
                       </Tooltip>
                     ))}
-                  </TooltipProvider>
-                </div>
+                  </div>
+                </TooltipProvider>
               </TabsContent>
             ))}
           </Tabs>
