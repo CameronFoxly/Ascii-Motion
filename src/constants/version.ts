@@ -1,12 +1,28 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.19";
-export const BUILD_DATE = "2025-09-29T02:56:46.562Z";
-export const BUILD_HASH = "1801bd1";
+export const VERSION = "0.1.20";
+export const BUILD_DATE = "2025-09-29T07:32:45.119Z";
+export const BUILD_HASH = "606e68f";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.20",
+    "date": "2025-09-29T07:32:45.119Z",
+    "commits": [
+      "Cleaned up right panel.",
+      "Updated right panel layout",
+      "Fixed text input bug in color remap",
+      "Refactor the character remap function",
+      "Fixed up color remapping effect and UI",
+      "Fixed bug that prevented preview to update to active frame with effects.",
+      "Fixed apply to all frames effect bug",
+      "Made preview 1:1 for levels",
+      "Fixed levels default",
+      "Fixed deployment bugs"
+    ]
+  },
   {
     "version": "0.1.19",
     "date": "2025-09-29T02:56:46.562Z",
