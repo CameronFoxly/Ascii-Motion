@@ -25,6 +25,9 @@ import {
   DEFAULT_REMAP_CHARACTERS_SETTINGS,
   CANVAS_ANALYSIS
 } from '../constants/effectsDefaults';
+import { useCanvasStore } from './canvasStore';
+import { usePreviewStore } from './previewStore';
+import { processEffect } from '../utils/effectsProcessing';
 
 export interface EffectsState {
   // UI State
@@ -70,6 +73,7 @@ export interface EffectsState {
   // Actions - Preview Management
   startPreview: (effect: EffectType) => void;
   stopPreview: () => void;
+  updatePreview: () => Promise<void>;
   
   // Actions - Effect Application
   applyEffect: (effect: EffectType) => Promise<boolean>;
@@ -349,11 +353,16 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
   
   // Preview Management Actions
   startPreview: (effect: EffectType) => {
+    const { updatePreview } = get();
     set({ 
       isPreviewActive: true, 
       previewEffect: effect 
     });
-    // TODO: Implement preview logic
+    
+    // Generate and show preview immediately
+    updatePreview().catch(error => {
+      console.error('Initial preview generation failed:', error);
+    });
   },
   
   stopPreview: () => {
@@ -361,7 +370,64 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
       isPreviewActive: false, 
       previewEffect: null 
     });
-    // TODO: Implement preview cleanup
+    
+    // Clear preview from previewStore
+    const previewStore = usePreviewStore.getState();
+    previewStore.clearPreview();
+  },
+  
+  // Generate and update preview
+  updatePreview: async () => {
+    const state = get();
+    if (!state.isPreviewActive || !state.previewEffect) return;
+    
+    try {
+      const canvasStore = useCanvasStore.getState();
+      const previewStore = usePreviewStore.getState();
+      
+      // Get current canvas data
+      const currentCells = canvasStore.cells;
+      
+      // Get effect settings
+      let effectSettings;
+      switch (state.previewEffect) {
+        case 'levels':
+          effectSettings = state.levelsSettings;
+          break;
+        case 'hue-saturation':
+          effectSettings = state.hueSaturationSettings;
+          break;
+        case 'remap-colors':
+          effectSettings = state.remapColorsSettings;
+          break;
+        case 'remap-characters':
+          effectSettings = state.remapCharactersSettings;
+          break;
+        default:
+          return;
+      }
+      
+      // Process effect on current canvas data (await the async function)
+      const result = await processEffect(
+        state.previewEffect,
+        currentCells, 
+        effectSettings,
+        canvasStore.width,
+        canvasStore.height
+      );
+      
+      // Update preview store with processed cells if successful
+      if (result.success && result.processedCells) {
+        previewStore.setPreviewData(result.processedCells);
+      } else {
+        console.error('Preview processing failed:', result);
+        previewStore.clearPreview();
+      }
+      
+    } catch (error) {
+      console.error('Preview generation error:', error);
+      set({ lastError: error instanceof Error ? error.message : 'Preview generation failed' });
+    }
   },
   
   // Effect Application Actions

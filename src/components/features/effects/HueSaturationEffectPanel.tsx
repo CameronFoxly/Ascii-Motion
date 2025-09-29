@@ -5,12 +5,12 @@
  * of ASCII art colors with optional color range targeting.
  */
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Slider } from '../../ui/slider';
 import { Button } from '../../ui/button';
 import { Label } from '../../ui/label';
 import { useEffectsStore } from '../../../stores/effectsStore';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Eye, EyeOff } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 
 export function HueSaturationEffectPanel() {
@@ -18,13 +18,52 @@ export function HueSaturationEffectPanel() {
     hueSaturationSettings,
     updateHueSaturationSettings,
     resetEffectSettings,
-    canvasAnalysis
+    canvasAnalysis,
+    isPreviewActive,
+    previewEffect,
+    startPreview,
+    stopPreview,
+    updatePreview
   } = useEffectsStore();
+
+  const isCurrentlyPreviewing = isPreviewActive && previewEffect === 'hue-saturation';
+
+  // Auto-start preview when panel opens
+  useEffect(() => {
+    if (!isCurrentlyPreviewing) {
+      startPreview('hue-saturation');
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      if (isCurrentlyPreviewing) {
+        stopPreview();
+      }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update preview when settings change
+  useEffect(() => {
+    if (isCurrentlyPreviewing) {
+      updatePreview().catch(error => {
+        console.error('Preview update failed:', error);
+      });
+    }
+  }, [hueSaturationSettings, isCurrentlyPreviewing, updatePreview]);
 
   // Reset to default values
   const handleReset = useCallback(() => {
     resetEffectSettings('hue-saturation');
   }, [resetEffectSettings]);
+
+  // Toggle preview
+  const handleTogglePreview = useCallback(() => {
+    if (isCurrentlyPreviewing) {
+      stopPreview();
+    } else {
+      startPreview('hue-saturation');
+    }
+  }, [isCurrentlyPreviewing, startPreview, stopPreview]);
 
   // Handle slider changes
   const handleHueChange = useCallback((value: number) => {
@@ -54,6 +93,25 @@ export function HueSaturationEffectPanel() {
           </div>
         </div>
       )}
+      
+      {/* Live Preview Toggle */}
+      <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/30 rounded border border-blue-200 dark:border-blue-800">
+        <div className="space-y-1">
+          <Label className="text-xs font-medium text-blue-900 dark:text-blue-100">Live Preview</Label>
+          <div className="text-xs text-blue-700 dark:text-blue-300">
+            {isCurrentlyPreviewing ? 'Changes are shown on canvas' : 'Preview is disabled'}
+          </div>
+        </div>
+        <Button
+          onClick={handleTogglePreview}
+          variant={isCurrentlyPreviewing ? "default" : "outline"}
+          size="sm"
+          className="h-8 gap-1"
+        >
+          {isCurrentlyPreviewing ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+          {isCurrentlyPreviewing ? 'On' : 'Off'}
+        </Button>
+      </div>
       
       {/* Hue, Saturation, Lightness Controls */}
       <div className="space-y-3">

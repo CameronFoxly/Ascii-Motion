@@ -22,8 +22,8 @@ export async function processEffect(
   effectType: EffectType,
   cells: Map<string, Cell>,
   settings: LevelsEffectSettings | HueSaturationEffectSettings | RemapColorsEffectSettings | RemapCharactersEffectSettings,
-  canvasWidth: number,
-  canvasHeight: number
+  _canvasWidth: number,
+  _canvasHeight: number
 ): Promise<EffectProcessingResult> {
   const startTime = performance.now();
   

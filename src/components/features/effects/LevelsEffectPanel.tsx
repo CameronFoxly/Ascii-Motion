@@ -5,13 +5,13 @@
  * in ASCII art including input/output levels and histogram display.
  */
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Slider } from '../../ui/slider';
 import { Button } from '../../ui/button';
 import { Label } from '../../ui/label';
 import { Separator } from '../../ui/separator';
 import { useEffectsStore } from '../../../stores/effectsStore';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Eye, EyeOff } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 
 export function LevelsEffectPanel() {
@@ -19,15 +19,54 @@ export function LevelsEffectPanel() {
     levelsSettings,
     updateLevelsSettings,
     resetEffectSettings,
-    canvasAnalysis
+    canvasAnalysis,
+    isPreviewActive,
+    previewEffect,
+    startPreview,
+    stopPreview,
+    updatePreview
   } = useEffectsStore();
+
+  const isCurrentlyPreviewing = isPreviewActive && previewEffect === 'levels';
+
+  // Auto-start preview when panel opens
+  useEffect(() => {
+    if (!isCurrentlyPreviewing) {
+      startPreview('levels');
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      if (isCurrentlyPreviewing) {
+        stopPreview();
+      }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update preview when settings change
+  useEffect(() => {
+    if (isCurrentlyPreviewing) {
+      updatePreview().catch(error => {
+        console.error('Preview update failed:', error);
+      });
+    }
+  }, [levelsSettings, isCurrentlyPreviewing, updatePreview]);
 
   // Reset to default values
   const handleReset = useCallback(() => {
     resetEffectSettings('levels');
   }, [resetEffectSettings]);
 
-  // Handle slider value changes
+  // Toggle preview
+  const handleTogglePreview = useCallback(() => {
+    if (isCurrentlyPreviewing) {
+      stopPreview();
+    } else {
+      startPreview('levels');
+    }
+  }, [isCurrentlyPreviewing, startPreview, stopPreview]);
+
+  // Handle slider value changes with preview update
   const handleShadowsInputChange = useCallback((value: number) => {
     updateLevelsSettings({ shadowsInput: value });
   }, [updateLevelsSettings]);
@@ -67,6 +106,25 @@ export function LevelsEffectPanel() {
           </div>
         </div>
       )}
+      
+      {/* Live Preview Toggle */}
+      <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/30 rounded border border-blue-200 dark:border-blue-800">
+        <div className="space-y-1">
+          <Label className="text-xs font-medium text-blue-900 dark:text-blue-100">Live Preview</Label>
+          <div className="text-xs text-blue-700 dark:text-blue-300">
+            {isCurrentlyPreviewing ? 'Changes are shown on canvas' : 'Preview is disabled'}
+          </div>
+        </div>
+        <Button
+          onClick={handleTogglePreview}
+          variant={isCurrentlyPreviewing ? "default" : "outline"}
+          size="sm"
+          className="h-8 gap-1"
+        >
+          {isCurrentlyPreviewing ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+          {isCurrentlyPreviewing ? 'On' : 'Off'}
+        </Button>
+      </div>
       
       {/* Input Levels Section */}
       <div className="space-y-3">

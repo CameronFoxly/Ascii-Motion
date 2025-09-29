@@ -104,6 +104,13 @@ export function EffectsPanel({}: EffectsPanelProps) {
     ? EFFECT_ICONS[currentEffectDef.icon as keyof typeof EFFECT_ICONS]
     : null;
 
+  // Handle cancel - stop preview and close panel
+  const handleCancel = async () => {
+    const { stopPreview } = useEffectsStore.getState();
+    stopPreview();
+    closeEffectPanel();
+  };
+
   // Handle apply effect
   const handleApplyEffect = async () => {
     if (!activeEffect) return;
@@ -202,7 +209,7 @@ export function EffectsPanel({}: EffectsPanelProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={closeEffectPanel}
+            onClick={handleCancel}
             className="flex-1 h-8"
           >
             Cancel
