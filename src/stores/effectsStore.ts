@@ -496,6 +496,15 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
           frames: result.processedFrames
         }));
 
+        // Sync the canvas with the processed current frame
+        const updatedAnimationStore = useAnimationStore.getState();
+        const currentFrame = updatedAnimationStore.frames[updatedAnimationStore.currentFrameIndex];
+        if (currentFrame) {
+          const { useCanvasStore } = await import('./canvasStore');
+          const canvasStore = useCanvasStore.getState();
+          canvasStore.setCanvasData(currentFrame.data);
+        }
+
         console.log(`✅ Applied ${effect} to timeline: ${result.totalAffectedCells} cells modified in ${result.processingTime.toFixed(2)}ms`);
         
       } else {

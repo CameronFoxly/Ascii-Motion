@@ -587,9 +587,20 @@ export const useCanvasRenderer = () => {
         
         // Only draw if within canvas bounds
         if (x >= 0 && x < canvasConfig.width && y >= 0 && y < canvasConfig.height) {
-          // Draw preview cell with appropriate transparency
           ctx.save();
-          ctx.globalAlpha = previewAlpha; 
+          ctx.globalAlpha = previewAlpha;
+          
+          // For effects previews, clear the cell area first to ensure complete replacement
+          if (isEffectsPreview) {
+            const pixelX = Math.round(x * effectiveCellWidth + panOffset.x);
+            const pixelY = Math.round(y * effectiveCellHeight + panOffset.y);
+            const cellWidth = Math.round(effectiveCellWidth);
+            const cellHeight = Math.round(effectiveCellHeight);
+            
+            // Clear the cell area with canvas background
+            ctx.fillStyle = canvasBackgroundColor;
+            ctx.fillRect(pixelX, pixelY, cellWidth, cellHeight);
+          }
           
           drawCell(ctx, x, y, cell);
           

@@ -365,6 +365,13 @@ function applyLevelsToChannel(
   outputMin: number,
   outputMax: number
 ): number {
+  // Validate input range - prevent division by zero
+  if (highlightsInput <= shadowsInput) {
+    // Invalid range: highlights must be greater than shadows
+    // Return value unchanged to prevent processing errors
+    return Math.round(Math.max(0, Math.min(255, value)));
+  }
+  
   // Clamp input to shadows-highlights range
   if (value <= shadowsInput) return outputMin;
   if (value >= highlightsInput) return outputMax;
