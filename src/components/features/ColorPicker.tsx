@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { Separator } from '@/components/ui/separator';
 import { Palette, Type, Settings, Plus, Trash2, ChevronLeft, ChevronRight, Upload, Download } from 'lucide-react';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
 import { ColorPickerOverlay } from './ColorPickerOverlay';
@@ -53,7 +54,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
   const [isManagePalettesOpen, setIsManagePalettesOpen] = useState(false);
   
   // Collapsible section states
-  const [isPaletteSectionOpen, setIsPaletteSectionOpen] = useState(true);
+  const [isPaletteSectionOpen, setIsPaletteSectionOpen] = useState(false);
 
   // Initialize palette store on mount (ensure default palettes are loaded)
   useEffect(() => {
@@ -243,7 +244,10 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
       {/* Color Palette Section */}
       <Collapsible open={isPaletteSectionOpen} onOpenChange={setIsPaletteSectionOpen}>
         <CollapsibleHeader isOpen={isPaletteSectionOpen}>
-          Color Palette
+          <div className="flex items-center gap-2">
+            <Palette className="w-4 h-4" />
+            Color Palette
+          </div>
         </CollapsibleHeader>
         <CollapsibleContent className="collapsible-content space-y-3">
           {/* Palette selector with inline buttons */}
@@ -590,6 +594,11 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
           )}
         </CollapsibleContent>
       </Collapsible>
+
+      {/* Divider between Color Palette and Effects */}
+      <div className="relative -mx-4 h-px">
+        <Separator className="absolute inset-0" />
+      </div>
 
       {/* Effects Section */}
       <EffectsSection />

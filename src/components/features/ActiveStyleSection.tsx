@@ -11,6 +11,7 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
+import { Eye } from 'lucide-react';
 import { 
   Collapsible,
   CollapsibleContent,
@@ -85,7 +86,10 @@ export function ActiveStyleSection({ className = '' }: ActiveStyleSectionProps) 
     <div className={`space-y-3 ${className}`}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleHeader isOpen={isOpen}>
-          Appearance
+          <div className="flex items-center gap-2">
+            <Eye className="w-4 h-4" />
+            Appearance
+          </div>
         </CollapsibleHeader>
         <CollapsibleContent className="collapsible-content space-y-3">
           {/* Character & Color Controls - Two Equal Columns */}

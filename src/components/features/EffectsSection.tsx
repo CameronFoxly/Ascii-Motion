@@ -39,7 +39,7 @@ interface EffectsSectionProps {
 }
 
 export function EffectsSection({ className = '' }: EffectsSectionProps) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   
   const { 
     openEffectPanel, 

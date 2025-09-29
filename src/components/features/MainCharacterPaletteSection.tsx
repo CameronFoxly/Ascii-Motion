@@ -30,6 +30,7 @@ import {
   Plus,
   Settings,
   Trash2,
+  Type,
   X,
   Download,
   Upload
@@ -50,7 +51,7 @@ interface MainCharacterPaletteSectionProps {
 }
 
 export function MainCharacterPaletteSection({ className = '' }: MainCharacterPaletteSectionProps) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -217,7 +218,10 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
       {/* Character Palette Section */}
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleHeader isOpen={isOpen}>
-          Character Palette
+          <div className="flex items-center gap-2">
+            <Type className="w-4 h-4" />
+            Character Palette
+          </div>
         </CollapsibleHeader>
         <CollapsibleContent className="collapsible-content space-y-3">
           {/* Character Palette Selector */}
