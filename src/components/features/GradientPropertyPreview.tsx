@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { GradientProperty } from '../../types';
 import { sampleGradientProperty } from '../../utils/gradientEngine';
 import { cn } from '../../lib/utils';
+import { useCanvasContext } from '../../contexts/CanvasContext';
 
 const MAX_PREVIEW_WIDTH = 256;
 const PREVIEW_HEIGHT = 24;
@@ -113,6 +114,11 @@ const drawCheckboard = (ctx: CanvasRenderingContext2D, width: number, height: nu
 };
 
 const CharacterPreview: React.FC<{ property: GradientProperty }> = ({ property }) => {
+  const { fontMetrics } = useCanvasContext();
+  
+  // Use the same font string format as the canvas renderer
+  const fontString = `${fontMetrics.fontSize}px '${fontMetrics.fontFamily}', monospace`;
+  
   return (
     <div
       className="relative w-full border border-border rounded bg-muted/20 px-3"
@@ -124,7 +130,6 @@ const CharacterPreview: React.FC<{ property: GradientProperty }> = ({ property }
       {property.stops.map((stop, index) => {
         const clamped = Math.max(0, Math.min(1, stop.position));
         const leftPercent = clamped * 100;
-        const fontSize = Math.max(10, PREVIEW_HEIGHT * 0.6);
         let translateX = -50;
         if (clamped <= 0.01) {
           translateX = 0;
@@ -138,8 +143,11 @@ const CharacterPreview: React.FC<{ property: GradientProperty }> = ({ property }
             style={{ left: `${leftPercent}%`, transform: `translate(${translateX}%, -50%)` }}
           >
             <span
-              className={cn('font-mono leading-none text-foreground', stop.value ? 'px-1' : '')}
-              style={{ fontSize }}
+              className={cn('text-foreground', stop.value ? 'px-1' : '')}
+              style={{ 
+                font: fontString,
+                lineHeight: 1,
+              }}
             >
               {stop.value || '∅'}
             </span>

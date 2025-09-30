@@ -12,7 +12,7 @@ export const CanvasOverlay: React.FC = () => {
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   
   // Canvas context and state  
-  const { canvasRef, pasteMode, cellWidth, cellHeight, zoom, panOffset } = useCanvasContext();
+  const { canvasRef, pasteMode, cellWidth, cellHeight, zoom, panOffset, fontMetrics } = useCanvasContext();
   const {
     moveState,
     getTotalOffset,
@@ -349,7 +349,9 @@ export const CanvasOverlay: React.FC = () => {
           // Draw character
           if (cell.char && cell.char !== ' ') {
             ctx.fillStyle = cell.color || '#000000';
-            ctx.font = `${Math.floor(effectiveCellHeight - 2)}px 'Courier New', monospace`;
+            // Use the same font as the main canvas for 1:1 preview
+            const scaledFontSize = fontMetrics.fontSize * zoom;
+            ctx.font = `${scaledFontSize}px '${fontMetrics.fontFamily}', monospace`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(

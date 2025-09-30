@@ -67,7 +67,7 @@ const sanitizeHexInput = (value: string): string => {
 };
 
 export function GradientPanel() {
-  const { activeTool, selectedChar, selectedColor, selectedBgColor, setActiveTool } = useToolStore();
+  const { activeTool, setActiveTool } = useToolStore();
   const { 
     isOpen, 
     setIsOpen, 
@@ -548,49 +548,6 @@ export function GradientPanel() {
           )}
 
           <PanelSeparator marginX="3" />
-
-          {/* Current Tool Values Display */}
-          <div className="bg-muted/30 rounded p-2 space-y-1">
-            <div className="text-xs text-muted-foreground mb-1">Current Tool Values:</div>
-            <div className="flex items-center justify-between text-xs">
-              <span>Character:</span>
-              <code className="bg-muted px-1 rounded">{selectedChar}</code>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span>Text Color:</span>
-              <div className="flex items-center gap-1">
-                <div
-                  className="w-3 h-3 rounded border"
-                  style={{ backgroundColor: selectedColor }}
-                />
-                <code className="bg-muted px-1 rounded text-xs">{selectedColor}</code>
-              </div>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span>Background:</span>
-              <div className="flex items-center gap-1">
-                <div
-                  className="w-3 h-3 rounded border"
-                  style={{ backgroundColor: selectedBgColor === 'transparent' ? '#000000' : selectedBgColor }}
-                />
-                <code className="bg-muted px-1 rounded text-xs">
-                  {selectedBgColor === 'transparent' ? 'transparent' : selectedBgColor}
-                </code>
-              </div>
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              Click any swatch or character tile in the stops list to edit or copy these values
-            </div>
-          </div>
-
-          {/* Instructions */}
-          <div className="text-xs text-muted-foreground space-y-1 p-2 bg-muted/20 rounded">
-            <div className="font-medium">Instructions:</div>
-            <div>• Click and drag on canvas to set gradient direction</div>
-            <div>• Alt+click for eyedropper tool</div>
-            <div>• Enable properties you want to gradient</div>
-            <div>• Adjust stops and interpolation methods</div>
-          </div>
 
             </div>
           </ScrollArea>
