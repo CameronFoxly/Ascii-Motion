@@ -31,7 +31,7 @@
 - **Auto-Population**: Automatically detects all characters used in canvas
 - **Smart Sorting**: Characters sorted by frequency (most used first)
 - **Interface**: From/To character buttons with arrow icons
-- **Features**: CharacterPicker integration, individual reset buttons
+- **Features**: EnhancedCharacterPicker integration, individual reset buttons
 - **UX**: Compact grid layout with visual character display (space as '␣')
 
 ## 🎨 **Major UX Improvements Implemented**
@@ -48,9 +48,16 @@
 - **Compact Spacing**: Optimized padding and gaps for maximum information density
 - **Icon Integration**: MoveRight arrows and reset icons for clear visual hierarchy
 
+### **Character Picker Standardization (Sept 29, 2025)**
+- **Unified Component**: All character pickers now use `EnhancedCharacterPicker` with consistent design
+- **Enhanced UI**: 400px width with icon categories (Type, Hash, Grid3X3, Square, etc.)
+- **Better Spacing**: 8-column character grid for improved visual hierarchy
+- **Eliminated Tech Debt**: Removed old `CharacterPicker` component, single source of truth
+- **Locations Updated**: Appearance panel, character palette editor, import media, gradient fills, and effect panels
+
 ### **Input Field Optimization**
 - **Full Hex Code Display**: Reduced padding (`px-1`) in color hex inputs to show complete #FFFFFF codes
-- **Character Button Integration**: Direct integration with ColorPickerOverlay and CharacterPicker
+- **Character Button Integration**: Direct integration with ColorPickerOverlay and EnhancedCharacterPicker
 - **Real-time Validation**: Immediate feedback for invalid hex codes and character inputs
 
 ## 🔧 **Live Preview System**
@@ -117,7 +124,7 @@ src/components/features/
     ├── LevelsEffectPanel.tsx       # Brightness/Contrast/Gamma controls
     ├── HueSaturationEffectPanel.tsx # HSL color adjustment controls  
     ├── RemapColorsEffectPanel.tsx   # Color mapping with ColorPickerOverlay
-    └── RemapCharactersEffectPanel.tsx # Character mapping with CharacterPicker
+    └── RemapCharactersEffectPanel.tsx # Character mapping with EnhancedCharacterPicker
 ```
 
 ### **Processing Pipeline (effectsProcessing.ts)**
@@ -167,7 +174,7 @@ export async function processEffect(
 
 ### **Component Dependencies**
 - **ColorPickerOverlay**: Integrated for color selection in remap colors effect
-- **CharacterPicker**: Integrated for character selection in remap characters effect
+- **EnhancedCharacterPicker**: Integrated for character selection in remap characters effect
 - **UI Components**: Button, Label, Input, Switch, Slider from existing component system
 
 ## 🚀 **Future-Ready Architecture**

@@ -1984,6 +1984,7 @@ const navigatePaletteColor = (direction: 'previous' | 'next') => {
 - [x] **Canvas Settings Panel** - Centralized controls with typography options
 - [x] **Compact Action Buttons** - Relocated copy/paste/undo/redo to canvas footer
 - [x] **Enhanced Status Integration** - Tool status with action buttons in organized layout
+- [x] **Character Picker Standardization** ✅ **COMPLETE** - Unified EnhancedCharacterPicker with icons and improved visual hierarchy across all features (Sept 29, 2025)
 
 #### Advanced Systems
 - [ ] **Custom Palette System** - Move beyond ANSI 4-bit to full color support *(Future)*

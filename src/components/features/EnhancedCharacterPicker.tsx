@@ -1,27 +1,50 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CHARACTER_CATEGORIES } from '@/constants';
+import { 
+  Type, 
+  Hash, 
+  Grid3X3, 
+  Square, 
+  Navigation, 
+  Triangle, 
+  Sparkles,
+  Minus
+} from 'lucide-react';
 
-interface CharacterPickerProps {
+interface EnhancedCharacterPickerProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectCharacter: (character: string) => void;
   triggerRef: React.RefObject<HTMLElement | null>;
-  anchorPosition?: 'bottom-right' | 'left-slide' | 'left-bottom' | 'left-bottom-aligned';
+  anchorPosition?: 'bottom-right' | 'left-slide' | 'left-bottom' | 'left-bottom-aligned' | 'gradient-panel';
+  initialValue?: string;
+  title?: string;
 }
 
-export const CharacterPicker: React.FC<CharacterPickerProps> = ({
+const CATEGORY_ICONS = {
+  "Basic Text": Type,
+  "Punctuation": Minus,
+  "Math/Symbols": Hash,
+  "Lines/Borders": Grid3X3,
+  "Blocks/Shading": Square,
+  "Arrows": Navigation,
+  "Geometric": Triangle,
+  "Special": Sparkles
+};
+
+export const EnhancedCharacterPicker: React.FC<EnhancedCharacterPickerProps> = ({
   isOpen,
   onClose,
   onSelectCharacter,
   triggerRef,
-  anchorPosition = 'left-slide'
+  anchorPosition = 'left-slide',
+  initialValue = '',
+  title = 'Select Character'
 }) => {
-  const [activeTab, setActiveTab] = useState('Basic Text');
+  const [selectedCategory, setSelectedCategory] = useState("Basic Text");
   const pickerRef = useRef<HTMLDivElement>(null);
 
   // Close picker when clicking outside
@@ -59,15 +82,29 @@ export const CharacterPicker: React.FC<CharacterPickerProps> = ({
     onClose();
   };
 
-  // Position calculation
+  // Position calculation with support for all existing anchor positions
   const getPickerPosition = () => {
     if (!triggerRef.current) return { top: 0, right: 0, left: 0 };
     
     const triggerRect = triggerRef.current.getBoundingClientRect();
-    const pickerWidth = 320;
-    const pickerHeight = 300;
+    const pickerWidth = 400; // Enhanced width for better breathing room
+    const pickerHeight = 500; // Enhanced height for better visual hierarchy
     
-    if (anchorPosition === 'bottom-right') {
+    if (anchorPosition === 'gradient-panel') {
+      // Center the picker vertically in the viewport (from GradientStopPicker)
+      const viewportHeight = window.innerHeight;
+      const top = Math.max(8, (viewportHeight - pickerHeight) / 2 + window.scrollY);
+      
+      // Position to the left of the gradient panel (which is 320px wide and on the right side)
+      const gradientPanelWidth = 320;
+      const left = window.innerWidth - gradientPanelWidth - pickerWidth - 16; // 16px gap
+      
+      return {
+        top,
+        left: Math.max(8, left), // Ensure it doesn't go off-screen
+        right: 'auto'
+      };
+    } else if (anchorPosition === 'bottom-right') {
       // Anchor bottom-right corner of picker to the trigger element
       let top = triggerRect.bottom + window.scrollY - pickerHeight - 8; // 8px gap above trigger
       let left = triggerRect.right - pickerWidth + window.scrollX;
@@ -131,52 +168,52 @@ export const CharacterPicker: React.FC<CharacterPickerProps> = ({
         top: position.top,
         right: position.right !== 'auto' ? position.right : undefined,
         left: position.left !== 'auto' ? position.left : undefined,
-        maxWidth: '320px',
-        width: '320px'
+        maxWidth: '400px',
+        width: '400px'
       }}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
       <Card className="border border-border/50 shadow-lg">
         <div className="p-4">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-3">
-              <TabsTrigger value="Basic Text" className="text-xs">Basic</TabsTrigger>
-              <TabsTrigger value="Blocks/Shading" className="text-xs">Blocks</TabsTrigger>
-              <TabsTrigger value="Lines/Borders" className="text-xs">Lines</TabsTrigger>
-            </TabsList>
+          <h3 className="text-lg font-semibold mb-4">{title}</h3>
+          
+          <div className="space-y-4">
+            {/* Category Selection - Enhanced 4-column grid with icons */}
+            <div className="grid grid-cols-4 gap-2">
+              {Object.entries(CHARACTER_CATEGORIES).map(([category]) => {
+                const Icon = CATEGORY_ICONS[category as keyof typeof CATEGORY_ICONS] || Type;
+                return (
+                  <Button
+                    key={category}
+                    variant={selectedCategory === category ? "default" : "outline"}
+                    className="h-12 flex flex-col items-center gap-1 text-xs"
+                    onClick={() => setSelectedCategory(category)}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="text-xs leading-none">{category.split('/')[0]}</span>
+                  </Button>
+                );
+              })}
+            </div>
             
-            <TabsList className="grid w-full grid-cols-3 mb-4">
-              <TabsTrigger value="Punctuation" className="text-xs">Punct</TabsTrigger>
-              <TabsTrigger value="Math/Symbols" className="text-xs">Math</TabsTrigger>
-              <TabsTrigger value="Arrows" className="text-xs">Arrows</TabsTrigger>
-            </TabsList>
-
-            {Object.entries(CHARACTER_CATEGORIES).map(([category, characters]) => (
-              <TabsContent key={category} value={category} className="mt-0">
-                <div className="grid grid-cols-6 gap-1 max-h-48 overflow-y-auto">
-                  <TooltipProvider>
-                    {characters.map((char, index) => (
-                      <Tooltip key={index}>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            className="h-8 w-8 p-0 text-sm font-mono hover:bg-accent hover:text-accent-foreground flex items-center justify-center"
-                            onClick={() => handleCharacterSelect(char)}
-                          >
-                            {char}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Insert "{char}"</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
-                  </TooltipProvider>
-                </div>
-              </TabsContent>
-            ))}
-          </Tabs>
+            {/* Character Grid - Enhanced 8-column grid for better spacing */}
+            <div className="max-h-60 overflow-y-auto">
+              <div className="grid grid-cols-8 gap-1 p-2 border border-border rounded bg-muted/30">
+                {CHARACTER_CATEGORIES[selectedCategory as keyof typeof CHARACTER_CATEGORIES]?.map((char, index) => (
+                  <Button
+                    key={index}
+                    variant={initialValue === char ? "default" : "ghost"}
+                    className="h-8 w-8 p-0 font-mono text-sm hover:bg-accent hover:text-accent-foreground flex items-center justify-center"
+                    onClick={() => handleCharacterSelect(char)}
+                    title={`Insert "${char}"`}
+                  >
+                    {char}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </Card>
     </div>,

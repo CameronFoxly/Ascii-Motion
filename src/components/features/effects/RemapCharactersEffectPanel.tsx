@@ -10,7 +10,7 @@ import { Button } from '../../ui/button';
 import { Label } from '../../ui/label';
 import { useEffectsStore } from '../../../stores/effectsStore';
 import { useCanvasStore } from '../../../stores/canvasStore';
-import { CharacterPicker } from '../CharacterPicker';
+import { EnhancedCharacterPicker } from '../EnhancedCharacterPicker';
 import { RotateCcw, Eye, EyeOff, MoveRight, RotateCcwSquare } from 'lucide-react';
 
 // Character utility functions
@@ -347,11 +347,13 @@ export function RemapCharactersEffectPanel() {
 
       {/* Character Picker */}
       {isCharacterPickerOpen && characterPickerTarget.triggerRef && (
-        <CharacterPicker
+        <EnhancedCharacterPicker
           isOpen={isCharacterPickerOpen}
           onClose={handleCloseCharacterPicker}
           onSelectCharacter={handleCharacterPick}
           triggerRef={characterPickerTarget.triggerRef}
+          initialValue=""
+          title="Select Replacement Character"
         />
       )}
       

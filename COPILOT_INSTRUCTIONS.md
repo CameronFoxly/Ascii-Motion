@@ -1212,6 +1212,76 @@ const BadDropdown = () => (
 - Dropdown menus: `z-[99999]` (with portals)
 - Modals: `z-[100000]+`
 
+### **🎨 Enhanced Character Picker Pattern (Standardized Sept 29, 2025)**
+
+**IMPORTANT: ASCII Motion now uses a standardized character picker system across all features with enhanced UI and consistent behavior.**
+
+#### **✅ EnhancedCharacterPicker Component Features:**
+- **Enhanced Visual Hierarchy**: 400px width for better breathing room (vs 320px basic version)
+- **Icon Categories**: Visual category buttons with Lucide icons (Type, Hash, Grid3X3, Square, etc.)
+- **8-Column Character Grid**: Improved spacing and visual clarity (vs 6-column basic version)
+- **Flexible Positioning**: Supports all existing anchor positions (bottom-right, left-slide, gradient-panel, etc.)
+- **Initial Value Highlighting**: Selected character is visually highlighted
+- **Custom Titles**: Contextual titles like "Select Character for Palette", "Select Replacement Character"
+
+#### **🚀 Usage Pattern for All Character Pickers:**
+```typescript
+import { EnhancedCharacterPicker } from './EnhancedCharacterPicker';
+
+// ✅ Standard character picker implementation
+<EnhancedCharacterPicker
+  isOpen={isCharacterPickerOpen}
+  onClose={() => setIsCharacterPickerOpen(false)}
+  onSelectCharacter={handleCharacterSelect}
+  triggerRef={characterButtonRef}
+  anchorPosition="bottom-right" // or other positioning option
+  initialValue={currentSelectedCharacter}
+  title="Select Character"
+/>
+```
+
+#### **🎯 Available Anchor Positions:**
+- **`bottom-right`**: Anchor bottom-right corner above trigger (Appearance panel)
+- **`left-slide`**: Default left positioning (Character palette editor)
+- **`left-bottom`**: Left positioning with bottom alignment (Import media panel)
+- **`left-bottom-aligned`**: Precise bottom alignment (Edit buttons)
+- **`gradient-panel`**: Centered viewport positioning (Gradient fill panel)
+
+#### **📋 Standardized Character Categories with Icons:**
+| Category | Icon | Characters |
+|----------|------|------------|
+| **Basic Text** | `Type` | A-Z, a-z, 0-9 |
+| **Punctuation** | `Minus` | .,!?;:"'()[]{}... |
+| **Math/Symbols** | `Hash` | +-*/%=<>@#$&^... |
+| **Lines/Borders** | `Grid3X3` | ─│┌┐└┘├┤┬┴┼... |
+| **Blocks/Shading** | `Square` | █▓▒░▀▄▌▐... |
+| **Arrows** | `Navigation` | ←→↑↓↖↗↘↙... |
+| **Geometric** | `Triangle` | △▲▼▽◄►◀▶... |
+| **Special** | `Sparkles` | ★☆♠♣♥♦※§... |
+
+#### **🔧 Implementation Benefits:**
+- **✅ Consistent UX**: All character pickers now have identical visual design and behavior
+- **✅ Better Accessibility**: Enhanced visual hierarchy with icons and improved spacing
+- **✅ Maintainable**: Single component eliminates code duplication across 5+ locations
+- **✅ Future-Proof**: Easy to add new features or modify behavior in one place
+- **✅ Professional UI**: Matches the enhanced gradient fill picker design throughout
+
+#### **🚨 Migration Completed (Sept 29, 2025):**
+- **✅ COMPLETE**: ActiveStyleSection (Appearance collapsible)
+- **✅ COMPLETE**: MainCharacterPaletteSection (Character palette editor)  
+- **✅ COMPLETE**: CharacterMappingSection (Import media panel)
+- **✅ COMPLETE**: RemapCharactersEffectPanel (Character remapping effect)
+- **✅ COMPLETE**: GradientStopPicker (Gradient fill controls)
+- **✅ COMPLETE**: Old CharacterPicker component removed to eliminate tech debt
+
+#### **🎯 Future Character Picker Requirements:**
+When adding new features that need character selection:
+1. **Always use EnhancedCharacterPicker** - Never create custom character selection UI
+2. **Choose appropriate anchor position** based on trigger element location
+3. **Provide contextual title** that describes the selection purpose
+4. **Pass initialValue** to highlight currently selected character
+5. **Follow established z-index patterns** for proper layering
+
 ### 🔧 **Adding New Tools - Step-by-Step Guide**
 
 **CRITICAL**: When adding ANY new tool, follow this exact pattern to maintain architectural consistency.

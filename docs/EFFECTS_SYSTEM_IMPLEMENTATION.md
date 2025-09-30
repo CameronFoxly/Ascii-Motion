@@ -16,7 +16,7 @@ The ASCII Motion Effects System provides professional-grade image editing effect
 1. **Levels** - Brightness, contrast, and gamma correction with real-time preview
 2. **Hue & Saturation** - HSL color manipulation with hue shifting and saturation controls
 3. **Remap Colors** - Visual color replacement with auto-populated canvas color detection
-4. **Remap Characters** - Character replacement with canvas character analysis and CharacterPicker integration
+4. **Remap Characters** - Character replacement with canvas character analysis and EnhancedCharacterPicker integration
 
 ### **✅ USER INTERFACE**
 - **Collapsible Effects Section** in right sidebar under Color Palette
@@ -257,7 +257,7 @@ export async function processEffect(
 
 ### **4. Remap Characters Effect**
 - **Auto-Population**: Detects all characters used in canvas, sorts by frequency  
-- **Interface**: From/To character buttons with CharacterPicker integration
+- **Interface**: From/To character buttons with EnhancedCharacterPicker integration
 - **Features**: Individual reset buttons, visual character display (space as '␣')
 - **Processing**: Direct character replacement mapping
 
@@ -665,11 +665,14 @@ return (
     </div>
     
     {/* Character picker integration */}
-    <CharacterPicker
+    <EnhancedCharacterPicker
       isOpen={characterPickerOpen}
-      onOpenChange={setCharacterPickerOpen}
-      onCharacterSelect={handleCharacterRemap}
-      anchorPosition="effects-panel"
+      onClose={() => setCharacterPickerOpen(false)}
+      onSelectCharacter={handleCharacterRemap}
+      triggerRef={characterButtonRef}
+      anchorPosition="bottom-right"
+      initialValue={selectedCharacter}
+      title="Select Replacement Character"
     />
   </div>
 </CollapsibleContent>
