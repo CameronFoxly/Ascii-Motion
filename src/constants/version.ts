@@ -1,12 +1,32 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.21";
-export const BUILD_DATE = "2025-09-29T20:21:24.363Z";
-export const BUILD_HASH = "4dfe0b1";
+export const VERSION = "0.1.22";
+export const BUILD_DATE = "2025-09-30T02:38:42.543Z";
+export const BUILD_HASH = "63e3647";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.22",
+    "date": "2025-09-30T02:38:42.543Z",
+    "commits": [
+      "Enhance EnhancedCharacterPicker with Tooltip components for consistency with tooltip improvements",
+      "Merge main into tooltip branch - preserve character palette improvements and tooltip enhancements",
+      "Update character palette implementation",
+      "Update documentation with tooltip implementation guidelines",
+      "Fix tooltips in MediaImportPanel (nudge, sizing, alignment controls)",
+      "Fix tooltips in ColorPicker color swatches",
+      "Fix tooltips in character picker, appearance panel, and palette components",
+      "Fix TooltipProvider placement to avoid multiple providers in loops",
+      "Fix tooltips in ForegroundBackgroundSelector, ImportPaletteDialog, and TextColorMappingSection",
+      "Fix tooltips in CharacterPicker and CharacterMappingSection",
+      "Fix tooltips in dialog and control components",
+      "Fix tooltips in common components and ZoomControls",
+      "Initial commit: Start standardizing tooltips",
+      "Initial plan"
+    ]
+  },
   {
     "version": "0.1.21",
     "date": "2025-09-29T20:21:24.363Z",

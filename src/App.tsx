@@ -17,7 +17,6 @@ import { PlaybackOverlay } from './components/features/PlaybackOverlay'
 import { FullscreenToggle } from './components/features/FullscreenToggle'
 import { cn } from '@/lib/utils'
 import { PerformanceOverlay } from './components/common/PerformanceOverlay'
-import { StatusPanel } from './components/features/StatusPanel'
 import { ExportImportButtons } from './components/features/ExportImportButtons'
 import { ImportModal } from './components/features/ImportModal'
 import { MediaImportPanel } from './components/features/MediaImportPanel'
@@ -80,15 +79,6 @@ function App() {
                   {/* Tools at the top */}
                   <div className="flex-1">
                     <ToolPalette />
-                  </div>
-                  
-                  <div className="relative -mx-4 h-px">
-                    <Separator className="absolute inset-0" />
-                  </div>
-                  
-                  {/* Status panel anchored to bottom */}
-                  <div className="flex-shrink-0">
-                    <StatusPanel />
                   </div>
                 </div>
               </CollapsiblePanel>
