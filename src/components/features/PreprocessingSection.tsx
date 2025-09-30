@@ -13,6 +13,7 @@ import { Label } from '../ui/label';
 import { Card, CardContent } from '../ui/card';
 import { Slider } from '../ui/slider';
 import { Separator } from '../ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { 
   Select,
   SelectContent,
@@ -88,10 +89,10 @@ export function PreprocessingSection({ onSettingsChange }: PreprocessingSectionP
       </CollapsibleHeader>
       
       <CollapsibleContent className="collapsible-content">
-        <div className="space-y-3 w-full">
+        <div className="space-y-3 max-w-full overflow-hidden">
           {/* Mapping Algorithm Section */}
-          <Card className="bg-card/50 border-border/50 overflow-hidden w-full">
-            <CardContent className="p-3 space-y-3 w-full">
+          <Card className="bg-card/50 border-border/50 overflow-hidden max-w-full min-w-0">
+            <CardContent className="p-3 space-y-3">
               
               {/* Header with Reset Button */}
               <div className="flex items-center justify-between">
@@ -111,18 +112,15 @@ export function PreprocessingSection({ onSettingsChange }: PreprocessingSectionP
               </div>
 
               {/* Mapping Algorithm Selection */}
-              <div className="space-y-2 w-full">
+              <div className="space-y-2">
                 <Select value={mappingMethod} onValueChange={handleMappingMethodChange}>
-                  <SelectTrigger className="h-8 text-xs w-full">
+                  <SelectTrigger className="h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="border-border/50">
                     {Object.entries(MAPPING_ALGORITHMS).map(([key, algorithm]) => (
-                      <SelectItem key={key} value={key} className="text-xs">
-                        <div className="space-y-1 min-w-0">
-                          <div className="font-medium capitalize truncate">{algorithm.name.replace('-', ' ')}</div>
-                          <div className="text-muted-foreground text-xs break-words">{algorithm.description}</div>
-                        </div>
+                      <SelectItem key={key} value={key} className="text-xs" title={algorithm.description}>
+                        {algorithm.name.replace('-', ' ')}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -133,8 +131,8 @@ export function PreprocessingSection({ onSettingsChange }: PreprocessingSectionP
           </Card>
 
           {/* Image Processing Filters Section */}
-          <Card className="bg-card/50 border-border/50 overflow-hidden w-full">
-            <CardContent className="p-3 space-y-3 w-full">
+          <Card className="bg-card/50 border-border/50 overflow-hidden max-w-full min-w-0">
+            <CardContent className="p-3 space-y-3">
               
               {/* Header */}
               <div className="flex items-center gap-2">
@@ -143,7 +141,7 @@ export function PreprocessingSection({ onSettingsChange }: PreprocessingSectionP
               </div>
 
               {/* Basic Adjustments */}
-              <div className="space-y-3 w-full">
+              <div className="space-y-3">
                 
                 {/* Brightness */}
                 <div className="space-y-2">
@@ -157,7 +155,6 @@ export function PreprocessingSection({ onSettingsChange }: PreprocessingSectionP
                     min={-100}
                     max={100}
                     step={1}
-                    className="w-full"
                   />
                 </div>
 
@@ -173,7 +170,6 @@ export function PreprocessingSection({ onSettingsChange }: PreprocessingSectionP
                     min={-100}
                     max={100}
                     step={1}
-                    className="w-full"
                   />
                 </div>
 
@@ -189,7 +185,6 @@ export function PreprocessingSection({ onSettingsChange }: PreprocessingSectionP
                     min={-100}
                     max={100}
                     step={1}
-                    className="w-full"
                   />
                 </div>
 
@@ -210,7 +205,6 @@ export function PreprocessingSection({ onSettingsChange }: PreprocessingSectionP
                       min={-100}
                       max={100}
                       step={1}
-                      className="w-full"
                     />
                   </div>
 
@@ -226,7 +220,6 @@ export function PreprocessingSection({ onSettingsChange }: PreprocessingSectionP
                       min={-100}
                       max={100}
                       step={1}
-                      className="w-full"
                     />
                   </div>
 
@@ -242,7 +235,6 @@ export function PreprocessingSection({ onSettingsChange }: PreprocessingSectionP
                       min={-100}
                       max={100}
                       step={1}
-                      className="w-full"
                     />
                   </div>
 
@@ -260,7 +252,6 @@ export function PreprocessingSection({ onSettingsChange }: PreprocessingSectionP
                       min={0}
                       max={10}
                       step={0.1}
-                      className="w-full"
                     />
                   </div>
 
@@ -276,7 +267,6 @@ export function PreprocessingSection({ onSettingsChange }: PreprocessingSectionP
                       min={0}
                       max={10}
                       step={0.1}
-                      className="w-full"
                     />
                   </div>
 

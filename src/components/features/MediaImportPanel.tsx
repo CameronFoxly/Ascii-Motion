@@ -17,7 +17,6 @@ import { Progress } from '../ui/progress';
 import { Checkbox } from '../ui/checkbox';
 import { Alert, AlertDescription } from '../ui/alert';
 import { ScrollArea } from '../ui/scroll-area';
-import { Separator } from '../ui/separator';
 import { Slider } from '../ui/slider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { 
@@ -25,6 +24,7 @@ import {
   CollapsibleContent,
 } from '../ui/collapsible';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
+import { PanelSeparator } from '../common/PanelSeparator';
 import { 
   Upload, 
   Image as ImageIcon, 
@@ -703,18 +703,19 @@ export function MediaImportPanel() {
         </Button>
       </div>
 
-      <ScrollArea className="flex-1">
-        <div className={`p-3 ${!selectedFile ? 'min-h-[calc(100vh-120px)] flex items-center justify-center' : 'space-y-3'}`} style={{ width: '296px', maxWidth: '296px' }}>
+      <ScrollArea className="flex-1 overflow-x-hidden">
+        <div className="p-3 space-y-3">
           {/* File Upload Section */}
           {!selectedFile && (
-            <div className="w-full">
-              <div
-                className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
-                  dragActive 
-                    ? 'border-primary bg-primary/10' 
-                    : 'border-muted-foreground/25 hover:border-primary/50'
-                }`}
-                onDragEnter={handleDrag}
+            <div className="min-h-[calc(100vh-120px)] flex items-center justify-center">
+              <div className="w-full">
+                <div
+                  className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+                    dragActive 
+                      ? 'border-primary bg-primary/10' 
+                      : 'border-muted-foreground/25 hover:border-primary/50'
+                  }`}
+                  onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
@@ -745,13 +746,14 @@ export function MediaImportPanel() {
                 <p>Images: JPG, PNG, GIF, BMP, WebP, SVG</p>
                 <p>Videos: MP4, WebM, OGG, AVI, MOV, WMV</p>
               </div>
+                </div>
               </div>
             </div>
           )}
 
           {/* Selected File Info */}
           {selectedFile && (
-            <div className="space-y-3">
+            <>
               <div className="flex items-center gap-2 p-2 border rounded-lg">
                 {getFileIcon(selectedFile)}
                 <div className="flex-1 min-w-0">
@@ -931,7 +933,7 @@ export function MediaImportPanel() {
                 </CollapsibleContent>
               </Collapsible>
               
-              <Separator className="my-4 -mx-3" />
+              <PanelSeparator marginX="3" className="my-4" />
               
               {/* Position & Size Section */}
               <Collapsible open={positionSectionOpen} onOpenChange={setPositionSectionOpen}>
@@ -1044,7 +1046,7 @@ export function MediaImportPanel() {
                     </div>
                     
                     {/* Alignment & Nudge Controls - Two Equal Columns */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-2">
                       {/* Alignment Section */}
                       <div className="flex flex-col items-center space-y-2">
                         <Label className="text-xs font-medium">Alignment</Label>
@@ -1195,28 +1197,20 @@ export function MediaImportPanel() {
               </Collapsible>
 
               {/* Pre-processing Section */}
-              <div className="space-y-3">
-                <Separator className="-mx-3" />
-                <PreprocessingSection onSettingsChange={() => setLivePreviewEnabled(true)} />
-              </div>
+              <PanelSeparator marginX="3" />
+              <PreprocessingSection onSettingsChange={() => setLivePreviewEnabled(true)} />
 
               {/* Character Mapping Section */}
-              <div className="space-y-3">
-                <Separator className="-mx-3" />
-                <CharacterMappingSection onSettingsChange={() => setLivePreviewEnabled(true)} />
-              </div>
+              <PanelSeparator marginX="3" />
+              <CharacterMappingSection onSettingsChange={() => setLivePreviewEnabled(true)} />
 
               {/* Text Color Mapping Section */}
-              <div className="space-y-3">
-                <Separator className="-mx-3" />
-                <TextColorMappingSection onSettingsChange={() => setLivePreviewEnabled(true)} />
-              </div>
+              <PanelSeparator marginX="3" />
+              <TextColorMappingSection onSettingsChange={() => setLivePreviewEnabled(true)} />
 
               {/* Background Color Mapping Section */}
-              <div className="space-y-3">
-                <Separator className="-mx-3" />
-                <BackgroundColorMappingSection onSettingsChange={() => setLivePreviewEnabled(true)} />
-              </div>
+              <PanelSeparator marginX="3" />
+              <BackgroundColorMappingSection onSettingsChange={() => setLivePreviewEnabled(true)} />
               
               {/* Processing Progress */}
               {isProcessing && (
@@ -1228,7 +1222,7 @@ export function MediaImportPanel() {
                   <Progress value={progress} className="h-1" />
                 </div>
               )}
-            </div>
+            </>
           )}
 
           {/* Error Display */}

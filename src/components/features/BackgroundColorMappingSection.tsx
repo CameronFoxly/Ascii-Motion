@@ -395,7 +395,7 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
         </CollapsibleTrigger>
         
         <CollapsibleContent className="collapsible-content">
-          <div className="space-y-3 w-full">
+          <div className="space-y-3">
             <Card className="bg-card/30 border-border/50">
               <CardContent className="p-3 space-y-3">
                 {/* Palette Selection */}

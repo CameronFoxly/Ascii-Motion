@@ -12,7 +12,6 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
-import { Separator } from '../ui/separator';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -25,6 +24,7 @@ import {
   CollapsibleTrigger
 } from '../ui/collapsible';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
+import { PanelSeparator } from '../common/PanelSeparator';
 import { GradientIcon } from '../icons';
 import { GradientStopPicker } from './GradientStopPicker';
 import { GradientPropertyPreview } from './GradientPropertyPreview';
@@ -477,7 +477,7 @@ export function GradientPanel() {
 
           {/* Scrollable Content Area */}
           <ScrollArea className="flex-1">
-            <div className="p-3 space-y-3" style={{ width: '296px', maxWidth: '296px' }}>
+            <div className="p-3 space-y-3 overflow-x-hidden">
           
           {/* Gradient Type Section */}
           <Collapsible open={gradientTypeOpen} onOpenChange={setGradientTypeOpen}>
@@ -511,7 +511,7 @@ export function GradientPanel() {
             </CollapsibleContent>
           </Collapsible>
 
-          <Separator />
+          <PanelSeparator marginX="3" />
 
           {/* Character Property */}
           {renderPropertyEditor(
@@ -523,7 +523,7 @@ export function GradientPanel() {
             setCharacterOpen
           )}
 
-          <Separator />
+          <PanelSeparator marginX="3" />
 
           {/* Text Color Property */}
           {renderPropertyEditor(
@@ -535,7 +535,7 @@ export function GradientPanel() {
             setTextColorOpen
           )}
 
-          <Separator />
+          <PanelSeparator marginX="3" />
 
           {/* Background Color Property */}
           {renderPropertyEditor(
@@ -547,7 +547,7 @@ export function GradientPanel() {
             setBackgroundColorOpen
           )}
 
-          <Separator />
+          <PanelSeparator marginX="3" />
 
           {/* Current Tool Values Display */}
           <div className="bg-muted/30 rounded p-2 space-y-1">
