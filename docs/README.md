@@ -20,6 +20,8 @@ This directory contains comprehensive documentation for the ASCII Motion project
 ### **Planning & Architecture**
 - [`PHASE_4_ADVANCED_TOOLS_PLAN.md`](./PHASE_4_ADVANCED_TOOLS_PLAN.md) - Phase 4 development plan and progress
 - [`COLOR_PALETTE_OVERHAUL_PLAN.md`](./COLOR_PALETTE_OVERHAUL_PLAN.md) - Color system enhancement planning
+- [`SVG_TEXT_TO_OUTLINES_IMPLEMENTATION_PLAN.md`](./SVG_TEXT_TO_OUTLINES_IMPLEMENTATION_PLAN.md) - OpenType.js integration plan
+- [`SVG_TEXT_TO_OUTLINES_IMPLEMENTATION_SUMMARY.md`](./SVG_TEXT_TO_OUTLINES_IMPLEMENTATION_SUMMARY.md) - Implementation summary and testing guide
 
 ### **Performance & Optimization**
 - [`PERFORMANCE_OPTIMIZATION.md`](./PERFORMANCE_OPTIMIZATION.md) - Performance optimization strategies

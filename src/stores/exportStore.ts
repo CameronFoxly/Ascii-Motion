@@ -47,6 +47,7 @@ const DEFAULT_SVG_SETTINGS: SvgExportSettings = {
   textAsOutlines: false,     // Use <text> elements by default (smaller file size)
   includeBackground: true,   // Include background color by default
   prettify: true,            // Human-readable formatting by default
+  outlineFont: 'jetbrains-mono', // Default font for text-to-outlines
 };
 
 // Default settings for each export format

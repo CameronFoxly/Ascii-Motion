@@ -156,7 +156,7 @@ export const ImageExportDialog: React.FC = () => {
 		setImageSettings({ quality: clamped });
 	};
 
-	const handleSvgSettingChange = (key: keyof SvgExportSettings, value: boolean) => {
+	const handleSvgSettingChange = (key: keyof SvgExportSettings, value: boolean | string) => {
 		setImageSettings({
 			svgSettings: {
 				...imageSettings.svgSettings!,

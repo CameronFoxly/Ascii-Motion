@@ -3,6 +3,9 @@
  * Provides functions to generate SVG elements and convert ASCII art to vector graphics
  */
 
+import type { Font } from 'opentype.js';
+import { convertGlyphToSvgPath, generateSvgPathElement } from './font/opentypePathConverter';
+
 /**
  * Generate SVG header with proper namespaces and viewBox
  */
@@ -85,13 +88,74 @@ export function generateSvgTextElement(
 }
 
 /**
- * Convert character to SVG path outline
- * Uses canvas to render character and extract approximate path
- * 
- * Note: This is a simplified implementation. For production-quality path conversion,
- * consider using a library like opentype.js for accurate glyph path extraction.
+ * Convert character to SVG path outline using opentype.js
+ * Falls back to pixel tracing if font is unavailable
  */
 export function convertTextToPath(
+  char: string,
+  x: number,
+  y: number,
+  color: string,
+  bgColor: string | undefined,
+  cellWidth: number,
+  cellHeight: number,
+  fontSize: number,
+  fontFamily: string,
+  font?: Font // Optional opentype.js font for true vector conversion
+): string {
+  // Try opentype.js conversion first if font is provided
+  if (font) {
+    const result = convertGlyphToSvgPath(font, {
+      char,
+      position: { x, y },
+      cellSize: { width: cellWidth, height: cellHeight },
+      fontSize,
+      color,
+      backgroundColor: bgColor,
+    });
+
+    if (result.success && result.pathData) {
+      return generateSvgPathElement(
+        result.pathData,
+        color,
+        bgColor,
+        x,
+        y,
+        cellWidth,
+        cellHeight
+      );
+    }
+    
+    // If opentype conversion failed, log warning and fall through to pixel tracing
+    if (result.error) {
+      console.warn(`[SVG Export] OpenType conversion failed for "${char}": ${result.error}`);
+    }
+  } else {
+    // Log once that we're using pixel tracing because no font was provided
+    if (x === 0 && y === 0) {
+      console.warn('[SVG Export] No font provided, using pixel tracing fallback');
+    }
+  }
+
+  // Fallback to pixel tracing if no font or conversion failed
+  return convertTextToPathPixelTracing(
+    char,
+    x,
+    y,
+    color,
+    bgColor,
+    cellWidth,
+    cellHeight,
+    fontSize,
+    fontFamily
+  );
+}
+
+/**
+ * Convert character to SVG path using pixel tracing (fallback method)
+ * Uses marching squares algorithm to trace rendered character
+ */
+function convertTextToPathPixelTracing(
   char: string,
   x: number,
   y: number,
@@ -160,13 +224,12 @@ export function convertTextToPath(
 }
 
 /**
- * Convert canvas content to SVG path
- * Simplified implementation - traces pixel boundaries
+ * Convert canvas content to SVG path using marching squares algorithm
+ * Traces the actual pixel boundaries of rendered characters
  * 
  * For production use, consider:
- * - opentype.js for accurate font path extraction
- * - potrace algorithm for better vectorization
- * - Font-specific path data lookup tables
+ * - opentype.js for accurate font path extraction from font files
+ * - This implementation provides good approximation from rendered pixels
  */
 function canvasToSvgPath(
   ctx: CanvasRenderingContext2D,
@@ -180,39 +243,148 @@ function canvasToSvgPath(
     const imageData = ctx.getImageData(0, 0, width, height);
     const data = imageData.data;
     
-    // Simple approach: Find bounding box of non-transparent pixels
-    let minX = width, minY = height, maxX = 0, maxY = 0;
-    let hasPixels = false;
-    
+    // Create binary grid of pixels (1 = filled, 0 = empty)
+    const grid: number[][] = [];
     for (let y = 0; y < height; y++) {
+      grid[y] = [];
       for (let x = 0; x < width; x++) {
         const alpha = data[(y * width + x) * 4 + 3];
-        if (alpha > 128) {
-          hasPixels = true;
-          minX = Math.min(minX, x);
-          minY = Math.min(minY, y);
-          maxX = Math.max(maxX, x);
-          maxY = Math.max(maxY, y);
+        grid[y][x] = alpha > 128 ? 1 : 0;
+      }
+    }
+    
+    // Find contours using marching squares
+    const paths: string[] = [];
+    const visited = new Set<string>();
+    
+    for (let y = 0; y < height - 1; y++) {
+      for (let x = 0; x < width - 1; x++) {
+        const key = `${x},${y}`;
+        if (visited.has(key)) continue;
+        
+        // Check if this is a boundary pixel
+        const tl = grid[y][x];
+        const tr = grid[y][x + 1];
+        const bl = grid[y + 1][x];
+        const br = grid[y + 1][x + 1];
+        
+        // Calculate marching squares case
+        const caseValue = tl * 8 + tr * 4 + br * 2 + bl * 1;
+        
+        // Skip if no boundary
+        if (caseValue === 0 || caseValue === 15) continue;
+        
+        // Trace contour from this point
+        const path = traceContour(grid, x, y, visited, offsetX, offsetY, scale);
+        if (path) {
+          paths.push(path);
         }
       }
     }
     
-    if (!hasPixels) return null;
+    if (paths.length === 0) return null;
     
-    // Create a simple rectangle path as approximation
-    // In production, use proper vectorization algorithm
-    const x1 = offsetX + minX * scale;
-    const y1 = offsetY + minY * scale;
-    const x2 = offsetX + maxX * scale;
-    const y2 = offsetY + maxY * scale;
-    
-    // Return a rectangle path (simplified - not actual character outline)
-    // For better results, implement marching squares or use opentype.js
-    return `M${x1},${y1} L${x2},${y1} L${x2},${y2} L${x1},${y2} Z`;
+    // Combine all paths
+    return paths.join(' ');
   } catch (error) {
     console.error('Error converting canvas to SVG path:', error);
     return null;
   }
+}
+
+/**
+ * Trace a contour starting from a boundary pixel
+ */
+function traceContour(
+  grid: number[][],
+  startX: number,
+  startY: number,
+  visited: Set<string>,
+  offsetX: number,
+  offsetY: number,
+  scale: number
+): string | null {
+  const height = grid.length;
+  const width = grid[0].length;
+  const points: {x: number, y: number}[] = [];
+  
+  let x = startX;
+  let y = startY;
+  let direction = 0; // 0=right, 1=down, 2=left, 3=up
+  const maxSteps = width * height; // Prevent infinite loops
+  let steps = 0;
+  
+  do {
+    visited.add(`${x},${y}`);
+    
+    // Add current point
+    const px = offsetX + x * scale;
+    const py = offsetY + y * scale;
+    points.push({x: px, y: py});
+    
+    // Find next boundary pixel
+    let found = false;
+    for (let i = 0; i < 4; i++) {
+      const newDir = (direction + i) % 4;
+      let nx = x, ny = y;
+      
+      switch (newDir) {
+        case 0: nx++; break; // right
+        case 1: ny++; break; // down
+        case 2: nx--; break; // left
+        case 3: ny--; break; // up
+      }
+      
+      if (nx < 0 || ny < 0 || nx >= width - 1 || ny >= height - 1) continue;
+      
+      const tl = grid[ny][nx];
+      const tr = grid[ny][nx + 1];
+      const bl = grid[ny + 1][nx];
+      const br = grid[ny + 1][nx + 1];
+      const caseValue = tl * 8 + tr * 4 + br * 2 + bl * 1;
+      
+      if (caseValue !== 0 && caseValue !== 15) {
+        x = nx;
+        y = ny;
+        direction = newDir;
+        found = true;
+        break;
+      }
+    }
+    
+    if (!found || ++steps > maxSteps) break;
+    
+  } while (x !== startX || y !== startY);
+  
+  if (points.length < 3) return null;
+  
+  // Build SVG path from points with curve smoothing
+  let path = `M${points[0].x},${points[0].y}`;
+  
+  if (points.length < 10) {
+    // For simple shapes, use lines
+    for (let i = 1; i < points.length; i++) {
+      path += ` L${points[i].x},${points[i].y}`;
+    }
+  } else {
+    // For complex shapes, use smooth curves
+    for (let i = 1; i < points.length - 2; i += 2) {
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const cp = {
+        x: (p1.x + p2.x) / 2,
+        y: (p1.y + p2.y) / 2
+      };
+      path += ` Q${p1.x},${p1.y} ${cp.x},${cp.y}`;
+    }
+    // Handle remaining points
+    if (points.length % 2 === 0) {
+      path += ` L${points[points.length - 1].x},${points[points.length - 1].y}`;
+    }
+  }
+  
+  path += ' Z';
+  return path;
 }
 
 /**

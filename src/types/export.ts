@@ -21,6 +21,7 @@ export interface SvgExportSettings {
   textAsOutlines: boolean;
   includeBackground: boolean;
   prettify: boolean;
+  outlineFont?: 'jetbrains-mono'; // Font to use for text-to-outlines
 }
 
 export interface ImageExportSettings {

@@ -1,4 +1,5 @@
 import { saveAs } from 'file-saver';
+import type { Font } from 'opentype.js';
 import type { 
   ExportDataBundle, 
   ImageExportSettings, 
@@ -102,6 +103,24 @@ export class ExportRenderer {
       const currentFrame = data.frames[data.currentFrameIndex]?.data || data.canvasData;
       const svgSettings = settings.svgSettings!;
 
+      // Load font if text-as-outlines is enabled
+      let font: Font | undefined;
+      if (svgSettings.textAsOutlines) {
+        this.updateProgress('Loading font for outlines...', 5);
+        const { fontLoader } = await import('./font/fontLoader');
+        const fontId = svgSettings.outlineFont || 'jetbrains-mono';
+        
+        try {
+          const loadedFont = await fontLoader.loadFont(fontId, { cache: true, timeout: 10000 });
+          font = loadedFont.font;
+          console.log(`[SVG Export] Using ${loadedFont.metadata.name} for text-to-outlines`);
+        } catch (error: any) {
+          const errorMsg = error?.message || error?.type || 'Unknown error';
+          console.warn(`[SVG Export] Font loading failed (${errorMsg}), falling back to pixel tracing`);
+          // Font will be undefined, which triggers pixel tracing fallback
+        }
+      }
+
       // Calculate dimensions using typography settings
       const actualFontSize = data.typography?.fontSize || data.fontMetrics?.fontSize || 16;
       const characterSpacing = data.typography?.characterSpacing || 1.0;
@@ -126,7 +145,7 @@ export class ExportRenderer {
       );
 
       // Add grid if enabled
-      if (svgSettings.includeGrid && data.showGrid) {
+      if (svgSettings.includeGrid) {
         this.updateProgress('Rendering grid...', 30);
         const gridColor = calculateAdaptiveGridColor(
           data.canvasBackgroundColor, 
@@ -165,7 +184,8 @@ export class ExportRenderer {
               cellWidth,
               cellHeight,
               actualFontSize,
-              fontFamily
+              fontFamily,
+              font // Pass the loaded font for opentype.js conversion
             );
           } else {
             svg += generateSvgTextElement(
