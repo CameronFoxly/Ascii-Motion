@@ -6,6 +6,7 @@ interface GradientStopPickerProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onValueSelect: (value: string) => void;
+  onValueChange?: (value: string) => void; // For live preview updates
   initialValue: string;
   type: 'character' | 'textColor' | 'backgroundColor';
 }
@@ -14,6 +15,7 @@ export const GradientStopPicker: React.FC<GradientStopPickerProps> = ({
   isOpen,
   onOpenChange,
   onValueSelect,
+  onValueChange,
   initialValue,
   type
 }) => {
@@ -55,6 +57,7 @@ export const GradientStopPicker: React.FC<GradientStopPickerProps> = ({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       onColorSelect={handleColorSelect}
+      onColorChange={onValueChange} // Live preview updates
       initialColor={initialValue}
       title={type === 'textColor' ? 'Select Text Color' : 'Select Background Color'}
       showTransparentOption={type === 'backgroundColor'}

@@ -22,7 +22,8 @@ export const InteractiveGradientOverlay: React.FC = () => {
     endDrag,
     startEditingStop,
     updateEditingStopValue,
-    closeStopEditor
+    closeStopEditor,
+    cancelStopEdit
   } = useGradientStore();
 
   const stopOffsetBase = 24;
@@ -432,13 +433,21 @@ export const InteractiveGradientOverlay: React.FC = () => {
         <GradientStopPicker
           isOpen={true}
           onOpenChange={(open) => {
-            if (!open) closeStopEditor();
+            if (!open) {
+              // User closed picker without selecting - revert changes
+              cancelStopEdit();
+            }
           }}
           onValueSelect={(value) => {
+            // User confirmed selection - keep changes and close
             updateEditingStopValue(value);
             closeStopEditor();
           }}
-          initialValue={editingStop.value}
+          onValueChange={(value) => {
+            // Live preview - temporarily update stop value
+            updateEditingStopValue(value);
+          }}
+          initialValue={editingStop.originalValue}
           type={editingStop.property}
         />
       )}

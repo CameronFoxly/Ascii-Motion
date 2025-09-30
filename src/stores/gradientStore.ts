@@ -44,6 +44,7 @@ interface GradientStore {
     property: 'character' | 'textColor' | 'backgroundColor';
     stopIndex: number;
     value: string;
+    originalValue: string; // Store original value for reverting on cancel
   } | null;
   
   // Actions
@@ -91,8 +92,9 @@ interface GradientStore {
   startEditingStop: (property: 'character' | 'textColor' | 'backgroundColor', stopIndex: number) => void;
   updateEditingStopValue: (value: string) => void;
   closeStopEditor: () => void;
+  cancelStopEdit: () => void;
   
-  // Utility
+  // Utility  // Utility
   reset: () => void;
 }
 
@@ -558,11 +560,13 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
     const state = get();
     const stops = state.definition[property].stops;
     if (stops[stopIndex]) {
+      const originalValue = stops[stopIndex].value;
       set({
         editingStop: {
           property,
           stopIndex,
-          value: stops[stopIndex].value
+          value: originalValue,
+          originalValue // Store for reverting on cancel
         }
       });
     }
@@ -594,6 +598,27 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
 
   closeStopEditor: () => {
     set({ editingStop: null });
+  },
+  
+  cancelStopEdit: () => {
+    const state = get();
+    if (!state.editingStop) return;
+    
+    const { property, stopIndex, originalValue } = state.editingStop;
+    
+    // Revert to original value
+    set((current) => ({
+      definition: {
+        ...current.definition,
+        [property]: {
+          ...current.definition[property],
+          stops: current.definition[property].stops.map((stop, i) =>
+            i === stopIndex ? { ...stop, value: originalValue } : stop
+          )
+        }
+      },
+      editingStop: null
+    }));
   },
 
   // Utility actions
