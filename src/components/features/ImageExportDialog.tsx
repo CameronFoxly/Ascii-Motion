@@ -12,24 +12,35 @@ import { FileImage, Download, Settings, Loader2 } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
 import { useExportDataCollector } from '../../utils/exportDataCollector';
 import { ExportRenderer } from '../../utils/exportRenderer';
-import { calculateExportPixelDimensions, formatPixelDimensions, estimateImageFileSize } from '../../utils/exportPixelCalculator';
+import type { SvgExportSettings } from '../../types/export';
+import { 
+	calculateExportPixelDimensions, 
+	formatPixelDimensions, 
+	estimateImageFileSize,
+	estimateSvgFileSize
+} from '../../utils/exportPixelCalculator';
 
-const FORMAT_OPTIONS: Array<{ value: 'png' | 'jpg'; label: string; description: string }> = [
+const FORMAT_OPTIONS: Array<{ value: 'png' | 'jpg' | 'svg'; label: string; description: string }> = [
 	{
 		value: 'png',
 		label: 'PNG (.png)',
-		description: 'Lossless quality with larger files',
+		description: 'Lossless raster with transparency',
 	},
 	{
 		value: 'jpg',
 		label: 'JPEG (.jpg)',
-		description: 'Smaller files with adjustable quality',
+		description: 'Compressed raster, smaller files',
+	},
+	{
+		value: 'svg',
+		label: 'SVG (.svg)',
+		description: 'Scalable vector graphics',
 	},
 ];
 
 /**
  * Image Export Dialog
- * Supports PNG and JPEG exports with adjustable quality settings
+ * Supports PNG, JPEG, and SVG exports with format-specific settings
  */
 export const ImageExportDialog: React.FC = () => {
 	const activeFormat = useExportStore((state) => state.activeFormat);
@@ -46,9 +57,11 @@ export const ImageExportDialog: React.FC = () => {
 	const [filename, setFilename] = useState('ascii-motion-frame');
 
 	const isOpen = showExportModal && activeFormat === 'png';
-	const fileExtension = imageSettings.format === 'png' ? 'png' : 'jpg';
+	const fileExtension = 
+		imageSettings.format === 'png' ? 'png' : 
+		imageSettings.format === 'jpg' ? 'jpg' : 'svg';
 
-	const exportDimensions = exportData
+	const exportDimensions = exportData && imageSettings.format !== 'svg'
 		? calculateExportPixelDimensions({
 				gridWidth: exportData.canvasDimensions.width,
 				gridHeight: exportData.canvasDimensions.height,
@@ -59,12 +72,33 @@ export const ImageExportDialog: React.FC = () => {
 		  })
 		: null;
 
-	const estimatedSize = exportDimensions
-		? estimateImageFileSize(exportDimensions, {
-				format: imageSettings.format,
+	// Calculate estimated file size based on format
+	const estimatedSize = (() => {
+		if (!exportData) return null;
+		
+		if (imageSettings.format === 'svg') {
+			// Count characters in current frame
+			const currentFrame = exportData.frames[exportData.currentFrameIndex]?.data || exportData.canvasData;
+			const characterCount = Array.from(currentFrame.values()).filter(cell => cell.char).length;
+			
+			return estimateSvgFileSize(
+				exportData.canvasDimensions.width,
+				exportData.canvasDimensions.height,
+				characterCount,
+				{
+					includeGrid: imageSettings.svgSettings?.includeGrid || false,
+					textAsOutlines: imageSettings.svgSettings?.textAsOutlines || false,
+					prettify: imageSettings.svgSettings?.prettify !== false,
+				}
+			);
+		} else if (exportDimensions) {
+			return estimateImageFileSize(exportDimensions, {
+				format: imageSettings.format as 'png' | 'jpg',
 				quality: imageSettings.quality,
-		  })
-		: null;
+			});
+		}
+		return null;
+	})();
 
 	const handleClose = () => {
 		setShowExportModal(false);
@@ -83,11 +117,16 @@ export const ImageExportDialog: React.FC = () => {
 				setProgress(progress);
 			});
 
-			await renderer.exportImage(exportData, imageSettings, filename);
+			if (imageSettings.format === 'svg') {
+				await renderer.exportSvg(exportData, imageSettings, filename);
+			} else {
+				await renderer.exportImage(exportData, imageSettings, filename);
+			}
+			
 			handleClose();
 		} catch (error) {
-			console.error('Image export failed:', error);
-			alert(`Image export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			console.error('Export failed:', error);
+			alert(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
 		} finally {
 			setIsExporting(false);
 			setProgress(null);
@@ -104,14 +143,26 @@ export const ImageExportDialog: React.FC = () => {
 	};
 
 	const handleFormatChange = (value: string) => {
-		if (value === 'png' || value === 'jpg') {
-			setImageSettings({ format: value, quality: value === 'jpg' ? imageSettings.quality : 100 });
+		if (value === 'png' || value === 'jpg' || value === 'svg') {
+			setImageSettings({ 
+				format: value as 'png' | 'jpg' | 'svg',
+				quality: value === 'jpg' ? imageSettings.quality : 100 
+			});
 		}
 	};
 
 	const handleQualityChange = (value: number) => {
 		const clamped = Math.min(Math.max(Math.round(value), 10), 100);
 		setImageSettings({ quality: clamped });
+	};
+
+	const handleSvgSettingChange = (key: keyof SvgExportSettings, value: boolean) => {
+		setImageSettings({
+			svgSettings: {
+				...imageSettings.svgSettings!,
+				[key]: value
+			}
+		});
 	};
 
 	return (
@@ -178,42 +229,44 @@ export const ImageExportDialog: React.FC = () => {
 									</Select>
 								</div>
 
-								{/* Size Multiplier */}
-								<div className="space-y-2">
-									<Label htmlFor="size-multiplier">Size Multiplier</Label>
-									<Select
-										value={imageSettings.sizeMultiplier.toString()}
-										onValueChange={handleSizeChange}
-										disabled={isExporting}
-									>
-										<SelectTrigger>
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="1">1x (Original)</SelectItem>
-											<SelectItem value="2">2x (Double)</SelectItem>
-											<SelectItem value="3">3x (Triple)</SelectItem>
-											<SelectItem value="4">4x (Quadruple)</SelectItem>
-										</SelectContent>
-									</Select>
-									<p className="text-xs text-muted-foreground">
-										Higher multipliers create larger, more detailed images
-									</p>
-									{exportDimensions && (
-										<div className="mt-2 p-2 bg-muted/30 rounded text-xs space-y-1">
-											<div className="flex justify-between">
-												<span className="text-muted-foreground">Output size:</span>
-												<span className="font-mono">{formatPixelDimensions(exportDimensions)}</span>
-											</div>
-											{estimatedSize && (
+								{/* Size Multiplier - Hidden for SVG */}
+								{imageSettings.format !== 'svg' && (
+									<div className="space-y-2">
+										<Label htmlFor="size-multiplier">Size Multiplier</Label>
+										<Select
+											value={imageSettings.sizeMultiplier.toString()}
+											onValueChange={handleSizeChange}
+											disabled={isExporting}
+										>
+											<SelectTrigger>
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="1">1x (Original)</SelectItem>
+												<SelectItem value="2">2x (Double)</SelectItem>
+												<SelectItem value="3">3x (Triple)</SelectItem>
+												<SelectItem value="4">4x (Quadruple)</SelectItem>
+											</SelectContent>
+										</Select>
+										<p className="text-xs text-muted-foreground">
+											Higher multipliers create larger, more detailed images
+										</p>
+										{exportDimensions && (
+											<div className="mt-2 p-2 bg-muted/30 rounded text-xs space-y-1">
 												<div className="flex justify-between">
-													<span className="text-muted-foreground">Est. file size:</span>
-													<span className="font-mono">{estimatedSize}</span>
+													<span className="text-muted-foreground">Output size:</span>
+													<span className="font-mono">{formatPixelDimensions(exportDimensions)}</span>
 												</div>
-											)}
-										</div>
-									)}
-								</div>
+												{estimatedSize && (
+													<div className="flex justify-between">
+														<span className="text-muted-foreground">Est. file size:</span>
+														<span className="font-mono">{estimatedSize}</span>
+													</div>
+												)}
+											</div>
+										)}
+									</div>
+								)}
 
 								{/* JPEG Quality */}
 								{imageSettings.format === 'jpg' && (
@@ -236,18 +289,91 @@ export const ImageExportDialog: React.FC = () => {
 									</div>
 								)}
 
-								{/* Include Grid */}
+								{/* SVG-Specific Settings */}
+								{imageSettings.format === 'svg' && (
+									<>
+										{/* Text Rendering Mode */}
+										<div className="flex items-center justify-between">
+											<div className="space-y-0.5">
+												<Label htmlFor="svg-outlines">Text as Outlines</Label>
+												<p className="text-xs text-muted-foreground">
+													Convert text to vector paths
+												</p>
+											</div>
+											<Switch
+												id="svg-outlines"
+												checked={imageSettings.svgSettings?.textAsOutlines || false}
+												onCheckedChange={(checked) => handleSvgSettingChange('textAsOutlines', checked)}
+												disabled={isExporting}
+											/>
+										</div>
+
+										{/* Include Background */}
+										<div className="flex items-center justify-between">
+											<div className="space-y-0.5">
+												<Label htmlFor="svg-background">Include Background</Label>
+												<p className="text-xs text-muted-foreground">
+													Export background color
+												</p>
+											</div>
+											<Switch
+												id="svg-background"
+												checked={imageSettings.svgSettings?.includeBackground !== false}
+												onCheckedChange={(checked) => handleSvgSettingChange('includeBackground', checked)}
+												disabled={isExporting}
+											/>
+										</div>
+
+										{/* Prettify Output */}
+										<div className="flex items-center justify-between">
+											<div className="space-y-0.5">
+												<Label htmlFor="svg-prettify">Prettify Output</Label>
+												<p className="text-xs text-muted-foreground">
+													Human-readable formatting
+												</p>
+											</div>
+											<Switch
+												id="svg-prettify"
+												checked={imageSettings.svgSettings?.prettify !== false}
+												onCheckedChange={(checked) => handleSvgSettingChange('prettify', checked)}
+												disabled={isExporting}
+											/>
+										</div>
+
+										{/* Estimated File Size for SVG */}
+										{estimatedSize && (
+											<div className="p-2 bg-muted/30 rounded text-xs space-y-1">
+												<div className="flex justify-between">
+													<span className="text-muted-foreground">Est. file size:</span>
+													<span className="font-mono">{estimatedSize}</span>
+												</div>
+											</div>
+										)}
+									</>
+								)}
+
+								{/* Include Grid - Updated label for SVG */}
 								<div className="flex items-center justify-between">
 									<div className="space-y-0.5">
 										<Label htmlFor="include-grid">Include Grid</Label>
 										<p className="text-xs text-muted-foreground">
-											Show grid lines in exported image
+											{imageSettings.format === 'svg' 
+												? 'Show grid lines in exported SVG' 
+												: 'Show grid lines in exported image'}
 										</p>
 									</div>
 									<Switch
 										id="include-grid"
-										checked={imageSettings.includeGrid}
-										onCheckedChange={handleGridToggle}
+										checked={imageSettings.format === 'svg' 
+											? (imageSettings.svgSettings?.includeGrid || false)
+											: imageSettings.includeGrid}
+										onCheckedChange={(checked) => {
+											if (imageSettings.format === 'svg') {
+												handleSvgSettingChange('includeGrid', checked);
+											} else {
+												handleGridToggle(checked);
+											}
+										}}
 										disabled={isExporting}
 									/>
 								</div>
@@ -257,7 +383,9 @@ export const ImageExportDialog: React.FC = () => {
 						<div className="text-center p-3 bg-muted/50 rounded-lg space-y-1">
 							<p className="text-sm text-muted-foreground">Current frame will be exported as</p>
 							<p className="text-sm font-medium">
-								{filename}.{fileExtension} ({imageSettings.sizeMultiplier}x scale)
+								{filename}.{fileExtension}
+								{imageSettings.format !== 'svg' && ` (${imageSettings.sizeMultiplier}x scale)`}
+								{imageSettings.format === 'svg' && ' (vector)'}
 							</p>
 							{estimatedSize && (
 								<p className="text-xs text-muted-foreground">Estimated size: {estimatedSize}</p>
@@ -289,5 +417,3 @@ export const ImageExportDialog: React.FC = () => {
 		</Dialog>
 	);
 };
-
-export { ImageExportDialog as PngExportDialog };

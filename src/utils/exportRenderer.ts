@@ -12,10 +12,17 @@ import type {
 import type { Cell } from '../types';
 import { setupTextRendering } from './canvasTextRendering';
 import { calculateAdaptiveGridColor } from './gridColor';
+import { 
+  generateSvgHeader, 
+  generateSvgGrid, 
+  generateSvgTextElement, 
+  convertTextToPath,
+  minifySvg
+} from './svgExportUtils';
 
 /**
  * High-quality export renderer for ASCII Motion
- * Handles image (PNG/JPEG), MP4, and Session exports with optimal quality settings
+ * Handles image (PNG/JPEG/SVG), MP4, and Session exports with optimal quality settings
  */
 export class ExportRenderer {
   private progressCallback?: (progress: ExportProgress) => void;
@@ -78,6 +85,129 @@ export class ExportRenderer {
     } catch (error) {
       console.error('Image export failed:', error);
       throw new Error(`Image export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Export current frame as SVG (Scalable Vector Graphics)
+   */
+  async exportSvg(
+    data: ExportDataBundle,
+    settings: ImageExportSettings,
+    filename: string
+  ): Promise<void> {
+    this.updateProgress('Preparing SVG export...', 0);
+
+    try {
+      const currentFrame = data.frames[data.currentFrameIndex]?.data || data.canvasData;
+      const svgSettings = settings.svgSettings!;
+
+      // Calculate dimensions using typography settings
+      const actualFontSize = data.typography?.fontSize || data.fontMetrics?.fontSize || 16;
+      const characterSpacing = data.typography?.characterSpacing || 1.0;
+      const lineSpacing = data.typography?.lineSpacing || 1.0;
+      
+      const baseCharWidth = actualFontSize * 0.6; // Standard monospace aspect ratio
+      const baseCharHeight = actualFontSize;
+      
+      const cellWidth = baseCharWidth * characterSpacing;
+      const cellHeight = baseCharHeight * lineSpacing;
+      
+      const canvasWidth = data.canvasDimensions.width * cellWidth;
+      const canvasHeight = data.canvasDimensions.height * cellHeight;
+
+      this.updateProgress('Generating SVG structure...', 20);
+
+      // Start SVG with header
+      let svg = generateSvgHeader(
+        canvasWidth, 
+        canvasHeight, 
+        svgSettings.includeBackground ? data.canvasBackgroundColor : undefined
+      );
+
+      // Add grid if enabled
+      if (svgSettings.includeGrid && data.showGrid) {
+        this.updateProgress('Rendering grid...', 30);
+        const gridColor = calculateAdaptiveGridColor(
+          data.canvasBackgroundColor, 
+          data.uiState.theme as 'light' | 'dark'
+        );
+        svg += generateSvgGrid(
+          data.canvasDimensions.width,
+          data.canvasDimensions.height,
+          cellWidth,
+          cellHeight,
+          gridColor
+        );
+      }
+
+      this.updateProgress('Rendering characters...', 50);
+
+      // Content group
+      svg += '  <g id="content">\n';
+
+      const fontFamily = data.fontMetrics?.fontFamily || 'SF Mono, Monaco, Inconsolata, Roboto Mono, Consolas, Courier New';
+
+      // Render each cell
+      let cellCount = 0;
+      const totalCells = currentFrame.size;
+      
+      currentFrame.forEach((cell, key) => {
+        const [x, y] = key.split(',').map(Number);
+        
+        if (cell.char) {
+          if (svgSettings.textAsOutlines) {
+            svg += convertTextToPath(
+              cell.char,
+              x, y,
+              cell.color || '#ffffff',
+              cell.bgColor,
+              cellWidth,
+              cellHeight,
+              actualFontSize,
+              fontFamily
+            );
+          } else {
+            svg += generateSvgTextElement(
+              cell.char,
+              x, y,
+              cell.color || '#ffffff',
+              cell.bgColor,
+              cellWidth,
+              cellHeight,
+              actualFontSize,
+              fontFamily
+            );
+          }
+        }
+        
+        cellCount++;
+        if (cellCount % 100 === 0) {
+          const progress = 50 + Math.floor((cellCount / totalCells) * 30);
+          this.updateProgress(`Rendering characters... (${cellCount}/${totalCells})`, progress);
+        }
+      });
+
+      svg += '  </g>\n';
+      svg += '</svg>';
+
+      this.updateProgress('Formatting SVG...', 85);
+
+      // Minify if not prettify (SVG is already prettified during generation)
+      if (!svgSettings.prettify) {
+        svg = minifySvg(svg);
+      }
+
+      this.updateProgress('Saving file...', 95);
+
+      // Create blob and download
+      const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+      saveAs(blob, `${filename}.svg`);
+
+      this.updateProgress('Export complete!', 100);
+    } catch (error) {
+      console.error('SVG export failed:', error);
+      throw new Error(`SVG export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

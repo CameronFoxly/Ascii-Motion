@@ -3,7 +3,7 @@ import type { FontMetrics } from '../utils/fontMetrics';
 import type { ColorPalette, CharacterPalette, CharacterMappingSettings } from './palette';
 
 // Export format identifiers
-export type ExportFormatId = 'png' | 'mp4' | 'session' | 'media' | 'text' | 'json' | 'html';
+export type ExportFormatId = 'png' | 'svg' | 'mp4' | 'session' | 'media' | 'text' | 'json' | 'html';
 
 // Base export format interface
 export interface ExportFormat {
@@ -16,11 +16,20 @@ export interface ExportFormat {
 }
 
 // Export settings for each format
+export interface SvgExportSettings {
+  includeGrid: boolean;
+  textAsOutlines: boolean;
+  includeBackground: boolean;
+  prettify: boolean;
+}
+
 export interface ImageExportSettings {
   sizeMultiplier: 1 | 2 | 3 | 4;
   includeGrid: boolean;
-  format: 'png' | 'jpg';
-  quality: number; // 1-100 JPEG quality scale (ignored for PNG)
+  format: 'png' | 'jpg' | 'svg';
+  quality: number; // 1-100 JPEG quality scale (ignored for PNG and SVG)
+  // SVG-specific settings (only used when format === 'svg')
+  svgSettings?: SvgExportSettings;
 }
 
 export interface VideoExportSettings {

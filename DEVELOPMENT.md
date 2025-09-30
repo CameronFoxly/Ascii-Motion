@@ -73,9 +73,10 @@ npm run build:prod && npm run deploy
 - ✅ ASCII art creation and editing
 - ✅ Animation timeline and playback  
 - ✅ Image/video import with FFmpeg processing
-- ✅ Export functionality (GIF, MP4, PNG, TXT, JSON)
+- ✅ Export functionality (PNG, JPEG, SVG, MP4, WebM, HTML, TXT, JSON, Session Files)
 - ✅ All drawing tools and selection modes
 - ✅ Gradient fill overlay with live preview and provisional end handle
+- ✅ SVG vector export with configurable text rendering and formatting options
 - ✅ Responsive design for various screen sizes
 
 **Environment Variables:**
@@ -1245,7 +1246,67 @@ export class PngExporter implements ExportHandler {
 }
 ```
 
-#### **3. Session Save (.asciimtn)**
+#### **3. SVG Vector Export (.svg)** - ✅ **NEW: Completed September 30, 2025**
+**Technical Requirements:**
+- **Scalable Vector Format**: Resolution-independent export for ASCII art
+- **Text Rendering Modes**: 
+  - SVG `<text>` elements (default) - smaller files, requires font on viewing system
+  - Vector path outlines - font-independent, larger files
+- **Format Options**: Grid export, background color, prettified/minified output
+- **Full Color Preservation**: All character and background colors maintained
+
+**Settings Interface:**
+```typescript
+interface SvgExportSettings {
+  includeGrid: boolean;        // Export grid lines (default: false)
+  textAsOutlines: boolean;     // Convert text to vector paths (default: false)
+  includeBackground: boolean;  // Include background color (default: true)
+  prettify: boolean;           // Human-readable formatting (default: true)
+}
+
+interface ImageExportSettings {
+  format: 'png' | 'jpg' | 'svg';  // SVG added to image export system
+  svgSettings?: SvgExportSettings;
+  // ... other image settings
+}
+```
+
+**Implementation:**
+```typescript
+// src/utils/exportRenderer.ts
+async exportSvg(data: ExportDataBundle, settings: ImageExportSettings): Promise<void> {
+  // 1. Calculate dimensions from typography settings
+  // 2. Generate SVG header with viewBox and optional background
+  // 3. Optionally render grid lines with adaptive color
+  // 4. Render each character as <text> or <path> element
+  // 5. Format output (prettified or minified)
+  // 6. Download as .svg file
+}
+
+// src/utils/svgExportUtils.ts
+export function generateSvgTextElement(...): string;
+export function convertTextToPath(...): string;
+export function generateSvgGrid(...): string;
+export function minifySvg(svg: string): string;
+```
+
+**Architecture Integration:**
+- Integrated into existing `ImageExportDialog` (renamed from `PngExportDialog`)
+- Format selector includes PNG, JPEG, and SVG options
+- Conditional UI shows SVG-specific settings when format === 'svg'
+- File extension auto-switches to `.svg` when selected
+- Size multiplier hidden for SVG (vector format is resolution-independent)
+- File size estimation uses character count and settings
+
+**Key Features:**
+- ✅ Full character and background color preservation
+- ✅ Adaptive grid color matching canvas display
+- ✅ Text-as-paths for font-independent rendering
+- ✅ Prettified output for human readability or minified for compact files
+- ✅ Proper XML escaping for special characters
+- ✅ Complete SVG namespace and viewBox configuration
+
+#### **4. Session Save (.asciimtn)**
 **Technical Requirements:**
 - **Core Creative State**: Canvas data, animation frames, and typography settings
 - **Tool State**: Active colors, selected character, and essential tool settings

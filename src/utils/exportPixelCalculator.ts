@@ -107,3 +107,45 @@ export const estimateImageFileSize = (
 
   return formatBytes(totalBytes);
 };
+
+interface SvgEstimateOptions {
+  includeGrid: boolean;
+  textAsOutlines: boolean;
+  prettify: boolean;
+}
+
+/**
+ * Estimate SVG file size based on content
+ */
+export const estimateSvgFileSize = (
+  gridWidth: number,
+  gridHeight: number,
+  characterCount: number,
+  options: SvgEstimateOptions
+): string => {
+  // Base SVG structure: ~200 bytes (header, namespaces, closing tags)
+  let bytes = 200;
+  
+  // Grid lines estimation: ~80 bytes per line (including attributes and whitespace)
+  if (options.includeGrid) {
+    const lineCount = gridWidth + gridHeight + 2; // Vertical + horizontal lines
+    bytes += lineCount * 80;
+  }
+  
+  // Character estimation
+  if (options.textAsOutlines) {
+    // Path outlines: ~300 bytes per character (path data, transforms, attributes)
+    // Note: Actual size depends on glyph complexity
+    bytes += characterCount * 300;
+  } else {
+    // Text elements: ~120 bytes per character (simpler than paths)
+    bytes += characterCount * 120;
+  }
+  
+  // Prettification adds ~30% overhead (newlines, indentation)
+  if (options.prettify) {
+    bytes *= 1.3;
+  }
+  
+  return formatBytes(bytes);
+};

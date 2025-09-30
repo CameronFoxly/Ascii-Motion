@@ -399,6 +399,34 @@ The Gradient Fill Tool provides sophisticated gradient application with interact
 - Double-click events on stops trigger `handleStopDoubleClick()` in overlay component
 - All edits update gradient definition and trigger preview regeneration
 
+## 🎨 **SVG Export Feature**
+
+**Location**: `src/components/features/ImageExportDialog.tsx`, `src/utils/svgExportUtils.ts`, `src/utils/exportRenderer.ts`
+
+SVG export provides scalable vector graphics output integrated into the Image export system alongside PNG and JPEG formats.
+
+### **Export Options**:
+- **Text Rendering Modes**:
+  - **SVG Text Elements** (default): Uses `<text>` elements - smaller file size, requires font on viewing system
+  - **Vector Outlines**: Converts characters to `<path>` elements - font-independent but larger files
+- **Grid Export**: Optional grid line rendering (default: off)
+- **Background Control**: Include/exclude background color (default: on)
+- **Output Formatting**: Prettified (human-readable) or minified (compact) - default prettified
+
+### **Architecture Integration**:
+- **Type System**: Added `'svg'` to `ExportFormatId` type and created `SvgExportSettings` interface
+- **Export Store**: SVG settings integrated into `ImageExportSettings` with default values
+- **Rendering**: `ExportRenderer.exportSvg()` method generates complete SVG with proper namespaces, viewBox, and character positioning
+- **File Extension**: Auto-switches to `.svg` when SVG format selected
+- **File Size Estimation**: Dedicated `estimateSvgFileSize()` utility based on character count and settings
+
+### **Implementation Notes**:
+- SVG generation uses utility functions from `svgExportUtils.ts` for header, grid, and character rendering
+- Character colors and backgrounds are fully preserved in vector format
+- Grid uses adaptive color calculation matching canvas display
+- Text-to-path conversion uses simplified canvas-based approach (note in docs suggests opentype.js for production-quality paths)
+- Export dialog conditionally displays SVG-specific settings when format === 'svg'
+
 ## 🚨 **CRITICAL: Adding New Tools**
 **When adding ANY new drawing tool, ALWAYS follow the 8-step componentized pattern in Section 3 below.** This maintains architectural consistency and ensures all tools work seamlessly together. Do NOT add tool logic directly to CanvasGrid or mouse handlers.
 

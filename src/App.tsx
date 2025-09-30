@@ -22,7 +22,7 @@ import { ImportModal } from './components/features/ImportModal'
 import { MediaImportPanel } from './components/features/MediaImportPanel'
 import { GradientPanel } from './components/features/GradientPanel'
 import { EffectsPanel } from './components/features/EffectsPanel'
-import { PngExportDialog } from './components/features/PngExportDialog'
+import { ImageExportDialog } from './components/features/ImageExportDialog'
 import { VideoExportDialog } from './components/features/VideoExportDialog'
 import { SessionExportDialog } from './components/features/SessionExportDialog'
 import { TextExportDialog } from './components/features/TextExportDialog'
@@ -197,7 +197,7 @@ function App() {
           <MediaImportPanel />
           <GradientPanel />
           <EffectsPanel />
-          <PngExportDialog />
+          <ImageExportDialog />
           <VideoExportDialog />
           <SessionExportDialog />
           <TextExportDialog />

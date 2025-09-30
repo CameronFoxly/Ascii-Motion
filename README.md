@@ -14,11 +14,10 @@ https://ascii-motion.app
 ## 🎨 Current Features
 
 - Grid-based ASCII Art Editor with full drawing toolset
-- Animation Timeline for frame-by-frame editng and onion skinning
+- Animation Timeline for frame-by-frame editing and onion skinning
 - Custom Color and Character Palettes including presets and import/export features
 - Convert images or video assets to ASCII art, with fine-tuned rendering control
-- Multiple Export Format: Images (PNG & JPEG), Videos, Text files, JSON, HTML, and full session export. 
-
+- Multiple Export Formats: Images (PNG, JPEG, SVG), Videos (MP4, WebM), Text files, JSON, HTML, and full session export
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -142,12 +141,13 @@ Where I'm at with the concept:
 <details>
 <summary> ✅ Phase 3: Export/Import System (Complete) </summary>
   
-- [x] High-DPI image export (PNG & JPEG) with device pixel ratio scaling and quality controls
+- [x] High-DPI image export (PNG, JPEG, SVG) with device pixel ratio scaling and quality controls
+- [x] SVG vector export with text-as-outlines, grid, background, and formatting options
 - [x] Complete session export/import (.asciimtn files with custom color & character palettes)
 - [x] Typography settings preservation (font size, spacing)
 - [x] Professional export UI with format-specific dialogs
 - [x] Robust error handling and validation
-- [x] Import video/image files and convert to ascii
+- [x] Import video/image files and convert to ASCII
 </details>
 
 

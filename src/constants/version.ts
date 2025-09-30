@@ -1,12 +1,21 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.23";
-export const BUILD_DATE = "2025-09-30T15:49:43.478Z";
-export const BUILD_HASH = "334c571";
+export const VERSION = "0.1.24";
+export const BUILD_DATE = "2025-09-30T18:55:06.449Z";
+export const BUILD_HASH = "ce70862";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.24",
+    "date": "2025-09-30T18:55:06.449Z",
+    "commits": [
+      "Add stop with the gradient UI overlay added",
+      "Added live preview to gradient color picker",
+      "Added double-click controls to edit swatch overlay in gradient tools"
+    ]
+  },
   {
     "version": "0.1.23",
     "date": "2025-09-30T15:49:43.478Z",

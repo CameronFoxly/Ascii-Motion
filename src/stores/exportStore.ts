@@ -3,7 +3,8 @@ import type {
   ExportState, 
   ExportFormatId, 
   ExportProgress, 
-  ImageExportSettings, 
+  ImageExportSettings,
+  SvgExportSettings,
   VideoExportSettings, 
   SessionExportSettings,
   TextExportSettings,
@@ -40,12 +41,21 @@ interface ExportActions {
 
 interface ExportStoreState extends ExportState, ExportActions {}
 
+// Default SVG settings
+const DEFAULT_SVG_SETTINGS: SvgExportSettings = {
+  includeGrid: false,        // No grid by default
+  textAsOutlines: false,     // Use <text> elements by default (smaller file size)
+  includeBackground: true,   // Include background color by default
+  prettify: true,            // Human-readable formatting by default
+};
+
 // Default settings for each export format
 const DEFAULT_IMAGE_SETTINGS: ImageExportSettings = {
   sizeMultiplier: 1,
   includeGrid: false,
   format: 'png',
   quality: 90,
+  svgSettings: DEFAULT_SVG_SETTINGS,
 };
 
 const DEFAULT_VIDEO_SETTINGS: VideoExportSettings = {
