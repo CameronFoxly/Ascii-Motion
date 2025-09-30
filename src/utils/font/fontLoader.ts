@@ -110,20 +110,17 @@ class FontLoader {
       return;
     }
 
-    console.log('[FontLoader] Preloading bundled fonts...');
-
     const loadPromises = FONT_REGISTRY.map(async (metadata) => {
       try {
         await this.loadFont(metadata.id, { cache: true, timeout: 15000 });
-        console.log(`[FontLoader] ✓ Loaded ${metadata.name}`);
       } catch (error) {
-        console.warn(`[FontLoader] ✗ Failed to load ${metadata.name}:`, error);
+        // Font loading failed, but we'll continue with other fonts
+        console.error(`Failed to load ${metadata.name}:`, error);
       }
     });
 
     await Promise.allSettled(loadPromises);
     this.initialized = true;
-    console.log('[FontLoader] Font preloading complete');
   }
 
   /**
@@ -159,7 +156,7 @@ class FontLoader {
           const loadedFont = await this.loadFont(metadata.id);
           return loadedFont.font;
         } catch (error) {
-          console.warn(`[FontLoader] Failed to load ${metadata.name}:`, error);
+          // Font loading failed, continue to next candidate
         }
       }
     }
@@ -188,7 +185,6 @@ class FontLoader {
     this.fontCache.clear();
     this.loadingPromises.clear();
     this.initialized = false;
-    console.log('[FontLoader] Cache cleared');
   }
 
   /**

@@ -126,14 +126,9 @@ export function convertTextToPath(
       );
     }
     
-    // If opentype conversion failed, log warning and fall through to pixel tracing
+    // If opentype conversion failed, fall through to pixel tracing
     if (result.error) {
-      console.warn(`[SVG Export] OpenType conversion failed for "${char}": ${result.error}`);
-    }
-  } else {
-    // Log once that we're using pixel tracing because no font was provided
-    if (x === 0 && y === 0) {
-      console.warn('[SVG Export] No font provided, using pixel tracing fallback');
+      // Silently fall back to pixel tracing
     }
   }
 

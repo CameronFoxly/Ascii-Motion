@@ -113,11 +113,9 @@ export class ExportRenderer {
         try {
           const loadedFont = await fontLoader.loadFont(fontId, { cache: true, timeout: 10000 });
           font = loadedFont.font;
-          console.log(`[SVG Export] Using ${loadedFont.metadata.name} for text-to-outlines`);
         } catch (error: any) {
-          const errorMsg = error?.message || error?.type || 'Unknown error';
-          console.warn(`[SVG Export] Font loading failed (${errorMsg}), falling back to pixel tracing`);
-          // Font will be undefined, which triggers pixel tracing fallback
+          // Font loading failed, will fall back to pixel tracing
+          font = undefined;
         }
       }
 
