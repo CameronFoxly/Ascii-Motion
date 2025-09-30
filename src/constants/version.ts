@@ -1,12 +1,23 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.22";
-export const BUILD_DATE = "2025-09-30T02:38:42.543Z";
-export const BUILD_HASH = "63e3647";
+export const VERSION = "0.1.23";
+export const BUILD_DATE = "2025-09-30T15:49:43.478Z";
+export const BUILD_HASH = "334c571";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.23",
+    "date": "2025-09-30T15:49:43.478Z",
+    "commits": [
+      "Import panel UI cleanup...moar!",
+      "Fixed layout sizing for import media panel",
+      "Fixed tooltip bug on import media panel",
+      "Cleaned up side panel UI layout",
+      "Removed old status panel from sidenbar"
+    ]
+  },
   {
     "version": "0.1.22",
     "date": "2025-09-30T02:38:42.543Z",

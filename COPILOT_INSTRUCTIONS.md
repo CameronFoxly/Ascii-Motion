@@ -379,6 +379,26 @@ const ColorGrid = () => (
 - ✅ Professional user experience matching design system
 - ✅ Proper accessibility with ARIA attributes
 
+## 🎨 **Gradient Fill Tool - Advanced Features**
+
+**Location**: `src/components/features/InteractiveGradientOverlay.tsx`, `src/stores/gradientStore.ts`
+
+The Gradient Fill Tool provides sophisticated gradient application with interactive visual controls for manipulating gradient properties directly on the canvas.
+
+### **Interactive Controls**:
+- **Drag Controls**: Start point, end point, ellipse point (for radial), and gradient stops can all be dragged
+- **Double-Click Editing**: Double-click any stop swatch to open appropriate picker:
+  - **Character stops**: Opens EnhancedCharacterPicker for character selection
+  - **Color stops**: Opens ColorPickerOverlay for color selection with full HSV/RGB controls
+- **Live Preview**: Real-time canvas preview updates during all interactions
+- **Visual Feedback**: Clear visual indicators for all interactive elements
+
+### **Implementation Notes**:
+- Stop editing state managed in `gradientStore.ts` with `editingStop`, `startEditingStop()`, `updateEditingStopValue()`, and `closeStopEditor()` methods
+- `GradientStopPicker` component handles routing to appropriate picker based on stop type
+- Double-click events on stops trigger `handleStopDoubleClick()` in overlay component
+- All edits update gradient definition and trigger preview regeneration
+
 ## 🚨 **CRITICAL: Adding New Tools**
 **When adding ANY new drawing tool, ALWAYS follow the 8-step componentized pattern in Section 3 below.** This maintains architectural consistency and ensures all tools work seamlessly together. Do NOT add tool logic directly to CanvasGrid or mouse handlers.
 

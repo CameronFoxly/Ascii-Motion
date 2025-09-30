@@ -39,6 +39,13 @@ interface GradientStore {
     startValue?: { x: number; y: number } | number; // position for start/end, position value for stops
   } | null;
   
+  // Stop editing state
+  editingStop: {
+    property: 'character' | 'textColor' | 'backgroundColor';
+    stopIndex: number;
+    value: string;
+  } | null;
+  
   // Actions
   setIsOpen: (open: boolean) => void;
   updateDefinition: (definition: Partial<GradientDefinition>) => void;
@@ -80,6 +87,11 @@ interface GradientStore {
   }) => void;
   endDrag: () => void;
   
+  // Stop editing actions
+  startEditingStop: (property: 'character' | 'textColor' | 'backgroundColor', stopIndex: number) => void;
+  updateEditingStopValue: (value: string) => void;
+  closeStopEditor: () => void;
+  
   // Utility
   reset: () => void;
 }
@@ -119,6 +131,7 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
   matchColor: true,
   matchBgColor: true,
   dragState: null,
+  editingStop: null,
 
   // Panel actions
   setIsOpen: (open: boolean) => {
@@ -540,6 +553,49 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
     }
   },
 
+  // Stop editing actions
+  startEditingStop: (property: 'character' | 'textColor' | 'backgroundColor', stopIndex: number) => {
+    const state = get();
+    const stops = state.definition[property].stops;
+    if (stops[stopIndex]) {
+      set({
+        editingStop: {
+          property,
+          stopIndex,
+          value: stops[stopIndex].value
+        }
+      });
+    }
+  },
+
+  updateEditingStopValue: (value: string) => {
+    const state = get();
+    if (!state.editingStop) return;
+    
+    const { property, stopIndex } = state.editingStop;
+    
+    // Update the stop value
+    set((current) => ({
+      definition: {
+        ...current.definition,
+        [property]: {
+          ...current.definition[property],
+          stops: current.definition[property].stops.map((stop, i) =>
+            i === stopIndex ? { ...stop, value } : stop
+          )
+        }
+      },
+      editingStop: {
+        ...current.editingStop!,
+        value
+      }
+    }));
+  },
+
+  closeStopEditor: () => {
+    set({ editingStop: null });
+  },
+
   // Utility actions
   reset: () => {
     set({
@@ -549,7 +605,8 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
       ellipsePoint: null,
       hoverEndPoint: null,
       previewData: null,
-      dragState: null
+      dragState: null,
+      editingStop: null
     });
   }
 }));

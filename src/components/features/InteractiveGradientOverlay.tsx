@@ -2,6 +2,7 @@ import React, { useCallback, useRef, useEffect } from 'react';
 import { useGradientStore } from '../../stores/gradientStore';
 import { useCanvasContext } from '../../contexts/CanvasContext';
 import { useToolStore } from '../../stores/toolStore';
+import { GradientStopPicker } from './GradientStopPicker';
 
 export const InteractiveGradientOverlay: React.FC = () => {
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -15,9 +16,13 @@ export const InteractiveGradientOverlay: React.FC = () => {
     hoverEndPoint,
     definition,
     dragState,
+    editingStop,
     startDrag,
     updateDrag,
-    endDrag
+    endDrag,
+    startEditingStop,
+    updateEditingStopValue,
+    closeStopEditor
   } = useGradientStore();
 
   const stopOffsetBase = 24;
@@ -138,6 +143,23 @@ export const InteractiveGradientOverlay: React.FC = () => {
       });
     }
   }, [hitTest, startDrag, startPoint, endPoint]);
+  
+  // Handle double-click on overlay to detect stop clicks
+  const handleOverlayDoubleClick = useCallback((event: React.MouseEvent) => {
+    const rect = overlayRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+
+    const hit = hitTest(mouseX, mouseY);
+    
+    if (hit && hit.type === 'stop') {
+      event.preventDefault();
+      event.stopPropagation();
+      startEditingStop(hit.property, hit.stopIndex);
+    }
+  }, [hitTest, startEditingStop]);
 
   const handleMouseMove = useCallback((event: React.MouseEvent) => {
     if (!dragState?.isDragging) return;
@@ -339,6 +361,9 @@ export const InteractiveGradientOverlay: React.FC = () => {
 
         const isColorStop = property === 'textColor' || property === 'backgroundColor';
         const markerBackground = isColorStop ? stop.value : '#111827';
+        
+        // Check if this stop is being edited
+        const isEditing = editingStop?.property === property && editingStop?.stopIndex === stopIndex;
 
         elements.push(
           <div
@@ -350,11 +375,14 @@ export const InteractiveGradientOverlay: React.FC = () => {
               width: stopSize,
               height: stopSize,
               backgroundColor: markerBackground,
-              borderColor: controlBorderColor,
+              borderColor: isEditing ? '#3b82f6' : controlBorderColor, // Blue border when editing
               borderRadius: 4,
-              borderWidth: 2,
-              boxShadow: `0 0 0 1px ${controlOuterStrokeColor}`,
-              pointerEvents: dragState?.isDragging ? 'none' : 'auto'
+              borderWidth: isEditing ? 3 : 2, // Thicker border when editing
+              boxShadow: isEditing 
+                ? `0 0 0 2px #3b82f6, 0 0 12px rgba(59, 130, 246, 0.5)` // Blue glow when editing
+                : `0 0 0 1px ${controlOuterStrokeColor}`,
+              pointerEvents: dragState?.isDragging || editingStop ? 'none' : 'auto',
+              transition: 'all 0.2s ease' // Smooth transition for visual feedback
             }}
           />
         );
@@ -387,15 +415,33 @@ export const InteractiveGradientOverlay: React.FC = () => {
       style={{ 
         zIndex: 10,
         cursor: dragState?.isDragging ? 'grabbing' : 'auto',
-        // Only enable pointer events when we have both points
-        // When we only have start point, disable pointer events on container
-        pointerEvents: (startPoint && endPoint) ? 'auto' : 'none'
+        // Disable pointer events when:
+        // 1. Only have start point (no end point yet)
+        // 2. Stop editor is open (picker is showing)
+        pointerEvents: (startPoint && endPoint && !editingStop) ? 'auto' : 'none'
       }}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
+      onMouseDown={!editingStop ? handleMouseDown : undefined}
+      onMouseMove={!editingStop ? handleMouseMove : undefined}
+      onMouseUp={!editingStop ? handleMouseUp : undefined}
+      onDoubleClick={!editingStop ? handleOverlayDoubleClick : undefined}
     >
       {renderControls()}
+      
+      {/* Gradient Stop Picker */}
+      {editingStop && (
+        <GradientStopPicker
+          isOpen={true}
+          onOpenChange={(open) => {
+            if (!open) closeStopEditor();
+          }}
+          onValueSelect={(value) => {
+            updateEditingStopValue(value);
+            closeStopEditor();
+          }}
+          initialValue={editingStop.value}
+          type={editingStop.property}
+        />
+      )}
     </div>
   );
 };

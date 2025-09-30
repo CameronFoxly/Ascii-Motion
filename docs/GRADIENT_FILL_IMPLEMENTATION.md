@@ -169,6 +169,7 @@ export const calculateGradientCells = (options: GradientOptions): Map<string, Ce
 - **Global Mouse Tracking**: Window-level event handling for smooth dragging
 - **Coordinate Conversion**: Mouse to grid coordinate translation with zoom/pan support
 - **Pointer Events**: Smart pointer event management for overlay/canvas interaction
+- **Double-Click Editing**: Double-click any stop swatch to open character/color picker for editing
 
 **Color Intelligence**:
 - **Actual Color Display**: Stops show their configured color values
@@ -212,6 +213,7 @@ export const calculateGradientCells = (options: GradientOptions): Map<string, Ce
 6. **Interactive Adjustment**:
    - Drag start/end points to adjust gradient direction
    - Drag stops to adjust color distribution
+   - Double-click stops to edit character or color values
    - See live preview updates
 7. **Confirmation**:
    - Press Enter or click to apply gradient
@@ -266,6 +268,7 @@ export const calculateGradientCells = (options: GradientOptions): Map<string, Ce
 - ✅ Zoom and pan compatibility
 - ✅ Multiple gradient stops per property
 - ✅ Stop position and value editing
+- ✅ Double-click stop editing with character/color pickers
 - ✅ Memory-efficient canvas data management
 
 ### **📊 Implementation Statistics**:
