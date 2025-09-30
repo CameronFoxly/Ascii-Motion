@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CHARACTER_CATEGORIES } from '@/constants';
 import { 
   Type, 
@@ -200,17 +201,24 @@ export const EnhancedCharacterPicker: React.FC<EnhancedCharacterPickerProps> = (
             {/* Character Grid - Enhanced 8-column grid for better spacing */}
             <div className="max-h-60 overflow-y-auto">
               <div className="grid grid-cols-8 gap-1 p-2 border border-border rounded bg-muted/30">
-                {CHARACTER_CATEGORIES[selectedCategory as keyof typeof CHARACTER_CATEGORIES]?.map((char, index) => (
-                  <Button
-                    key={index}
-                    variant={initialValue === char ? "default" : "ghost"}
-                    className="h-8 w-8 p-0 font-mono text-sm hover:bg-accent hover:text-accent-foreground flex items-center justify-center"
-                    onClick={() => handleCharacterSelect(char)}
-                    title={`Insert "${char}"`}
-                  >
-                    {char}
-                  </Button>
-                ))}
+                <TooltipProvider>
+                  {CHARACTER_CATEGORIES[selectedCategory as keyof typeof CHARACTER_CATEGORIES]?.map((char, index) => (
+                    <Tooltip key={index}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={initialValue === char ? "default" : "ghost"}
+                          className="h-8 w-8 p-0 font-mono text-sm hover:bg-accent hover:text-accent-foreground flex items-center justify-center"
+                          onClick={() => handleCharacterSelect(char)}
+                        >
+                          {char}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Insert "{char}"</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </TooltipProvider>
               </div>
             </div>
           </div>
