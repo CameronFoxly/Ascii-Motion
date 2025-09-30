@@ -1016,23 +1016,25 @@ export function MediaImportPanel() {
                           </div>
                         </div>
                         <div className="flex items-end">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                type="button"
-                                variant={settings.maintainAspectRatio ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => updateSettings({ maintainAspectRatio: !settings.maintainAspectRatio })}
-                                disabled={!originalImageAspectRatio}
-                                className="h-8 w-8 p-0"
-                              >
-                                <Link className="w-3 h-3" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{settings.maintainAspectRatio ? "Unlink aspect ratio" : "Maintain original image aspect ratio"}</p>
-                            </TooltipContent>
-                          </Tooltip>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant={settings.maintainAspectRatio ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => updateSettings({ maintainAspectRatio: !settings.maintainAspectRatio })}
+                                  disabled={!originalImageAspectRatio}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Link className="w-3 h-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{settings.maintainAspectRatio ? "Unlink aspect ratio" : "Maintain original image aspect ratio"}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       </div>
                       
