@@ -7,7 +7,7 @@ import { GradientStopPicker } from './GradientStopPicker';
 export const InteractiveGradientOverlay: React.FC = () => {
   const overlayRef = useRef<HTMLDivElement>(null);
   const { activeTool } = useToolStore();
-  const { cellWidth, cellHeight, zoom, panOffset } = useCanvasContext();
+  const { cellWidth, cellHeight, zoom, panOffset, altKeyDown } = useCanvasContext();
   const { 
     isApplying, 
     startPoint, 
@@ -23,7 +23,8 @@ export const InteractiveGradientOverlay: React.FC = () => {
     startEditingStop,
     updateEditingStopValue,
     closeStopEditor,
-    cancelStopEdit
+    cancelStopEdit,
+    duplicateStop
   } = useGradientStore();
 
   const stopOffsetBase = 24;
@@ -138,12 +139,23 @@ export const InteractiveGradientOverlay: React.FC = () => {
     if (hit.type === 'start' || hit.type === 'end' || hit.type === 'ellipse') {
       startDrag(hit.type, { x: mouseX, y: mouseY });
     } else if (hit.type === 'stop') {
-      startDrag('stop', { x: mouseX, y: mouseY }, {
-        property: hit.property,
-        stopIndex: hit.stopIndex
-      });
+      // Check for alt+click to duplicate stop (use event.altKey for immediate detection)
+      if (event.altKey) {
+        // Duplicate the stop and start dragging the new one
+        const newStopIndex = duplicateStop(hit.property, hit.stopIndex);
+        startDrag('stop', { x: mouseX, y: mouseY }, {
+          property: hit.property,
+          stopIndex: newStopIndex
+        });
+      } else {
+        // Normal drag
+        startDrag('stop', { x: mouseX, y: mouseY }, {
+          property: hit.property,
+          stopIndex: hit.stopIndex
+        });
+      }
     }
-  }, [hitTest, startDrag, startPoint, endPoint]);
+  }, [hitTest, startDrag, altKeyDown, duplicateStop]);
   
   // Handle double-click on overlay to detect stop clicks
   const handleOverlayDoubleClick = useCallback((event: React.MouseEvent) => {
@@ -383,7 +395,7 @@ export const InteractiveGradientOverlay: React.FC = () => {
                 ? `0 0 0 2px #3b82f6, 0 0 12px rgba(59, 130, 246, 0.5)` // Blue glow when editing
                 : `0 0 0 1px ${controlOuterStrokeColor}`,
               pointerEvents: dragState?.isDragging || editingStop ? 'none' : 'auto',
-              transition: 'all 0.2s ease' // Smooth transition for visual feedback
+              transition: 'border-color 0.2s ease, border-width 0.2s ease, box-shadow 0.2s ease' // Only transition visual properties, not position
             }}
           />
         );

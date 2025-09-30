@@ -93,6 +93,7 @@ interface GradientStore {
   updateEditingStopValue: (value: string) => void;
   closeStopEditor: () => void;
   cancelStopEdit: () => void;
+  duplicateStop: (property: 'character' | 'textColor' | 'backgroundColor', stopIndex: number) => number;
   
   // Utility  // Utility
   reset: () => void;
@@ -619,6 +620,38 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
       },
       editingStop: null
     }));
+  },
+  
+  duplicateStop: (property: 'character' | 'textColor' | 'backgroundColor', stopIndex: number) => {
+    const state = get();
+    const stops = state.definition[property].stops;
+    
+    if (stopIndex < 0 || stopIndex >= stops.length || stops.length >= 8) {
+      return stopIndex; // Return original index if can't duplicate
+    }
+    
+    const stopToDuplicate = stops[stopIndex];
+    const newStop = { ...stopToDuplicate }; // Create a copy
+    
+    // Insert the new stop right after the original
+    const newStops = [
+      ...stops.slice(0, stopIndex + 1),
+      newStop,
+      ...stops.slice(stopIndex + 1)
+    ];
+    
+    set((current) => ({
+      definition: {
+        ...current.definition,
+        [property]: {
+          ...current.definition[property],
+          stops: newStops
+        }
+      }
+    }));
+    
+    // Return the index of the newly created stop
+    return stopIndex + 1;
   },
 
   // Utility actions

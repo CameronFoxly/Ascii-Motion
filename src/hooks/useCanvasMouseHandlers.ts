@@ -37,8 +37,8 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
   const textToolHandlers = useTextTool();
   const gradientFillHandlers = useGradientFillTool();
 
-  // Determine effective tool (Alt key overrides with eyedropper for drawing tools)
-  const drawingTools = ['pencil', 'eraser', 'paintbucket', 'gradientfill', 'rectangle', 'ellipse'] as const;
+  // Determine effective tool (Alt key overrides with eyedropper for drawing tools, except gradientfill)
+  const drawingTools = ['pencil', 'eraser', 'paintbucket', 'rectangle', 'ellipse'] as const;
   const shouldAllowEyedropperOverride = drawingTools.includes(activeTool as any);
   const effectiveTool = (altKeyDown && shouldAllowEyedropperOverride) ? 'eyedropper' : activeTool;
 
