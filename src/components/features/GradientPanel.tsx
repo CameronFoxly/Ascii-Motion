@@ -259,9 +259,20 @@ export function GradientPanel() {
           className="scale-75"
         />
       </div>
-      <CollapsibleContent className="collapsible-content">
-        {property.enabled && (
-          <div className="flex flex-col gap-3 mt-2">
+      <CollapsibleContent className="collapsible-content space-y-3 mt-2">
+        <div className="w-full">
+          {!property.enabled && (
+            <div className="p-3 border border-border/50 rounded-lg bg-muted/20">
+              <p className="text-xs text-muted-foreground text-center">
+                {propertyKey === 'character' && 'Character gradient is disabled. Enable to gradient characters across the fill area.'}
+                {propertyKey === 'textColor' && 'Text color gradient is disabled. Enable to gradient text colors across the fill area.'}
+                {propertyKey === 'backgroundColor' && 'Background gradient is disabled. Enable to gradient background colors across the fill area.'}
+              </p>
+            </div>
+          )}
+          
+          {property.enabled && (
+            <div className="flex flex-col gap-3">
             {/* Interpolation Method */}
             <div className="space-y-1">
               <Label className="text-xs">Interpolation</Label>
@@ -441,7 +452,8 @@ export function GradientPanel() {
               </div>
             </div>
           </div>
-        )}
+          )}
+        </div>
       </CollapsibleContent>
       </Collapsible>
     );
