@@ -109,7 +109,7 @@ export function MediaImportPanel() {
   
   // Collapsible section states
   const [previewSectionOpen, setPreviewSectionOpen] = useState(true);
-  const [positionSectionOpen, setPositionSectionOpen] = useState(true);
+  const [positionSectionOpen, setPositionSectionOpen] = useState(false);
   
   // Preview state management
   const [isPreviewActive, setIsPreviewActive] = useState(false);
@@ -812,12 +812,14 @@ export function MediaImportPanel() {
 
                     {/* Frame Navigation */}
                     {previewFrames.length > 0 && (
-                      <div className="space-y-2 p-2 bg-muted/30 rounded-lg">
-                        <div className="flex items-center justify-center">
-                          <Label className="text-xs font-medium">
-                            Preview ({previewFrames.length} frame{previewFrames.length !== 1 ? 's' : ''})
-                          </Label>
-                        </div>
+                      <div className="p-2 bg-muted/30 rounded-lg">
+                        {previewFrames.length === 1 && (
+                          <div className="flex items-center justify-center">
+                            <span className="text-xs">
+                              Preview frame 1 of 1
+                            </span>
+                          </div>
+                        )}
                         
                         {previewFrames.length > 1 && (
                           <TooltipProvider>
@@ -855,7 +857,7 @@ export function MediaImportPanel() {
                                 </TooltipContent>
                               </Tooltip>
                               <span className="text-xs flex-1 text-center">
-                                Frame {frameIndex + 1} of {previewFrames.length}
+                                Preview Frame {frameIndex + 1} of {previewFrames.length}
                               </span>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -1211,6 +1213,8 @@ export function MediaImportPanel() {
               {/* Background Color Mapping Section */}
               <PanelSeparator marginX="3" />
               <BackgroundColorMappingSection onSettingsChange={() => setLivePreviewEnabled(true)} />
+              
+              <PanelSeparator marginX="3" />
               
               {/* Processing Progress */}
               {isProcessing && (

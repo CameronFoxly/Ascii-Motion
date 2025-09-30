@@ -13,7 +13,7 @@ import { Label } from '../ui/label';
 import { Card, CardContent } from '../ui/card';
 import { Slider } from '../ui/slider';
 import { Separator } from '../ui/separator';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+
 import { 
   Select,
   SelectContent,
@@ -42,7 +42,7 @@ interface PreprocessingSectionProps {
 }
 
 export function PreprocessingSection({ onSettingsChange }: PreprocessingSectionProps) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   // Character palette store access for mapping method
   const mappingMethod = useCharacterPaletteStore(state => state.mappingMethod);

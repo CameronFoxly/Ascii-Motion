@@ -394,10 +394,19 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
           </Button>
         </CollapsibleTrigger>
         
-        <CollapsibleContent className="collapsible-content">
-          <div className="space-y-3">
-            <Card className="bg-card/30 border-border/50">
-              <CardContent className="p-3 space-y-3">
+        <CollapsibleContent className="collapsible-content space-y-3 mt-2">
+          <div className="w-full">
+            {!enableBackgroundColorMapping && (
+              <div className="p-3 border border-border/50 rounded-lg bg-muted/20">
+                <p className="text-xs text-muted-foreground text-center">
+                  Background color mapping is disabled. Characters will use default background colors.
+                </p>
+              </div>
+            )}
+            
+            {enableBackgroundColorMapping && (
+              <Card className="bg-card/30 border-border/50">
+                <CardContent className="p-3 space-y-3">
                 {/* Palette Selection */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -725,14 +734,9 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
                   </Select>
                 </div>
 
-                {/* Help Text */}
-                {!enableBackgroundColorMapping && (
-                  <div className="text-xs text-muted-foreground bg-muted/20 p-2 rounded">
-                    Enable background color mapping to use palette-based colors for ASCII character backgrounds.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </CollapsibleContent>
       </Collapsible>

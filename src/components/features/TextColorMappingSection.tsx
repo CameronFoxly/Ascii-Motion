@@ -394,10 +394,19 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
           </Button>
         </CollapsibleTrigger>
         
-        <CollapsibleContent className="collapsible-content">
-          <div className="space-y-3">
-            <Card className="bg-card/30 border-border/50">
-              <CardContent className="p-3 space-y-3">
+        <CollapsibleContent className="collapsible-content space-y-3 mt-2">
+          <div className="w-full">
+            {!enableTextColorMapping && (
+              <div className="p-3 border border-border/50 rounded-lg bg-muted/20">
+                <p className="text-xs text-muted-foreground text-center">
+                  Text color mapping is disabled. Characters will use default foreground colors.
+                </p>
+              </div>
+            )}
+            
+            {enableTextColorMapping && (
+              <Card className="bg-card/30 border-border/50">
+                <CardContent className="p-3 space-y-3">
                 {/* Palette Selection */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -734,14 +743,9 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                   </Select>
                 </div>
 
-                {/* Help Text */}
-                {!enableTextColorMapping && (
-                  <div className="text-xs text-muted-foreground bg-muted/20 p-2 rounded">
-                    Enable text color mapping to use palette-based colors for ASCII characters.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </CollapsibleContent>
       </Collapsible>

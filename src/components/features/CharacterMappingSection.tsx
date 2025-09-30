@@ -293,12 +293,12 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
         </CollapsibleTrigger>
       </div>
       
-      <CollapsibleContent className="collapsible-content">
-        <div className="space-y-3 w-full">
+      <CollapsibleContent className="collapsible-content space-y-3 mt-2">
+        <div className="w-full">
           {!enableCharacterMapping && (
             <div className="p-3 border border-border/50 rounded-lg bg-muted/20">
               <p className="text-xs text-muted-foreground text-center">
-                Character mapping is disabled. Images will be converted using a default character set.
+                Character mapping is disabled. Enable to map characters to imported image content.
               </p>
             </div>
           )}
