@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
+import { PanelSeparator } from '../common/PanelSeparator';
 import { GradientIcon } from '../icons';
 import { 
   PenTool, 
@@ -18,7 +19,8 @@ import {
   Lasso,
   Type,
   Wand2,
-  Palette
+  Palette,
+  Wrench
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -114,13 +116,16 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
 
   return (
     <TooltipProvider>
-      <div className={`space-y-1 ${className}`}>
+      <div className={`space-y-3 ${className}`}>
         <Collapsible open={showTools} onOpenChange={setShowTools}>
           <CollapsibleHeader isOpen={showTools}>
-            Tools
+            <div className="flex items-center gap-2">
+              <Wrench className="w-4 h-4" />
+              Tools
+            </div>
           </CollapsibleHeader>
           <CollapsibleContent className="collapsible-content">
-            <Card className="border-border/50 mt-1">
+            <Card className="border-border/50 mt-2">
               <CardContent className="p-3">
                 {/* Drawing Tools Section */}
                 <div className="space-y-2">
@@ -156,18 +161,21 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
           </CollapsibleContent>
         </Collapsible>
 
+        {/* Separator between Tools and Tool Options */}
+        {hasOptions && <PanelSeparator />}
+
         {/* Tool Options */}
         {hasOptions && (
           <div>
             <Collapsible open={showOptions} onOpenChange={setShowOptions}>
             <CollapsibleHeader isOpen={showOptions}>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
                 {getCurrentToolIcon()}
                 <span>Tool Options</span>
               </div>
             </CollapsibleHeader>
             <CollapsibleContent className="collapsible-content">
-              <Card className="bg-card/50 border-border/50 mt-1">
+              <Card className="bg-card/50 border-border/50 mt-2">
                 <CardContent className="p-2 space-y-2">
                   {effectiveTool === 'rectangle' && (
                     <div className="flex items-center justify-between">
@@ -508,6 +516,9 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
           </Collapsible>
           </div>
         )}
+
+        {/* Separator after Tool Options */}
+        {hasOptions && <PanelSeparator />}
       </div>
     </TooltipProvider>
   );

@@ -10,6 +10,7 @@ This directory contains comprehensive documentation for the ASCII Motion project
 - [`ANIMATION_SYSTEM_GUIDE.md`](./ANIMATION_SYSTEM_GUIDE.md) - Animation system architecture and implementation
 - [`TOOL_BEHAVIOR_IMPLEMENTATION.md`](./TOOL_BEHAVIOR_IMPLEMENTATION.md) - Tool behavior patterns and implementations
 - [`TYPOGRAPHY_IMPLEMENTATION.md`](./TYPOGRAPHY_IMPLEMENTATION.md) - Typography and character rendering system
+- [`UI_COMPONENTS_DESIGN_SYSTEM.md`](./UI_COMPONENTS_DESIGN_SYSTEM.md) - UI components, design patterns, and panel standardization
 
 ### **Effects System Documentation**
 - [`EFFECTS_IMPLEMENTATION_SUMMARY.md`](./EFFECTS_IMPLEMENTATION_SUMMARY.md) - Production-ready effects system summary and technical overview

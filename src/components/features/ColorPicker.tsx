@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
-import { Separator } from '@/components/ui/separator';
 import { Palette, Type, Settings, Plus, Trash2, ChevronLeft, ChevronRight, Upload, Download } from 'lucide-react';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
+import { PanelSeparator } from '../common/PanelSeparator';
 import { ColorPickerOverlay } from './ColorPickerOverlay';
 import { ImportPaletteDialog } from './ImportPaletteDialog';
 import { ExportPaletteDialog } from './ExportPaletteDialog';
@@ -249,7 +249,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
             Color Palette
           </div>
         </CollapsibleHeader>
-        <CollapsibleContent className="collapsible-content space-y-3">
+        <CollapsibleContent className="collapsible-content space-y-3 mt-2">
           {/* Palette selector with inline buttons */}
           <div className="flex items-center gap-1">
             <div className="w-28 flex-shrink-0">
@@ -610,17 +610,13 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
       </Collapsible>
 
       {/* Divider between Color Palette and Effects */}
-      <div className="relative -mx-4 h-px">
-        <Separator className="absolute inset-0" />
-      </div>
+      <PanelSeparator />
 
       {/* Effects Section */}
       <EffectsSection />
 
       {/* Divider after Effects */}
-      <div className="relative -mx-4 h-px">
-        <Separator className="absolute inset-0" />
-      </div>
+      <PanelSeparator />
 
       {/* Color Picker Modal */}
       <ColorPickerOverlay

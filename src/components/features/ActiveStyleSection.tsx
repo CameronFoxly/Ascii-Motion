@@ -92,7 +92,7 @@ export function ActiveStyleSection({ className = '' }: ActiveStyleSectionProps) 
             Appearance
           </div>
         </CollapsibleHeader>
-        <CollapsibleContent className="collapsible-content space-y-3">
+        <CollapsibleContent className="collapsible-content space-y-3 mt-2">
           {/* Character & Color Controls - Two Equal Columns */}
           <div className="grid grid-cols-2 gap-4">
             {/* Character Section */}

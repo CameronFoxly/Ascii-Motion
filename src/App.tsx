@@ -1,12 +1,12 @@
 import './App.css'
 import { Analytics } from '@vercel/analytics/react'
-import { Separator } from '@/components/ui/separator'
 import { CanvasWithShortcuts } from './components/features/CanvasWithShortcuts'
 import { CanvasProvider } from './contexts/CanvasContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { ThemeToggle } from './components/common/ThemeToggle'
 import { CollapsiblePanel } from './components/common/CollapsiblePanel'
 import { PanelToggleButton } from './components/common/PanelToggleButton'
+import { PanelSeparator } from './components/common/PanelSeparator'
 import { ToolPalette } from './components/features/ToolPalette'
 import { MainCharacterPaletteSection } from './components/features/MainCharacterPaletteSection'
 import { ColorPicker } from './components/features/ColorPicker'
@@ -110,15 +110,11 @@ function App() {
                 <div className="space-y-3">
                   <ActiveStyleSection />
                   
-                  <div className="relative -mx-4 h-px">
-                    <Separator className="absolute inset-0" />
-                  </div>
+                  <PanelSeparator />
                   
                   <MainCharacterPaletteSection />
                   
-                  <div className="relative -mx-4 h-px">
-                    <Separator className="absolute inset-0" />
-                  </div>
+                  <PanelSeparator />
                   
                   {/* Color Picker - now contains its own collapsible sections */}
                   <ColorPicker />

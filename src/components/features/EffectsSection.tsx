@@ -59,7 +59,7 @@ export function EffectsSection({ className = '' }: EffectsSectionProps) {
           </div>
         </CollapsibleHeader>
         
-        <CollapsibleContent className="collapsible-content">
+        <CollapsibleContent className="collapsible-content mt-2">
           <div className="space-y-3">
             {/* Effect Buttons */}
             <div className="space-y-2">

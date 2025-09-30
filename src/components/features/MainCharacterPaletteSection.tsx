@@ -224,7 +224,7 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
             Character Palette
           </div>
         </CollapsibleHeader>
-        <CollapsibleContent className="collapsible-content space-y-3">
+        <CollapsibleContent className="collapsible-content space-y-3 mt-2">
           {/* Character Palette Selector */}
           <div className="space-y-2 w-full">
             <div className="flex items-center gap-2">
