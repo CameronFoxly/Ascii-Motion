@@ -29,6 +29,8 @@ import { TextExportDialog } from './components/features/TextExportDialog'
 import { JsonExportDialog } from './components/features/JsonExportDialog'
 import { HtmlExportDialog } from './components/features/HtmlExportDialog'
 import { JsonImportDialog } from './components/features/JsonImportDialog'
+import { SetFrameDurationDialog } from './components/features/timeEffects/SetFrameDurationDialog'
+import { AddFramesDialog } from './components/features/timeEffects/AddFramesDialog'
 import { useLayoutState } from './hooks/useLayoutState'
 import { VersionDisplay } from './components/common/VersionDisplay'
 
@@ -204,6 +206,10 @@ function App() {
           <JsonExportDialog />
           <HtmlExportDialog />
           <JsonImportDialog />
+          
+          {/* Time Effects Dialogs */}
+          <SetFrameDurationDialog />
+          <AddFramesDialog />
         </CanvasProvider>
         
         {/* Performance Overlay for Development */}

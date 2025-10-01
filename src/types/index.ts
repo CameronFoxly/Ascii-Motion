@@ -227,7 +227,9 @@ export type HistoryActionType =
   | 'update_duration'  // Change frame duration
   | 'update_name'      // Change frame name
   | 'navigate_frame'   // Navigate to different frame
-  | 'apply_effect';    // Apply effect to canvas or timeline
+  | 'apply_effect'     // Apply effect to canvas or timeline
+  | 'apply_time_effect'     // Apply time-based effect (wave warp, wiggle)
+  | 'set_frame_durations';  // Bulk set frame durations
 
 export interface HistoryAction {
   type: HistoryActionType;
@@ -321,6 +323,26 @@ export interface ApplyEffectHistoryAction extends HistoryAction {
   };
 }
 
+export interface ApplyTimeEffectHistoryAction extends HistoryAction {
+  type: 'apply_time_effect';
+  data: {
+    effectType: import('./timeEffects').TimeEffectType;
+    effectSettings: import('./timeEffects').WaveWarpSettings | import('./timeEffects').WiggleSettings;
+    frameRange: import('./timeEffects').FrameRangeSettings;
+    affectedFrameIndices: number[];
+    previousFramesData: Array<{ frameIndex: number; data: Map<string, Cell> }>;
+  };
+}
+
+export interface SetFrameDurationsHistoryAction extends HistoryAction {
+  type: 'set_frame_durations';
+  data: {
+    affectedFrameIndices: number[];
+    newDuration: number;
+    previousDurations: Array<{ frameIndex: number; duration: number }>;
+  };
+}
+
 export type AnyHistoryAction = 
   | CanvasHistoryAction
   | AddFrameHistoryAction 
@@ -330,4 +352,6 @@ export type AnyHistoryAction =
   | UpdateDurationHistoryAction
   | UpdateNameHistoryAction
   | NavigateFrameHistoryAction
-  | ApplyEffectHistoryAction;
+  | ApplyEffectHistoryAction
+  | ApplyTimeEffectHistoryAction
+  | SetFrameDurationsHistoryAction;

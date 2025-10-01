@@ -229,12 +229,33 @@ export const useAnimationHistory = () => {
     pushToHistory(historyAction);
   }, [frames, updateFrameNameStore, pushToHistory]);
 
+  /**
+   * Add multiple frames with history recording
+   */
+  const addMultipleFrames = useCallback((count: number, sourceFrame?: any) => {
+    if (count <= 0) return;
+    
+    // For now, add frames one by one using the existing single-frame method
+    // This ensures each frame is properly tracked in history
+    for (let i = 0; i < count; i++) {
+      if (sourceFrame) {
+        // Use duplicate frame functionality
+        const currentLength = frames.length + i;
+        duplicateFrame(Math.min(currentFrameIndex, currentLength - 1));
+      } else {
+        // Add blank frame
+        addFrame();
+      }
+    }
+  }, [frames.length, currentFrameIndex, addFrame, duplicateFrame]);
+
   return {
     addFrame,
     duplicateFrame,
     removeFrame,
     reorderFrames,
     updateFrameDuration,
-    updateFrameName
+    updateFrameName,
+    addMultipleFrames
   };
 };

@@ -4,12 +4,25 @@ import { useCanvasStore } from '../../stores/canvasStore';
 import { useAnimationPlayback } from '../../hooks/useAnimationPlayback';
 import { useFrameNavigation } from '../../hooks/useFrameNavigation';
 import { useAnimationHistory } from '../../hooks/useAnimationHistory';
+import { useTimeEffectsStore } from '../../stores/timeEffectsStore';
 import { FrameThumbnail } from './FrameThumbnail';
 import { PlaybackControls } from './PlaybackControls';
 import { FrameControls } from './FrameControls';
 import { OnionSkinControls } from './OnionSkinControls';
 import { TimelineZoomControl } from './TimelineZoomControl';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '../ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger 
+} from '../ui/dropdown-menu';
+import { Menu, Clock, Plus, Zap } from 'lucide-react';
 import { MAX_LIMITS } from '../../constants';
 
 /**
@@ -255,7 +268,10 @@ export const AnimationTimeline: React.FC = () => {
     <Card className="border-border/50">
       <CardHeader className="py-2 px-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium">Animation Timeline</CardTitle>
+          <div className="flex items-center gap-2">
+            <AnimationControlsMenu />
+            <CardTitle className="text-sm font-medium">Animation Timeline</CardTitle>
+          </div>
           <div className="text-xs text-muted-foreground">
             {frames.length} frame{frames.length !== 1 ? 's' : ''} • {(totalDuration / 1000).toFixed(1)}s
           </div>
@@ -381,5 +397,70 @@ export const AnimationTimeline: React.FC = () => {
         </div>
       </CardContent>
     </Card>
+  );
+};
+
+/**
+ * Animation Controls Menu Component
+ * 
+ * Provides hamburger menu with time-based effects and animation controls
+ */
+const AnimationControlsMenu: React.FC = () => {
+  const { 
+    openSetDurationDialog,
+    openAddFramesDialog,
+    openWaveWarpDialog,
+    openWiggleDialog
+  } = useTimeEffectsStore();
+
+  return (
+    <TooltipProvider>
+      <DropdownMenu>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-6 w-6 p-0 hover:bg-accent"
+              >
+                <Menu className="h-3.5 w-3.5" />
+                <span className="sr-only">Animation controls</span>
+              </Button>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Animation controls</p>
+          </TooltipContent>
+        </Tooltip>
+        
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuItem onClick={openSetDurationDialog}>
+            <Clock className="mr-2 h-4 w-4" />
+            <span>Set frame duration</span>
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem onClick={openAddFramesDialog}>
+            <Plus className="mr-2 h-4 w-4" />
+            <span>Add frames</span>
+          </DropdownMenuItem>
+          
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <Zap className="mr-2 h-4 w-4" />
+              <span>Time effects</span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuItem onClick={openWaveWarpDialog}>
+                <span>Wave warp</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={openWiggleDialog}>
+                <span>Wiggle</span>
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </TooltipProvider>
   );
 };
