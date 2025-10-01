@@ -87,6 +87,16 @@ export const useCanvasRenderer = () => {
   const { previewData, isPreviewActive } = usePreviewStore();
   const { isPreviewActive: isEffectPreviewActive } = useEffectsStore();
   const { isPreviewActive: isTimeEffectPreviewActive } = useTimeEffectsStore();
+  
+  // Debug: Log preview state changes
+  useEffect(() => {
+    console.log('[Canvas Renderer] Preview state changed:', {
+      isPreviewActive,
+      previewDataSize: previewData.size,
+      isEffectPreviewActive,  
+      isTimeEffectPreviewActive
+    });
+  }, [isPreviewActive, previewData, isEffectPreviewActive, isTimeEffectPreviewActive]);
   const { getEllipsePoints } = useDrawingTool();
 
   // Use onion skin renderer for frame overlays
@@ -245,21 +255,24 @@ export const useCanvasRenderer = () => {
     }
 
     // Draw static cells (excluding cells being moved)
-    for (let y = 0; y < canvasConfig.height; y++) {
-      for (let x = 0; x < canvasConfig.width; x++) {
-        const key = `${x},${y}`;
-        
-        if (movingCells.has(key)) {
-          // Draw empty cell in original position during move
-          drawCell(ctx, x, y, { 
-            char: ' ', 
-            color: drawingStyles.defaultTextColor, 
-            bgColor: drawingStyles.defaultBgColor 
-          });
-        } else {
-          const cell = getCell(x, y);
-          if (cell) {
-            drawCell(ctx, x, y, cell);
+    // Skip drawing original cells if time effects preview is active (preview will render all cells)
+    if (!isTimeEffectPreviewActive) {
+      for (let y = 0; y < canvasConfig.height; y++) {
+        for (let x = 0; x < canvasConfig.width; x++) {
+          const key = `${x},${y}`;
+          
+          if (movingCells.has(key)) {
+            // Draw empty cell in original position during move
+            drawCell(ctx, x, y, { 
+              char: ' ', 
+              color: drawingStyles.defaultTextColor, 
+              bgColor: drawingStyles.defaultBgColor 
+            });
+          } else {
+            const cell = getCell(x, y);
+            if (cell) {
+              drawCell(ctx, x, y, cell);
+            }
           }
         }
       }

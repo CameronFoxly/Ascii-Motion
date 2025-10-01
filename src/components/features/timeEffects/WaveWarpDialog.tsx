@@ -26,6 +26,7 @@ export const WaveWarpDialog: React.FC = () => {
     updateWaveWarpSettings,
     updateFrameRange,
     isPreviewActive,
+    previewEffect,
     startPreview,
     stopPreview,
     updatePreview
@@ -61,21 +62,23 @@ export const WaveWarpDialog: React.FC = () => {
         applyToAll: true
       });
       
-      // Auto-start preview (default to on) - temporarily disabled for debugging
-      // setTimeout(() => {
-      //   if (!isPreviewActive) {
-      //     startPreview('wave-warp');
-      //   }
-      // }, 100); // Small delay to ensure dialog is fully mounted
+      // Auto-start preview (default to on)
+      setTimeout(() => {
+        if (!isPreviewActive) {
+          console.log('[WaveWarp] Auto-starting preview');
+          startPreview('wave-warp');
+        }
+      }, 100); // Small delay to ensure dialog is fully mounted
     }
-  }, [isWaveWarpDialogOpen, frames.length, updateWaveWarpSettings, isPreviewActive, startPreview]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isWaveWarpDialogOpen, frames.length]); // Intentionally omit isPreviewActive to avoid infinite loop
 
   // Stop preview when dialog closes
   useEffect(() => {
-    if (!isWaveWarpDialogOpen && isPreviewActive) {
+    if (!isWaveWarpDialogOpen && isPreviewActive && previewEffect === 'wave-warp') {
       stopPreview();
     }
-  }, [isWaveWarpDialogOpen, isPreviewActive, stopPreview]);
+  }, [isWaveWarpDialogOpen, isPreviewActive, previewEffect, stopPreview]);
 
   // Update preview when current frame changes
   useEffect(() => {

@@ -206,6 +206,7 @@ export const useTimeEffectsStore = create<TimeEffectsState>((set, get) => ({
   // ==========================================
   
   startPreview: (effectType) => {
+    console.log('[TimeEffects Store] startPreview called with:', effectType);
     set({ 
       isPreviewActive: true, 
       previewEffect: effectType 
@@ -216,6 +217,7 @@ export const useTimeEffectsStore = create<TimeEffectsState>((set, get) => ({
   },
   
   stopPreview: () => {
+    console.log('[TimeEffects Store] stopPreview called');
     // Clear preview from canvas via previewStore
     try {
       usePreviewStore.getState().clearPreview();
@@ -229,7 +231,13 @@ export const useTimeEffectsStore = create<TimeEffectsState>((set, get) => ({
   updatePreview: () => {
     const state = get();
     
+    console.log('[TimeEffects Store] updatePreview called, state:', {
+      isPreviewActive: state.isPreviewActive,
+      previewEffect: state.previewEffect
+    });
+    
     if (!state.isPreviewActive || !state.previewEffect) {
+      console.log('[TimeEffects Store] Preview not active or no effect type');
       return;
     }
     
@@ -252,6 +260,9 @@ export const useTimeEffectsStore = create<TimeEffectsState>((set, get) => ({
       // Apply effect based on type
       let previewData: Map<string, any> | null = null;
       
+      console.log('[TimeEffects Store] Applying effect:', state.previewEffect, 'to frame', currentFrameIndex);
+      console.log('[TimeEffects Store] Frame data size:', currentFrameData.size, 'accumulated time:', accumulatedTime);
+      
       if (state.previewEffect === 'wave-warp') {
         previewData = applyWaveWarpToFrame(
           currentFrameData,
@@ -260,6 +271,7 @@ export const useTimeEffectsStore = create<TimeEffectsState>((set, get) => ({
           state.waveWarpSettings,
           accumulatedTime
         );
+        console.log('[TimeEffects Store] Wave warp result:', previewData?.size || 0, 'cells');
       } else if (state.previewEffect === 'wiggle') {
         previewData = applyWiggleToFrame(
           currentFrameData,
@@ -272,7 +284,10 @@ export const useTimeEffectsStore = create<TimeEffectsState>((set, get) => ({
       
       // Update preview on canvas
       if (previewData) {
+        console.log('[TimeEffects Store] Setting preview data:', previewData.size, 'cells');
         previewStore.setPreviewData(previewData);
+      } else {
+        console.log('[TimeEffects Store] No preview data generated');
       }
     } catch (error) {
       console.error('Failed to update preview:', error);

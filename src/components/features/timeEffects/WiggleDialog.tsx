@@ -27,6 +27,7 @@ export const WiggleDialog: React.FC = () => {
     updateWiggleSettings,
     updateFrameRange,
     isPreviewActive,
+    previewEffect,
     startPreview,
     stopPreview,
     updatePreview
@@ -62,21 +63,23 @@ export const WiggleDialog: React.FC = () => {
         applyToAll: true
       });
       
-      // Auto-start preview (default to on) - temporarily disabled for debugging
-      // setTimeout(() => {
-      //   if (!isPreviewActive) {
-      //     startPreview('wiggle');
-      //   }
-      // }, 100); // Small delay to ensure dialog is fully mounted
+      // Auto-start preview (default to on)
+      setTimeout(() => {
+        if (!isPreviewActive) {
+          console.log('[Wiggle] Auto-starting preview');
+          startPreview('wiggle');
+        }
+      }, 100); // Small delay to ensure dialog is fully mounted
     }
-  }, [isWiggleDialogOpen, frames.length, updateWiggleSettings, isPreviewActive, startPreview]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isWiggleDialogOpen, frames.length]); // Intentionally omit isPreviewActive to avoid infinite loop
 
-  // Stop preview when dialog closes
+  // Stop preview when dialog closes (only if this dialog's effect is active)
   useEffect(() => {
-    if (!isWiggleDialogOpen && isPreviewActive) {
+    if (!isWiggleDialogOpen && isPreviewActive && previewEffect === 'wiggle') {
       stopPreview();
     }
-  }, [isWiggleDialogOpen, isPreviewActive, stopPreview]);
+  }, [isWiggleDialogOpen, isPreviewActive, previewEffect, stopPreview]);
 
   // Update preview when current frame changes
   useEffect(() => {
