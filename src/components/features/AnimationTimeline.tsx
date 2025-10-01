@@ -434,23 +434,27 @@ const AnimationControlsMenu: React.FC = () => {
           </TooltipContent>
         </Tooltip>
         
-        <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuContent 
+          align="start" 
+          side="top"
+          className="w-56 border-border/50"
+        >
           <DropdownMenuItem onClick={openSetDurationDialog}>
             <Clock className="mr-2 h-4 w-4" />
-            <span>Set frame duration</span>
+            <span>Set all frame durations</span>
           </DropdownMenuItem>
           
           <DropdownMenuItem onClick={openAddFramesDialog}>
             <Plus className="mr-2 h-4 w-4" />
-            <span>Add frames</span>
+            <span>Add multiple frames</span>
           </DropdownMenuItem>
           
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <Zap className="mr-2 h-4 w-4" />
-              <span>Time effects</span>
+              <span>Animated FX</span>
             </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
+            <DropdownMenuSubContent className="border-border/50">
               <DropdownMenuItem onClick={openWaveWarpDialog}>
                 <span>Wave warp</span>
               </DropdownMenuItem>

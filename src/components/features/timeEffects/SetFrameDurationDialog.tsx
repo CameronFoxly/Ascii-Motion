@@ -34,13 +34,21 @@ export const SetFrameDurationDialog: React.FC = () => {
   const [milliseconds, setMilliseconds] = useState(100);
   const [fps, setFps] = useState(10);
   
+  // Input text state (allows empty/partial input while typing)
+  const [msInputValue, setMsInputValue] = useState('100');
+  const [fpsInputValue, setFpsInputValue] = useState('10');
+  
   // Calculate current average frame duration for initial values
   useEffect(() => {
     if (isSetDurationDialogOpen && frames.length > 0) {
       const totalDuration = frames.reduce((sum, frame) => sum + frame.duration, 0);
       const averageDuration = totalDuration / frames.length;
-      setMilliseconds(Math.round(averageDuration));
-      setFps(Math.round(msToFps(averageDuration) * 10) / 10); // Round to 1 decimal place
+      const roundedMs = Math.round(averageDuration);
+      const roundedFps = Math.round(msToFps(averageDuration));
+      setMilliseconds(roundedMs);
+      setFps(roundedFps);
+      setMsInputValue(roundedMs.toString());
+      setFpsInputValue(roundedFps.toString());
     }
   }, [isSetDurationDialogOpen, frames]);
 
@@ -70,12 +78,14 @@ export const SetFrameDurationDialog: React.FC = () => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isSetDurationDialogOpen, closeSetDurationDialog]);
 
-  // Sync values when mode changes
+  // Sync display values when mode changes (not input values - those stay as user typed)
   useEffect(() => {
     if (mode === 'ms') {
-      setFps(Math.round(msToFps(milliseconds) * 10) / 10);
+      const roundedFps = Math.round(msToFps(milliseconds));
+      setFps(roundedFps);
     } else {
-      setMilliseconds(Math.round(fpsToMs(fps)));
+      const roundedMs = Math.round(fpsToMs(fps));
+      setMilliseconds(roundedMs);
     }
   }, [mode, milliseconds, fps]);
 
@@ -98,23 +108,63 @@ export const SetFrameDurationDialog: React.FC = () => {
     dragStartOffsetRef.current = { ...positionOffset };
   }, [positionOffset]);
 
-  // Handle input changes with validation
+  // Handle input changes - allow typing without validation
   const handleMillisecondsChange = (value: string) => {
-    const numValue = parseInt(value) || 0;
-    const clampedValue = Math.max(
-      FRAME_DURATION_LIMITS.MIN_MS, 
-      Math.min(FRAME_DURATION_LIMITS.MAX_MS, numValue)
-    );
-    setMilliseconds(clampedValue);
+    // Allow empty string or numbers only (no decimals)
+    if (value === '' || /^\d+$/.test(value)) {
+      setMsInputValue(value);
+      // Only update milliseconds state if valid number
+      if (value !== '') {
+        const numValue = parseInt(value, 10);
+        setMilliseconds(numValue);
+      }
+    }
+  };
+
+  const handleMillisecondsBlur = () => {
+    // Validate and clamp on blur
+    if (msInputValue === '') {
+      const defaultValue = FRAME_DURATION_LIMITS.MIN_MS;
+      setMsInputValue(defaultValue.toString());
+      setMilliseconds(defaultValue);
+    } else {
+      const numValue = parseInt(msInputValue, 10);
+      const clampedValue = Math.max(
+        FRAME_DURATION_LIMITS.MIN_MS,
+        Math.min(FRAME_DURATION_LIMITS.MAX_MS, numValue)
+      );
+      setMsInputValue(clampedValue.toString());
+      setMilliseconds(clampedValue);
+    }
   };
 
   const handleFpsChange = (value: string) => {
-    const numValue = parseFloat(value) || 0;
-    const clampedValue = Math.max(
-      FRAME_DURATION_LIMITS.MIN_FPS, 
-      Math.min(FRAME_DURATION_LIMITS.MAX_FPS, numValue)
-    );
-    setFps(clampedValue);
+    // Allow empty string or numbers only (no decimals)
+    if (value === '' || /^\d+$/.test(value)) {
+      setFpsInputValue(value);
+      // Only update fps state if valid number
+      if (value !== '') {
+        const numValue = parseInt(value, 10);
+        setFps(numValue);
+      }
+    }
+  };
+
+  const handleFpsBlur = () => {
+    // Validate and clamp on blur
+    if (fpsInputValue === '') {
+      const defaultValue = FRAME_DURATION_LIMITS.MIN_FPS;
+      setFpsInputValue(defaultValue.toString());
+      setFps(defaultValue);
+    } else {
+      const numValue = parseInt(fpsInputValue, 10);
+      const clampedValue = Math.max(
+        FRAME_DURATION_LIMITS.MIN_FPS,
+        Math.min(FRAME_DURATION_LIMITS.MAX_FPS, numValue)
+      );
+      setFpsInputValue(clampedValue.toString());
+      setFps(clampedValue);
+    }
   };
 
   // Apply changes
@@ -185,17 +235,18 @@ export const SetFrameDurationDialog: React.FC = () => {
                 <Label htmlFor="ms-input">Duration (ms)</Label>
                 <Input
                   id="ms-input"
-                  type="number"
-                  value={milliseconds}
+                  type="text"
+                  inputMode="numeric"
+                  value={msInputValue}
                   onChange={(e) => handleMillisecondsChange(e.target.value)}
-                  min={FRAME_DURATION_LIMITS.MIN_MS}
-                  max={FRAME_DURATION_LIMITS.MAX_MS}
-                  step={1}
+                  onBlur={handleMillisecondsBlur}
                   className="w-full"
                 />
                 <div className="text-xs text-muted-foreground">
                   Range: {FRAME_DURATION_LIMITS.MIN_MS}-{FRAME_DURATION_LIMITS.MAX_MS}ms
-                  {' • '}Equivalent to {Math.round(msToFps(milliseconds) * 10) / 10} FPS
+                  {milliseconds > 0 && (
+                    <> {' • '}Equivalent to {Math.round(msToFps(milliseconds))} FPS</>
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -205,17 +256,18 @@ export const SetFrameDurationDialog: React.FC = () => {
                 <Label htmlFor="fps-input">Frames per Second</Label>
                 <Input
                   id="fps-input"
-                  type="number"
-                  value={fps}
+                  type="text"
+                  inputMode="numeric"
+                  value={fpsInputValue}
                   onChange={(e) => handleFpsChange(e.target.value)}
-                  min={FRAME_DURATION_LIMITS.MIN_FPS}
-                  max={FRAME_DURATION_LIMITS.MAX_FPS}
-                  step={0.1}
+                  onBlur={handleFpsBlur}
                   className="w-full"
                 />
                 <div className="text-xs text-muted-foreground">
                   Range: {FRAME_DURATION_LIMITS.MIN_FPS}-{FRAME_DURATION_LIMITS.MAX_FPS} FPS
-                  {' • '}Equivalent to {fpsToMs(fps)}ms per frame
+                  {fps > 0 && (
+                    <> {' • '}Equivalent to {fpsToMs(fps)}ms per frame</>
+                  )}
                 </div>
               </div>
             </TabsContent>

@@ -29,6 +29,7 @@ export const AddFramesDialog: React.FC = () => {
   
   // Form state
   const [frameCount, setFrameCount] = useState(1);
+  const [frameCountInput, setFrameCountInput] = useState('1');
   const [duplicateCurrentFrame, setDuplicateCurrentFrame] = useState(true);
   
   // Reset position when dialog opens
@@ -38,6 +39,7 @@ export const AddFramesDialog: React.FC = () => {
       setHasBeenDragged(false);
       // Reset form to defaults
       setFrameCount(1);
+      setFrameCountInput('1');
       setDuplicateCurrentFrame(true);
     }
   }, [isAddFramesDialogOpen]);
@@ -79,14 +81,34 @@ export const AddFramesDialog: React.FC = () => {
     dragStartOffsetRef.current = { ...positionOffset };
   }, [positionOffset]);
 
-  // Handle input changes with validation
+  // Handle input changes - allow typing without validation
   const handleFrameCountChange = (value: string) => {
-    const numValue = parseInt(value) || 0;
-    const clampedValue = Math.max(
-      ADD_FRAMES_LIMITS.MIN_COUNT, 
-      Math.min(ADD_FRAMES_LIMITS.MAX_COUNT, numValue)
-    );
-    setFrameCount(clampedValue);
+    // Allow empty string or numbers only (no decimals)
+    if (value === '' || /^\d+$/.test(value)) {
+      setFrameCountInput(value);
+      // Only update frameCount state if valid number
+      if (value !== '') {
+        const numValue = parseInt(value, 10);
+        setFrameCount(numValue);
+      }
+    }
+  };
+
+  const handleFrameCountBlur = () => {
+    // Validate and clamp on blur
+    if (frameCountInput === '') {
+      const defaultValue = ADD_FRAMES_LIMITS.MIN_COUNT;
+      setFrameCountInput(defaultValue.toString());
+      setFrameCount(defaultValue);
+    } else {
+      const numValue = parseInt(frameCountInput, 10);
+      const clampedValue = Math.max(
+        ADD_FRAMES_LIMITS.MIN_COUNT,
+        Math.min(ADD_FRAMES_LIMITS.MAX_COUNT, numValue)
+      );
+      setFrameCountInput(clampedValue.toString());
+      setFrameCount(clampedValue);
+    }
   };
 
   // Apply changes
@@ -151,12 +173,11 @@ export const AddFramesDialog: React.FC = () => {
               <Label htmlFor="frame-count-input">Number of frames to add</Label>
               <Input
                 id="frame-count-input"
-                type="number"
-                value={frameCount}
+                type="text"
+                inputMode="numeric"
+                value={frameCountInput}
                 onChange={(e) => handleFrameCountChange(e.target.value)}
-                min={ADD_FRAMES_LIMITS.MIN_COUNT}
-                max={ADD_FRAMES_LIMITS.MAX_COUNT}
-                step={1}
+                onBlur={handleFrameCountBlur}
                 className="w-full"
               />
               <div className="text-xs text-muted-foreground">
