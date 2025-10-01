@@ -205,6 +205,83 @@ button { /* This overrides shadcn button styling */ }
 ### **⚠️ TOOLTIP REQUIREMENT**
 All interactive buttons and elements must use the purple Radix tooltip system for consistency and professional UX.
 
+## 🎨 **Draggable Picker Dialogs - Best Practices**
+
+**All character and color picker dialogs support drag-to-reposition functionality for improved workflow and visibility.**
+
+### **Implementation Pattern**
+
+**Required Components**:
+- `DraggableDialogBar` - Reusable title bar with drag functionality
+- Position offset state - Tracks dialog movement from original position
+- Reset on open - Position resets when dialog reopens
+
+**Standard Implementation**:
+```tsx
+import { DraggableDialogBar } from '@/components/common/DraggableDialogBar';
+
+const MyPickerDialog = ({ isOpen, title }) => {
+  const [positionOffset, setPositionOffset] = useState({ x: 0, y: 0 });
+  
+  // Reset position when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setPositionOffset({ x: 0, y: 0 });
+    }
+  }, [isOpen]);
+  
+  // Drag handler
+  const handleDrag = useCallback((deltaX: number, deltaY: number) => {
+    setPositionOffset({ x: deltaX, y: deltaY });
+  }, []);
+  
+  const position = getPickerPosition(); // Your positioning logic
+  
+  return createPortal(
+    <div
+      className="fixed z-[99999]"
+      style={{
+        top: position.top + positionOffset.y,
+        right: position.right !== 'auto' && typeof position.right === 'number' 
+          ? position.right - positionOffset.x 
+          : undefined,
+        left: position.left !== 'auto' && typeof position.left === 'number' 
+          ? position.left + positionOffset.x 
+          : undefined,
+      }}
+    >
+      <Card>
+        <DraggableDialogBar title={title} onDrag={handleDrag} />
+        <CardContent>
+          {/* Your picker content */}
+        </CardContent>
+      </Card>
+    </div>,
+    document.body
+  );
+};
+```
+
+### **Z-Index Layering**
+- **Canvas layers**: `z-10` to `z-40`
+- **UI overlays**: `z-50` to `z-[999]` 
+- **Picker dialogs**: `z-[99999]` (always on top)
+- **Shadcn Dialogs**: `z-50` (below pickers)
+
+**Why This Matters**: Picker dialogs must render above all other content to remain accessible after repositioning.
+
+### **Existing Implementations**
+- ✅ `ColorPickerOverlay` - Advanced color picker with full drag support
+- ✅ `EnhancedCharacterPicker` - Character selection with drag support
+- ✅ `GradientStopPicker` - Uses above components, inherits drag functionality
+
+### **Benefits of Draggable Pickers**:
+- ✅ Users can move pickers away from content they're editing
+- ✅ Better workflow on small screens
+- ✅ Position always resets to original trigger location when reopened
+- ✅ Consistent behavior across all picker types
+- ✅ Prevents workflow interruptions from obscured content
+
 ### **Tooltip Implementation Patterns**
 
 #### **✅ DO: Use Radix Tooltips**

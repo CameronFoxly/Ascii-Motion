@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DraggableDialogBar } from '@/components/common/DraggableDialogBar';
 import { CHARACTER_CATEGORIES } from '@/constants';
 import { 
   Type, 
@@ -46,7 +47,19 @@ export const EnhancedCharacterPicker: React.FC<EnhancedCharacterPickerProps> = (
   title = 'Select Character'
 }) => {
   const [selectedCategory, setSelectedCategory] = useState("Basic Text");
+  const [positionOffset, setPositionOffset] = useState({ x: 0, y: 0 });
+  const [isDraggingDialog, setIsDraggingDialog] = useState(false);
+  const [hasBeenDragged, setHasBeenDragged] = useState(false);
+  const dragStartOffsetRef = useRef({ x: 0, y: 0 });
   const pickerRef = useRef<HTMLDivElement>(null);
+
+  // Reset position offset and drag state when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setPositionOffset({ x: 0, y: 0 });
+      setHasBeenDragged(false);
+    }
+  }, [isOpen]);
 
   // Close picker when clicking outside
   useEffect(() => {
@@ -82,6 +95,29 @@ export const EnhancedCharacterPicker: React.FC<EnhancedCharacterPickerProps> = (
     onSelectCharacter(character);
     onClose();
   };
+  
+  // Handler for dragging the dialog
+  const handleDrag = useCallback((deltaX: number, deltaY: number) => {
+    // Add the drag delta to the stored offset from when drag started
+    setPositionOffset({
+      x: dragStartOffsetRef.current.x + deltaX,
+      y: dragStartOffsetRef.current.y + deltaY
+    });
+  }, []);
+  
+  // Track dialog drag state for animation control
+  const handleDragStart = useCallback(() => {
+    setIsDraggingDialog(true);
+    setHasBeenDragged(true);
+    // Store the current offset when drag starts
+    dragStartOffsetRef.current = { ...positionOffset };
+  }, [positionOffset]);
+  
+  const handleDragEnd = useCallback(() => {
+    setIsDraggingDialog(false);
+    // Update the ref with the final position
+    dragStartOffsetRef.current = { ...positionOffset };
+  }, [positionOffset]);
 
   // Position calculation with support for all existing anchor positions
   const getPickerPosition = () => {
@@ -162,22 +198,30 @@ export const EnhancedCharacterPicker: React.FC<EnhancedCharacterPickerProps> = (
   return createPortal(
     <div
       ref={pickerRef}
-      className={`fixed z-[99999] animate-in duration-200 ${
-        anchorPosition === 'bottom-right' ? 'slide-in-from-bottom-2 fade-in-0' : 'slide-in-from-right-2 fade-in-0'
+      className={`fixed z-[99999] ${
+        !hasBeenDragged ? `animate-in duration-200 ${
+          anchorPosition === 'bottom-right' ? 'slide-in-from-bottom-2 fade-in-0' : 'slide-in-from-right-2 fade-in-0'
+        }` : ''
       }`}
       style={{
-        top: position.top,
-        right: position.right !== 'auto' ? position.right : undefined,
-        left: position.left !== 'auto' ? position.left : undefined,
+        top: position.top + positionOffset.y,
+        right: position.right !== 'auto' && typeof position.right === 'number' ? position.right - positionOffset.x : undefined,
+        left: position.left !== 'auto' && typeof position.left === 'number' ? position.left + positionOffset.x : undefined,
         maxWidth: '400px',
-        width: '400px'
+        width: '400px',
+        transition: isDraggingDialog ? 'none' : undefined
       }}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
       <Card className="border border-border/50 shadow-lg">
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">{title}</h3>
+        <DraggableDialogBar 
+          title={title} 
+          onDrag={handleDrag}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        />
+        <div className="p-4 pt-2">
           
           <div className="space-y-4">
             {/* Category Selection - Enhanced 4-column grid with icons */}

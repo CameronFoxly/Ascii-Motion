@@ -2,6 +2,80 @@
 
 This document outlines the standardized UI components and design patterns used in ASCII Motion for maintaining consistency across the application.
 
+## Draggable Dialog Components
+
+### DraggableDialogBar
+
+**Location**: `src/components/common/DraggableDialogBar.tsx`
+
+**Purpose**: Provides a reusable draggable title bar for picker dialogs, allowing users to reposition dialogs anywhere on the screen for better visibility and workflow.
+
+**Usage**:
+```tsx
+import { DraggableDialogBar } from '@/components/common/DraggableDialogBar';
+
+const [positionOffset, setPositionOffset] = useState({ x: 0, y: 0 });
+
+const handleDrag = useCallback((deltaX: number, deltaY: number) => {
+  setPositionOffset({ x: deltaX, y: deltaY });
+}, []);
+
+// In render:
+<Card className="border border-border/50 shadow-lg">
+  <DraggableDialogBar title="Dialog Title" onDrag={handleDrag} />
+  <CardContent className="space-y-3 pt-3">
+    {/* Dialog content */}
+  </CardContent>
+</Card>
+```
+
+**Visual Design**:
+- Subtle muted background (`bg-muted/30`)
+- Grip handle icon indicating draggable area
+- Cursor changes from `grab` to `grabbing` during drag
+- Border bottom to separate from content
+- User-select disabled to prevent text selection during drag
+
+**Integration Pattern**:
+```tsx
+// 1. Add position offset state (reset on dialog open)
+const [positionOffset, setPositionOffset] = useState({ x: 0, y: 0 });
+
+useEffect(() => {
+  if (isOpen) {
+    setPositionOffset({ x: 0, y: 0 }); // Reset position on open
+  }
+}, [isOpen]);
+
+// 2. Create drag handler
+const handleDrag = useCallback((deltaX: number, deltaY: number) => {
+  setPositionOffset({ x: deltaX, y: deltaY });
+}, []);
+
+// 3. Apply offset to dialog positioning
+style={{
+  top: position.top + positionOffset.y,
+  right: position.right !== 'auto' && typeof position.right === 'number' 
+    ? position.right - positionOffset.x 
+    : undefined,
+  left: position.left !== 'auto' && typeof position.left === 'number' 
+    ? position.left + positionOffset.x 
+    : undefined,
+}}
+```
+
+**Where It's Used**:
+- **ColorPickerOverlay**: Advanced color picker with HSV/RGB controls
+- **EnhancedCharacterPicker**: Character selection dialog
+- **GradientStopPicker**: Indirectly through ColorPickerOverlay and EnhancedCharacterPicker
+
+**Benefits**:
+- ✅ Prevents dialogs from obscuring important content
+- ✅ Improves workflow on small screens
+- ✅ Position resets to original trigger position when reopened
+- ✅ Consistent drag behavior across all picker dialogs
+- ✅ Layered above all other content (`z-[99999]`)
+
 ## Panel UI Components
 
 ### PanelSeparator

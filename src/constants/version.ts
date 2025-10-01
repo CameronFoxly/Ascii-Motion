@@ -1,12 +1,20 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.25";
-export const BUILD_DATE = "2025-09-30T23:46:02.640Z";
-export const BUILD_HASH = "d13485e";
+export const VERSION = "0.1.26";
+export const BUILD_DATE = "2025-10-01T04:38:09.201Z";
+export const BUILD_HASH = "b71780f";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.26",
+    "date": "2025-10-01T04:38:09.201Z",
+    "commits": [
+      "Added live preview to gradient when editing stops in side panel",
+      "Fixed up styling for gradient panel"
+    ]
+  },
   {
     "version": "0.1.25",
     "date": "2025-09-30T23:46:02.640Z",

@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Pipette, RotateCcw, Check, X } from 'lucide-react';
+import { DraggableDialogBar } from '@/components/common/DraggableDialogBar';
 import { usePaletteStore } from '../../stores/paletteStore';
 import type { HSVColor, RGBColor } from '../../types/palette';
 import { 
@@ -78,6 +79,10 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isTransparentColor, setIsTransparentColor] = useState(isTransparent);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [positionOffset, setPositionOffset] = useState({ x: 0, y: 0 });
+  const [isDraggingDialog, setIsDraggingDialog] = useState(false);
+  const [hasBeenDragged, setHasBeenDragged] = useState(false);
+  const dragStartOffsetRef = useRef({ x: 0, y: 0 });
   
   const colorWheelRef = useRef<HTMLDivElement>(null);
   // Ref for hex input to auto-focus on open
@@ -86,6 +91,10 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
   // Initialize color values when dialog opens or initial color changes
   useEffect(() => {
     if (isOpen) {
+      // Reset position offset and drag state when dialog opens
+      setPositionOffset({ x: 0, y: 0 });
+      setHasBeenDragged(false);
+      
       const transparent = initialColor === 'transparent' || initialColor === ANSI_COLORS.transparent;
       setIsTransparentColor(transparent);
 
@@ -638,6 +647,29 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     setValueSliderValue(0);
     setColorWheelPosition({ x: 80, y: 80 });
   };
+  
+  // Handler for dragging the dialog
+  const handleDrag = useCallback((deltaX: number, deltaY: number) => {
+    // Add the drag delta to the stored offset from when drag started
+    setPositionOffset({
+      x: dragStartOffsetRef.current.x + deltaX,
+      y: dragStartOffsetRef.current.y + deltaY
+    });
+  }, []);
+  
+  // Track dialog drag state for animation control
+  const handleDragStart = useCallback(() => {
+    setIsDraggingDialog(true);
+    setHasBeenDragged(true);
+    // Store the current offset when drag starts
+    dragStartOffsetRef.current = { ...positionOffset };
+  }, [positionOffset]);
+  
+  const handleDragEnd = useCallback(() => {
+    setIsDraggingDialog(false);
+    // Update the ref with the final position
+    dragStartOffsetRef.current = { ...positionOffset };
+  }, [positionOffset]);
 
   // Create canvas-based HSV color wheel
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -766,25 +798,31 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
   return createPortal(
     <div
       ref={pickerRef}
-      className={`fixed z-[99999] animate-in duration-200 ${
-        anchorPosition === 'right-slide' ? 'slide-in-from-left-2 fade-in-0' : 
-        anchorPosition === 'gradient-panel' ? 'slide-in-from-right-2 fade-in-0' : 'slide-in-from-right-2 fade-in-0'
+      className={`fixed z-[99999] ${
+        !hasBeenDragged ? `animate-in duration-200 ${
+          anchorPosition === 'right-slide' ? 'slide-in-from-left-2 fade-in-0' : 
+          anchorPosition === 'gradient-panel' ? 'slide-in-from-right-2 fade-in-0' : 'slide-in-from-right-2 fade-in-0'
+        }` : ''
       }`}
       style={{
-        top: position.top,
-        right: position.right !== 'auto' ? position.right : undefined,
-        left: position.left !== 'auto' ? position.left : undefined,
+        top: position.top + positionOffset.y,
+        right: position.right !== 'auto' && typeof position.right === 'number' ? position.right - positionOffset.x : undefined,
+        left: position.left !== 'auto' && typeof position.left === 'number' ? position.left + positionOffset.x : undefined,
         maxWidth: '400px',
-        width: '400px'
+        width: '400px',
+        transition: isDraggingDialog ? 'none' : undefined
       }}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
       <Card className="border border-border/50 shadow-lg">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-semibold">{title}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">{/* Color Preview */}
+        <DraggableDialogBar 
+          title={title} 
+          onDrag={handleDrag}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        />
+        <CardContent className="space-y-3 pt-3">{/* Color Preview */}
           <div className="flex items-center gap-2">
             <div className="flex-1">
               <div className="flex h-8 border border-border rounded overflow-hidden">
