@@ -31,6 +31,8 @@ import { HtmlExportDialog } from './components/features/HtmlExportDialog'
 import { JsonImportDialog } from './components/features/JsonImportDialog'
 import { SetFrameDurationDialog } from './components/features/timeEffects/SetFrameDurationDialog'
 import { AddFramesDialog } from './components/features/timeEffects/AddFramesDialog'
+import { WaveWarpDialog } from './components/features/timeEffects/WaveWarpDialog'
+import { WiggleDialog } from './components/features/timeEffects/WiggleDialog'
 import { useLayoutState } from './hooks/useLayoutState'
 import { VersionDisplay } from './components/common/VersionDisplay'
 
@@ -210,6 +212,8 @@ function App() {
           {/* Time Effects Dialogs */}
           <SetFrameDurationDialog />
           <AddFramesDialog />
+          <WaveWarpDialog />
+          <WiggleDialog />
         </CanvasProvider>
         
         {/* Performance Overlay for Development */}

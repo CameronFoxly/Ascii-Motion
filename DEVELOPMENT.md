@@ -2939,6 +2939,71 @@ src/utils/
 
 ---
 
+## ⏰ **Time-Based Effects System** - ✅ **COMPLETED** (October 1, 2025)
+
+### **Feature Overview**
+Comprehensive time-based effects system providing mathematical animation transformations for ASCII art. Features real-time live preview, complete undo/redo integration, and professional UI with draggable dialogs.
+
+### **Key Features**
+- **Wave Warp Effect**: Sine wave displacement (horizontal/vertical axes, frequency/amplitude/speed/phase controls)
+- **Wiggle Effect**: Perlin noise displacement with 3 modes (horizontal wave, vertical wave, combined noise)
+- **Frame Duration Controls**: Precise timing control (milliseconds/FPS modes with conversion)
+- **Bulk Frame Creation**: Add multiple frames with duplication options
+- **Live Preview System**: Real-time effect preview with toggle on/off
+- **Timeline Integration**: Hamburger menu in AnimationTimeline with organized submenu structure
+- **Complete History Support**: Full undo/redo for all time effects and frame duration changes
+
+### **Implementation Details**
+- **Mathematical Processing**: Wave displacement algorithms and 3D Perlin noise using simplex-noise library
+- **Real-Time Processing**: Effects calculated using accumulated frame time progression
+- **Draggable Dialogs**: Professional UI with DraggableDialogBar pattern and keyboard shortcuts
+- **Store Architecture**: Complete state management following effectsStore patterns
+- **Type System**: Comprehensive TypeScript interfaces for all effects and settings
+
+### **Technical Architecture**
+
+**Core Files:**
+```typescript
+// Foundation
+src/types/timeEffects.ts                    # Complete type system
+src/constants/timeEffects.ts                # Default settings and ranges
+src/utils/timeEffectsProcessing.ts          # Mathematical processing
+src/stores/timeEffectsStore.ts              # State management with preview
+src/hooks/useTimeEffectsHistory.ts          # History integration
+
+// UI Components (4 dialogs)
+src/components/features/timeEffects/WaveWarpDialog.tsx      # Wave displacement
+src/components/features/timeEffects/WiggleDialog.tsx       # Perlin noise wiggle
+src/components/features/timeEffects/SetFrameDurationDialog.tsx  # Duration control
+src/components/features/timeEffects/AddFramesDialog.tsx    # Bulk frame creation
+
+// Integration
+src/components/features/AnimationTimeline.tsx  # Hamburger menu integration
+src/hooks/useKeyboardShortcuts.ts             # History processing
+```
+
+**Mathematical Algorithms:**
+- **Wave Warp**: `displacement = amplitude * sin(frequency * position + phase + speed * time)`
+- **Wiggle Noise**: `3D Perlin noise(x * scale, y * scale, time * speed) * intensity`
+- **Time Progression**: Accumulated frame durations for real-world time calculations
+
+**UI Patterns:**
+- **Live Preview**: Real-time canvas updates without modifying actual frame data
+- **Draggable Dialogs**: All dialogs support drag-and-drop repositioning
+- **Keyboard Shortcuts**: Enter (apply), Escape (cancel) for professional workflow
+- **Frame Range Controls**: Apply effects to selected ranges or all frames
+
+### **Developer Notes**
+- **Dependencies**: simplex-noise@4.0+ for Perlin noise generation
+- **Performance**: Mathematical processing optimized for large frame counts
+- **Memory Management**: Live preview uses temporary state without frame data corruption
+- **History Actions**: Custom action types for time effects and bulk frame duration changes
+- **Timeline Integration**: Hamburger menu positioned left of timeline title per user requirements
+
+**Ready for Testing:** All four major features implemented with complete UI and mathematical processing.
+
+---
+
 ## ✅ **OS Clipboard Integration** - ✅ **COMPLETED** (September 10, 2025)
 
 ### **Feature Overview**

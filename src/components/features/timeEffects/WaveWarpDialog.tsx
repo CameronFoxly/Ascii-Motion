@@ -13,8 +13,7 @@ import { useTimeEffectsHistory } from '@/hooks/useTimeEffectsHistory';
 import { useAnimationStore } from '@/stores/animationStore';
 import { 
   DEFAULT_WAVE_WARP_SETTINGS, 
-  WAVE_WARP_RANGES,
-  DEFAULT_FRAME_RANGE_SETTINGS 
+  WAVE_WARP_RANGES
 } from '@/constants/timeEffects';
 import type { WaveAxis, FrameRangeSettings } from '@/types/timeEffects';
 import { Eye, EyeOff } from 'lucide-react';
@@ -25,15 +24,15 @@ export const WaveWarpDialog: React.FC = () => {
     closeWaveWarpDialog,
     waveWarpSettings,
     updateWaveWarpSettings,
-    frameRange,
     updateFrameRange,
     isPreviewActive,
     startPreview,
-    stopPreview
+    stopPreview,
+    updatePreview
   } = useTimeEffectsStore();
   
   const { applyWaveWarpWithHistory } = useTimeEffectsHistory();
-  const { frames } = useAnimationStore();
+  const { frames, currentFrameIndex } = useAnimationStore();
 
   // Dialog state
   const [positionOffset, setPositionOffset] = useState({ x: 0, y: 0 });
@@ -43,7 +42,11 @@ export const WaveWarpDialog: React.FC = () => {
   const dialogRef = useRef<HTMLDivElement>(null);
   
   // Local frame range state (separate from effect settings)
-  const [localFrameRange, setLocalFrameRange] = useState<FrameRangeSettings>(DEFAULT_FRAME_RANGE_SETTINGS);
+  const [localFrameRange, setLocalFrameRange] = useState<FrameRangeSettings>({
+    applyToAll: true,
+    startFrame: 0,
+    endFrame: 0
+  });
   
   // Reset position and settings when dialog opens
   useEffect(() => {
@@ -55,10 +58,17 @@ export const WaveWarpDialog: React.FC = () => {
       setLocalFrameRange({
         startFrame: 0,
         endFrame: Math.max(0, frames.length - 1),
-        allFrames: true
+        applyToAll: true
       });
+      
+      // Auto-start preview (default to on) - temporarily disabled for debugging
+      // setTimeout(() => {
+      //   if (!isPreviewActive) {
+      //     startPreview('wave-warp');
+      //   }
+      // }, 100); // Small delay to ensure dialog is fully mounted
     }
-  }, [isWaveWarpDialogOpen, frames.length, updateWaveWarpSettings]);
+  }, [isWaveWarpDialogOpen, frames.length, updateWaveWarpSettings, isPreviewActive, startPreview]);
 
   // Stop preview when dialog closes
   useEffect(() => {
@@ -66,6 +76,13 @@ export const WaveWarpDialog: React.FC = () => {
       stopPreview();
     }
   }, [isWaveWarpDialogOpen, isPreviewActive, stopPreview]);
+
+  // Update preview when current frame changes
+  useEffect(() => {
+    if (isWaveWarpDialogOpen && isPreviewActive) {
+      updatePreview();
+    }
+  }, [currentFrameIndex, isWaveWarpDialogOpen, isPreviewActive, updatePreview]);
 
   // Handle escape key to close
   useEffect(() => {
@@ -129,9 +146,13 @@ export const WaveWarpDialog: React.FC = () => {
   };
 
   // Apply changes
-  const handleApply = () => {
-    applyWaveWarpWithHistory(waveWarpSettings, localFrameRange);
-    closeWaveWarpDialog();
+  const handleApply = async () => {
+    // Update the frame range in store before applying
+    updateFrameRange(localFrameRange);
+    const success = await applyWaveWarpWithHistory();
+    if (success) {
+      closeWaveWarpDialog();
+    }
   };
 
   // Cancel and close
@@ -146,7 +167,7 @@ export const WaveWarpDialog: React.FC = () => {
   const getDialogPosition = () => {
     const dialogWidth = 480;
     const dialogHeight = 600;
-    const margin = 20;
+    const margin = 8;
     
     return {
       bottom: margin,
@@ -236,8 +257,8 @@ export const WaveWarpDialog: React.FC = () => {
                 <span className="text-xs text-muted-foreground">{waveWarpSettings.frequency.toFixed(1)}</span>
               </div>
               <Slider
-                value={[waveWarpSettings.frequency]}
-                onValueChange={([value]) => handleSettingChange({ frequency: value })}
+                value={waveWarpSettings.frequency}
+                onValueChange={(value) => handleSettingChange({ frequency: value })}
                 min={WAVE_WARP_RANGES.FREQUENCY.min}
                 max={WAVE_WARP_RANGES.FREQUENCY.max}
                 step={WAVE_WARP_RANGES.FREQUENCY.step}
@@ -255,8 +276,8 @@ export const WaveWarpDialog: React.FC = () => {
                 <span className="text-xs text-muted-foreground">{waveWarpSettings.amplitude}</span>
               </div>
               <Slider
-                value={[waveWarpSettings.amplitude]}
-                onValueChange={([value]) => handleSettingChange({ amplitude: value })}
+                value={waveWarpSettings.amplitude}
+                onValueChange={(value) => handleSettingChange({ amplitude: value })}
                 min={WAVE_WARP_RANGES.AMPLITUDE.min}
                 max={WAVE_WARP_RANGES.AMPLITUDE.max}
                 step={WAVE_WARP_RANGES.AMPLITUDE.step}
@@ -274,8 +295,8 @@ export const WaveWarpDialog: React.FC = () => {
                 <span className="text-xs text-muted-foreground">{waveWarpSettings.speed}ms</span>
               </div>
               <Slider
-                value={[waveWarpSettings.speed]}
-                onValueChange={([value]) => handleSettingChange({ speed: value })}
+                value={waveWarpSettings.speed}
+                onValueChange={(value) => handleSettingChange({ speed: value })}
                 min={WAVE_WARP_RANGES.SPEED.min}
                 max={WAVE_WARP_RANGES.SPEED.max}
                 step={WAVE_WARP_RANGES.SPEED.step}
@@ -293,8 +314,8 @@ export const WaveWarpDialog: React.FC = () => {
                 <span className="text-xs text-muted-foreground">{waveWarpSettings.phase}°</span>
               </div>
               <Slider
-                value={[waveWarpSettings.phase]}
-                onValueChange={([value]) => handleSettingChange({ phase: value })}
+                value={waveWarpSettings.phase}
+                onValueChange={(value) => handleSettingChange({ phase: value })}
                 min={WAVE_WARP_RANGES.PHASE.min}
                 max={WAVE_WARP_RANGES.PHASE.max}
                 step={WAVE_WARP_RANGES.PHASE.step}
@@ -313,9 +334,9 @@ export const WaveWarpDialog: React.FC = () => {
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="all-frames"
-                checked={localFrameRange.allFrames}
+                checked={localFrameRange.applyToAll}
                 onCheckedChange={(checked) => 
-                  handleFrameRangeChange({ allFrames: checked === true })
+                  handleFrameRangeChange({ applyToAll: checked === true })
                 }
               />
               <Label htmlFor="all-frames" className="text-sm">
@@ -323,7 +344,7 @@ export const WaveWarpDialog: React.FC = () => {
               </Label>
             </div>
 
-            {!localFrameRange.allFrames && (
+            {!localFrameRange.applyToAll && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="start-frame">Start Frame</Label>
@@ -357,7 +378,7 @@ export const WaveWarpDialog: React.FC = () => {
             )}
 
             <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded">
-              {localFrameRange.allFrames 
+              {localFrameRange.applyToAll 
                 ? `Will apply to all ${frames.length} frames`
                 : `Will apply to frames ${localFrameRange.startFrame + 1} - ${localFrameRange.endFrame + 1} (${localFrameRange.endFrame - localFrameRange.startFrame + 1} frames)`
               }

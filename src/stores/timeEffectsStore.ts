@@ -16,6 +16,14 @@ import {
   DEFAULT_WAVE_WARP_SETTINGS, 
   DEFAULT_WIGGLE_SETTINGS 
 } from '../constants/timeEffects';
+import { useAnimationStore } from './animationStore';
+import { useCanvasStore } from './canvasStore';
+import { usePreviewStore } from './previewStore';
+import { 
+  applyWaveWarpToFrame, 
+  applyWiggleToFrame, 
+  calculateAccumulatedTime 
+} from '../utils/timeEffectsProcessing';
 
 interface TimeEffectsState {
   // ==========================================
@@ -99,7 +107,6 @@ export const useTimeEffectsStore = create<TimeEffectsState>((set, get) => ({
   
   openWaveWarpDialog: () => {
     // Initialize frame range when dialog opens
-    const { useAnimationStore } = require('./animationStore');
     const frames = useAnimationStore.getState().frames;
     
     set({ 
@@ -120,7 +127,6 @@ export const useTimeEffectsStore = create<TimeEffectsState>((set, get) => ({
   
   openWiggleDialog: () => {
     // Initialize frame range when dialog opens
-    const { useAnimationStore } = require('./animationStore');
     const frames = useAnimationStore.getState().frames;
     
     set({ 
@@ -212,7 +218,6 @@ export const useTimeEffectsStore = create<TimeEffectsState>((set, get) => ({
   stopPreview: () => {
     // Clear preview from canvas via previewStore
     try {
-      const { usePreviewStore } = require('./previewStore');
       usePreviewStore.getState().clearPreview();
     } catch (error) {
       console.warn('Preview store not available:', error);
@@ -229,16 +234,7 @@ export const useTimeEffectsStore = create<TimeEffectsState>((set, get) => ({
     }
     
     try {
-      // Import stores and utilities
-      const { useAnimationStore } = require('./animationStore');
-      const { useCanvasStore } = require('./canvasStore');
-      const { usePreviewStore } = require('./previewStore');
-      const { 
-        applyWaveWarpToFrame, 
-        applyWiggleToFrame, 
-        calculateAccumulatedTime 
-      } = require('../utils/timeEffectsProcessing');
-      
+      // Use imported stores and utilities
       const animationStore = useAnimationStore.getState();
       const canvasStore = useCanvasStore.getState();
       const previewStore = usePreviewStore.getState();
@@ -276,7 +272,7 @@ export const useTimeEffectsStore = create<TimeEffectsState>((set, get) => ({
       
       // Update preview on canvas
       if (previewData) {
-        previewStore.setPreview(previewData);
+        previewStore.setPreviewData(previewData);
       }
     } catch (error) {
       console.error('Failed to update preview:', error);

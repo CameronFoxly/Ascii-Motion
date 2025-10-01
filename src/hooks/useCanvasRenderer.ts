@@ -3,6 +3,7 @@ import { useCanvasStore } from '../stores/canvasStore';
 import { useToolStore } from '../stores/toolStore';
 import { usePreviewStore } from '../stores/previewStore';
 import { useEffectsStore } from '../stores/effectsStore';
+import { useTimeEffectsStore } from '../stores/timeEffectsStore';
 import { useCanvasContext } from '../contexts/CanvasContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCanvasState } from './useCanvasState';
@@ -85,6 +86,7 @@ export const useCanvasRenderer = () => {
   const { activeTool, rectangleFilled, lassoSelection, magicWandSelection, textToolState, linePreview } = useToolStore();
   const { previewData, isPreviewActive } = usePreviewStore();
   const { isPreviewActive: isEffectPreviewActive } = useEffectsStore();
+  const { isPreviewActive: isTimeEffectPreviewActive } = useTimeEffectsStore();
   const { getEllipsePoints } = useDrawingTool();
 
   // Use onion skin renderer for frame overlays
@@ -579,7 +581,7 @@ export const useCanvasRenderer = () => {
     // Draw preview overlay 
     if (isPreviewActive && previewData.size > 0) {
       // Check if this is an effects preview (should be fully opaque) or other preview (semi-transparent)
-      const isEffectsPreview = isEffectPreviewActive;
+      const isEffectsPreview = isEffectPreviewActive || isTimeEffectPreviewActive;
       const previewAlpha = isEffectsPreview ? 1.0 : 0.8; // Effects: full opacity, others: semi-transparent
       
       previewData.forEach((cell, key) => {
@@ -647,7 +649,8 @@ export const useCanvasRenderer = () => {
     previewData,
     isPreviewActive,
     // Effects preview state
-    isEffectPreviewActive
+    isEffectPreviewActive,
+    isTimeEffectPreviewActive
   ]);
 
   // Throttled render function that uses requestAnimationFrame

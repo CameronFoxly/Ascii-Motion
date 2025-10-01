@@ -128,7 +128,7 @@ export const SetFrameDurationDialog: React.FC = () => {
   const getDialogPosition = () => {
     const dialogWidth = 400;
     const dialogHeight = 300;
-    const margin = 20;
+    const margin = 8;
     
     return {
       bottom: margin,

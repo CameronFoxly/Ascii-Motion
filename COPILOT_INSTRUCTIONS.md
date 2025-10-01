@@ -859,9 +859,15 @@ src/
 │   │   ├── CharacterPalette.tsx      # Character selection palette
 │   │   ├── ColorPicker.tsx           # Color selection component
 │   │   ├── PastePreviewOverlay.tsx   # Preview for paste operations
+│   │   ├── AnimationTimeline.tsx     # Animation timeline with controls menu
 │   │   ├── ToolManager.tsx           # Tool management logic
 │   │   ├── ToolPalette.tsx           # Tool selection UI
-│   │   └── ToolStatusManager.tsx     # Tool status display
+│   │   ├── ToolStatusManager.tsx     # Tool status display
+│   │   └── timeEffects/              # Time-based effects system (Oct 2025)
+│   │       ├── AddFramesDialog.tsx   # Bulk frame creation dialog
+│   │       ├── SetFrameDurationDialog.tsx  # Frame timing control dialog
+│   │       ├── WaveWarpDialog.tsx    # Wave displacement effect dialog
+│   │       └── WiggleDialog.tsx      # Perlin noise wiggle dialog
 │   ├── tools/
 │   │   ├── DrawingTool.tsx           # Pencil/pen drawing tool
 │   │   ├── EyedropperTool.tsx        # Color picker tool
@@ -874,15 +880,22 @@ src/
 ├── hooks/
 │   ├── useCanvasRenderer.ts          # Optimized with memoization
 │   ├── useMemoizedGrid.ts            # Grid-level optimization
+│   ├── useTimeEffectsHistory.ts      # Time effects history integration (Oct 2025)
 │   └── ...
 ├── stores/
+│   ├── timeEffectsStore.ts           # Time effects state management (Oct 2025)
+│   └── ...
 ├── types/
+│   ├── timeEffects.ts                # Time effects type definitions (Oct 2025)
+│   └── ...
 ├── utils/
 │   ├── performance.ts                 # Performance measurement tools (NEW)
 │   ├── gridColor.ts                   # Adaptive grid color calculation (NEW)
+│   ├── timeEffectsProcessing.ts       # Mathematical time effects processing (Oct 2025)
 │   └── ...
 ├── constants/
 │   ├── hotkeys.ts                     # Tool hotkey configuration and utilities (NEW)
+│   ├── timeEffects.ts                 # Time effects default settings (Oct 2025)
 │   ├── colors.ts                      # Color definitions
 │   └── index.ts                       # Character categories and app constants
 └── lib/
@@ -2108,6 +2121,304 @@ Following this pattern ensures:
 - **Testability**: Each tool can be tested independently
 - **User Experience**: Consistent feedback and behavior
 
+### **⏰ Time-Based Effects System Patterns (Oct 2025)**
+
+**IMPORTANT: ASCII Motion now includes a comprehensive time-based effects system with mathematical transformations, live preview, and complete history integration.**
+
+#### **🏗️ Time Effects Architecture Pattern:**
+
+**Complete System Structure:**
+```typescript
+// 1. Type System - src/types/timeEffects.ts
+export interface WaveWarpSettings {
+  frequency: number;    // Sine wave frequency (0.1-5.0)
+  amplitude: number;    // Displacement amplitude (1-20)
+  speed: number;        // Animation speed (0.1-5.0)
+  phase: number;        // Phase offset (0-6.28)
+  axis: WaveAxis;       // 'horizontal' | 'vertical'
+}
+
+export interface WiggleSettings {
+  mode: WiggleMode;     // 'wave' | 'noise' | 'combined'
+  intensity: number;    // Effect intensity (1-10)
+  frequency: number;    // Frequency/scale (0.1-3.0)
+  speed: number;        // Animation speed (0.1-5.0)
+  seed: number;         // Random seed (1-1000)
+}
+
+// 2. Store Pattern - src/stores/timeEffectsStore.ts
+interface TimeEffectsState {
+  // Dialog Visibility
+  isSetFrameDurationDialogOpen: boolean;
+  isAddFramesDialogOpen: boolean;
+  isWaveWarpDialogOpen: boolean;
+  isWiggleDialogOpen: boolean;
+  
+  // Settings State
+  waveWarpSettings: WaveWarpSettings;
+  wiggleSettings: WiggleSettings;
+  frameRangeSettings: FrameRangeSettings;
+  
+  // Live Preview System
+  isPreviewActive: boolean;
+  originalFrameData: Map<string, Cell>[];
+  
+  // Actions
+  startPreview: (originalData: Map<string, Cell>[]) => void;
+  updatePreview: (effectType: TimeEffectType, settings: any) => void;
+  stopPreview: () => void;
+}
+```
+
+#### **🧮 Mathematical Processing Pattern:**
+
+**Wave Displacement Algorithm:**
+```typescript
+// src/utils/timeEffectsProcessing.ts
+export const applyWaveWarp = (
+  frameData: Map<string, Cell>[],
+  settings: WaveWarpSettings,
+  frameOffsetMs: number
+): Map<string, Cell>[] => {
+  const timeInSeconds = frameOffsetMs / 1000;
+  const wavePhase = settings.phase + settings.speed * timeInSeconds;
+  
+  return frameData.map((frame, frameIndex) => {
+    const newFrame = new Map<string, Cell>();
+    
+    frame.forEach((cell, key) => {
+      const [x, y] = key.split(',').map(Number);
+      
+      // Calculate wave displacement
+      const displacement = settings.axis === 'horizontal'
+        ? Math.round(settings.amplitude * Math.sin(
+            settings.frequency * y + wavePhase
+          ))
+        : Math.round(settings.amplitude * Math.sin(
+            settings.frequency * x + wavePhase
+          ));
+      
+      // Apply displacement with bounds checking
+      const newX = settings.axis === 'horizontal' ? x + displacement : x;
+      const newY = settings.axis === 'vertical' ? y + displacement : y;
+      
+      if (newX >= 0 && newY >= 0) {
+        newFrame.set(`${newX},${newY}`, { ...cell });
+      }
+    });
+    
+    return newFrame;
+  });
+};
+```
+
+**Perlin Noise Wiggle Algorithm:**
+```typescript
+export const applyWiggle = (
+  frameData: Map<string, Cell>[],
+  settings: WiggleSettings,
+  frameOffsetMs: number
+): Map<string, Cell>[] => {
+  const noise = createNoise3D(settings.seed);
+  const timeInSeconds = frameOffsetMs / 1000;
+  
+  return frameData.map((frame, frameIndex) => {
+    const newFrame = new Map<string, Cell>();
+    
+    frame.forEach((cell, key) => {
+      const [x, y] = key.split(',').map(Number);
+      
+      // Generate 3D Perlin noise (x, y, time)
+      const noiseValue = noise(
+        x * settings.frequency * 0.1,
+        y * settings.frequency * 0.1,
+        timeInSeconds * settings.speed
+      );
+      
+      // Apply intensity scaling
+      const displacement = Math.round(noiseValue * settings.intensity);
+      
+      const newX = x + displacement;
+      const newY = y + displacement;
+      
+      if (newX >= 0 && newY >= 0) {
+        newFrame.set(`${newX},${newY}`, { ...cell });
+      }
+    });
+    
+    return newFrame;
+  });
+};
+```
+
+#### **🎬 Live Preview System Pattern:**
+
+**Real-Time Preview with State Management:**
+```typescript
+// Store action for live preview updates
+updatePreview: (effectType: TimeEffectType, settings: any) => {
+  const frameOffsetMs = get().getAccumulatedFrameTime();
+  
+  let processedFrames: Map<string, Cell>[];
+  if (effectType === 'wave-warp') {
+    processedFrames = applyWaveWarp(get().originalFrameData, settings, frameOffsetMs);
+  } else if (effectType === 'wiggle') {
+    processedFrames = applyWiggle(get().originalFrameData, settings, frameOffsetMs);
+  }
+  
+  // Apply preview to animation store
+  processedFrames.forEach((frameData, index) => {
+    useAnimationStore.getState().updateFrameData(
+      useAnimationStore.getState().frames[index].id,
+      frameData
+    );
+  });
+},
+
+// Component live preview integration
+const handleSettingChange = (newSettings: WaveWarpSettings) => {
+  setWaveWarpSettings(newSettings);
+  if (isPreviewActive) {
+    updatePreview('wave-warp', newSettings);
+  }
+};
+```
+
+#### **🎨 Draggable Dialog UI Pattern:**
+
+**Standardized Dialog Component Structure:**
+```typescript
+// src/components/features/timeEffects/WaveWarpDialog.tsx
+export const WaveWarpDialog: React.FC<WaveWarpDialogProps> = ({
+  isOpen,
+  onClose,
+  onApply
+}) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DraggableDialogBar
+          title="Wave Warp Effect"
+          isDragging={isDragging}
+          onDragStart={setIsDragging}
+          onDragMove={setDragOffset}
+          onClose={onClose}
+        />
+        
+        <div className="space-y-4 p-4">
+          {/* Axis Selection */}
+          <div className="space-y-2">
+            <Label>Axis</Label>
+            <div className="flex gap-2">
+              <Button
+                variant={settings.axis === 'horizontal' ? 'default' : 'outline'}
+                onClick={() => updateSetting('axis', 'horizontal')}
+              >
+                Horizontal
+              </Button>
+              <Button
+                variant={settings.axis === 'vertical' ? 'default' : 'outline'}
+                onClick={() => updateSetting('axis', 'vertical')}
+              >
+                Vertical
+              </Button>
+            </div>
+          </div>
+          
+          {/* Parameter Controls */}
+          <div className="space-y-2">
+            <Label>Frequency: {settings.frequency}</Label>
+            <Slider
+              value={settings.frequency}
+              onValueChange={(value) => updateSetting('frequency', value)}
+              min={0.1}
+              max={5.0}
+              step={0.1}
+            />
+          </div>
+          
+          {/* Live Preview Toggle */}
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={isPreviewActive}
+              onCheckedChange={handlePreviewToggle}
+            />
+            <Label>Live Preview</Label>
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleApply}>
+            Apply Effect
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+```
+
+#### **📚 History Integration Pattern:**
+
+**Complete Undo/Redo Support:**
+```typescript
+// src/types/index.ts - New History Action Types
+export interface ApplyTimeEffectHistoryAction {
+  type: 'apply_time_effect';
+  frameIds: string[];
+  previousFrameData: Map<string, Cell>[];
+  effectType: TimeEffectType;
+  settings: WaveWarpSettings | WiggleSettings;
+}
+
+// src/hooks/useKeyboardShortcuts.ts - History Processing
+case 'apply_time_effect': {
+  const timeEffectAction = action as ApplyTimeEffectHistoryAction;
+  
+  // Restore original frame data for undo
+  timeEffectAction.frameIds.forEach((frameId, index) => {
+    const originalData = timeEffectAction.previousFrameData[index];
+    updateFrameData(frameId, originalData);
+  });
+  break;
+}
+
+case 'set_frame_durations': {
+  const durationsAction = action as SetFrameDurationsHistoryAction;
+  
+  // Restore previous durations for undo
+  durationsAction.frameIds.forEach((frameId, index) => {
+    const previousDuration = durationsAction.previousDurations[index];
+    setFrameDuration(frameId, previousDuration);
+  });
+  break;
+}
+```
+
+#### **🚀 Integration Benefits:**
+- **✅ Mathematical Precision**: Wave displacement and Perlin noise with real-world time progression
+- **✅ Live Preview System**: Real-time effect preview with toggle on/off capability
+- **✅ Complete History Support**: Full undo/redo for both effects and frame duration changes
+- **✅ Professional UI**: Draggable dialogs with keyboard shortcuts (Enter/Escape)
+- **✅ Timeline Integration**: Seamless hamburger menu integration in AnimationTimeline
+- **✅ Frame Range Control**: Apply effects to selected frame ranges or all frames
+- **✅ Bulk Operations**: Create multiple frames and set durations efficiently
+
+#### **🎯 Implementation Guidelines:**
+When adding new time-based effects:
+1. **Follow Type System**: Add interfaces to `timeEffects.ts`
+2. **Mathematical Processing**: Create processing function in `timeEffectsProcessing.ts`
+3. **Store Integration**: Add settings and preview support to `timeEffectsStore.ts`
+4. **Dialog Component**: Use DraggableDialogBar pattern with live preview
+5. **History Actions**: Add new action types and processing in keyboard shortcuts
+6. **Menu Integration**: Add to hamburger menu in AnimationTimeline
+
 ### 4. TypeScript Guidelines
 
 **Define Clear, Specific Types:**
@@ -2648,8 +2959,22 @@ const useCanvasStore = create<CanvasState>((set) => ({
 
 **If any checkbox above is unchecked, your work is not finished!**
 
-## Current Architecture Status (Enhanced September 27, 2025):
-🚨 **LATEST**: HTML Export Canvas Presentation Refresh (Sept 28, 2025)
+## Current Architecture Status (Enhanced October 1, 2025):
+🚨 **LATEST**: Time-Based Effects System Implementation (Oct 1, 2025)
+
+**Time-Based Effects System Implementation (Oct 1, 2025):**
+- ✅ **Complete Architecture**: Full time effects system with Wave Warp and Wiggle effects, applying mathematical transformations to character content over real-world time progression
+- ✅ **Advanced UI Components**: Sophisticated draggable dialogs with live preview, frame range controls, axis selection, and tabbed interfaces for wave patterns vs Perlin noise
+- ✅ **Real-Time Preview**: Live preview system showing effects on current frame with 80% opacity overlay, using the established previewStore pattern for consistency
+- ✅ **Mathematical Processing**: Wave displacement using sine functions and Perlin noise via simplex-noise library, with proper coordinate transformation and bounds checking
+- ✅ **History Integration**: Complete undo/redo support for time effects and bulk frame duration changes, with proper frame state restoration and action type handling
+- ✅ **Timeline Integration**: Hamburger menu in AnimationTimeline with "Set frame duration", "Add frames", and "Time effects" submenu containing Wave Warp and Wiggle options
+- ✅ **Frame Duration Controls**: Dual-mode editor for frame timing with milliseconds/FPS tabs, bulk application to all frames, and conversion utilities
+- ✅ **Bulk Frame Creation**: Multi-frame creation dialog with optional current frame duplication and comprehensive validation
+- ✅ **Draggable Dialogs**: All dialogs use consistent DraggableDialogBar pattern with keyboard shortcuts (Enter/Apply, Escape/Cancel) and lower-left positioning
+- ✅ **TypeScript Foundation**: Complete type system with WaveWarpSettings, WiggleSettings, FrameRangeSettings, and history action interfaces
+
+🚨 **PREVIOUS**: HTML Export Canvas Presentation Refresh (Sept 28, 2025)
 
 **HTML Export Canvas Presentation Refresh (Sept 28, 2025):**
 - ✅ **True Canvas Outline**: Exported pages now wrap frames in a dedicated `.animation-stage` sized via CSS variables so the grey border reflects the full canvas dimensions—no more phantom 20px placeholder box in the top-left corner

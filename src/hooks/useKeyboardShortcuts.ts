@@ -139,6 +139,40 @@ const processHistoryAction = (
         }
       }
       break;
+
+    case 'apply_time_effect':
+      const timeEffectAction = action as import('../types').ApplyTimeEffectHistoryAction;
+      if (isRedo) {
+        // Redo: Re-apply the time effect
+        console.log(`Redo: Re-applying ${timeEffectAction.data.effectType} time effect`);
+        console.warn('Redo for time effects is not yet implemented - would need to re-apply effect');
+      } else {
+        // Undo: Restore previous frame data
+        if (timeEffectAction.data.previousFramesData) {
+          timeEffectAction.data.previousFramesData.forEach(({ frameIndex, data }) => {
+            animationStore.setFrameData(frameIndex, data);
+          });
+          console.log(`✅ Undo: Restored ${timeEffectAction.data.previousFramesData.length} frames from ${timeEffectAction.data.effectType} time effect`);
+        }
+      }
+      break;
+
+    case 'set_frame_durations':
+      const durationsAction = action as import('../types').SetFrameDurationsHistoryAction;
+      if (isRedo) {
+        // Redo: Re-apply the new duration to all affected frames
+        durationsAction.data.affectedFrameIndices.forEach(frameIndex => {
+          animationStore.updateFrameDuration(frameIndex, durationsAction.data.newDuration);
+        });
+        console.log(`✅ Redo: Applied duration ${durationsAction.data.newDuration}ms to ${durationsAction.data.affectedFrameIndices.length} frames`);
+      } else {
+        // Undo: Restore previous durations
+        durationsAction.data.previousDurations.forEach(({ frameIndex, duration }) => {
+          animationStore.updateFrameDuration(frameIndex, duration);
+        });
+        console.log(`✅ Undo: Restored durations for ${durationsAction.data.previousDurations.length} frames`);
+      }
+      break;
       
     default:
       console.warn('Unknown history action type:', (action as any).type);

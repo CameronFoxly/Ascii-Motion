@@ -10,13 +10,14 @@ import { useTimeEffectsStore } from '../stores/timeEffectsStore';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
+import { markFullRedraw } from '../utils/dirtyTracker';
 import { 
   applyWaveWarpToFrame, 
   applyWiggleToFrame, 
   calculateAccumulatedTime,
   clampFrameDuration
 } from '../utils/timeEffectsProcessing';
-import type { ApplyTimeEffectHistoryAction, SetFrameDurationsHistoryAction } from '../types';
+import type { ApplyTimeEffectHistoryAction, SetFrameDurationsHistoryAction, Cell } from '../types';
 
 /**
  * Custom hook providing time effects actions with integrated undo/redo history.
@@ -75,6 +76,10 @@ export const useTimeEffectsHistory = () => {
       // Apply wave warp to each affected frame
       const animationStore = useAnimationStore.getState();
       
+      // Store transformed data for current frame to sync to canvas
+      let currentFrameTransformedData: Map<string, Cell> | null = null;
+      const currentFrameIndex = animationStore.currentFrameIndex;
+      
       affectedIndices.forEach(frameIndex => {
         const accumulatedTime = calculateAccumulatedTime(frames, frameIndex);
         const transformedData = applyWaveWarpToFrame(
@@ -85,16 +90,26 @@ export const useTimeEffectsHistory = () => {
           accumulatedTime
         );
         
+        console.log(`[Wave Warp] Frame ${frameIndex}: accumulatedTime=${accumulatedTime}ms, cells before=${frames[frameIndex].data.size}, cells after=${transformedData.size}`);
+        
         animationStore.setFrameData(frameIndex, transformedData);
+        
+        // Save transformed data if this is the current frame
+        if (frameIndex === currentFrameIndex) {
+          currentFrameTransformedData = transformedData;
+          console.log(`[Wave Warp] Saved transformed data for current frame ${frameIndex}`);
+        }
       });
       
       // Sync current frame to canvas if it was affected
-      const currentFrameIndex = animationStore.currentFrameIndex;
-      if (affectedIndices.includes(currentFrameIndex)) {
-        const currentFrameData = animationStore.frames[currentFrameIndex]?.data;
-        if (currentFrameData) {
-          useCanvasStore.getState().setCanvasData(currentFrameData);
-        }
+      if (currentFrameTransformedData) {
+        const transformedData = currentFrameTransformedData as Map<string, Cell>;
+        console.log(`[Wave Warp] Syncing frame ${currentFrameIndex} to canvas with ${transformedData.size} cells`);
+        useCanvasStore.getState().setCanvasData(transformedData);
+        // Force canvas to redraw with the updated data
+        markFullRedraw();
+      } else {
+        console.log(`[Wave Warp] Current frame ${currentFrameIndex} was not affected`);
       }
       
       // Create history action
@@ -112,9 +127,12 @@ export const useTimeEffectsHistory = () => {
       };
       
       pushToHistory(historyAction);
+      
+      // Stop preview when effect is applied
+      useTimeEffectsStore.getState().stopPreview();
+      
       closeWaveWarpDialog();
       
-      console.log(`Wave warp applied to ${affectedIndices.length} frame(s)`);
       return true;
     } catch (error) {
       console.error('Failed to apply wave warp:', error);
@@ -151,6 +169,10 @@ export const useTimeEffectsHistory = () => {
       // Apply wiggle to each affected frame
       const animationStore = useAnimationStore.getState();
       
+      // Store transformed data for current frame to sync to canvas
+      let currentFrameTransformedData: Map<string, Cell> | null = null;
+      const currentFrameIndex = animationStore.currentFrameIndex;
+      
       affectedIndices.forEach(frameIndex => {
         const accumulatedTime = calculateAccumulatedTime(frames, frameIndex);
         const transformedData = applyWiggleToFrame(
@@ -162,15 +184,18 @@ export const useTimeEffectsHistory = () => {
         );
         
         animationStore.setFrameData(frameIndex, transformedData);
+        
+        // Save transformed data if this is the current frame
+        if (frameIndex === currentFrameIndex) {
+          currentFrameTransformedData = transformedData;
+        }
       });
       
       // Sync current frame to canvas if it was affected
-      const currentFrameIndex = animationStore.currentFrameIndex;
-      if (affectedIndices.includes(currentFrameIndex)) {
-        const currentFrameData = animationStore.frames[currentFrameIndex]?.data;
-        if (currentFrameData) {
-          useCanvasStore.getState().setCanvasData(currentFrameData);
-        }
+      if (currentFrameTransformedData) {
+        useCanvasStore.getState().setCanvasData(currentFrameTransformedData);
+        // Force canvas to redraw with the updated data
+        markFullRedraw();
       }
       
       // Create history action
@@ -188,9 +213,12 @@ export const useTimeEffectsHistory = () => {
       };
       
       pushToHistory(historyAction);
+      
+      // Stop preview when effect is applied
+      useTimeEffectsStore.getState().stopPreview();
+      
       closeWiggleDialog();
       
-      console.log(`Wiggle applied to ${affectedIndices.length} frame(s)`);
       return true;
     } catch (error) {
       console.error('Failed to apply wiggle:', error);
