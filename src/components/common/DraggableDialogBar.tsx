@@ -1,18 +1,21 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { GripHorizontal } from 'lucide-react';
+import { GripHorizontal, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface DraggableDialogBarProps {
   title: string;
   onDrag?: (deltaX: number, deltaY: number) => void;
   onDragStart?: () => void;
   onDragEnd?: () => void;
+  onClose?: () => void;
 }
 
 export const DraggableDialogBar: React.FC<DraggableDialogBarProps> = ({ 
   title,
   onDrag,
   onDragStart,
-  onDragEnd
+  onDragEnd,
+  onClose
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const dragStartPosRef = useRef({ x: 0, y: 0 });
@@ -50,15 +53,34 @@ export const DraggableDialogBar: React.FC<DraggableDialogBarProps> = ({
     document.addEventListener('mouseup', handleMouseUp);
   }, [onDrag, onDragStart, onDragEnd]);
 
+  const handleClose = useCallback((e: React.MouseEvent) => {
+    // Prevent dragging when clicking close button
+    e.stopPropagation();
+    onClose?.();
+  }, [onClose]);
+
   return (
     <div
-      className={`flex items-center gap-2 px-4 py-2.5 border-b border-border bg-muted/30 cursor-move select-none ${
+      className={`flex items-center justify-between p-3 border-b border-border select-none ${
         isDragging ? 'cursor-grabbing' : 'cursor-grab'
       }`}
       onMouseDown={handleMouseDown}
     >
-      <GripHorizontal className="w-4 h-4 text-muted-foreground" />
-      <h3 className="text-lg font-semibold flex-1">{title}</h3>
+      <h2 className="text-sm font-medium flex items-center gap-2">
+        <GripHorizontal className="w-3 h-3 text-muted-foreground" />
+        {title}
+      </h2>
+      {onClose && (
+        <Button
+          onClick={handleClose}
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <X className="w-3 h-3" />
+        </Button>
+      )}
     </div>
   );
 };

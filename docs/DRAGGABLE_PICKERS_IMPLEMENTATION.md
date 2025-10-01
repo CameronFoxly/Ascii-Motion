@@ -11,7 +11,9 @@ Added drag-to-reposition functionality to all character and color picker dialogs
 
 **Features**:
 - Provides a consistent draggable title bar for all picker dialogs
+- Design matches GradientPanel and MediaImportPanel headers for consistency
 - Visual feedback with grip icon and cursor changes (`grab` → `grabbing`)
+- Integrated close (X) button for canceling selections
 - Prevents text selection during drag
 - Styled to match ASCII Motion design system
 - Supports drag lifecycle callbacks for responsive UI updates
@@ -21,8 +23,15 @@ Added drag-to-reposition functionality to all character and color picker dialogs
 - `onDrag?: (deltaX: number, deltaY: number) => void` - Callback for drag movements
 - `onDragStart?: () => void` - Callback when drag starts
 - `onDragEnd?: () => void` - Callback when drag ends
+- `onClose?: () => void` - Callback when X button is clicked (closes dialog and cancels selection)
 
-**Key Implementation Detail**: The drag lifecycle callbacks (`onDragStart`/`onDragEnd`) are used to disable CSS animations during drag, ensuring instant, responsive movement that follows the mouse cursor without lag.
+**Visual Design**:
+- Header styling: `text-sm font-medium` title with `p-3` padding
+- Grip icon: `w-3 h-3` GripHorizontal icon
+- Close button: `h-6 w-6 p-0` with `w-3 h-3` X icon
+- Layout: Flex container with `justify-between` for title/close alignment
+
+**Key Implementation Detail**: The drag lifecycle callbacks (`onDragStart`/`onDragEnd`) are used to disable CSS animations during drag, ensuring instant, responsive movement that follows the mouse cursor without lag. The `onClose` callback allows the parent component to handle dialog dismissal and selection cancellation.
 
 ### 2. Updated Components
 
@@ -31,20 +40,28 @@ Added drag-to-reposition functionality to all character and color picker dialogs
 
 **Changes**:
 - Added `DraggableDialogBar` import and component
-- Added `positionOffset` state to track dialog movement
-- Resets position offset to `{x: 0, y: 0}` when dialog opens
+- Added `positionOffset`, `isDraggingDialog`, and `hasBeenDragged` state
+- Added `dragStartOffsetRef` to accumulate offsets across multiple drags
+- Resets position offset and drag state when dialog opens
 - Applied offset to positioning calculations with proper type guards
 - Replaced `CardHeader`/`CardTitle` with `DraggableDialogBar`
+- Added `onClose` prop to handle X button clicks (calls `handleCancel`)
+- Fixed animation lag by conditionally disabling animations during drag
+- Fixed position jump bug with offset accumulation pattern
 
 #### EnhancedCharacterPicker
 **File**: `src/components/features/EnhancedCharacterPicker.tsx`
 
 **Changes**:
 - Added `DraggableDialogBar` import and component  
-- Added `positionOffset` state to track dialog movement
-- Resets position offset to `{x: 0, y: 0}` when dialog opens
+- Added `positionOffset`, `isDraggingDialog`, and `hasBeenDragged` state
+- Added `dragStartOffsetRef` to accumulate offsets across multiple drags
+- Resets position offset and drag state when dialog opens
 - Applied offset to positioning calculations with proper type guards
 - Replaced title `<h3>` with `DraggableDialogBar`
+- Added `onClose` prop to handle X button clicks (calls `onClose` from props)
+- Fixed animation lag by conditionally disabling animations during drag
+- Fixed position jump bug with offset accumulation pattern
 
 #### GradientStopPicker
 **File**: `src/components/features/GradientStopPicker.tsx`
@@ -54,34 +71,46 @@ Added drag-to-reposition functionality to all character and color picker dialogs
 ### 3. Key Implementation Pattern
 
 ```tsx
-// 1. Position offset state and drag tracking
+// 1. Position offset state and drag tracking with refs for accumulation
 const [positionOffset, setPositionOffset] = useState({ x: 0, y: 0 });
 const [isDraggingDialog, setIsDraggingDialog] = useState(false);
+const [hasBeenDragged, setHasBeenDragged] = useState(false);
+const dragStartOffsetRef = useRef({ x: 0, y: 0 });
 
 // 2. Reset on dialog open
 useEffect(() => {
   if (isOpen) {
     setPositionOffset({ x: 0, y: 0 });
+    setHasBeenDragged(false);
   }
 }, [isOpen]);
 
-// 3. Drag handlers
+// 3. Drag handlers with offset accumulation
 const handleDrag = useCallback((deltaX: number, deltaY: number) => {
-  setPositionOffset({ x: deltaX, y: deltaY });
+  // Add delta to the stored offset from when drag started
+  setPositionOffset({
+    x: dragStartOffsetRef.current.x + deltaX,
+    y: dragStartOffsetRef.current.y + deltaY
+  });
 }, []);
 
 const handleDragStart = useCallback(() => {
-  setIsDraggingDialog(true); // Disable animations for responsive dragging
-}, []);
+  setIsDraggingDialog(true);
+  setHasBeenDragged(true); // Permanently disable entrance animations
+  // Store current offset when drag starts
+  dragStartOffsetRef.current = { ...positionOffset };
+}, [positionOffset]);
 
 const handleDragEnd = useCallback(() => {
-  setIsDraggingDialog(false); // Re-enable animations
-}, []);
+  setIsDraggingDialog(false);
+  // Update ref with final position
+  dragStartOffsetRef.current = { ...positionOffset };
+}, [positionOffset]);
 
 // 4. Apply offset to positioning with animation control
 <div
   className={`fixed z-[99999] ${
-    !isDraggingDialog ? 'animate-in duration-200 slide-in-from-right-2 fade-in-0' : ''
+    !hasBeenDragged ? 'animate-in duration-200 slide-in-from-right-2 fade-in-0' : ''
   }`}
   style={{
     top: position.top + positionOffset.y,
@@ -95,9 +124,15 @@ const handleDragEnd = useCallback(() => {
   }}
 >
 
-// 5. Use DraggableDialogBar with lifecycle callbacks
+// 5. Use DraggableDialogBar with lifecycle callbacks and close handler
 <Card>
   <DraggableDialogBar 
+    title="Dialog Title"
+    onDrag={handleDrag}
+    onDragStart={handleDragStart}
+    onDragEnd={handleDragEnd}
+    onClose={handleCancel} // or onClose for character picker
+  /> 
     title={title} 
     onDrag={handleDrag}
     onDragStart={handleDragStart}

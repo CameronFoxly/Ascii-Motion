@@ -821,6 +821,7 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
           onDrag={handleDrag}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          onClose={handleCancel}
         />
         <CardContent className="space-y-3 pt-3">{/* Color Preview */}
           <div className="flex items-center gap-2">

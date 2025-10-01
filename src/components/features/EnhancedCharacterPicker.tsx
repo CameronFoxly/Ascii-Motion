@@ -220,6 +220,7 @@ export const EnhancedCharacterPicker: React.FC<EnhancedCharacterPickerProps> = (
           onDrag={handleDrag}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          onClose={onClose}
         />
         <div className="p-4 pt-2">
           

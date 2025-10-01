@@ -8,21 +8,49 @@ This document outlines the standardized UI components and design patterns used i
 
 **Location**: `src/components/common/DraggableDialogBar.tsx`
 
-**Purpose**: Provides a reusable draggable title bar for picker dialogs, allowing users to reposition dialogs anywhere on the screen for better visibility and workflow.
+**Purpose**: Provides a reusable draggable title bar for picker dialogs, allowing users to reposition dialogs anywhere on the screen for better visibility and workflow. Matches the design of panel headers (GradientPanel, MediaImportPanel) for consistency.
 
 **Usage**:
 ```tsx
 import { DraggableDialogBar } from '@/components/common/DraggableDialogBar';
 
 const [positionOffset, setPositionOffset] = useState({ x: 0, y: 0 });
+const [isDraggingDialog, setIsDraggingDialog] = useState(false);
+const [hasBeenDragged, setHasBeenDragged] = useState(false);
+const dragStartOffsetRef = useRef({ x: 0, y: 0 });
 
 const handleDrag = useCallback((deltaX: number, deltaY: number) => {
-  setPositionOffset({ x: deltaX, y: deltaY });
+  setPositionOffset({
+    x: dragStartOffsetRef.current.x + deltaX,
+    y: dragStartOffsetRef.current.y + deltaY
+  });
 }, []);
+
+const handleDragStart = useCallback(() => {
+  setIsDraggingDialog(true);
+  setHasBeenDragged(true);
+  dragStartOffsetRef.current = { ...positionOffset };
+}, [positionOffset]);
+
+const handleDragEnd = useCallback(() => {
+  setIsDraggingDialog(false);
+  dragStartOffsetRef.current = { ...positionOffset };
+}, [positionOffset]);
+
+const handleClose = () => {
+  // Close dialog and cancel selection
+  onOpenChange(false);
+};
 
 // In render:
 <Card className="border border-border/50 shadow-lg">
-  <DraggableDialogBar title="Dialog Title" onDrag={handleDrag} />
+  <DraggableDialogBar 
+    title="Dialog Title" 
+    onDrag={handleDrag}
+    onDragStart={handleDragStart}
+    onDragEnd={handleDragEnd}
+    onClose={handleClose}
+  />
   <CardContent className="space-y-3 pt-3">
     {/* Dialog content */}
   </CardContent>
@@ -30,29 +58,60 @@ const handleDrag = useCallback((deltaX: number, deltaY: number) => {
 ```
 
 **Visual Design**:
-- Subtle muted background (`bg-muted/30`)
-- Grip handle icon indicating draggable area
-- Cursor changes from `grab` to `grabbing` during drag
-- Border bottom to separate from content
-- User-select disabled to prevent text selection during drag
+- **Header Layout**: Matches GradientPanel and MediaImportPanel headers exactly
+  - `text-sm font-medium` for title text
+  - `p-3` padding for the header container
+  - Grip icon (`w-3 h-3`) indicating draggable area
+  - X close button (`h-6 w-6 p-0`) in top-right corner
+- **Cursor States**: Changes from `grab` to `grabbing` during drag
+- **Border**: Bottom border to separate from content
+- **User Selection**: Disabled to prevent text selection during drag
+
+**Props**:
+- `title` (string): Dialog title text
+- `onDrag` (optional): Callback with deltaX and deltaY during drag
+- `onDragStart` (optional): Callback when drag starts
+- `onDragEnd` (optional): Callback when drag ends
+- `onClose` (optional): Callback when X button is clicked (closes dialog and cancels selection)
 
 **Integration Pattern**:
 ```tsx
 // 1. Add position offset state (reset on dialog open)
 const [positionOffset, setPositionOffset] = useState({ x: 0, y: 0 });
+const [isDraggingDialog, setIsDraggingDialog] = useState(false);
+const [hasBeenDragged, setHasBeenDragged] = useState(false);
+const dragStartOffsetRef = useRef({ x: 0, y: 0 });
 
 useEffect(() => {
   if (isOpen) {
     setPositionOffset({ x: 0, y: 0 }); // Reset position on open
+    setHasBeenDragged(false); // Reset animation state
   }
 }, [isOpen]);
 
-// 2. Create drag handler
+// 2. Create drag handlers with offset accumulation
 const handleDrag = useCallback((deltaX: number, deltaY: number) => {
-  setPositionOffset({ x: deltaX, y: deltaY });
+  setPositionOffset({
+    x: dragStartOffsetRef.current.x + deltaX,
+    y: dragStartOffsetRef.current.y + deltaY
+  });
 }, []);
 
-// 3. Apply offset to dialog positioning
+const handleDragStart = useCallback(() => {
+  setIsDraggingDialog(true);
+  setHasBeenDragged(true);
+  dragStartOffsetRef.current = { ...positionOffset };
+}, [positionOffset]);
+
+const handleDragEnd = useCallback(() => {
+  setIsDraggingDialog(false);
+  dragStartOffsetRef.current = { ...positionOffset };
+}, [positionOffset]);
+
+// 3. Apply offset to dialog positioning with animation control
+className={`fixed z-[99999] ${
+  !hasBeenDragged ? 'animate-in duration-200 slide-in-from-right-2 fade-in-0' : ''
+}`}
 style={{
   top: position.top + positionOffset.y,
   right: position.right !== 'auto' && typeof position.right === 'number' 
@@ -61,6 +120,7 @@ style={{
   left: position.left !== 'auto' && typeof position.left === 'number' 
     ? position.left + positionOffset.x 
     : undefined,
+  transition: isDraggingDialog ? 'none' : undefined
 }}
 ```
 
