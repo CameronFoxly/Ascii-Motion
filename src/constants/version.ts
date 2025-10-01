@@ -1,12 +1,23 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.24";
-export const BUILD_DATE = "2025-09-30T18:55:06.449Z";
-export const BUILD_HASH = "ce70862";
+export const VERSION = "0.1.25";
+export const BUILD_DATE = "2025-09-30T23:46:02.640Z";
+export const BUILD_HASH = "d13485e";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.25",
+    "date": "2025-09-30T23:46:02.640Z",
+    "commits": [
+      "Update disabled state in gradient",
+      "Fixed gradient preivew sizing issues",
+      "Cleaned up debugging statements for fonts",
+      "Added outline text for SVG output",
+      "Added SVG export feature!"
+    ]
+  },
   {
     "version": "0.1.24",
     "date": "2025-09-30T18:55:06.449Z",

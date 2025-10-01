@@ -39,10 +39,12 @@ import {
   Circle,
   Square,
   ChevronDown,
+  Check,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useGradientStore } from '../../stores/gradientStore';
 import { useToolStore } from '../../stores/toolStore';
+import { useGradientFillTool } from '../../hooks/useGradientFillTool';
 import type { GradientProperty, InterpolationMethod, GradientType, QuantizeStepCount } from '../../types';
 
 const parseTailwindDuration = (token: string): number | null => {
@@ -77,8 +79,13 @@ export function GradientPanel() {
     addStop,
     removeStop,
     updateStop,
-    sortStops
+    sortStops,
+    startPoint,
+    endPoint
   } = useGradientStore();
+
+  // Get gradient tool actions
+  const { applyGradient, cancelGradient, canApply, isApplying } = useGradientFillTool();
 
   const animationDurationMs = useMemo(
     () => parseTailwindDuration(PANEL_ANIMATION.DURATION) ?? 300,
@@ -108,11 +115,11 @@ export function GradientPanel() {
     }
   }, [isOpen, shouldRender, animationDurationMs]);
 
-  // Section collapse states
+  // Section collapse states - only gradient type open by default
   const [gradientTypeOpen, setGradientTypeOpen] = useState(true);
-  const [characterOpen, setCharacterOpen] = useState(true);
-  const [textColorOpen, setTextColorOpen] = useState(true);
-  const [backgroundColorOpen, setBackgroundColorOpen] = useState(true);
+  const [characterOpen, setCharacterOpen] = useState(false);
+  const [textColorOpen, setTextColorOpen] = useState(false);
+  const [backgroundColorOpen, setBackgroundColorOpen] = useState(false);
 
   // Picker state
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -253,11 +260,20 @@ export function GradientPanel() {
             />
           </Button>
         </CollapsibleTrigger>
-        <Switch
-          checked={property.enabled}
-          onCheckedChange={(checked) => handlePropertyEnabledChange(propertyKey, checked)}
-          className="scale-75"
-        />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <Switch
+                checked={property.enabled}
+                onCheckedChange={(checked) => handlePropertyEnabledChange(propertyKey, checked)}
+                className="scale-75"
+              />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {property.enabled ? `Disable ${title.toLowerCase()}` : `Enable ${title.toLowerCase()}`}
+          </TooltipContent>
+        </Tooltip>
       </div>
       <CollapsibleContent className="collapsible-content space-y-3 mt-2">
         <div className="w-full">
@@ -563,6 +579,38 @@ export function GradientPanel() {
 
             </div>
           </ScrollArea>
+
+          {/* Footer with Apply/Cancel Buttons */}
+          <div className="p-3 border-t border-border space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={cancelGradient}
+                disabled={!isApplying}
+                className="h-8 text-xs"
+              >
+                <X className="w-3 h-3 mr-2" />
+                Cancel
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={applyGradient}
+                disabled={!canApply}
+                className="h-8 text-xs"
+              >
+                <Check className="w-3 h-3 mr-2" />
+                Apply Gradient
+              </Button>
+            </div>
+            <div className="text-xs text-muted-foreground text-center">
+              {!isApplying && 'Click and drag on canvas to create gradient'}
+              {isApplying && !startPoint && 'Click and drag on canvas to create gradient'}
+              {isApplying && startPoint && !endPoint && 'Click to add gradient end point'}
+              {isApplying && startPoint && endPoint && 'Press Enter to apply or Escape to cancel'}
+            </div>
+          </div>
 
           {/* Gradient Stop Picker Dialog */}
           <GradientStopPicker
