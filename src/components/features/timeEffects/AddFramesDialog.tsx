@@ -99,14 +99,17 @@ export const AddFramesDialog: React.FC = () => {
   // Calculate dialog position (lower-left corner)
   const getDialogPosition = () => {
     const dialogWidth = 400;
-    const dialogHeight = 350;
     const margin = 8;
+    
+    // Calculate maxHeight to ensure dialog fits on screen
+    const viewportHeight = window.innerHeight;
+    const maxHeight = viewportHeight - (margin * 2);
     
     return {
       bottom: margin,
       left: margin,
       width: dialogWidth,
-      maxHeight: dialogHeight
+      maxHeight: `${maxHeight}px`
     };
   };
 

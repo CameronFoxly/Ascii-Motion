@@ -1,12 +1,23 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.26";
-export const BUILD_DATE = "2025-10-01T04:38:09.201Z";
-export const BUILD_HASH = "b71780f";
+export const VERSION = "0.1.27";
+export const BUILD_DATE = "2025-10-01T17:36:20.349Z";
+export const BUILD_HASH = "37a4771";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.27",
+    "date": "2025-10-01T17:36:20.349Z",
+    "commits": [
+      "Fixed up time effects preview",
+      "Fixed application of time effects",
+      "Setup basic animation controls menu with add frames and set duration",
+      "Fixed styling of drag bar for dialogs",
+      "Added drag to reposition for color and character picker dialogs"
+    ]
+  },
   {
     "version": "0.1.26",
     "date": "2025-10-01T04:38:09.201Z",
