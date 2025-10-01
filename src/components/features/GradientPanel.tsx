@@ -236,6 +236,11 @@ export function GradientPanel() {
     setPickerOpen(false);
   };
 
+  const handlePickerValueChange = (value: string) => {
+    // Live preview - update stop value without closing picker
+    updateStop(pickerType, pickerStopIndex, { value });
+  };
+
   const renderPropertyEditor = (
     propertyKey: 'character' | 'textColor' | 'backgroundColor',
     property: GradientProperty,
@@ -617,6 +622,7 @@ export function GradientPanel() {
             isOpen={pickerOpen}
             onOpenChange={setPickerOpen}
             onValueSelect={handlePickerValueSelect}
+            onValueChange={handlePickerValueChange}
             initialValue={pickerInitialValue}
             type={pickerType}
           />
