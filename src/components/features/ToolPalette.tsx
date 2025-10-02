@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
 import { PanelSeparator } from '../common/PanelSeparator';
 import { GradientIcon } from '../icons';
+import { BrushControls } from './BrushControls';
 import { 
   PenTool, 
   Eraser, 
@@ -474,6 +475,13 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                         </div>
                       </div>
                     </>
+                  )}
+                  
+                  {/* Pencil tool brush controls */}
+                  {effectiveTool === 'pencil' && (
+                    <div className="mt-2">
+                      <BrushControls />
+                    </div>
                   )}
                   
                   {/* Eyedropper behavior toggles */}

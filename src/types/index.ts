@@ -72,12 +72,15 @@ export type Tool =
   | 'fliphorizontal'
   | 'flipvertical';
 
+export type BrushShape = 'circle' | 'square' | 'horizontal' | 'vertical';
+
 export interface ToolState {
   activeTool: Tool;
   selectedChar: string;
   selectedColor: string;
   selectedBgColor: string;
   brushSize: number;
+  brushShape: BrushShape;
   rectangleFilled: boolean;
   paintBucketContiguous: boolean;
   magicWandContiguous: boolean;

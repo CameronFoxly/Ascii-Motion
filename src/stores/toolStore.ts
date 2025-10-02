@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Tool, ToolState, Selection, LassoSelection, MagicWandSelection, TextToolState, AnyHistoryAction, CanvasHistoryAction } from '../types';
+import type { Tool, ToolState, Selection, LassoSelection, MagicWandSelection, TextToolState, AnyHistoryAction, CanvasHistoryAction, BrushShape } from '../types';
 import { DEFAULT_COLORS } from '../constants';
 import { 
   rectangularSelectionToText, 
@@ -56,6 +56,7 @@ interface ToolStoreState extends ToolState {
   setSelectedColor: (color: string) => void;
   setSelectedBgColor: (color: string) => void;
   setBrushSize: (size: number) => void;
+  setBrushShape: (shape: BrushShape) => void;
   setRectangleFilled: (filled: boolean) => void;
   setPaintBucketContiguous: (contiguous: boolean) => void;
   setMagicWandContiguous: (contiguous: boolean) => void;
@@ -165,6 +166,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   selectedColor: DEFAULT_COLORS[2], // White (moved from index 1 to 2)
   selectedBgColor: DEFAULT_COLORS[0], // Transparent
   brushSize: 1,
+  brushShape: 'circle' as BrushShape,
   rectangleFilled: false,
   paintBucketContiguous: true, // Default to contiguous fill
   magicWandContiguous: true, // Default to contiguous selection
@@ -279,6 +281,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   setSelectedColor: (color: string) => set({ selectedColor: color }),
   setSelectedBgColor: (color: string) => set({ selectedBgColor: color }),
   setBrushSize: (size: number) => set({ brushSize: Math.max(1, size) }),
+  setBrushShape: (shape: BrushShape) => set({ brushShape: shape }),
   setRectangleFilled: (filled: boolean) => set({ rectangleFilled: filled }),
   setPaintBucketContiguous: (contiguous: boolean) => set({ paintBucketContiguous: contiguous }),
   setMagicWandContiguous: (contiguous: boolean) => set({ magicWandContiguous: contiguous }),

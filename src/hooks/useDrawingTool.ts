@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useToolStore } from '../stores/toolStore';
+import { useCanvasContext } from '../contexts/CanvasContext';
+import { calculateBrushCells } from '../utils/brushUtils';
 import type { Cell } from '../types';
 
 /**
@@ -13,6 +15,8 @@ export const useDrawingTool = () => {
     selectedChar, 
     selectedColor, 
     selectedBgColor,
+    brushSize,
+    brushShape,
     rectangleFilled,
     paintBucketContiguous,
     pickFromCell,
@@ -25,6 +29,7 @@ export const useDrawingTool = () => {
     fillMatchColor,
     fillMatchBgColor
   } = useToolStore();
+  const { fontMetrics } = useCanvasContext();
 
   // Helper function to create a cell respecting the tool toggles
   const createCellWithToggles = useCallback((x: number, y: number): Cell => {
@@ -84,6 +89,22 @@ export const useDrawingTool = () => {
     return points;
   }, []);
 
+  // Draw a brush at the specified position
+  const drawBrush = useCallback((centerX: number, centerY: number) => {
+    const brushCells = calculateBrushCells(
+      centerX, 
+      centerY, 
+      brushSize, 
+      brushShape, 
+      fontMetrics.aspectRatio
+    );
+    
+    brushCells.forEach(({ x, y }) => {
+      const newCell = createCellWithToggles(x, y);
+      setCell(x, y, newCell);
+    });
+  }, [brushSize, brushShape, fontMetrics.aspectRatio, createCellWithToggles, setCell]);
+
   // Draw a line between two points using the line algorithm
   const drawLine = useCallback((x0: number, y0: number, x1: number, y1: number) => {
     const points = getLinePoints(x0, y0, x1, y1);
@@ -92,18 +113,25 @@ export const useDrawingTool = () => {
       setCell(x, y, newCell);
     });
   }, [getLinePoints, setCell, createCellWithToggles]);
+  
+  // Draw a brush line between two points
+  const drawBrushLine = useCallback((x0: number, y0: number, x1: number, y1: number) => {
+    const points = getLinePoints(x0, y0, x1, y1);
+    points.forEach(({ x, y }) => {
+      drawBrush(x, y);
+    });
+  }, [getLinePoints, drawBrush]);
 
   const drawAtPosition = useCallback((x: number, y: number, isShiftClick = false, isFirstStroke = false, toolOverride?: string) => {
     const toolToUse = toolOverride || activeTool;
     switch (toolToUse) {
       case 'pencil': {
         if (isShiftClick && pencilLastPosition) {
-          // Shift+click: Draw line from last position to current position
-          drawLine(pencilLastPosition.x, pencilLastPosition.y, x, y);
+          // Shift+click: Draw brush line from last position to current position
+          drawBrushLine(pencilLastPosition.x, pencilLastPosition.y, x, y);
         } else {
-          // Normal pencil drawing - draw single point
-          const newCell = createCellWithToggles(x, y);
-          setCell(x, y, newCell);
+          // Normal pencil drawing - draw brush at position
+          drawBrush(x, y);
         }
         
         // Update position for potential shift+click line drawing
