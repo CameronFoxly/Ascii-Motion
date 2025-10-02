@@ -171,11 +171,21 @@ Where I'm at with the concept:
 </details>
 
 <details>
-<summary> 💸 Phase 5: Setup database and auth </summary>
+<summary> 💸 Phase 6: Setup database and auth </summary>
    
 - [ ] Set up database for user account creation and project saving
 - [ ] Version history for projects
-- [ ] Profit?
+- [ ] Set up paid tiers to cover server costs if we start getting traction????
+ </details>
+
+ <details>
+<summary> 🤝 Phase 7: Community and Marketing </summary>
+   
+- [ ] Build a community sharing site to share and remix projects 
+- [ ] Create live link sharing tools 
+- [ ] Make marketing site
+- [ ] Create tutorial series
+- [ ] Create help and tool tip for in product on boarding
  </details>
 
 ## 📖 Documentation
