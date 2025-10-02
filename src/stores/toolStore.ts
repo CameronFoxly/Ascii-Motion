@@ -280,7 +280,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   setSelectedChar: (char: string) => set({ selectedChar: char }),
   setSelectedColor: (color: string) => set({ selectedColor: color }),
   setSelectedBgColor: (color: string) => set({ selectedBgColor: color }),
-  setBrushSize: (size: number) => set({ brushSize: Math.max(1, size) }),
+  setBrushSize: (size: number) => set({ brushSize: Math.max(1, Math.min(20, size)) }),
   setBrushShape: (shape: BrushShape) => set({ brushShape: shape }),
   setRectangleFilled: (filled: boolean) => set({ rectangleFilled: filled }),
   setPaintBucketContiguous: (contiguous: boolean) => set({ paintBucketContiguous: contiguous }),

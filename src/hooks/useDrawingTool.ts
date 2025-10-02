@@ -279,6 +279,7 @@ export const useDrawingTool = () => {
     drawRectangle,
     drawEllipse,
     drawLine, // Export for gap-filling in drag operations
+    drawBrushLine, // Export for brush-aware gap-filling
     getEllipsePoints, // Export for preview rendering
     getLinePoints, // Export for line preview rendering
     activeTool

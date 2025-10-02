@@ -94,14 +94,14 @@ export const BrushControls: React.FC<BrushControlsProps> = ({ className = '' }) 
               value={brushSize}
               onValueChange={setBrushSize}
               min={1}
-              max={50}
+              max={20}
               step={1}
               className="w-full h-2"
             />
           </div>
           <div className="flex justify-between text-xs text-muted-foreground/60">
             <span>1</span>
-            <span>50</span>
+            <span>20</span>
           </div>
         </div>
       </div>

@@ -26,7 +26,7 @@ export const useCanvasDragAndDrop = () => {
     clearLinePreview
   } = useToolStore();
   const { setSelectionMode } = useCanvasState();
-  const { drawAtPosition, drawRectangle, drawEllipse, drawLine, activeTool } = useDrawingTool();
+  const { drawAtPosition, drawRectangle, drawEllipse, drawBrushLine, activeTool } = useDrawingTool();
 
   // Helper function to apply aspect ratio constraints when shift is held
   const constrainToAspectRatio = useCallback((x: number, y: number, startX: number, startY: number) => {
@@ -124,8 +124,8 @@ export const useCanvasDragAndDrop = () => {
           (Math.abs(x - pencilLastPosition.x) > 1 || Math.abs(y - pencilLastPosition.y) > 1)) {
         // Large distance during drag - fill the gap with a line
         if (activeTool === 'pencil') {
-          // Use gap-filling line drawing for pencil with proper toggle respect
-          drawLine(pencilLastPosition.x, pencilLastPosition.y, x, y);
+          // Use brush-aware gap-filling for pencil to respect brush settings
+          drawBrushLine(pencilLastPosition.x, pencilLastPosition.y, x, y);
         } else if (activeTool === 'eraser') {
           // For eraser, clear cells along the line
           const points = getLinePoints(pencilLastPosition.x, pencilLastPosition.y, x, y);
@@ -157,7 +157,7 @@ export const useCanvasDragAndDrop = () => {
       // Clear preview when conditions not met
       clearLinePreview();
     }
-  }, [getGridCoordinatesFromEvent, isDrawing, activeTool, shiftKeyDown, pencilLastPosition, handleDrawing, drawLine, getLinePoints, clearCell, setLinePreview, clearLinePreview]);
+  }, [getGridCoordinatesFromEvent, isDrawing, activeTool, shiftKeyDown, pencilLastPosition, handleDrawing, drawBrushLine, getLinePoints, clearCell, setLinePreview, clearLinePreview]);
 
   // Handle rectangle tool mouse down
   const handleRectangleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {

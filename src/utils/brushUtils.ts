@@ -11,7 +11,7 @@ import type { BrushShape } from '../types';
  * Calculate the cells that should be affected by a brush stroke
  * @param centerX - The x coordinate of the brush center
  * @param centerY - The y coordinate of the brush center  
- * @param size - The brush size (1-50)
+ * @param size - The brush size (1-20)
  * @param shape - The brush shape
  * @param cellAspectRatio - The width/height ratio of canvas cells (typically ~0.6 for monospace)
  *                          This means cells are narrower than they are tall, so we need to compensate:
