@@ -39,6 +39,10 @@ export function ActiveStyleSection({ className = '' }: ActiveStyleSectionProps) 
   const [colorPickerInitialColor, setColorPickerInitialColor] = useState('#000000');
   const [colorPickerTriggerRef, setColorPickerTriggerRef] = useState<React.RefObject<HTMLElement | null> | undefined>(undefined);
   
+  // Store original colors for cancel functionality
+  const [originalForegroundColor, setOriginalForegroundColor] = useState<string>('');
+  const [originalBackgroundColor, setOriginalBackgroundColor] = useState<string>('');
+  
   const characterPreviewRef = useRef<HTMLButtonElement>(null);
   
   // Tool store for selected character and colors
@@ -61,6 +65,11 @@ export function ActiveStyleSection({ className = '' }: ActiveStyleSectionProps) 
     setColorPickerMode(mode);
     setColorPickerInitialColor(currentColor);
     setColorPickerTriggerRef(triggerRef);
+    
+    // Store original colors for cancel functionality
+    setOriginalForegroundColor(selectedColor);
+    setOriginalBackgroundColor(selectedBgColor);
+    
     setIsColorPickerOpen(true);
   };
 
@@ -81,6 +90,13 @@ export function ActiveStyleSection({ className = '' }: ActiveStyleSectionProps) 
     } else if (colorPickerMode === 'background') {
       setSelectedBgColor(newColor);
     }
+  };
+
+  // Handle color picker cancel - restore original colors
+  const handleColorPickerCancel = () => {
+    setSelectedColor(originalForegroundColor);
+    setSelectedBgColor(originalBackgroundColor);
+    setIsColorPickerOpen(false);
   };
 
   return (
@@ -182,6 +198,7 @@ export function ActiveStyleSection({ className = '' }: ActiveStyleSectionProps) 
         onOpenChange={setIsColorPickerOpen}
         onColorSelect={handleColorPickerSelect}
         onColorChange={handleColorPickerChange}
+        onCancel={handleColorPickerCancel}
         initialColor={colorPickerInitialColor}
         title={`Edit ${colorPickerMode === 'foreground' ? 'Foreground' : 'Background'} Color`}
         showTransparentOption={colorPickerMode === 'background'}

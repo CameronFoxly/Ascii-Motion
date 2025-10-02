@@ -28,6 +28,7 @@ interface ColorPickerOverlayProps {
   onOpenChange: (open: boolean) => void;
   onColorSelect: (color: string) => void;
   onColorChange?: (color: string) => void; // For real-time updates
+  onCancel?: () => void; // For canceling changes
   initialColor?: string;
   title?: string;
   showTransparentOption?: boolean; // whether to show the transparent quick-set button
@@ -40,6 +41,7 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
   onOpenChange,
   onColorSelect,
   onColorChange,
+  onCancel,
   initialColor = '#000000',
   title = 'Color Picker',
   showTransparentOption = false,
@@ -634,7 +636,11 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
 
   // Cancel selection
   const handleCancel = () => {
-    onOpenChange(false);
+    if (onCancel) {
+      onCancel();
+    } else {
+      onOpenChange(false);
+    }
   };
 
   // Set preview state to transparent (without committing until confirm)
