@@ -178,6 +178,8 @@ export const useDrawingTool = () => {
     pencilLastPosition,
     setPencilLastPosition,
     drawLine,
+    drawBrush,
+    drawBrushLine,
     createCellWithToggles,
     fillMatchChar,
     fillMatchColor,
