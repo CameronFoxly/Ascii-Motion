@@ -14,6 +14,9 @@ import type { BrushShape } from '../types';
  * @param size - The brush size (1-50)
  * @param shape - The brush shape
  * @param cellAspectRatio - The width/height ratio of canvas cells (typically ~0.6 for monospace)
+ *                          This means cells are narrower than they are tall, so we need to compensate:
+ *                          - For circles: Use radiusX = radius / aspectRatio (more horizontal cells)
+ *                          - For squares: Use more X cells than Y cells to appear visually square
  * @returns Array of {x, y} coordinates representing cells to affect
  */
 export const calculateBrushCells = (
@@ -59,24 +62,28 @@ const calculateCircleCells = (
     return [{ x: centerX, y: centerY }];
   }
   
-  const radius = Math.floor(size / 2);
+  const radius = size / 2;
   
-  // Scale factors to create visually circular shape
-  // Since cells are wider than they are tall, we need to compress horizontally
-  const xScale = cellAspectRatio; // Compress x-axis by aspect ratio
-  const yScale = 1.0; // Keep y-axis normal
+  // To create a visually circular shape, we need to account for cell aspect ratio
+  // cellAspectRatio = cellWidth / cellHeight ≈ 0.6
+  // Since cells are narrower than they are tall, we need to stretch horizontally
+  // to compensate and make the circle appear round
   
-  // Calculate the scaled radii for the ellipse equation
-  const radiusX = radius / xScale;
-  const radiusY = radius / yScale;
+  // Calculate the effective radii in each direction
+  const radiusY = radius; // Vertical radius in cell units
+  const radiusX = radius / cellAspectRatio; // Horizontal radius compensated for aspect ratio
   
-  // Use ellipse equation: (x/a)^2 + (y/b)^2 <= 1
-  // where a = radiusX and b = radiusY
-  for (let y = -radius; y <= radius; y++) {
-    for (let x = -radius; x <= radius; x++) {
+  // Calculate bounds for the search area
+  const maxX = Math.ceil(radiusX);
+  const maxY = Math.ceil(radiusY);
+  
+  // Use ellipse equation: (x/radiusX)^2 + (y/radiusY)^2 <= 1
+  for (let y = -maxY; y <= maxY; y++) {
+    for (let x = -maxX; x <= maxX; x++) {
       const normalizedX = x / radiusX;
       const normalizedY = y / radiusY;
       
+      // Check if this point is within the circle
       if (normalizedX * normalizedX + normalizedY * normalizedY <= 1) {
         cells.push({
           x: centerX + x,
@@ -107,9 +114,9 @@ const calculateSquareCells = (
   }
   
   // Calculate dimensions to create visually square appearance
-  // Since cells are wider than tall, we need fewer horizontal cells
-  const halfSizeY = Math.floor(size / 2);
-  const halfSizeX = Math.floor((size * cellAspectRatio) / 2);
+  // Since cells are narrower than tall (aspect ratio ~0.6), we need more horizontal cells
+  const halfSizeY = Math.floor((size * cellAspectRatio) / 2);
+  const halfSizeX = Math.floor(size / 2);
   
   for (let y = -halfSizeY; y <= halfSizeY; y++) {
     for (let x = -halfSizeX; x <= halfSizeX; x++) {

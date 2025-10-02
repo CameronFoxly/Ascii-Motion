@@ -16,10 +16,10 @@ interface BrushPreviewProps {
 
 export const BrushPreview: React.FC<BrushPreviewProps> = ({ className = '' }) => {
   const { brushSize, brushShape, selectedChar, selectedColor, selectedBgColor } = useToolStore();
-  const { fontMetrics } = useCanvasContext();
+  const { fontMetrics, cellWidth, cellHeight } = useCanvasContext();
   
-  // Fixed preview dimensions - use a consistent square size
-  const previewGridSize = 9; // 9x9 grid for consistent layout
+  // Fixed preview dimensions - use a grid size that accommodates largest brushes
+  const previewGridSize = 11; // 11x11 grid to fit larger brushes
   const centerX = Math.floor(previewGridSize / 2);
   const centerY = Math.floor(previewGridSize / 2);
   
@@ -31,6 +31,10 @@ export const BrushPreview: React.FC<BrushPreviewProps> = ({ className = '' }) =>
     fontMetrics.aspectRatio
   );
   
+  // Calculate preview dimensions using actual cell dimensions
+  const previewWidth = previewGridSize * cellWidth;
+  const previewHeight = previewGridSize * cellHeight;
+  
   // Create a set for quick lookup of brush cells
   const brushCellSet = new Set(brushCells.map(cell => `${cell.x},${cell.y}`));
   
@@ -40,24 +44,27 @@ export const BrushPreview: React.FC<BrushPreviewProps> = ({ className = '' }) =>
         className="relative bg-background border border-border/30 mx-auto overflow-hidden"
         style={{
           width: '100%',
-          aspectRatio: '1 / 1',
+          aspectRatio: `${previewWidth} / ${previewHeight}`, // Use actual aspect ratio
+          maxWidth: previewWidth,
           fontFamily: fontMetrics.fontFamily,
           fontSize: fontMetrics.fontSize,
         }}
       >
         {/* Grid lines */}
         <svg
-          className="absolute inset-0 pointer-events-none w-full h-full"
+          className="absolute inset-0 pointer-events-none"
+          width={previewWidth}
+          height={previewHeight}
           style={{ opacity: 0.2 }}
         >
           {/* Vertical grid lines */}
           {Array.from({ length: previewGridSize + 1 }, (_, i) => (
             <line
               key={`v-${i}`}
-              x1={`${(i / previewGridSize) * 100}%`}
-              y1="0%"
-              x2={`${(i / previewGridSize) * 100}%`}
-              y2="100%"
+              x1={i * cellWidth}
+              y1={0}
+              x2={i * cellWidth}
+              y2={previewHeight}
               stroke="currentColor"
               strokeWidth={0.5}
             />
@@ -66,10 +73,10 @@ export const BrushPreview: React.FC<BrushPreviewProps> = ({ className = '' }) =>
           {Array.from({ length: previewGridSize + 1 }, (_, i) => (
             <line
               key={`h-${i}`}
-              x1="0%"
-              y1={`${(i / previewGridSize) * 100}%`}
-              x2="100%"
-              y2={`${(i / previewGridSize) * 100}%`}
+              x1={0}
+              y1={i * cellHeight}
+              x2={previewWidth}
+              y2={i * cellHeight}
               stroke="currentColor"
               strokeWidth={0.5}
             />
@@ -87,17 +94,17 @@ export const BrushPreview: React.FC<BrushPreviewProps> = ({ className = '' }) =>
                 key={cellKey}
                 className="absolute flex items-center justify-center"
                 style={{
-                  left: `${(x / previewGridSize) * 100}%`,
-                  top: `${(y / previewGridSize) * 100}%`,
-                  width: `${(1 / previewGridSize) * 100}%`,
-                  height: `${(1 / previewGridSize) * 100}%`,
+                  left: x * cellWidth,
+                  top: y * cellHeight,
+                  width: cellWidth,
+                  height: cellHeight,
                   backgroundColor: isBrushCell 
                     ? (selectedBgColor === 'transparent' ? 'rgba(255,255,255,0.1)' : selectedBgColor)
                     : 'transparent',
                   color: isBrushCell ? selectedColor : 'transparent',
                   border: isBrushCell ? '1px solid rgba(255,255,255,0.3)' : 'none',
                   fontFamily: fontMetrics.fontFamily,
-                  fontSize: `${fontMetrics.fontSize * 0.6}px`,
+                  fontSize: fontMetrics.fontSize,
                   lineHeight: 1,
                 }}
               >
