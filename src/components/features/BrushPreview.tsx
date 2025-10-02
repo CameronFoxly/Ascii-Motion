@@ -19,9 +19,10 @@ export const BrushPreview: React.FC<BrushPreviewProps> = ({ className = '' }) =>
   const { fontMetrics, cellWidth, cellHeight } = useCanvasContext();
   
   // Fixed preview dimensions - use a grid size that accommodates largest brushes
-  const previewGridSize = 11; // 11x11 grid to fit larger brushes
-  const centerX = Math.floor(previewGridSize / 2);
-  const centerY = Math.floor(previewGridSize / 2);
+  const previewGridWidth = 11; // 11 cells wide
+  const previewGridHeight = 7; // 7 cells tall
+  const centerX = Math.floor(previewGridWidth / 2);
+  const centerY = Math.floor(previewGridHeight / 2);
   
   const brushCells = calculateBrushCells(
     centerX, 
@@ -32,8 +33,8 @@ export const BrushPreview: React.FC<BrushPreviewProps> = ({ className = '' }) =>
   );
   
   // Calculate preview dimensions using actual cell dimensions
-  const previewWidth = previewGridSize * cellWidth;
-  const previewHeight = previewGridSize * cellHeight;
+  const previewWidth = previewGridWidth * cellWidth;
+  const previewHeight = previewGridHeight * cellHeight;
   
   // Create a set for quick lookup of brush cells
   const brushCellSet = new Set(brushCells.map(cell => `${cell.x},${cell.y}`));
@@ -58,7 +59,7 @@ export const BrushPreview: React.FC<BrushPreviewProps> = ({ className = '' }) =>
           style={{ opacity: 0.2 }}
         >
           {/* Vertical grid lines */}
-          {Array.from({ length: previewGridSize + 1 }, (_, i) => (
+          {Array.from({ length: previewGridWidth + 1 }, (_, i) => (
             <line
               key={`v-${i}`}
               x1={i * cellWidth}
@@ -70,7 +71,7 @@ export const BrushPreview: React.FC<BrushPreviewProps> = ({ className = '' }) =>
             />
           ))}
           {/* Horizontal grid lines */}
-          {Array.from({ length: previewGridSize + 1 }, (_, i) => (
+          {Array.from({ length: previewGridHeight + 1 }, (_, i) => (
             <line
               key={`h-${i}`}
               x1={0}
@@ -84,8 +85,8 @@ export const BrushPreview: React.FC<BrushPreviewProps> = ({ className = '' }) =>
         </svg>
         
         {/* Brush cells */}
-        {Array.from({ length: previewGridSize }, (_, y) =>
-          Array.from({ length: previewGridSize }, (_, x) => {
+        {Array.from({ length: previewGridHeight }, (_, y) =>
+          Array.from({ length: previewGridWidth }, (_, x) => {
             const cellKey = `${x},${y}`;
             const isBrushCell = brushCellSet.has(cellKey);
             

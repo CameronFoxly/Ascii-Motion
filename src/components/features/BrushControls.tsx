@@ -10,7 +10,7 @@ import { useToolStore } from '../../stores/toolStore';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Circle, Square, Minus, MoreVertical } from 'lucide-react';
+import { Circle, Square, Minus, MoreVertical, Plus } from 'lucide-react';
 import type { BrushShape } from '../../types';
 import { BrushPreview } from './BrushPreview';
 
@@ -83,21 +83,55 @@ export const BrushControls: React.FC<BrushControlsProps> = ({ className = '' }) 
           </div>
         </div>
         
-        {/* Brush Size Slider */}
+        {/* Brush Size Controls */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div className="text-xs text-muted-foreground">Brush Size:</div>
             <div className="text-xs font-mono text-muted-foreground">{brushSize}</div>
           </div>
-          <div className="px-1">
-            <Slider
-              value={brushSize}
-              onValueChange={setBrushSize}
-              min={1}
-              max={20}
-              step={1}
-              className="w-full h-2"
-            />
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => setBrushSize(Math.max(1, brushSize - 1))}
+                  disabled={brushSize <= 1}
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Decrease brush size</p>
+              </TooltipContent>
+            </Tooltip>
+            <div className="flex-1 px-1">
+              <Slider
+                value={brushSize}
+                onValueChange={setBrushSize}
+                min={1}
+                max={20}
+                step={1}
+                className="w-full h-2"
+              />
+            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => setBrushSize(Math.min(20, brushSize + 1))}
+                  disabled={brushSize >= 20}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Increase brush size</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
           <div className="flex justify-between text-xs text-muted-foreground/60">
             <span>1</span>
