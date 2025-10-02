@@ -12,6 +12,14 @@ import { create } from 'zustand';
 import type { MediaFile, ProcessedFrame } from '../utils/mediaProcessor';
 import { usePaletteStore } from './paletteStore';
 
+export interface ImportUIState {
+  // UI preferences that should persist across sessions
+  importMode: 'overwrite' | 'append';
+  livePreviewEnabled: boolean;
+  previewSectionOpen: boolean;
+  positionSectionOpen: boolean;
+}
+
 export interface ImportState {
   // Modal state
   isImportModalOpen: boolean;
@@ -26,6 +34,13 @@ export interface ImportState {
   // Import settings
   settings: ImportSettings;
   
+  // Session-persistent settings (maintains user preferences across import sessions)
+  sessionSettings: ImportSettings | null;
+  
+  // UI state (also session-persistent)
+  uiState: ImportUIState;
+  sessionUIState: ImportUIState | null;
+  
   // Preview state
   previewFrameIndex: number;
   isPreviewMode: boolean;
@@ -39,6 +54,7 @@ export interface ImportState {
   setProcessingProgress: (progress: number) => void;
   setProcessingError: (error: string | null) => void;
   updateSettings: (settings: Partial<ImportSettings>) => void;
+  updateUIState: (uiState: Partial<ImportUIState>) => void;
   setPreviewFrameIndex: (index: number) => void;
   setPreviewMode: (isPreview: boolean) => void;
   resetImportState: () => void;
@@ -94,6 +110,14 @@ export interface ImportSettings {
   frameInterval: number;    // Seconds between frames (for interval mode)
   maxFrames: number;        // Maximum frames to import
 }
+
+// Default UI state
+const DEFAULT_UI_STATE: ImportUIState = {
+  importMode: 'append',
+  livePreviewEnabled: true,
+  previewSectionOpen: true,
+  positionSectionOpen: false
+};
 
 // Default import settings
 const DEFAULT_IMPORT_SETTINGS: ImportSettings = {
@@ -156,17 +180,38 @@ export const useImportStore = create<ImportState>((set, get) => ({
   processingProgress: 0,
   processingError: null,
   settings: DEFAULT_IMPORT_SETTINGS,
+  sessionSettings: null, // No session settings stored initially
+  uiState: DEFAULT_UI_STATE,
+  sessionUIState: null, // No session UI state stored initially
   previewFrameIndex: 0,
   isPreviewMode: false,
   
   // Modal actions
   openImportModal: () => {
+    const state = get();
     // Get the active palette ID from the main app
     const activePaletteId = usePaletteStore.getState().activePaletteId;
     
+    // Determine settings to use: session settings if available, otherwise defaults
+    const settingsToUse = state.sessionSettings 
+      ? {
+          ...state.sessionSettings,
+          // Only use current active palette if user hasn't selected a specific palette
+          textColorPaletteId: state.sessionSettings.textColorPaletteId || activePaletteId,
+          backgroundColorPaletteId: state.sessionSettings.backgroundColorPaletteId || activePaletteId,
+        }
+      : {
+          ...DEFAULT_IMPORT_SETTINGS,
+          textColorPaletteId: activePaletteId,
+          backgroundColorPaletteId: activePaletteId,
+        };
+    
+    // Determine UI state to use: session UI state if available, otherwise defaults
+    const uiStateToUse = state.sessionUIState || DEFAULT_UI_STATE;
+    
     set({ 
       isImportModalOpen: true,
-      // Reset state when opening modal
+      // Reset transient state when opening modal
       selectedFile: null,
       processedFrames: [],
       isProcessing: false,
@@ -174,19 +219,31 @@ export const useImportStore = create<ImportState>((set, get) => ({
       processingError: null,
       previewFrameIndex: 0,
       isPreviewMode: false,
-      // Initialize palette IDs with the main app's active palette
-      settings: {
-        ...DEFAULT_IMPORT_SETTINGS,
-        textColorPaletteId: activePaletteId,
-        backgroundColorPaletteId: activePaletteId,
-      }
+      // Use session-persistent settings and UI state or defaults
+      settings: settingsToUse,
+      uiState: uiStateToUse
     });
   },
   
   closeImportModal: () => {
-    set({ isImportModalOpen: false });
-    // Clean up any processing resources
-    get().resetImportState();
+    const state = get();
+    // Save current settings and UI state to session before closing
+    const currentSettings = state.settings;
+    const currentUIState = state.uiState;
+    
+    set({ 
+      isImportModalOpen: false,
+      sessionSettings: currentSettings, // Preserve settings for next session
+      sessionUIState: currentUIState, // Preserve UI state for next session
+      // Reset transient state but keep current settings and session state
+      selectedFile: null,
+      processedFrames: [],
+      isProcessing: false,
+      processingProgress: 0,
+      processingError: null,
+      previewFrameIndex: 0,
+      isPreviewMode: false
+    });
   },
   
   // File and processing actions
@@ -228,12 +285,34 @@ export const useImportStore = create<ImportState>((set, get) => ({
   
   // Settings actions
   updateSettings: (newSettings: Partial<ImportSettings>) => {
-    set((state) => ({
-      settings: {
+    set((state) => {
+      const updatedSettings = {
         ...state.settings,
         ...newSettings
-      }
-    }));
+      };
+      
+      return {
+        settings: updatedSettings,
+        // Also save to session settings for persistence
+        sessionSettings: updatedSettings
+      };
+    });
+  },
+  
+  // UI state actions
+  updateUIState: (newUIState: Partial<ImportUIState>) => {
+    set((state) => {
+      const updatedUIState = {
+        ...state.uiState,
+        ...newUIState
+      };
+      
+      return {
+        uiState: updatedUIState,
+        // Also save to session UI state for persistence
+        sessionUIState: updatedUIState
+      };
+    });
   },
   
   // Preview actions
@@ -248,7 +327,7 @@ export const useImportStore = create<ImportState>((set, get) => ({
     set({ isPreviewMode: isPreview });
   },
   
-  // Reset action
+  // Reset action - only resets transient state, preserves sessionSettings
   resetImportState: () => {
     set({
       selectedFile: null,
@@ -258,7 +337,7 @@ export const useImportStore = create<ImportState>((set, get) => ({
       processingError: null,
       previewFrameIndex: 0,
       isPreviewMode: false,
-      settings: DEFAULT_IMPORT_SETTINGS
+      // Don't reset settings or sessionSettings - they should persist
     });
   }
 }));
@@ -311,5 +390,21 @@ export const useImportPreview = () => {
     setFrameIndex: store.setPreviewFrameIndex,
     setPreviewMode: store.setPreviewMode,
     frames: store.processedFrames
+  };
+};
+
+export const useImportUIState = () => {
+  const store = useImportStore();
+  return {
+    uiState: store.uiState,
+    updateUIState: store.updateUIState
+  };
+};
+
+export const useImportSessionState = () => {
+  const store = useImportStore();
+  return {
+    hasSessionSettings: store.sessionSettings !== null,
+    sessionSettings: store.sessionSettings
   };
 };

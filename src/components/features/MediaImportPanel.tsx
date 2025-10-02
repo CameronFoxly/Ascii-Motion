@@ -53,7 +53,9 @@ import {
   useImportFile, 
   useImportProcessing, 
   useImportSettings,
-  useImportPreview
+  useImportPreview,
+  useImportUIState,
+  useImportSessionState
 } from '../../stores/importStore';
 import { mediaProcessor, SUPPORTED_IMAGE_FORMATS, SUPPORTED_VIDEO_FORMATS } from '../../utils/mediaProcessor';
 import { asciiConverter } from '../../utils/asciiConverter';
@@ -76,6 +78,8 @@ export function MediaImportPanel() {
   const { isProcessing, progress, error, setProcessing, setProgress, setError } = useImportProcessing();
   const { settings, updateSettings } = useImportSettings();
   const { frameIndex, setFrameIndex, frames: previewFrames } = useImportPreview();
+  const { uiState, updateUIState } = useImportUIState();
+  const { hasSessionSettings } = useImportSessionState();
   
   // Character palette integration
   const activePalette = useCharacterPaletteStore(state => state.activePalette);
@@ -103,13 +107,24 @@ export function MediaImportPanel() {
   
   const [dragActive, setDragActive] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [livePreviewEnabled, setLivePreviewEnabled] = useState(true); // Default to enabled
   const [originalImageAspectRatio, setOriginalImageAspectRatio] = useState<number | null>(null);
-  const [importMode, setImportMode] = useState<'overwrite' | 'append'>('append');
   
-  // Collapsible section states
-  const [previewSectionOpen, setPreviewSectionOpen] = useState(true);
-  const [positionSectionOpen, setPositionSectionOpen] = useState(false);
+  // Use persistent UI state from store
+  const { 
+    importMode, 
+    livePreviewEnabled, 
+    previewSectionOpen, 
+    positionSectionOpen 
+  } = uiState;
+  
+  const setImportMode = (mode: 'overwrite' | 'append') => 
+    updateUIState({ importMode: mode });
+  const setLivePreviewEnabled = (enabled: boolean) => 
+    updateUIState({ livePreviewEnabled: enabled });
+  const setPreviewSectionOpen = (open: boolean) => 
+    updateUIState({ previewSectionOpen: open });
+  const setPositionSectionOpen = (open: boolean) => 
+    updateUIState({ positionSectionOpen: open });
   
   // Preview state management
   const [isPreviewActive, setIsPreviewActive] = useState(false);
@@ -229,9 +244,15 @@ export function MediaImportPanel() {
       // For oversized images, positioning shows different parts of the image
       // No additional constraints needed - let the cell bounds check below handle visibility
     } else {
-      // For images smaller than canvas, ensure they stay within bounds
-      offsetX = Math.max(0, Math.min(offsetX, canvasWidth - imageWidth));
-      offsetY = Math.max(0, Math.min(offsetY, canvasHeight - imageHeight));
+      // For images smaller than canvas, allow some nudging beyond bounds but keep at least part visible
+      // Allow image to be nudged up to 50% off-screen while keeping some portion visible
+      const maxNegativeX = Math.floor(imageWidth * -0.5);
+      const maxPositiveX = canvasWidth - Math.floor(imageWidth * 0.5);
+      const maxNegativeY = Math.floor(imageHeight * -0.5);
+      const maxPositiveY = canvasHeight - Math.floor(imageHeight * 0.5);
+      
+      offsetX = Math.max(maxNegativeX, Math.min(offsetX, maxPositiveX));
+      offsetY = Math.max(maxNegativeY, Math.min(offsetY, maxPositiveY));
     }
     
 
@@ -423,6 +444,8 @@ export function MediaImportPanel() {
     settings.characterWidth, 
     settings.characterHeight,
     settings.cropMode, // Added back since it affects positioning
+    settings.nudgeX, // FIXED: Added nudge dependencies for position updates
+    settings.nudgeY, // FIXED: Added nudge dependencies for position updates
     settings.useOriginalColors,
     settings.colorQuantization,
     settings.paletteSize,
@@ -554,12 +577,14 @@ export function MediaImportPanel() {
       targetWidth = Math.min(targetWidth, canvasWidth);
       targetHeight = Math.min(targetHeight, canvasHeight);
       
-      // Update settings with calculated dimensions
-      updateSettings({
-        characterWidth: targetWidth,
-        characterHeight: targetHeight,
-        maintainAspectRatio: true // Ensure aspect ratio is maintained
-      });
+      // Only auto-calculate dimensions if user hasn't saved preferences from previous session
+      if (!hasSessionSettings) {
+        updateSettings({
+          characterWidth: targetWidth,
+          characterHeight: targetHeight,
+          maintainAspectRatio: true // Ensure aspect ratio is maintained
+        });
+      }
       
     } catch (error) {
 
@@ -1098,6 +1123,23 @@ export function MediaImportPanel() {
                             })}
                           </div>
                         </TooltipProvider>
+                        {/* Show current alignment mode */}
+                        <div className="text-xs text-muted-foreground">
+                          {(() => {
+                            const alignmentMap = {
+                              'top-left': 'Top Left',
+                              'top': 'Top Center', 
+                              'top-right': 'Top Right',
+                              'left': 'Center Left',
+                              'center': 'Center',
+                              'right': 'Center Right',
+                              'bottom-left': 'Bottom Left',
+                              'bottom': 'Bottom Center',
+                              'bottom-right': 'Bottom Right'
+                            };
+                            return alignmentMap[settings.cropMode] || settings.cropMode;
+                          })()}
+                        </div>
                       </div>
                       
                       {/* Nudge Section */}
@@ -1192,6 +1234,10 @@ export function MediaImportPanel() {
                             <div></div>
                           </div>
                         </TooltipProvider>
+                        {/* Show current nudge values */}
+                        <div className="text-xs text-muted-foreground">
+                          ({settings.nudgeX}, {settings.nudgeY})
+                        </div>
                       </div>
                     </div>
                   </div>
