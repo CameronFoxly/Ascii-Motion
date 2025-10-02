@@ -29,6 +29,8 @@ This directory contains comprehensive documentation for the ASCII Motion project
 - [`CANVAS_RENDERING_IMPROVEMENTS.md`](./CANVAS_RENDERING_IMPROVEMENTS.md) - Canvas rendering optimizations
 
 ### **Feature Guides**
+- [`BRUSH_TOOL_USER_GUIDE.md`](./BRUSH_TOOL_USER_GUIDE.md) - Brush system with hover preview user guide
+- [`BRUSH_HOVER_PREVIEW_PLAN.md`](./BRUSH_HOVER_PREVIEW_PLAN.md) - Brush hover preview implementation architecture
 - [`ONION_SKINNING_GUIDE.md`](./ONION_SKINNING_GUIDE.md) - Onion skinning implementation and usage
 - [`CANVAS_TEXT_RENDERING.md`](./CANVAS_TEXT_RENDERING.md) - Text rendering system documentation
 - [`DRAWING_GAP_FIX.md`](./DRAWING_GAP_FIX.md) - Drawing tool gap prevention fixes

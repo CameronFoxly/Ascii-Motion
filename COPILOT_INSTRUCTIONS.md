@@ -636,6 +636,53 @@ src/
 
 > **Gradient fill overlay state:** `gradientStore` now tracks a `hoverEndPoint` while the user is positioning the gradient. The overlay renders against this provisional value so the end handle and stops follow the cursor until a second click commits the final end point. Always reset `hoverEndPoint` when cancelling or applying to avoid stale overlays.
 
+**Hover Preview System (Oct 2, 2025):**
+The canvas now includes a tool-specific hover preview system that shows affected cells before user action:
+
+| Component | Purpose | Location |
+|-----------|---------|----------|
+| **`useHoverPreview`** | Calculates tool-specific preview patterns | `src/hooks/useHoverPreview.ts` |
+| **`CanvasContext.hoverPreview`** | Centralized hover preview state | `src/contexts/CanvasContext.tsx` |
+| **`CanvasOverlay`** | Renders hover preview after all other overlays | `src/components/features/CanvasOverlay.tsx` |
+
+**Hover Preview Architecture:**
+```typescript
+// State structure (CanvasContext)
+hoverPreview: {
+  active: boolean;
+  mode: 'none' | 'brush' | 'rectangle' | 'ellipse' | 'line'; // Extensible for future tools
+  cells: Array<{ x: number; y: number }>;
+}
+
+// Hook pattern (useHoverPreview)
+- Monitors: hoveredCell, activeTool, tool settings (brushSize, brushShape, etc.)
+- Calculates: Preview pattern based on active tool
+- Updates: CanvasContext.hoverPreview state
+- Clears: When mouse leaves canvas or drawing starts
+
+// Rendering (CanvasOverlay)
+- Position: Rendered LAST (appears on top of all other overlays)
+- Style: Mode-specific colors (purple for brush, blue for shapes)
+- Integration: Works with zoom, pan, and all existing overlays
+```
+
+**Adding Hover Preview to New Tools:**
+```typescript
+// 1. Add mode to union type in CanvasContext.tsx
+mode: 'none' | 'brush' | 'rectangle' | 'ellipse' | 'your-tool';
+
+// 2. Add case in useHoverPreview.ts
+case 'your-tool': {
+  const cells = calculateYourToolPattern(hoveredCell, settings);
+  setHoverPreview({ active: true, mode: 'your-tool', cells });
+  break;
+}
+
+// 3. Add visual style in CanvasOverlay.tsx (optional)
+case 'your-tool':
+  return { fillStyle: 'rgba(...)', strokeStyle: 'rgba(...)', lineWidth: 1 };
+```
+
 **Architecture Benefits:**
 - **Dedicated hooks** for complex tools maintain clear separation of concerns
 - **Shared hooks** eliminate code duplication for similar tool behaviors  
@@ -3040,8 +3087,23 @@ const useCanvasStore = create<CanvasState>((set) => ({
 
 **If any checkbox above is unchecked, your work is not finished!**
 
-## Current Architecture Status (Enhanced October 1, 2025):
-🚨 **LATEST**: Time-Based Effects System Implementation (Oct 1, 2025)
+## Current Architecture Status (Enhanced October 2, 2025):
+🚨 **LATEST**: Brush System with Hover Preview (Oct 2, 2025)
+
+**Brush System with Hover Preview (Oct 2, 2025):**
+- ✅ **Brush Controls**: Comprehensive brush system for pencil tool with size (1-20) and shape (circle, square, horizontal, vertical) controls
+- ✅ **Visual Preview Box**: 11x7 grid preview showing exact 1:1 representation of brush pattern accounting for cell aspect ratio
+- ✅ **Increment Controls**: Plus/minus buttons for precise single-step brush size adjustments alongside slider
+- ✅ **Canvas Hover Preview**: Real-time brush outline preview on canvas showing exact cells that will be affected before drawing
+- ✅ **Extensible Architecture**: Mode-based hover preview system (`useHoverPreview` hook) ready for future tool previews (rectangle, ellipse, line, paint bucket)
+- ✅ **Aspect Ratio Accuracy**: Brush calculations account for cell width/height ratio (~0.6) to create visually circular/square shapes
+- ✅ **Performance Optimized**: Preview only recalculates when necessary (hover position, brush settings, or tool changes)
+- ✅ **Non-Invasive Integration**: Hover preview renders after all other overlays without affecting selections, paste mode, or gradient tools
+- ✅ **Smart Cleanup**: Preview automatically clears when mouse leaves canvas or tool switches
+- ✅ **Visual Separation**: Affects controls in separate dark inset container, distinct from brush appearance settings
+- ✅ **TypeScript Foundation**: Complete type system with HoverPreview state, mode unions, and proper dependency tracking
+
+🚨 **PREVIOUS**: Time-Based Effects System Implementation (Oct 1, 2025)
 
 **Time-Based Effects System Implementation (Oct 1, 2025):**
 - ✅ **Complete Architecture**: Full time effects system with Wave Warp and Wiggle effects, applying mathematical transformations to character content over real-world time progression

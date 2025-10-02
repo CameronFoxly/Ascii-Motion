@@ -1,12 +1,24 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.29";
-export const BUILD_DATE = "2025-10-02T05:58:45.858Z";
-export const BUILD_HASH = "6e64af5";
+export const VERSION = "0.1.30";
+export const BUILD_DATE = "2025-10-02T07:21:20.989Z";
+export const BUILD_HASH = "1658af8";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.30",
+    "date": "2025-10-02T07:21:20.989Z",
+    "commits": [
+      "Cleaned up brush preview UI",
+      "Fixed brush size artifact",
+      "Fixed smoothing bug with new brushes",
+      "Fixed brush shape",
+      "Added brush size tool",
+      "Added filp tools"
+    ]
+  },
   {
     "version": "0.1.29",
     "date": "2025-10-02T05:58:45.858Z",

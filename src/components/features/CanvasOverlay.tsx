@@ -12,7 +12,7 @@ export const CanvasOverlay: React.FC = () => {
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   
   // Canvas context and state  
-  const { canvasRef, pasteMode, cellWidth, cellHeight, zoom, panOffset, fontMetrics } = useCanvasContext();
+  const { canvasRef, pasteMode, cellWidth, cellHeight, zoom, panOffset, fontMetrics, hoverPreview } = useCanvasContext();
   const {
     moveState,
     getTotalOffset,
@@ -365,7 +365,64 @@ export const CanvasOverlay: React.FC = () => {
         ctx.globalAlpha = 1.0;
       }
     }
-  }, [selection, lassoSelection, linePreview, effectiveCellWidth, effectiveCellHeight, panOffset, moveState, getTotalOffset, canvasRef, pasteMode, activeTool, gradientApplying, gradientStart, gradientEnd, gradientDefinition, gradientPreview]);
+    
+    // Draw hover preview (for brush and other tool-specific previews)
+    // Rendered last so it appears on top of all other overlays
+    if (hoverPreview.active && hoverPreview.cells.length > 0) {
+      // Visual style based on preview mode
+      const getPreviewStyle = (mode: string) => {
+        switch (mode) {
+          case 'brush':
+            return {
+              fillStyle: 'rgba(168, 85, 247, 0.15)', // Subtle purple fill
+              strokeStyle: 'rgba(168, 85, 247, 0.5)', // Purple outline
+              lineWidth: 1
+            };
+          // Future modes can have different visual styles
+          case 'rectangle':
+          case 'ellipse':
+            return {
+              fillStyle: 'rgba(59, 130, 246, 0.15)', // Blue fill
+              strokeStyle: 'rgba(59, 130, 246, 0.5)', // Blue outline
+              lineWidth: 1
+            };
+          default:
+            return {
+              fillStyle: 'rgba(255, 255, 255, 0.1)', // White fill
+              strokeStyle: 'rgba(255, 255, 255, 0.3)', // White outline
+              lineWidth: 1
+            };
+        }
+      };
+      
+      const style = getPreviewStyle(hoverPreview.mode);
+      ctx.fillStyle = style.fillStyle;
+      ctx.strokeStyle = style.strokeStyle;
+      ctx.lineWidth = style.lineWidth;
+      
+      // Draw each cell in the preview pattern
+      hoverPreview.cells.forEach(({ x, y }) => {
+        const pixelX = x * effectiveCellWidth + panOffset.x;
+        const pixelY = y * effectiveCellHeight + panOffset.y;
+        
+        // Fill cell with semi-transparent color
+        ctx.fillRect(
+          pixelX,
+          pixelY,
+          effectiveCellWidth,
+          effectiveCellHeight
+        );
+        
+        // Outline cell for better visibility
+        ctx.strokeRect(
+          pixelX,
+          pixelY,
+          effectiveCellWidth,
+          effectiveCellHeight
+        );
+      });
+    }
+  }, [selection, lassoSelection, linePreview, effectiveCellWidth, effectiveCellHeight, panOffset, moveState, getTotalOffset, canvasRef, pasteMode, activeTool, gradientApplying, gradientStart, gradientEnd, gradientDefinition, gradientPreview, hoverPreview]);
 
   // Re-render overlay when dependencies change
   useEffect(() => {

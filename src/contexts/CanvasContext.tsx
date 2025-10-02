@@ -38,6 +38,13 @@ interface CanvasState {
   // Hover state
   hoveredCell: { x: number; y: number } | null;
   
+  // Hover preview state (for tool-specific previews like brush outline)
+  hoverPreview: {
+    active: boolean;
+    mode: 'none' | 'brush' | 'rectangle' | 'ellipse' | 'line';
+    cells: Array<{ x: number; y: number }>;
+  };
+  
   // Move/drag state
   moveState: {
     originalData: Map<string, Cell>;
@@ -74,6 +81,11 @@ interface CanvasActions {
   
   // Hover actions
   setHoveredCell: (cell: { x: number; y: number } | null) => void;
+  setHoverPreview: (preview: {
+    active: boolean;
+    mode: 'none' | 'brush' | 'rectangle' | 'ellipse' | 'line';
+    cells: Array<{ x: number; y: number }>;
+  }) => void;
   
   // Move/drag actions
   setMoveState: (state: CanvasState['moveState']) => void;
@@ -138,6 +150,17 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   // Hover state
   const [hoveredCell, setHoveredCell] = useState<{ x: number; y: number } | null>(null);
   
+  // Hover preview state (for tool-specific previews like brush outline)
+  const [hoverPreview, setHoverPreview] = useState<{
+    active: boolean;
+    mode: 'none' | 'brush' | 'rectangle' | 'ellipse' | 'line';
+    cells: Array<{ x: number; y: number }>;
+  }>({
+    active: false,
+    mode: 'none',
+    cells: []
+  });
+  
   // Move/drag state
   const [moveState, setMoveState] = useState<CanvasState['moveState']>(null);
   
@@ -178,6 +201,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     pendingSelectionStart,
     justCommittedMove,
     hoveredCell,
+    hoverPreview,
     moveState,
     pasteMode,
     
@@ -200,6 +224,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     setPendingSelectionStart,
     setJustCommittedMove,
     setHoveredCell,
+    setHoverPreview,
     setMoveState,
     startPasteMode,
     updatePastePosition,

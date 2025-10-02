@@ -7,6 +7,7 @@ import { useCanvasState } from '../../hooks/useCanvasState';
 import { useCanvasMouseHandlers } from '../../hooks/useCanvasMouseHandlers';
 import { useCanvasRenderer } from '../../hooks/useCanvasRenderer';
 import { useToolBehavior } from '../../hooks/useToolBehavior';
+import { useHoverPreview } from '../../hooks/useHoverPreview';
 import { ToolManager } from './ToolManager';
 import { ToolStatusManager } from './ToolStatusManager';
 import { CanvasActionButtons } from './CanvasActionButtons';
@@ -56,6 +57,9 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
 
   // Use the new renderer hook that handles both grid and overlay rendering
   useCanvasRenderer();
+  
+  // Enable hover preview for tools (brush outline, etc.)
+  useHoverPreview();
 
   const { 
     selection, 
