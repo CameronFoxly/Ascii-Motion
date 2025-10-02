@@ -112,11 +112,13 @@ interface ToolStoreState extends ToolState {
   startLassoSelection: () => void;
   addLassoPoint: (x: number, y: number) => void;
   updateLassoSelectedCells: (selectedCells: Set<string>) => void;
+  setLassoPath: (path: { x: number; y: number }[]) => void;
   finalizeLassoSelection: () => void;
   clearLassoSelection: () => void;
   
   // Magic wand selection actions
   startMagicWandSelection: (targetCell: any, selectedCells: Set<string>) => void;
+  updateMagicWandSelectedCells: (selectedCells: Set<string>) => void;
   clearMagicWandSelection: () => void;
   
   // Clipboard actions
@@ -412,6 +414,15 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     }));
   },
 
+  setLassoPath: (path: { x: number; y: number }[]) => {
+    set((state) => ({
+      lassoSelection: {
+        ...state.lassoSelection,
+        path
+      }
+    }));
+  },
+
   finalizeLassoSelection: () => {
     set((state) => ({
       lassoSelection: {
@@ -442,6 +453,15 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
         contiguous: get().magicWandContiguous
       }
     });
+  },
+
+  updateMagicWandSelectedCells: (selectedCells: Set<string>) => {
+    set((state) => ({
+      magicWandSelection: {
+        ...state.magicWandSelection,
+        selectedCells: new Set(selectedCells)
+      }
+    }));
   },
 
   clearMagicWandSelection: () => {

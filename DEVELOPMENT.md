@@ -2273,8 +2273,12 @@ if (moveStateParam && setMoveStateParam) {
   
   // Create new canvas with committed moves
   const newCells = new Map(cells);
-  moveStateParam.originalData.forEach((cell, key) => {
+  const originalKeys = moveStateParam.originalPositions ?? new Set(moveStateParam.originalData.keys());
+  originalKeys.forEach((key) => {
     newCells.delete(key); // Clear original position
+  });
+
+  moveStateParam.originalData.forEach((cell, key) => {
     const [origX, origY] = key.split(',').map(Number);
     const newX = origX + totalOffset.x;
     const newY = origY + totalOffset.y;
@@ -2288,6 +2292,9 @@ if (moveStateParam && setMoveStateParam) {
   setCanvasData(newCells);
   setMoveStateParam(null);
 }
+
+  // Note: moveState now tracks `originalPositions` to keep deletion coordinates
+  // separate from transformed preview data when additional transformations occur.
 ```
 **Lesson**: When managing state across frame boundaries, ensure user operations are committed before state transitions
 

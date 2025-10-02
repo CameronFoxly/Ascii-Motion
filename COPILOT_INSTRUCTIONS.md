@@ -484,6 +484,7 @@ The Flip Utilities provide immediate horizontal and vertical content flipping wi
 
 ### **Key Features**:
 - **Selection-Aware Flipping**: Works with rectangular, lasso, and magic wand selections
+- **Selection Geometry Sync**: Lasso paths and magic wand cell sets update automatically so overlays stay aligned after flips
 - **Fallback Behavior**: Flips entire canvas if no selection is active
 - **Modified Hotkeys**: `Shift+H` for horizontal flip, `Shift+V` for vertical flip
 - **Immediate Actions**: Execute instantly on button click or hotkey press
@@ -494,6 +495,7 @@ The Flip Utilities provide immediate horizontal and vertical content flipping wi
 - **Button Integration**: Special handling in `ToolPalette` button click handler to execute flip instead of switching tools
 - **Center-Based Flipping**: All flips occur around the center of the bounding box of the selection or canvas
 - **Coordinate Transformation**: Preserves all cell properties (character, text color, background color) during position changes
+- **Move-State Aware Execution**: Pending moves flip their preview data in-place without mutating the underlying canvas until Enter commits (Escape cancels cleanly)
 
 ### **Selection Priority**:
 1. **Magic Wand Selection** (highest priority) - Uses `selectedCells` set
@@ -507,6 +509,7 @@ The Flip Utilities provide immediate horizontal and vertical content flipping wi
 - ✅ Seamless integration with existing tool architecture
 - ✅ Complete undo/redo support with descriptive action names
 - ✅ Efficient coordinate transformation algorithms
+- ✅ Escape restores original orientation when a pending move is cancelled; Enter commits the flipped preview without duplicating content
 
 ## 🎨 **SVG Export Feature**
 
@@ -1266,6 +1269,14 @@ selectedCells.forEach(cellKey => {
   if (cell && !isEmpty(cell)) {
     originalData.set(cellKey, cell);
   }
+});
+
+setMoveState({
+  originalData,
+  originalPositions: new Set(originalData.keys()),
+  startPos: { x, y },
+  baseOffset: { x: 0, y: 0 },
+  currentOffset: { x: 0, y: 0 }
 });
 
 // ❌ Common Bug: Incomplete move commit sequence
@@ -2672,8 +2683,8 @@ window.asciiMotionPerf.testGrid(300, 200); // Test specific grid size
 const useMemoizedGrid = (moveState, getTotalOffset) => {
   // Memoize moving cell coordinates to prevent recalculation
   const movingCellKeys = useMemo(() => {
-    if (!moveState?.originalData.size) return new Set();
-    return new Set(moveState.originalData.keys());
+    if (!moveState?.originalPositions?.size) return new Set();
+    return moveState.originalPositions;
   }, [moveState]);
 
   // Memoize grid data to prevent unnecessary recalculations
@@ -3088,7 +3099,16 @@ const useCanvasStore = create<CanvasState>((set) => ({
 **If any checkbox above is unchecked, your work is not finished!**
 
 ## Current Architecture Status (Enhanced October 2, 2025):
-🚨 **LATEST**: Brush System with Hover Preview (Oct 2, 2025)
+🚨 **LATEST**: Flip Selection Sync & Move-State Safeguards (Oct 2, 2025)
+
+**Flip Selection Sync & Move-State Safeguards (Oct 2, 2025):**
+- ✅ **Selection Geometry Updates**: Magic wand and lasso selections now mirror their cell sets/paths after flips so highlights stay aligned and repeated flips use accurate bounds
+- ✅ **Move-State Preview Flips**: Pending drags flip their preview data in place without mutating canvas cells, eliminating duplicate content at the origin
+- ✅ **Escape Preservation**: Cancelling a move via Escape restores the pre-flip canvas while clearing selection state
+- ✅ **Enter Commit Accuracy**: Enter commits the flipped preview at its new location with no lingering copies in the source region
+- ✅ **Move-State Metadata**: `moveState` tracks `originalPositions` to distinguish deletion coordinates from transformed preview cells across rendering, commits, and frame sync
+
+🚨 **PREVIOUS**: Brush System with Hover Preview (Oct 2, 2025)
 
 **Brush System with Hover Preview (Oct 2, 2025):**
 - ✅ **Brush Controls**: Comprehensive brush system for pencil tool with size (1-20) and shape (circle, square, horizontal, vertical) controls

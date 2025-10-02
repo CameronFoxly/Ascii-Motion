@@ -248,8 +248,9 @@ export const useCanvasRenderer = () => {
 
     // Create a set of coordinates that are being moved (optimized)
     const movingCells = new Set<string>();
-    if (moveState && moveState.originalData.size > 0) {
-      moveState.originalData.forEach((_, key: string) => {
+    if (moveState) {
+      const originalKeys = moveState.originalPositions ?? new Set(moveState.originalData.keys());
+      originalKeys.forEach((key: string) => {
         movingCells.add(key);
       });
     }

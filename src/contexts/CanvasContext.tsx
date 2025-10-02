@@ -48,6 +48,7 @@ interface CanvasState {
   // Move/drag state
   moveState: {
     originalData: Map<string, Cell>;
+    originalPositions: Set<string>;
     startPos: { x: number; y: number };
     baseOffset: { x: number; y: number };
     currentOffset: { x: number; y: number };

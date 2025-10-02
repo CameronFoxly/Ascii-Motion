@@ -81,8 +81,9 @@ export const useCanvasState = () => {
     const newCells = new Map(cells);
 
     // Clear original positions
-    moveState.originalData.forEach((_, key) => {
-      newCells.delete(key);
+      const originalKeys = moveState.originalPositions ?? new Set(moveState.originalData.keys());
+      originalKeys.forEach((key) => {
+        newCells.delete(key);
     });
 
     // Place cells at new positions

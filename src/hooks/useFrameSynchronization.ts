@@ -13,12 +13,14 @@ import type { Cell } from '../types';
 export const useFrameSynchronization = (
   moveStateParam?: { 
     originalData: Map<string, Cell>;
+    originalPositions: Set<string>;
     startPos: { x: number; y: number };
     baseOffset: { x: number; y: number };
     currentOffset: { x: number; y: number };
   } | null,
   setMoveStateParam?: React.Dispatch<React.SetStateAction<{ 
     originalData: Map<string, Cell>;
+    originalPositions: Set<string>;
     startPos: { x: number; y: number };
     baseOffset: { x: number; y: number };
     currentOffset: { x: number; y: number };
@@ -99,7 +101,8 @@ export const useFrameSynchronization = (
         const newCells = new Map(cells);
 
         // Clear original positions
-        moveStateParam.originalData.forEach((_, key) => {
+        const originalKeys = moveStateParam.originalPositions ?? new Set(moveStateParam.originalData.keys());
+        originalKeys.forEach((key) => {
           newCells.delete(key);
         });
 

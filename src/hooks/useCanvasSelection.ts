@@ -103,6 +103,7 @@ export const useCanvasSelection = () => {
         
         setMoveState({
           originalData,
+          originalPositions: new Set(originalData.keys()),
           startPos: { x, y },
           baseOffset: { x: 0, y: 0 },
           currentOffset: { x: 0, y: 0 }

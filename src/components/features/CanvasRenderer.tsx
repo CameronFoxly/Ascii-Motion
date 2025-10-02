@@ -70,8 +70,9 @@ export const CanvasRenderer: React.FC = () => {
 
     // Create a set of coordinates that are being moved (to skip in normal rendering)
     const movingCells = new Set<string>();
-    if (moveState && moveState.originalData.size > 0) {
-      moveState.originalData.forEach((_, key) => {
+    if (moveState) {
+      const originalKeys = moveState.originalPositions ?? new Set(moveState.originalData.keys());
+      originalKeys.forEach(key => {
         movingCells.add(key);
       });
     }

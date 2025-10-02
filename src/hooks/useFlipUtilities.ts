@@ -10,8 +10,11 @@ import { useAnimationStore } from '../stores/animationStore';
 import { 
   applyHorizontalFlip, 
   applyVerticalFlip, 
-  getActiveSelectionBounds 
+  getActiveSelectionBounds,
+  transformLassoPathForFlip,
+  transformSelectedCellsForFlip
 } from '../utils/flipUtils';
+import { useCanvasContext } from '../contexts/CanvasContext';
 
 /**
  * Custom hook providing flip utilities with integrated undo/redo history
@@ -19,11 +22,15 @@ import {
 export const useFlipUtilities = () => {
   const { cells, width, height, setCanvasData } = useCanvasStore();
   const { currentFrameIndex } = useAnimationStore();
+  const { moveState, setMoveState } = useCanvasContext();
   const { 
     pushCanvasHistory, 
     selection, 
     lassoSelection, 
-    magicWandSelection 
+    magicWandSelection,
+    updateLassoSelectedCells,
+    setLassoPath,
+    updateMagicWandSelectedCells
   } = useToolStore();
 
   /**
@@ -41,11 +48,34 @@ export const useFlipUtilities = () => {
       height
     );
 
+    const hasMagicSelection = magicWandSelection.active && magicWandSelection.selectedCells.size > 0;
+    const hasLassoSelection = !hasMagicSelection && lassoSelection.active && lassoSelection.selectedCells.size > 0;
+
+    const transformedCells = selectedCells
+      ? transformSelectedCellsForFlip(selectedCells, bounds, 'horizontal')
+      : null;
+
     // Apply horizontal flip
-    const flippedData = applyHorizontalFlip(cells, bounds, selectedCells || undefined);
-    
-    // Update canvas
-    setCanvasData(flippedData);
+    if (moveState) {
+      const flippedMoveData = applyHorizontalFlip(moveState.originalData, bounds, selectedCells || undefined);
+      setMoveState({
+        ...moveState,
+        originalData: flippedMoveData
+      });
+    } else {
+      const flippedData = applyHorizontalFlip(cells, bounds, selectedCells || undefined);
+      setCanvasData(flippedData);
+    }
+
+    if (hasMagicSelection && transformedCells) {
+      updateMagicWandSelectedCells(transformedCells);
+    } else if (hasLassoSelection && transformedCells) {
+      updateLassoSelectedCells(transformedCells);
+      if (lassoSelection.path.length > 0) {
+        const flippedPath = transformLassoPathForFlip(lassoSelection.path, bounds, 'horizontal');
+        setLassoPath(flippedPath);
+      }
+    }
   }, [
     cells,
     width,
@@ -55,7 +85,12 @@ export const useFlipUtilities = () => {
     selection,
     lassoSelection,
     magicWandSelection,
-    setCanvasData
+    setCanvasData,
+    moveState,
+    setMoveState,
+    updateLassoSelectedCells,
+    setLassoPath,
+    updateMagicWandSelectedCells
   ]);
 
   /**
@@ -73,11 +108,34 @@ export const useFlipUtilities = () => {
       height
     );
 
+    const hasMagicSelection = magicWandSelection.active && magicWandSelection.selectedCells.size > 0;
+    const hasLassoSelection = !hasMagicSelection && lassoSelection.active && lassoSelection.selectedCells.size > 0;
+
+    const transformedCells = selectedCells
+      ? transformSelectedCellsForFlip(selectedCells, bounds, 'vertical')
+      : null;
+
     // Apply vertical flip
-    const flippedData = applyVerticalFlip(cells, bounds, selectedCells || undefined);
-    
-    // Update canvas
-    setCanvasData(flippedData);
+    if (moveState) {
+      const flippedMoveData = applyVerticalFlip(moveState.originalData, bounds, selectedCells || undefined);
+      setMoveState({
+        ...moveState,
+        originalData: flippedMoveData
+      });
+    } else {
+      const flippedData = applyVerticalFlip(cells, bounds, selectedCells || undefined);
+      setCanvasData(flippedData);
+    }
+
+    if (hasMagicSelection && transformedCells) {
+      updateMagicWandSelectedCells(transformedCells);
+    } else if (hasLassoSelection && transformedCells) {
+      updateLassoSelectedCells(transformedCells);
+      if (lassoSelection.path.length > 0) {
+        const flippedPath = transformLassoPathForFlip(lassoSelection.path, bounds, 'vertical');
+        setLassoPath(flippedPath);
+      }
+    }
   }, [
     cells,
     width,
@@ -87,7 +145,12 @@ export const useFlipUtilities = () => {
     selection,
     lassoSelection,
     magicWandSelection,
-    setCanvasData
+    setCanvasData,
+    moveState,
+    setMoveState,
+    updateLassoSelectedCells,
+    setLassoPath,
+    updateMagicWandSelectedCells
   ]);
 
   /**

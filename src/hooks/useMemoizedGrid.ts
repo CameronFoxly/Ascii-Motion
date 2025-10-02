@@ -21,6 +21,7 @@ interface MemoizedGridData {
 
 interface MoveState {
   originalData: Map<string, Cell>;
+  originalPositions: Set<string>;
   startPos: { x: number; y: number };
   baseOffset: { x: number; y: number };
   currentOffset: { x: number; y: number };
@@ -39,10 +40,10 @@ export const useMemoizedGrid = (
 
   // Memoize the set of moving cell coordinates
   const movingCellKeys = useMemo(() => {
-    if (!moveState || moveState.originalData.size === 0) {
+    if (!moveState) {
       return new Set<string>();
     }
-    return new Set(moveState.originalData.keys());
+    return moveState.originalPositions ?? new Set(moveState.originalData.keys());
   }, [moveState]);
 
   // Calculate move offset once

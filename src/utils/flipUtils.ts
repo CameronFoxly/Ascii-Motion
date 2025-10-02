@@ -204,3 +204,41 @@ export const getActiveSelectionBounds = (
     selectedCells: null
   };
 };
+
+/**
+ * Transform a set of selected cell coordinates based on flip orientation.
+ * Returns a new set with coordinates mapped to their flipped positions.
+ */
+export const transformSelectedCellsForFlip = (
+  selectedCells: Set<string>,
+  bounds: FlipBounds,
+  orientation: 'horizontal' | 'vertical'
+): Set<string> => {
+  const transformed = new Set<string>();
+
+  selectedCells.forEach((key) => {
+    const [x, y] = key.split(',').map(Number);
+    const flippedCoord = orientation === 'horizontal'
+      ? flipHorizontal(x, y, bounds)
+      : flipVertical(x, y, bounds);
+    transformed.add(`${flippedCoord.x},${flippedCoord.y}`);
+  });
+
+  return transformed;
+};
+
+/**
+ * Transform a lasso path based on flip orientation, returning a new path array.
+ */
+export const transformLassoPathForFlip = (
+  path: { x: number; y: number }[],
+  bounds: FlipBounds,
+  orientation: 'horizontal' | 'vertical'
+): { x: number; y: number }[] => {
+  return path.map(point => {
+    const flippedPoint = orientation === 'horizontal'
+      ? flipHorizontal(point.x, point.y, bounds)
+      : flipVertical(point.x, point.y, bounds);
+    return { x: flippedPoint.x, y: flippedPoint.y };
+  });
+};

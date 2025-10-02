@@ -120,6 +120,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       
       setMoveState({
         originalData,
+        originalPositions: new Set(originalData.keys()),
         startPos: { x: startX, y: startY }, // Use selection start as reference point
         baseOffset: { x: 0, y: 0 },
         currentOffset: arrowOffset // Start with the arrow offset
@@ -169,6 +170,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       
       setMoveState({
         originalData,
+        originalPositions: new Set(originalData.keys()),
         startPos: { x: centerX, y: centerY }, // Use selection center as reference point
         baseOffset: { x: 0, y: 0 },
         currentOffset: arrowOffset // Start with the arrow offset
@@ -218,6 +220,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       
       setMoveState({
         originalData,
+        originalPositions: new Set(originalData.keys()),
         startPos: { x: centerX, y: centerY }, // Use selection center as reference point
         baseOffset: { x: 0, y: 0 },
         currentOffset: arrowOffset // Start with the arrow offset
