@@ -12,6 +12,8 @@ import {
   EyedropperToolStatus,
   TextToolStatus,
   GradientFillToolStatus,
+  FlipHorizontalToolStatus,
+  FlipVerticalToolStatus,
 } from '../tools';
 
 /**
@@ -51,6 +53,10 @@ export const ToolStatusManager: React.FC = () => {
         return <TextToolStatus />;
       case 'gradientfill':
         return <GradientFillToolStatus />;
+      case 'fliphorizontal':
+        return <FlipHorizontalToolStatus />;
+      case 'flipvertical':
+        return <FlipVerticalToolStatus />;
       default:
         return <span className="text-muted-foreground">No tool selected</span>;
     }

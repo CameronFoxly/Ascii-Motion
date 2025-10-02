@@ -9,6 +9,8 @@ export { EllipseTool, EllipseToolStatus } from './EllipseTool';
 export { EyedropperTool, EyedropperToolStatus } from './EyedropperTool';
 export { TextTool, TextToolStatus } from './TextTool';
 export { GradientFillTool, GradientFillToolStatus } from './GradientFillTool';
+export { FlipHorizontalTool, FlipHorizontalToolStatus } from './FlipHorizontalTool';
+export { FlipVerticalTool, FlipVerticalToolStatus } from './FlipVerticalTool';
 
 // Tool Types
 export type ToolComponent = 
@@ -21,4 +23,6 @@ export type ToolComponent =
   | 'EllipseTool'
   | 'EyedropperTool'
   | 'TextTool'
-  | 'GradientFillTool';
+  | 'GradientFillTool'
+  | 'FlipHorizontalTool'
+  | 'FlipVerticalTool';

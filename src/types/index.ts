@@ -68,7 +68,9 @@ export type Tool =
   | 'line'
   | 'text'
   | 'brush'
-  | 'gradientfill';
+  | 'gradientfill'
+  | 'fliphorizontal'
+  | 'flipvertical';
 
 export interface ToolState {
   activeTool: Tool;

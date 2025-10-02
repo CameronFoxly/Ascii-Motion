@@ -30,6 +30,10 @@ export const useToolBehavior = () => {
         return 'EyedropperTool';
       case 'text':
         return 'TextTool';
+      case 'fliphorizontal':
+        return 'FlipHorizontalTool';
+      case 'flipvertical':
+        return 'FlipVerticalTool';
       default:
         return null;
     }
@@ -57,6 +61,10 @@ export const useToolBehavior = () => {
         return 'EyedropperToolStatus';
       case 'text':
         return 'TextToolStatus';
+      case 'fliphorizontal':
+        return 'FlipHorizontalToolStatus';
+      case 'flipvertical':
+        return 'FlipVerticalToolStatus';
       default:
         return null;
     }
@@ -85,6 +93,9 @@ export const useToolBehavior = () => {
         return 'cursor-eyedropper'; // Custom eyedropper icon cursor
       case 'text':
         return 'cursor-text';
+      case 'fliphorizontal':
+      case 'flipvertical':
+        return 'cursor-pointer'; // Clickable utilities
       default:
         return 'cursor-default';
     }
@@ -113,6 +124,10 @@ export const useToolBehavior = () => {
         return 'Eyedropper';
       case 'text':
         return 'Text';
+      case 'fliphorizontal':
+        return 'Flip Horizontal';
+      case 'flipvertical':
+        return 'Flip Vertical';
       default:
         return 'Unknown';
     }

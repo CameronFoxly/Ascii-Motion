@@ -2,6 +2,7 @@ import React from 'react';
 import { useToolStore } from '../../stores/toolStore';
 import { useGradientStore } from '../../stores/gradientStore';
 import { useCanvasContext } from '../../contexts/CanvasContext';
+import { useFlipUtilities } from '../../hooks/useFlipUtilities';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -20,7 +21,9 @@ import {
   Type,
   Wand2,
   Palette,
-  Wrench
+  Wrench,
+  MoveHorizontal,
+  MoveVertical
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -70,12 +73,15 @@ const SELECTION_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; de
 
 const UTILITY_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; description: string }> = [
   { id: 'eyedropper', name: 'Eyedropper', icon: <Pipette className="w-3 h-3" />, description: 'Pick character/color' },
+  { id: 'fliphorizontal', name: 'Flip H', icon: <MoveHorizontal className="w-3 h-3" />, description: 'Flip horizontally (Shift+H)' },
+  { id: 'flipvertical', name: 'Flip V', icon: <MoveVertical className="w-3 h-3" />, description: 'Flip vertically (Shift+V)' },
 ];
 
 export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
   const { activeTool, setActiveTool, rectangleFilled, setRectangleFilled, paintBucketContiguous, setPaintBucketContiguous, magicWandContiguous, setMagicWandContiguous, toolAffectsChar, toolAffectsColor, toolAffectsBgColor, eyedropperPicksChar, eyedropperPicksColor, eyedropperPicksBgColor, setToolAffectsChar, setToolAffectsColor, setToolAffectsBgColor, setEyedropperPicksChar, setEyedropperPicksColor, setEyedropperPicksBgColor, fillMatchChar, fillMatchColor, fillMatchBgColor, setFillMatchChar, setFillMatchColor, setFillMatchBgColor, magicMatchChar, magicMatchColor, magicMatchBgColor, setMagicMatchChar, setMagicMatchColor, setMagicMatchBgColor } = useToolStore();
   const { contiguous, matchChar, matchColor, matchBgColor, setContiguous, setMatchCriteria } = useGradientStore();
   const { altKeyDown } = useCanvasContext();
+  const { flipHorizontal, flipVertical } = useFlipUtilities();
   const [showOptions, setShowOptions] = React.useState(true);
   const [showTools, setShowTools] = React.useState(true);
 
@@ -94,6 +100,21 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
     return currentTool?.icon || null;
   };
 
+  const handleToolClick = (tool: { id: Tool; name: string; icon: React.ReactNode; description: string }) => {
+    // Handle flip utilities as immediate actions
+    if (tool.id === 'fliphorizontal') {
+      flipHorizontal();
+      return;
+    }
+    if (tool.id === 'flipvertical') {
+      flipVertical();
+      return;
+    }
+    
+    // Default tool switching behavior
+    setActiveTool(tool.id);
+  };
+
   const ToolButton: React.FC<{ tool: { id: Tool; name: string; icon: React.ReactNode; description: string } }> = ({ tool }) => (
     <Tooltip key={tool.id}>
       <TooltipTrigger asChild>
@@ -101,7 +122,7 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
           variant={effectiveTool === tool.id ? 'default' : 'outline'}
           size="sm"
           className="h-8 w-8 p-0 touch-manipulation"
-          onClick={() => setActiveTool(tool.id)}
+          onClick={() => handleToolClick(tool)}
           aria-label={`${tool.name} tool - ${tool.description}`}
           aria-pressed={effectiveTool === tool.id}
         >
@@ -150,7 +171,7 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                 {/* Utility Tools Section */}
                 <div className="space-y-2 mt-3">
                   <h4 className="text-xs font-medium text-muted-foreground">Utility</h4>
-                  <div className="grid grid-cols-2 gap-1" role="toolbar" aria-label="Utility tools">
+                  <div className="grid grid-cols-3 gap-1" role="toolbar" aria-label="Utility tools">
                     {UTILITY_TOOLS.map((tool) => (
                       <ToolButton key={tool.id} tool={tool} />
                     ))}

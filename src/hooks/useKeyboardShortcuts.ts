@@ -8,6 +8,7 @@ import { useZoomControls } from '../components/features/ZoomControls';
 import { useFrameNavigation } from './useFrameNavigation';
 import { useAnimationHistory } from './useAnimationHistory';
 import { usePaletteStore } from '../stores/paletteStore';
+import { useFlipUtilities } from './useFlipUtilities';
 import { ANSI_COLORS } from '../constants/colors';
 import type { AnyHistoryAction, CanvasHistoryAction } from '../types';
 
@@ -204,6 +205,9 @@ export const useKeyboardShortcuts = () => {
   // Frame navigation and management hooks
   const { navigateNext, navigatePrevious, canNavigate } = useFrameNavigation();
   const { addFrame, removeFrame } = useAnimationHistory();
+  
+  // Flip utilities for Shift+H and Shift+V
+  const { flipHorizontal, flipVertical } = useFlipUtilities();
 
   // Helper function to handle different types of history actions
   const handleHistoryAction = useCallback((action: AnyHistoryAction, isRedo: boolean) => {
@@ -482,6 +486,20 @@ export const useKeyboardShortcuts = () => {
         
         // Clear the selection after deleting content
         clearSelection();
+        return;
+      }
+    }
+
+    // Handle flip utility hotkeys (Shift+H and Shift+V)
+    if (event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      if (event.key === 'H' || event.key === 'h') {
+        event.preventDefault();
+        flipHorizontal();
+        return;
+      }
+      if (event.key === 'V' || event.key === 'v') {
+        event.preventDefault();
+        flipVertical();
         return;
       }
     }

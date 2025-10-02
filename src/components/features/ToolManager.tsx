@@ -12,6 +12,8 @@ import {
   TextTool,
   GradientFillTool,
 } from '../tools';
+import { FlipHorizontalTool } from '../tools/FlipHorizontalTool';
+import { FlipVerticalTool } from '../tools/FlipVerticalTool';
 
 /**
  * Tool Manager Component
@@ -43,6 +45,10 @@ export const ToolManager: React.FC = () => {
       return <TextTool />;
     case 'gradientfill':
       return <GradientFillTool />;
+    case 'fliphorizontal':
+      return <FlipHorizontalTool />;
+    case 'flipvertical':
+      return <FlipVerticalTool />;
     default:
       return null;
   }

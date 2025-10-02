@@ -1,12 +1,22 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.28";
-export const BUILD_DATE = "2025-10-01T22:08:48.609Z";
-export const BUILD_HASH = "6c188f0";
+export const VERSION = "0.1.29";
+export const BUILD_DATE = "2025-10-02T05:58:45.858Z";
+export const BUILD_HASH = "6e64af5";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.29",
+    "date": "2025-10-02T05:58:45.858Z",
+    "commits": [
+      "Persist gradient settings between sessions",
+      "Fixed colors picker not cancelling properly",
+      "Fix import panel setting persistence between sessions.",
+      "Update version"
+    ]
+  },
   {
     "version": "0.1.28",
     "date": "2025-10-01T22:08:48.609Z",

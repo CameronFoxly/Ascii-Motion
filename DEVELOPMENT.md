@@ -3865,6 +3865,103 @@ The modular architecture enables future enhancements:
 
 This Phase 4 implementation establishes ASCII Motion as a professional tool for media-to-ASCII conversion with a breakthrough independent preview overlay system that ensures frame-safe import operations. The architecture maintains consistency with existing application patterns while introducing innovative solutions to complex data synchronization challenges. The modular design supports future enhancements while providing immediate, robust value for users converting visual media into ASCII art.
 
+# 🔄 **Flip Utilities Implementation** - ✅ **COMPLETED** (Oct 1, 2025)
+
+## Overview
+Implementation of horizontal and vertical flip utilities that work with all selection types and provide immediate canvas transformations with full undo/redo support.
+
+## ✅ **Completed Features**
+
+### **Selection-Aware Flipping**
+- **Rectangular Selection**: Flip content within selection bounds
+- **Lasso Selection**: Flip all cells within freeform selection
+- **Magic Wand Selection**: Flip all matching selected cells
+- **Full Canvas Fallback**: Flip entire canvas when no selection is active
+
+### **Professional User Experience**
+- **Modified Hotkeys**: `Shift+H` (horizontal) and `Shift+V` (vertical)
+- **Button Integration**: Flip buttons in utility tools section with immediate actions
+- **Status Feedback**: Real-time status messages showing what will be flipped
+- **Tool Integration**: Seamless integration with existing tool architecture
+
+### **Technical Architecture**
+- **Utility Pattern**: Immediate actions rather than persistent tool states
+- **Center-Based Flipping**: All flips occur around selection/canvas center
+- **Property Preservation**: All cell properties (character, colors) preserved during transformation
+- **Coordinate Mathematics**: Accurate coordinate transformation algorithms
+
+## 🏗️ **Technical Implementation**
+
+### **File Structure**
+```
+src/
+├── utils/flipUtils.ts                    # Core flip algorithms and coordinate math (168 lines)
+├── hooks/useFlipUtilities.ts             # Hook with history integration (89 lines)  
+├── components/tools/FlipHorizontalTool.tsx   # Horizontal flip tool component (25 lines)
+├── components/tools/FlipVerticalTool.tsx     # Vertical flip tool component (25 lines)
+└── hooks/useKeyboardShortcuts.ts         # Extended with Shift+H/Shift+V support
+```
+
+### **Architecture Decisions**
+
+#### **Utility Action Pattern**
+- **Not Traditional Tools**: Flip actions execute immediately rather than switching tool state
+- **Button Handler Override**: Special handling in `ToolPalette` to execute flip instead of tool switching
+- **Status Components**: Provide real-time feedback about what will be flipped
+
+#### **Modified Hotkey System**
+- **Shift Modifier Usage**: First implementation of modified hotkeys (Shift+Key)
+- **Processing Order**: Modified hotkeys processed before single-key tool hotkeys
+- **Text Input Protection**: Respects existing text input protection patterns
+
+#### **Selection Priority System**
+```typescript
+// Priority: Magic Wand > Lasso > Rectangular > Full Canvas
+if (magicWandSelection.active) return magicWandBounds;
+if (lassoSelection.active) return lassoBounds;  
+if (selection.active) return rectangularBounds;
+return fullCanvasBounds;
+```
+
+### **Mathematical Implementation**
+```typescript
+// Horizontal flip around bounding box center
+const flippedX = bounds.minX + bounds.maxX - x;
+
+// Vertical flip around bounding box center  
+const flippedY = bounds.minY + bounds.maxY - y;
+```
+
+### **History Integration**
+- **Descriptive Actions**: "Flip horizontal", "Flip vertical" with selection context
+- **State Preservation**: Complete canvas state saved before flip operations
+- **Undo/Redo Support**: Full integration with existing history system
+
+## 🎯 **User Experience Benefits**
+
+### **Professional Workflow**
+- **Industry-Standard Hotkeys**: Shift+H/V follows professional graphics software conventions  
+- **Immediate Feedback**: Clear status messages showing selection scope
+- **Predictable Behavior**: Consistent center-based flipping across all selection types
+- **Error Prevention**: No destructive operations - full undo/redo support
+
+### **Selection Flexibility** 
+- **Works Everywhere**: Compatible with all existing selection tools
+- **Smart Fallbacks**: Automatically handles cases with no active selection
+- **Bounding Box Logic**: Flips around center of actual selected content
+- **Property Preservation**: All visual properties maintained during transformation
+
+## 📊 **Implementation Stats**
+- **Total Lines Added**: ~300 lines across 5 files
+- **New Tool Types**: 2 (fliphorizontal, flipvertical) 
+- **New Hotkey Pattern**: Modified keys (Shift+Key) alongside single keys
+- **Selection Compatibility**: 100% (works with all 3 selection types)
+- **History Integration**: Complete (undo/redo with descriptive action names)
+
+---
+
+This implementation demonstrates the extensibility of ASCII Motion's tool architecture and establishes patterns for future utility actions that operate on selections. The modified hotkey system provides a foundation for additional Shift+Key combinations while maintaining backward compatibility with all existing functionality.
+
 # 🌈 **Phase 5: Advanced Gradient Fill Tool** - 📋 **PLANNED**
 
 ## Overview

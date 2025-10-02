@@ -476,6 +476,38 @@ The Gradient Fill Tool provides sophisticated gradient application with interact
 - Double-click events on stops trigger `handleStopDoubleClick()` in overlay component
 - All edits update gradient definition and trigger preview regeneration
 
+## 🔄 **Flip Utilities - Horizontal & Vertical Flipping**
+
+**Location**: `src/utils/flipUtils.ts`, `src/hooks/useFlipUtilities.ts`, `src/components/tools/FlipHorizontalTool.tsx`, `src/components/tools/FlipVerticalTool.tsx`
+
+The Flip Utilities provide immediate horizontal and vertical content flipping with full selection support and undo/redo integration.
+
+### **Key Features**:
+- **Selection-Aware Flipping**: Works with rectangular, lasso, and magic wand selections
+- **Fallback Behavior**: Flips entire canvas if no selection is active
+- **Modified Hotkeys**: `Shift+H` for horizontal flip, `Shift+V` for vertical flip
+- **Immediate Actions**: Execute instantly on button click or hotkey press
+- **Undo/Redo Integration**: Full history system integration with descriptive action names
+
+### **Architecture Pattern**:
+- **Utility Actions**: Unlike traditional tools, these are immediate actions rather than persistent tool states
+- **Button Integration**: Special handling in `ToolPalette` button click handler to execute flip instead of switching tools
+- **Center-Based Flipping**: All flips occur around the center of the bounding box of the selection or canvas
+- **Coordinate Transformation**: Preserves all cell properties (character, text color, background color) during position changes
+
+### **Selection Priority**:
+1. **Magic Wand Selection** (highest priority) - Uses `selectedCells` set
+2. **Lasso Selection** - Uses `selectedCells` set  
+3. **Rectangular Selection** - Uses start/end coordinates
+4. **Full Canvas** (fallback) - Uses canvas dimensions
+
+### **Implementation Benefits**:
+- ✅ Consistent behavior across all selection types
+- ✅ Professional keyboard shortcuts following industry patterns
+- ✅ Seamless integration with existing tool architecture
+- ✅ Complete undo/redo support with descriptive action names
+- ✅ Efficient coordinate transformation algorithms
+
 ## 🎨 **SVG Export Feature**
 
 **Location**: `src/components/features/ImageExportDialog.tsx`, `src/utils/svgExportUtils.ts`, `src/utils/exportRenderer.ts`
@@ -1793,9 +1825,58 @@ export const TOOL_HOTKEYS: ToolHotkey[] = [
 
 **❌ Do NOT:**
 - Skip hotkey assignment for "simple" tools
-- Use modifier keys (Shift+X, Ctrl+Y) - these are reserved
+- Use modifier keys (Shift+X, Ctrl+Y) - these are reserved  
 - Choose conflicting keys (check existing TOOL_HOTKEYS first)
 - Implement custom hotkey logic - use the centralized system
+
+#### **🔄 Extended: Modified Hotkey System for Utilities (Oct 1, 2025)**
+
+**NEW: Support for modifier key combinations alongside single-key tool hotkeys.**
+
+#### **🎯 Modified Hotkey Mappings:**
+| Utility | Hotkey | Behavior |
+|---------|--------|----------|
+| **Flip Horizontal** | `Shift+H` | Immediately flip selection/canvas horizontally |
+| **Flip Vertical** | `Shift+V` | Immediately flip selection/canvas vertically |
+
+#### **🏗️ Modified Hotkey Architecture:**
+- **Separate Processing**: Modified hotkeys processed before single-key tool hotkeys
+- **Text Input Protection**: Respects text input state same as regular tool hotkeys
+- **Immediate Actions**: Execute utility functions directly instead of tool switching
+- **Professional Feel**: Shift modifiers indicate "actions" rather than "tool selection"
+
+#### **🔧 Implementation Pattern for Modified Hotkeys:**
+
+**Step 1: Add Modified Hotkey Handler** (`src/hooks/useKeyboardShortcuts.ts`):
+```typescript
+// Handle utility hotkeys (before regular tool hotkeys)
+if (event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey) {
+  if (event.key === 'H' || event.key === 'h') {
+    event.preventDefault();
+    flipHorizontal();
+    return;
+  }
+  // ... other modified hotkeys
+}
+```
+
+**Step 2: Import Utility Hook**:
+```typescript
+import { useFlipUtilities } from './useFlipUtilities';
+// In component:
+const { flipHorizontal, flipVertical } = useFlipUtilities();
+```
+
+#### **🎯 When to Use Modified vs Single-Key Hotkeys:**
+- **Single Keys**: Tool switching (P, E, G, M, L, W, etc.)
+- **Modified Keys**: Immediate utility actions (Shift+H, Shift+V)
+- **Ctrl/Cmd Keys**: System operations (Copy, Paste, Undo, etc.)
+
+#### **Benefits of Modified Hotkey System:**
+- ✅ Clear distinction between tools and actions
+- ✅ Follows industry conventions (Shift for transforms)
+- ✅ Preserves all existing tool hotkey behavior
+- ✅ Easy to extend for future utility actions
 
 #### **🎯 Future Hotkey Management:**
 ```typescript
