@@ -6,6 +6,23 @@ import type {
   Cell 
 } from '../types';
 
+// Session-persistent settings (maintains user preferences across gradient tool sessions)
+export interface GradientSessionSettings {
+  definition: GradientDefinition;
+  contiguous: boolean;
+  matchChar: boolean;
+  matchColor: boolean;
+  matchBgColor: boolean;
+}
+
+// Session-persistent UI state
+export interface GradientUIState {
+  gradientTypeOpen: boolean;
+  characterOpen: boolean;
+  textColorOpen: boolean;
+  backgroundColorOpen: boolean;
+}
+
 interface GradientStore {
   // Panel state
   isOpen: boolean;
@@ -26,6 +43,13 @@ interface GradientStore {
   matchChar: boolean;
   matchColor: boolean;
   matchBgColor: boolean;
+  
+  // Session-persistent settings (maintains user preferences across tool sessions)
+  sessionSettings: GradientSessionSettings | null;
+  
+  // Session-persistent UI state
+  uiState: GradientUIState;
+  sessionUIState: GradientUIState | null;
   
   // Drag state for interactive controls
   dragState: {
@@ -95,7 +119,10 @@ interface GradientStore {
   cancelStopEdit: () => void;
   duplicateStop: (property: 'character' | 'textColor' | 'backgroundColor', stopIndex: number) => number;
   
-  // Utility  // Utility
+  // UI state actions
+  updateUIState: (newUIState: Partial<GradientUIState>) => void;
+  
+  // Utility
   reset: () => void;
 }
 
@@ -119,6 +146,14 @@ const createDefaultDefinition = (): GradientDefinition => ({
   backgroundColor: createDefaultProperty(false, '#808080', '#FFFFFF') // Default mid grey and white, disabled by default
 });
 
+// Default UI state
+const createDefaultUIState = (): GradientUIState => ({
+  gradientTypeOpen: true,
+  characterOpen: false,
+  textColorOpen: false,
+  backgroundColorOpen: false
+});
+
 export const useGradientStore = create<GradientStore>((set, get) => ({
   // Initial state
   isOpen: false,
@@ -135,29 +170,98 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
   matchBgColor: true,
   dragState: null,
   editingStop: null,
+  
+  // Session persistence
+  sessionSettings: null, // No session settings stored initially
+  uiState: createDefaultUIState(),
+  sessionUIState: null, // No session UI state stored initially
 
   // Panel actions
   setIsOpen: (open: boolean) => {
-    set({ isOpen: open });
+    if (open) {
+      // Opening panel - restore session settings if available
+      const state = get();
+      
+      // Determine settings to use: session settings if available, otherwise current settings
+      const settingsToUse = state.sessionSettings ? {
+        definition: state.sessionSettings.definition,
+        contiguous: state.sessionSettings.contiguous,
+        matchChar: state.sessionSettings.matchChar,
+        matchColor: state.sessionSettings.matchColor,
+        matchBgColor: state.sessionSettings.matchBgColor,
+      } : {};
+      
+      // Determine UI state to use: session UI state if available, otherwise current UI state
+      const uiStateToUse = state.sessionUIState || state.uiState;
+      
+      set({ 
+        isOpen: true,
+        ...settingsToUse,
+        uiState: uiStateToUse
+      });
+    } else {
+      // Closing panel - save current settings to session
+      const state = get();
+      const currentSettings: GradientSessionSettings = {
+        definition: state.definition,
+        contiguous: state.contiguous,
+        matchChar: state.matchChar,
+        matchColor: state.matchColor,
+        matchBgColor: state.matchBgColor,
+      };
+      const currentUIState = state.uiState;
+      
+      set({ 
+        isOpen: false,
+        sessionSettings: currentSettings, // Preserve settings for next session
+        sessionUIState: currentUIState, // Preserve UI state for next session
+      });
+    }
   },
 
   // Definition actions
   updateDefinition: (update: Partial<GradientDefinition>) => {
-    set((state) => ({
-      definition: { ...state.definition, ...update }
-    }));
+    set((state) => {
+      const updatedDefinition = { ...state.definition, ...update };
+      
+      // Save to session settings for persistence
+      const sessionSettings: GradientSessionSettings = {
+        definition: updatedDefinition,
+        contiguous: state.contiguous,
+        matchChar: state.matchChar,
+        matchColor: state.matchColor,
+        matchBgColor: state.matchBgColor,
+      };
+      
+      return {
+        definition: updatedDefinition,
+        sessionSettings
+      };
+    });
   },
 
   updateProperty: (property: 'character' | 'textColor' | 'backgroundColor', update: Partial<GradientProperty>) => {
     set((state) => {
       const currentProperty = state.definition[property];
       const nextQuantizeSteps = update.quantizeSteps ?? currentProperty.quantizeSteps ?? 'infinite';
+      
+      const updatedDefinition = {
+        ...state.definition,
+        [property]: { ...currentProperty, ...update, quantizeSteps: nextQuantizeSteps }
+      };
+
+      // Save to session settings for persistence
+      const sessionSettings: GradientSessionSettings = {
+        definition: updatedDefinition,
+        contiguous: state.contiguous,
+        matchChar: state.matchChar,
+        matchColor: state.matchColor,
+        matchBgColor: state.matchBgColor,
+      };
 
       return {
-        definition: {
-          ...state.definition,
-          [property]: { ...currentProperty, ...update, quantizeSteps: nextQuantizeSteps }
-        }
+        definition: updatedDefinition,
+        sessionSettings
       };
     });
   },
@@ -197,15 +301,29 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
     
     const newStop: GradientStop = { position: newPosition, value: defaultValue };
     
-    set((state) => ({
-      definition: {
+    set((state) => {
+      const updatedDefinition = {
         ...state.definition,
         [property]: {
           ...state.definition[property],
           stops: [...state.definition[property].stops, newStop].sort((a, b) => a.position - b.position)
         }
-      }
-    }));
+      };
+      
+      // Save to session settings for persistence
+      const sessionSettings: GradientSessionSettings = {
+        definition: updatedDefinition,
+        contiguous: state.contiguous,
+        matchChar: state.matchChar,
+        matchColor: state.matchColor,
+        matchBgColor: state.matchBgColor,
+      };
+      
+      return {
+        definition: updatedDefinition,
+        sessionSettings
+      };
+    });
   },
 
   removeStop: (property: 'character' | 'textColor' | 'backgroundColor', index: number) => {
@@ -214,15 +332,29 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
     
     if (currentProperty.stops.length <= 1) return; // Minimum 1 stop
     
-    set((state) => ({
-      definition: {
+    set((state) => {
+      const updatedDefinition = {
         ...state.definition,
         [property]: {
           ...state.definition[property],
           stops: state.definition[property].stops.filter((_, i) => i !== index)
         }
-      }
-    }));
+      };
+      
+      // Save to session settings for persistence
+      const sessionSettings: GradientSessionSettings = {
+        definition: updatedDefinition,
+        contiguous: state.contiguous,
+        matchChar: state.matchChar,
+        matchColor: state.matchColor,
+        matchBgColor: state.matchBgColor,
+      };
+      
+      return {
+        definition: updatedDefinition,
+        sessionSettings
+      };
+    });
   },
 
   updateStop: (
@@ -230,8 +362,8 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
     index: number, 
     update: Partial<GradientStop>
   ) => {
-    set((state) => ({
-      definition: {
+    set((state) => {
+      const updatedDefinition = {
         ...state.definition,
         [property]: {
           ...state.definition[property],
@@ -239,22 +371,49 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
             i === index ? { ...stop, ...update } : stop
           )
         }
-      }
-    }));
+      };
+      
+      // Save to session settings for persistence
+      const sessionSettings: GradientSessionSettings = {
+        definition: updatedDefinition,
+        contiguous: state.contiguous,
+        matchChar: state.matchChar,
+        matchColor: state.matchColor,
+        matchBgColor: state.matchBgColor,
+      };
+      
+      return {
+        definition: updatedDefinition,
+        sessionSettings
+      };
+    });
   },
 
   sortStops: (property: 'character' | 'textColor' | 'backgroundColor') => {
     set((state) => {
       const propertyState = state.definition[property];
       const sortedStops = [...propertyState.stops].sort((a, b) => a.position - b.position);
-      return {
-        definition: {
-          ...state.definition,
-          [property]: {
-            ...propertyState,
-            stops: sortedStops
-          }
+      
+      const updatedDefinition = {
+        ...state.definition,
+        [property]: {
+          ...propertyState,
+          stops: sortedStops
         }
+      };
+      
+      // Save to session settings for persistence
+      const sessionSettings: GradientSessionSettings = {
+        definition: updatedDefinition,
+        contiguous: state.contiguous,
+        matchChar: state.matchChar,
+        matchColor: state.matchColor,
+        matchBgColor: state.matchBgColor,
+      };
+      
+      return {
+        definition: updatedDefinition,
+        sessionSettings
       };
     });
   },
@@ -309,14 +468,40 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
 
   // Fill configuration actions
   setContiguous: (contiguous: boolean) => {
-    set({ contiguous });
+    set((state) => {
+      // Save to session settings for persistence
+      const sessionSettings: GradientSessionSettings = {
+        definition: state.definition,
+        contiguous,
+        matchChar: state.matchChar,
+        matchColor: state.matchColor,
+        matchBgColor: state.matchBgColor,
+      };
+      
+      return {
+        contiguous,
+        sessionSettings
+      };
+    });
   },
 
   setMatchCriteria: (criteria: { char: boolean; color: boolean; bgColor: boolean }) => {
-    set({ 
-      matchChar: criteria.char, 
-      matchColor: criteria.color, 
-      matchBgColor: criteria.bgColor 
+    set((state) => {
+      // Save to session settings for persistence
+      const sessionSettings: GradientSessionSettings = {
+        definition: state.definition,
+        contiguous: state.contiguous,
+        matchChar: criteria.char,
+        matchColor: criteria.color,
+        matchBgColor: criteria.bgColor,
+      };
+      
+      return {
+        matchChar: criteria.char, 
+        matchColor: criteria.color, 
+        matchBgColor: criteria.bgColor,
+        sessionSettings
+      };
     });
   },
 
@@ -654,6 +839,22 @@ export const useGradientStore = create<GradientStore>((set, get) => ({
     return stopIndex + 1;
   },
 
+  // UI state actions
+  updateUIState: (newUIState: Partial<GradientUIState>) => {
+    set((state) => {
+      const updatedUIState = {
+        ...state.uiState,
+        ...newUIState
+      };
+      
+      return {
+        uiState: updatedUIState,
+        // Also save to session UI state for persistence
+        sessionUIState: updatedUIState
+      };
+    });
+  },
+
   // Utility actions
   reset: () => {
     set({
@@ -710,4 +911,22 @@ export const initializeGradientWithCurrentValues = (
     ditherStrength: 50,
     quantizeSteps: 'infinite'
   });
+};
+
+// Selector hooks for gradient store
+export const useGradientUIState = () => {
+  const store = useGradientStore();
+  return {
+    uiState: store.uiState,
+    updateUIState: store.updateUIState
+  };
+};
+
+export const useGradientSessionState = () => {
+  const store = useGradientStore();
+  return {
+    hasSessionSettings: store.sessionSettings !== null,
+    sessionSettings: store.sessionSettings,
+    sessionUIState: store.sessionUIState
+  };
 };

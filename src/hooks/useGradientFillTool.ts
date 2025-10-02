@@ -50,13 +50,23 @@ export const useGradientFillTool = () => {
     setHoverEndPoint,
     setPreview,
     reset: resetGradient
-  } = useGradientStore();  // Initialize gradient with current tool values when tool becomes active
+  } = useGradientStore();
+  
+  const { isOpen } = useGradientStore();
+  
+  // Initialize gradient with current tool values when tool becomes active
+  // Only initialize if there are no session settings (first time using the tool)
+  // Wait for panel to be open to ensure session settings have been restored first
   useEffect(() => {
-    if (activeTool === 'gradientfill') {
-      // Initialize gradient definition with current tool values
-      initializeGradientWithCurrentValues(selectedChar, selectedColor, selectedBgColor);
+    if (activeTool === 'gradientfill' && isOpen) {
+      const state = useGradientStore.getState();
+      
+      // Only initialize with current tool values if no session settings exist
+      if (!state.sessionSettings) {
+        initializeGradientWithCurrentValues(selectedChar, selectedColor, selectedBgColor);
+      }
     }
-  }, [activeTool, selectedChar, selectedColor, selectedBgColor]);
+  }, [activeTool, isOpen, selectedChar, selectedColor, selectedBgColor]);
 
   // Generate gradient preview
   const generatePreview = useCallback((start: { x: number; y: number }, end: { x: number; y: number }) => {

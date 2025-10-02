@@ -42,7 +42,7 @@ import {
   Check,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { useGradientStore } from '../../stores/gradientStore';
+import { useGradientStore, useGradientUIState } from '../../stores/gradientStore';
 import { useToolStore } from '../../stores/toolStore';
 import { useGradientFillTool } from '../../hooks/useGradientFillTool';
 import type { GradientProperty, InterpolationMethod, GradientType, QuantizeStepCount } from '../../types';
@@ -115,11 +115,23 @@ export function GradientPanel() {
     }
   }, [isOpen, shouldRender, animationDurationMs]);
 
-  // Section collapse states - only gradient type open by default
-  const [gradientTypeOpen, setGradientTypeOpen] = useState(true);
-  const [characterOpen, setCharacterOpen] = useState(false);
-  const [textColorOpen, setTextColorOpen] = useState(false);
-  const [backgroundColorOpen, setBackgroundColorOpen] = useState(false);
+  // Use persistent UI state from store
+  const { uiState, updateUIState } = useGradientUIState();
+  const { 
+    gradientTypeOpen, 
+    characterOpen, 
+    textColorOpen, 
+    backgroundColorOpen 
+  } = uiState;
+  
+  const setGradientTypeOpen = (open: boolean) => 
+    updateUIState({ gradientTypeOpen: open });
+  const setCharacterOpen = (open: boolean) => 
+    updateUIState({ characterOpen: open });
+  const setTextColorOpen = (open: boolean) => 
+    updateUIState({ textColorOpen: open });
+  const setBackgroundColorOpen = (open: boolean) => 
+    updateUIState({ backgroundColorOpen: open });
 
   // Picker state
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -294,71 +306,7 @@ export function GradientPanel() {
           
           {property.enabled && (
             <div className="flex flex-col gap-3">
-            {/* Interpolation Method */}
-            <div className="space-y-1">
-              <Label className="text-xs">Interpolation</Label>
-              <Select 
-                value={property.interpolation} 
-                onValueChange={(value) => handleInterpolationChange(propertyKey, value as InterpolationMethod)}
-              >
-                <SelectTrigger className="h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="linear">Linear</SelectItem>
-                  <SelectItem value="constant">Constant (Steps)</SelectItem>
-                  <SelectItem value="bayer2x2">Bayer Dithering 2x2</SelectItem>
-                  <SelectItem value="bayer4x4">Bayer Dithering 4x4</SelectItem>
-                  <SelectItem value="noise">Noise Dithering</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Quantize Steps - only for linear interpolation */}
-            {property.interpolation === 'linear' && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Quantize Steps</Label>
-                  <span className="text-xs text-muted-foreground">
-                    {quantizeSetting === 'infinite' ? '∞' : quantizeSetting}
-                  </span>
-                </div>
-                <Slider
-                  value={quantizeSetting === 'infinite' ? 11 : quantizeSetting}
-                  onValueChange={(value: number) => handleQuantizeStepsChange(propertyKey, value)}
-                  min={1}
-                  max={11}
-                  step={1}
-                  className="h-6"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Stepped</span>
-                  <span>Smooth</span>
-                </div>
-              </div>
-            )}
-            {/* Dithering Strength - only show for dithering methods */}
-            {(property.interpolation === 'bayer2x2' || property.interpolation === 'bayer4x4' || property.interpolation === 'noise') && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Dithering Strength</Label>
-                  <span className="text-xs text-muted-foreground">{property.ditherStrength}%</span>
-                </div>
-                <Slider
-                  value={property.ditherStrength}
-                  onValueChange={(value: number) => handleDitherStrengthChange(propertyKey, value)}
-                  min={0}
-                  max={100}
-                  step={1}
-                  className="h-6"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Step-like</span>
-                  <span>Full dither</span>
-                </div>
-              </div>
-            )}
-
+            {/* Pixel Preview */}
             <GradientPropertyPreview propertyKey={propertyKey} property={property} />
 
             {/* Gradient Stops */}
@@ -472,6 +420,72 @@ export function GradientPanel() {
                 ))}
               </div>
             </div>
+
+            {/* Interpolation Method */}
+            <div className="space-y-1">
+              <Label className="text-xs">Interpolation</Label>
+              <Select 
+                value={property.interpolation} 
+                onValueChange={(value) => handleInterpolationChange(propertyKey, value as InterpolationMethod)}
+              >
+                <SelectTrigger className="h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="linear">Linear</SelectItem>
+                  <SelectItem value="constant">Constant (Steps)</SelectItem>
+                  <SelectItem value="bayer2x2">Bayer Dithering 2x2</SelectItem>
+                  <SelectItem value="bayer4x4">Bayer Dithering 4x4</SelectItem>
+                  <SelectItem value="noise">Noise Dithering</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Quantize Steps - only for linear interpolation */}
+            {property.interpolation === 'linear' && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Quantize Steps</Label>
+                  <span className="text-xs text-muted-foreground">
+                    {quantizeSetting === 'infinite' ? '∞' : quantizeSetting}
+                  </span>
+                </div>
+                <Slider
+                  value={quantizeSetting === 'infinite' ? 11 : quantizeSetting}
+                  onValueChange={(value: number) => handleQuantizeStepsChange(propertyKey, value)}
+                  min={1}
+                  max={11}
+                  step={1}
+                  className="h-6"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Stepped</span>
+                  <span>Smooth</span>
+                </div>
+              </div>
+            )}
+
+            {/* Dithering Strength - only show for dithering methods */}
+            {(property.interpolation === 'bayer2x2' || property.interpolation === 'bayer4x4' || property.interpolation === 'noise') && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Dithering Strength</Label>
+                  <span className="text-xs text-muted-foreground">{property.ditherStrength}%</span>
+                </div>
+                <Slider
+                  value={property.ditherStrength}
+                  onValueChange={(value: number) => handleDitherStrengthChange(propertyKey, value)}
+                  min={0}
+                  max={100}
+                  step={1}
+                  className="h-6"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Step-like</span>
+                  <span>Full dither</span>
+                </div>
+              </div>
+            )}
           </div>
           )}
         </div>
