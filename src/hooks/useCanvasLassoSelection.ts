@@ -1,10 +1,11 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useCanvasContext, useCanvasDimensions } from '../contexts/CanvasContext';
 import { useCanvasState } from './useCanvasState';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
 import { getCellsInPolygon, smoothPolygonPath } from '../utils/polygon';
+import { unionSelectionMasks, subtractSelectionMask } from '../utils/selectionUtils';
 import type { Cell } from '../types';
 
 /**
@@ -12,7 +13,7 @@ import type { Cell } from '../types';
  * Manages freeform selection creation, movement, and drag operations
  */
 export const useCanvasLassoSelection = () => {
-  const { canvasRef, mouseButtonDown, setMouseButtonDown } = useCanvasContext();
+  const { canvasRef, mouseButtonDown, setMouseButtonDown, setSelectionPreview } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
   const {
     selectionMode,
@@ -33,8 +34,97 @@ export const useCanvasLassoSelection = () => {
     updateLassoSelectedCells,
     finalizeLassoSelection,
     clearLassoSelection,
-    pushCanvasHistory 
+    pushCanvasHistory,
+    setLassoSelectionFromMask
   } = useToolStore();
+
+  const selectionModifierRef = useRef<'replace' | 'add' | 'subtract'>('replace');
+  const baseSelectionMaskRef = useRef<Set<string>>(new Set());
+  const selectionGestureActiveRef = useRef(false);
+
+  const resetSelectionGesture = useCallback(() => {
+    selectionModifierRef.current = 'replace';
+    baseSelectionMaskRef.current = new Set();
+    selectionGestureActiveRef.current = false;
+    setSelectionPreview({
+      active: false,
+      modifier: 'replace',
+      tool: null,
+      baseCells: [],
+      gestureCells: []
+    });
+  }, [setSelectionPreview]);
+
+  const beginSelectionPreview = useCallback((modifier: 'replace' | 'add' | 'subtract') => {
+    if (modifier === 'replace') {
+      setSelectionPreview({
+        active: false,
+        modifier: 'replace',
+        tool: null,
+        baseCells: [],
+        gestureCells: []
+      });
+      return;
+    }
+
+    setSelectionPreview({
+      active: true,
+      modifier,
+      tool: 'lasso',
+      baseCells: Array.from(baseSelectionMaskRef.current),
+      gestureCells: []
+    });
+  }, [setSelectionPreview]);
+
+  const updateSelectionPreview = useCallback((gestureCells: Set<string>) => {
+    if (!selectionGestureActiveRef.current) {
+      return;
+    }
+
+    if (selectionModifierRef.current === 'replace') {
+      setSelectionPreview({
+        active: false,
+        modifier: 'replace',
+        tool: null,
+        baseCells: [],
+        gestureCells: []
+      });
+      return;
+    }
+
+    setSelectionPreview({
+      active: true,
+      modifier: selectionModifierRef.current,
+      tool: 'lasso',
+      baseCells: Array.from(baseSelectionMaskRef.current),
+      gestureCells: Array.from(gestureCells)
+    });
+  }, [setSelectionPreview]);
+
+  const finalizeSelectionGesture = useCallback(() => {
+    if (!selectionGestureActiveRef.current) {
+      return;
+    }
+
+    const currentMask = lassoSelection.active ? new Set(lassoSelection.selectedCells) : new Set<string>();
+    let nextMask: Set<string>;
+
+    switch (selectionModifierRef.current) {
+      case 'add':
+        nextMask = unionSelectionMasks(baseSelectionMaskRef.current, currentMask);
+        break;
+      case 'subtract':
+        nextMask = subtractSelectionMask(baseSelectionMaskRef.current, currentMask);
+        break;
+      default:
+        nextMask = currentMask;
+        break;
+    }
+
+    const finalPath = selectionModifierRef.current === 'replace' ? lassoSelection.path : [];
+    setLassoSelectionFromMask(nextMask, finalPath);
+    resetSelectionGesture();
+  }, [lassoSelection, setLassoSelectionFromMask, resetSelectionGesture]);
 
   // Convert mouse coordinates to grid coordinates
   const getGridCoordinatesFromEvent = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -73,25 +163,37 @@ export const useCanvasLassoSelection = () => {
   // Handle lasso selection mouse down
   const handleLassoMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const { x, y } = getGridCoordinatesFromEvent(event);
+    const modifier: 'replace' | 'add' | 'subtract' = event.altKey ? 'subtract' : (event.shiftKey ? 'add' : 'replace');
+    selectionModifierRef.current = modifier;
+
+    const existingMask = lassoSelection.active ? new Set(lassoSelection.selectedCells) : new Set<string>();
     
     // Save current state for undo
     pushCanvasHistory(new Map(cells), currentFrameIndex, 'Lasso selection action');
 
     // If there's an uncommitted move and clicking outside selection, commit it first
-    if (moveState && lassoSelection.active && !isPointInLassoSelection(x, y)) {
+    if (moveState && lassoSelection.active && !isPointInLassoSelection(x, y) && modifier === 'replace') {
       commitMove();
       clearLassoSelection();
       setJustCommittedMove(true);
-      // Don't start new selection on this click - just commit and clear
+      resetSelectionGesture();
       return;
-    } else if (justCommittedMove) {
+    }
+
+    if (justCommittedMove) {
       // Previous click committed a move, this click starts fresh
       setJustCommittedMove(false);
+      baseSelectionMaskRef.current = existingMask;
+      selectionGestureActiveRef.current = true;
+      beginSelectionPreview(modifier);
       startLassoSelection();
       addLassoPoint(x, y);
       setMouseButtonDown(true);
       setSelectionMode('dragging');
-    } else if (lassoSelection.active && isPointInLassoSelection(x, y) && !lassoSelection.isDrawing) {
+      return;
+    }
+
+    if (lassoSelection.active && isPointInLassoSelection(x, y) && !lassoSelection.isDrawing && modifier === 'replace') {
       // Click inside existing lasso selection - enter move mode
       setJustCommittedMove(false);
       if (moveState) {
@@ -112,7 +214,6 @@ export const useCanvasLassoSelection = () => {
         lassoSelection.selectedCells.forEach((cellKey) => {
           const [cx, cy] = cellKey.split(',').map(Number);
           const cell = getCell(cx, cy);
-          // Only store non-empty cells (not spaces or empty cells)
           if (cell && cell.char !== ' ') {
             originalData.set(cellKey, cell);
           }
@@ -128,24 +229,46 @@ export const useCanvasLassoSelection = () => {
       }
       setSelectionMode('moving');
       setMouseButtonDown(true);
-    } else if (lassoSelection.active && !isPointInLassoSelection(x, y) && !lassoSelection.isDrawing) {
-      // Click outside existing lasso selection - clear selection
+      resetSelectionGesture();
+      return;
+    }
+
+    if (lassoSelection.active && !isPointInLassoSelection(x, y) && !lassoSelection.isDrawing && modifier === 'replace') {
+      // Click outside existing lasso selection without modifiers - clear selection
       setJustCommittedMove(false);
       clearLassoSelection();
-      // Don't start a new selection on this click, just clear
-    } else if (!lassoSelection.active || !lassoSelection.isDrawing) {
-      // Start new lasso selection
-      setJustCommittedMove(false);
-      startLassoSelection();
-      addLassoPoint(x, y);
-      setMouseButtonDown(true);
-      setSelectionMode('dragging');
+      resetSelectionGesture();
+      return;
     }
+
+    setJustCommittedMove(false);
+    baseSelectionMaskRef.current = existingMask;
+    selectionGestureActiveRef.current = true;
+    beginSelectionPreview(modifier);
+    startLassoSelection();
+    addLassoPoint(x, y);
+    setMouseButtonDown(true);
+    setSelectionMode('dragging');
   }, [
-    getGridCoordinatesFromEvent, cells, pushCanvasHistory, currentFrameIndex, moveState, lassoSelection, 
-    isPointInLassoSelection, commitMove, clearLassoSelection, setJustCommittedMove,
-    justCommittedMove, startLassoSelection, addLassoPoint, setMouseButtonDown,
-    setMoveState, setSelectionMode, getCell
+    getGridCoordinatesFromEvent,
+    lassoSelection,
+    pushCanvasHistory,
+    cells,
+    currentFrameIndex,
+    moveState,
+    isPointInLassoSelection,
+    commitMove,
+    clearLassoSelection,
+    setJustCommittedMove,
+  resetSelectionGesture,
+  beginSelectionPreview,
+    startLassoSelection,
+    addLassoPoint,
+    setMouseButtonDown,
+    setSelectionMode,
+    justCommittedMove,
+    setMoveState,
+    getCell
   ]);
 
     // Handle lasso selection mouse move
@@ -178,12 +301,13 @@ export const useCanvasLassoSelection = () => {
         const smoothedPath = smoothPolygonPath(previewPath, 0.2);
         const selectedCells = getCellsInPolygon(smoothedPath, width, height);
         updateLassoSelectedCells(selectedCells);
+        updateSelectionPreview(selectedCells);
       }
     }
   }, [
     getGridCoordinatesFromEvent, selectionMode, moveState, setMoveState, 
     mouseButtonDown, lassoSelection, addLassoPoint, updateLassoSelectedCells,
-    width, height
+    width, height, updateSelectionPreview
   ]);
 
   // Handle lasso selection mouse up
@@ -207,10 +331,12 @@ export const useCanvasLassoSelection = () => {
         const smoothedPath = smoothPolygonPath(lassoSelection.path, 0.2);
         const selectedCells = getCellsInPolygon(smoothedPath, width, height);
         updateLassoSelectedCells(selectedCells);
+        updateSelectionPreview(selectedCells);
         finalizeLassoSelection();
       } else {
         // Not enough points for a valid lasso, clear it
         clearLassoSelection();
+        resetSelectionGesture();
       }
       setSelectionMode('none');
       setMouseButtonDown(false);
@@ -218,10 +344,15 @@ export const useCanvasLassoSelection = () => {
       // Single click completed - clear mouse button state
       setMouseButtonDown(false);
     }
+
+    if (selectionGestureActiveRef.current) {
+      finalizeSelectionGesture();
+    }
   }, [
     selectionMode, moveState, setMoveState, setSelectionMode, setMouseButtonDown,
     lassoSelection, updateLassoSelectedCells, finalizeLassoSelection, 
-    clearLassoSelection, width, height
+    clearLassoSelection, width, height, finalizeSelectionGesture, resetSelectionGesture,
+    updateSelectionPreview
   ]);
 
   // Get effective lasso selection bounds for rendering

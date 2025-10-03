@@ -12,7 +12,7 @@ export const CanvasOverlay: React.FC = () => {
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   
   // Canvas context and state  
-  const { canvasRef, pasteMode, cellWidth, cellHeight, zoom, panOffset, fontMetrics, hoverPreview } = useCanvasContext();
+  const { canvasRef, pasteMode, cellWidth, cellHeight, zoom, panOffset, fontMetrics, hoverPreview, selectionPreview } = useCanvasContext();
   const {
     moveState,
     getTotalOffset,
@@ -26,7 +26,7 @@ export const CanvasOverlay: React.FC = () => {
     definition: gradientDefinition,
     previewData: gradientPreview
   } = useGradientStore();
-  const { canvasBackgroundColor } = useCanvasStore();
+  const { canvasBackgroundColor, width, height } = useCanvasStore();
   const { theme } = useTheme();
 
   // Calculate effective dimensions with zoom and aspect ratio
@@ -56,6 +56,100 @@ export const CanvasOverlay: React.FC = () => {
 
     // Clear previous overlay
     ctx.clearRect(0, 0, overlayCanvas.width / (window.devicePixelRatio || 1), overlayCanvas.height / (window.devicePixelRatio || 1));
+
+    const drawCells = (cells: Set<string>, options: { fillStyle?: string; strokeStyle?: string; lineDash?: number[] }) => {
+      if (!cells || cells.size === 0) return;
+
+      const { fillStyle, strokeStyle, lineDash } = options;
+      if (lineDash) {
+        ctx.setLineDash(lineDash);
+      }
+
+      cells.forEach((cellKey) => {
+        const [rawX, rawY] = cellKey.split(',').map(Number);
+        let cellX = rawX;
+        let cellY = rawY;
+
+        if (moveState) {
+          const totalOffset = getTotalOffset(moveState);
+          cellX += totalOffset.x;
+          cellY += totalOffset.y;
+        }
+
+        if (cellX < 0 || cellY < 0 || cellX >= width || cellY >= height) {
+          return;
+        }
+
+        const pixelX = cellX * effectiveCellWidth + panOffset.x;
+        const pixelY = cellY * effectiveCellHeight + panOffset.y;
+
+        if (fillStyle) {
+          ctx.fillStyle = fillStyle;
+          ctx.fillRect(pixelX, pixelY, effectiveCellWidth, effectiveCellHeight);
+        }
+
+        if (strokeStyle) {
+          ctx.strokeStyle = strokeStyle;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(pixelX, pixelY, effectiveCellWidth, effectiveCellHeight);
+        }
+      });
+
+      if (lineDash) {
+        ctx.setLineDash([]);
+      }
+    };
+
+    const previewActive = selectionPreview.active && selectionPreview.tool !== null && selectionPreview.modifier !== 'replace';
+    if (previewActive) {
+      const baseCells = new Set(selectionPreview.baseCells);
+      const gestureCells = new Set(selectionPreview.gestureCells);
+      const modifier = selectionPreview.modifier;
+      const toolKey = selectionPreview.tool ?? 'select';
+
+      const previewStyleMap = {
+        select: {
+          baseFill: 'rgba(59, 130, 246, 0.2)',
+          addFill: 'rgba(34, 197, 94, 0.25)',
+          addStroke: undefined,
+          subtractFill: 'rgba(239, 68, 68, 0.22)',
+          subtractStroke: '#EF4444'
+        },
+        lasso: {
+          baseFill: 'rgba(168, 85, 247, 0.25)',
+          addFill: 'rgba(34, 197, 94, 0.25)',
+          addStroke: undefined,
+          subtractFill: 'rgba(239, 68, 68, 0.22)',
+          subtractStroke: '#EF4444'
+        },
+        magicwand: {
+          baseFill: 'rgba(255, 165, 0, 0.28)',
+          addFill: 'rgba(56, 189, 248, 0.25)',
+          addStroke: undefined,
+          subtractFill: 'rgba(239, 68, 68, 0.22)',
+          subtractStroke: '#EF4444'
+        }
+      } as const;
+
+      const styles = previewStyleMap[toolKey as keyof typeof previewStyleMap] ?? previewStyleMap.select;
+
+      if (modifier === 'add') {
+        drawCells(baseCells, { fillStyle: styles.baseFill });
+        drawCells(gestureCells, { fillStyle: styles.addFill, strokeStyle: styles.addStroke });
+      } else if (modifier === 'subtract') {
+        const remainingCells = new Set<string>();
+        baseCells.forEach((cell) => {
+          if (!gestureCells.has(cell)) {
+            remainingCells.add(cell);
+          }
+        });
+
+        drawCells(remainingCells, { fillStyle: styles.baseFill });
+        if (gestureCells.size > 0) {
+          drawCells(gestureCells, { fillStyle: styles.subtractFill, strokeStyle: styles.subtractStroke, lineDash: [4, 3] });
+        }
+      }
+    }
 
     // Draw selection overlay
     if (selection.active) {

@@ -60,11 +60,21 @@ export const useCanvasState = () => {
 
   // Check if a point is inside the effective selection
   const isPointInEffectiveSelection = useCallback((x: number, y: number) => {
-    const bounds = getEffectiveSelectionBounds();
-    if (!bounds) return false;
-    
-    return x >= bounds.startX && x <= bounds.endX && y >= bounds.startY && y <= bounds.endY;
-  }, [getEffectiveSelectionBounds]);
+    if (!selection.active || selection.selectedCells.size === 0) {
+      return false;
+    }
+
+    let checkX = x;
+    let checkY = y;
+
+    if (moveState) {
+      const totalOffset = getTotalOffset(moveState);
+      checkX -= totalOffset.x;
+      checkY -= totalOffset.y;
+    }
+
+    return selection.selectedCells.has(`${checkX},${checkY}`);
+  }, [selection, moveState, getTotalOffset]);
 
     // Commit move operation to canvas
   const commitMove = useCallback(() => {
@@ -137,7 +147,7 @@ export const useCanvasState = () => {
       return 'Content moved - press Escape or click outside to commit';
     }
     if (activeTool === 'select' && pendingSelectionStart) {
-      return 'Shift+Click on another cell to create selection';
+      return 'Shift adds, Alt removes from selection';
     }
     if (activeTool === 'select' && selection.active && selectionMode === 'none') {
       return 'Selection ready - copy/paste/move available';

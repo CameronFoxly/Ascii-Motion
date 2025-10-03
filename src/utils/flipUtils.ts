@@ -169,7 +169,7 @@ export const applyVerticalFlip = (
  */
 export const getActiveSelectionBounds = (
   toolState: {
-    selection: { active: boolean; start: { x: number; y: number }; end: { x: number; y: number } };
+    selection: { active: boolean; start: { x: number; y: number }; end: { x: number; y: number }; selectedCells: Set<string> };
     lassoSelection: { active: boolean; selectedCells: Set<string> };
     magicWandSelection: { active: boolean; selectedCells: Set<string> };
   },
@@ -192,9 +192,17 @@ export const getActiveSelectionBounds = (
   }
   
   if (toolState.selection.active) {
+    const rectSelectedCells = toolState.selection.selectedCells;
+    if (rectSelectedCells.size > 0) {
+      return {
+        bounds: calculateBoundsFromCells(rectSelectedCells),
+        selectedCells: rectSelectedCells
+      };
+    }
+
     return {
       bounds: calculateBoundsFromSelection(toolState.selection),
-      selectedCells: null // Rectangular selection doesn't use selectedCells set
+      selectedCells: null
     };
   }
   

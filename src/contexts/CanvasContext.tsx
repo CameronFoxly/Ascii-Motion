@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef, useMemo } from 'react';
+import React, { createContext, useContext, useState, useRef, useMemo, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import type { Cell } from '../types';
 import { usePasteMode } from '../hooks/usePasteMode';
@@ -8,6 +8,14 @@ import { calculateFontMetrics, calculateCellDimensions, DEFAULT_SPACING } from '
 import type { FontMetrics } from '../utils/fontMetrics';
 
 // Canvas-specific state that doesn't belong in global stores
+interface SelectionPreviewState {
+  active: boolean;
+  modifier: 'replace' | 'add' | 'subtract';
+  tool: 'select' | 'lasso' | 'magicwand' | null;
+  baseCells: string[];
+  gestureCells: string[];
+}
+
 interface CanvasState {
   // Canvas display settings
   cellSize: number; // Base font size for character height
@@ -56,6 +64,9 @@ interface CanvasState {
   
   // Paste mode state
   pasteMode: PasteModeState;
+
+  // Selection preview (for additive/subtractive gestures)
+  selectionPreview: SelectionPreviewState;
 }
 
 interface CanvasActions {
@@ -101,6 +112,9 @@ interface CanvasActions {
   
   // Canvas ref
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
+
+  // Selection preview actions
+  setSelectionPreview: (preview: SelectionPreviewState) => void;
 }
 
 interface CanvasContextValue extends CanvasState, CanvasActions {}
@@ -164,6 +178,17 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   
   // Move/drag state
   const [moveState, setMoveState] = useState<CanvasState['moveState']>(null);
+  const [selectionPreviewState, setSelectionPreviewState] = useState<SelectionPreviewState>({
+    active: false,
+    modifier: 'replace',
+    tool: null,
+    baseCells: [],
+    gestureCells: []
+  });
+
+  const setSelectionPreview = useCallback((preview: SelectionPreviewState) => {
+    setSelectionPreviewState(preview);
+  }, []);
   
   // Paste mode integration
   const {
@@ -205,6 +230,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     hoverPreview,
     moveState,
     pasteMode,
+  selectionPreview: selectionPreviewState,
     
     // Display actions
     setCellSize,
@@ -233,6 +259,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     stopPasteDrag,
     cancelPasteMode,
     commitPaste,
+  setSelectionPreview,
     
     // Ref
     canvasRef,

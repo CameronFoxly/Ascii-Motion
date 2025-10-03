@@ -1,17 +1,18 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useCanvasContext, useCanvasDimensions } from '../contexts/CanvasContext';
 import { useCanvasState } from './useCanvasState';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
 import type { Cell } from '../types';
+import { unionSelectionMasks, subtractSelectionMask, createRectSelectionMask } from '../utils/selectionUtils';
 
 /**
  * Hook for handling selection tool behavior
  * Manages selection creation, movement, and drag operations
  */
 export const useCanvasSelection = () => {
-  const { canvasRef, mouseButtonDown, setMouseButtonDown } = useCanvasContext();
+  const { canvasRef, mouseButtonDown, setMouseButtonDown, setSelectionPreview } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
   const {
     selectionMode,
@@ -33,8 +34,97 @@ export const useCanvasSelection = () => {
     startSelection, 
     updateSelection, 
     clearSelection, 
-    pushCanvasHistory 
+    pushCanvasHistory,
+    setSelectionFromMask
   } = useToolStore();
+
+  const selectionModifierRef = useRef<'replace' | 'add' | 'subtract'>('replace');
+  const baseSelectionMaskRef = useRef<Set<string>>(new Set());
+  const selectionGestureActiveRef = useRef(false);
+  const gestureStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const clearSelectionPreview = useCallback(() => {
+    setSelectionPreview({
+      active: false,
+      modifier: 'replace',
+      tool: null,
+      baseCells: [],
+      gestureCells: []
+    });
+  }, [setSelectionPreview]);
+
+  const resetSelectionGesture = useCallback(() => {
+    selectionModifierRef.current = 'replace';
+    baseSelectionMaskRef.current = new Set();
+    selectionGestureActiveRef.current = false;
+    gestureStartRef.current = null;
+    clearSelectionPreview();
+  }, [clearSelectionPreview]);
+
+  const beginSelectionPreview = useCallback((modifier: 'replace' | 'add' | 'subtract', start: { x: number; y: number }) => {
+    gestureStartRef.current = start;
+    if (modifier === 'replace') {
+      clearSelectionPreview();
+      return;
+    }
+
+    setSelectionPreview({
+      active: true,
+      modifier,
+      tool: 'select',
+      baseCells: Array.from(baseSelectionMaskRef.current),
+      gestureCells: []
+    });
+  }, [setSelectionPreview, clearSelectionPreview]);
+
+  const updateSelectionPreview = useCallback((endX: number, endY: number) => {
+    if (!selectionGestureActiveRef.current) {
+      return;
+    }
+
+    if (selectionModifierRef.current === 'replace') {
+      clearSelectionPreview();
+      return;
+    }
+
+    const start = gestureStartRef.current;
+    if (!start) {
+      return;
+    }
+
+    const gestureMask = createRectSelectionMask(start, { x: endX, y: endY });
+    setSelectionPreview({
+      active: true,
+      modifier: selectionModifierRef.current,
+      tool: 'select',
+      baseCells: Array.from(baseSelectionMaskRef.current),
+      gestureCells: Array.from(gestureMask)
+    });
+  }, [setSelectionPreview, clearSelectionPreview]);
+
+  const finalizeSelectionGesture = useCallback(() => {
+    if (!selectionGestureActiveRef.current) {
+      return;
+    }
+
+    const currentMask = selection.active ? new Set(selection.selectedCells) : new Set<string>();
+    let nextMask: Set<string>;
+
+    switch (selectionModifierRef.current) {
+      case 'add':
+        nextMask = unionSelectionMasks(baseSelectionMaskRef.current, currentMask);
+        break;
+      case 'subtract':
+        nextMask = subtractSelectionMask(baseSelectionMaskRef.current, currentMask);
+        break;
+      default:
+        nextMask = currentMask;
+        break;
+    }
+
+    setSelectionFromMask(nextMask);
+    resetSelectionGesture();
+  }, [selection, setSelectionFromMask, resetSelectionGesture]);
 
   // Convert mouse coordinates to grid coordinates
   const getGridCoordinatesFromEvent = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -51,6 +141,10 @@ export const useCanvasSelection = () => {
   // Handle selection tool mouse down
   const handleSelectionMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const { x, y } = getGridCoordinatesFromEvent(event);
+    const modifier: 'replace' | 'add' | 'subtract' = event.altKey ? 'subtract' : (event.shiftKey ? 'add' : 'replace');
+    selectionModifierRef.current = modifier;
+
+    const existingMask = selection.active ? new Set(selection.selectedCells) : new Set<string>();
     
     // Save current state for undo
     pushCanvasHistory(new Map(cells), currentFrameIndex, 'Selection action');
@@ -60,15 +154,23 @@ export const useCanvasSelection = () => {
       commitMove();
       clearSelection();
       setJustCommittedMove(true);
-      // Don't start new selection on this click - just commit and clear
+      resetSelectionGesture();
       return;
-    } else if (justCommittedMove) {
+    }
+
+    if (justCommittedMove) {
       // Previous click committed a move, this click starts fresh
       setJustCommittedMove(false);
+      baseSelectionMaskRef.current = existingMask;
+      selectionGestureActiveRef.current = true;
+      beginSelectionPreview(modifier, { x, y });
       startSelection(x, y);
       setPendingSelectionStart({ x, y });
       setMouseButtonDown(true);
-    } else if (selection.active && isPointInEffectiveSelection(x, y) && !event.shiftKey) {
+      return;
+    }
+
+    if (selection.active && isPointInEffectiveSelection(x, y) && modifier === 'replace') {
       // Click inside existing selection - enter move mode
       setJustCommittedMove(false);
       if (moveState) {
@@ -84,26 +186,21 @@ export const useCanvasSelection = () => {
         });
       } else {
         // First time moving - create new moveState
-        const startX = Math.min(selection.start.x, selection.end.x);
-        const endX = Math.max(selection.start.x, selection.end.x);
-        const startY = Math.min(selection.start.y, selection.end.y);
-        const endY = Math.max(selection.start.y, selection.end.y);
-        
-        // Store only the non-empty cells from the selection
         const originalData = new Map<string, Cell>();
-        for (let cy = startY; cy <= endY; cy++) {
-          for (let cx = startX; cx <= endX; cx++) {
-            const cell = getCell(cx, cy);
-            // Only store non-empty cells (not spaces or empty cells)
-            if (cell && cell.char !== ' ') {
-              originalData.set(`${cx},${cy}`, cell);
-            }
+        const originalPositions = new Set<string>();
+
+        selection.selectedCells.forEach((cellKey) => {
+          originalPositions.add(cellKey);
+          const [cx, cy] = cellKey.split(',').map(Number);
+          const cell = getCell(cx, cy);
+          if (cell && cell.char !== ' ') {
+            originalData.set(cellKey, cell);
           }
-        }
-        
+        });
+
         setMoveState({
           originalData,
-          originalPositions: new Set(originalData.keys()),
+          originalPositions,
           startPos: { x, y },
           baseOffset: { x: 0, y: 0 },
           currentOffset: { x: 0, y: 0 }
@@ -111,31 +208,59 @@ export const useCanvasSelection = () => {
       }
       setSelectionMode('moving');
       setMouseButtonDown(true);
-    } else if (selection.active && !isPointInEffectiveSelection(x, y) && !event.shiftKey) {
-      // Click outside existing selection without shift - clear selection
+      resetSelectionGesture();
+      return;
+    }
+
+    if (selection.active && !isPointInEffectiveSelection(x, y) && modifier === 'replace') {
+      // Click outside existing selection without modifiers - clear selection
       setJustCommittedMove(false);
       clearSelection();
-      // Don't start a new selection on this click, just clear
-    } else if (!selection.active || event.shiftKey) {
-      // Start new selection or extend current with shift-click
-      setJustCommittedMove(false);
-      if (pendingSelectionStart && event.shiftKey) {
-        // Complete pending selection with shift-click
-        startSelection(pendingSelectionStart.x, pendingSelectionStart.y);
-        updateSelection(x, y);
-        setPendingSelectionStart(null);
-      } else {
-        // Start new selection
-        startSelection(x, y);
-        setPendingSelectionStart({ x, y });
-        setMouseButtonDown(true);
-      }
+      resetSelectionGesture();
+      return;
+    }
+
+    // Start new selection (add/subtract/replace)
+    setJustCommittedMove(false);
+    baseSelectionMaskRef.current = existingMask;
+    selectionGestureActiveRef.current = true;
+
+    if (pendingSelectionStart && modifier !== 'replace') {
+      // Complete pending anchor selection for additive/subtractive mode
+      beginSelectionPreview(modifier, pendingSelectionStart);
+      startSelection(pendingSelectionStart.x, pendingSelectionStart.y);
+      updateSelection(x, y);
+      updateSelectionPreview(x, y);
+      setPendingSelectionStart(null);
+    } else {
+      beginSelectionPreview(modifier, { x, y });
+      startSelection(x, y);
+      setPendingSelectionStart({ x, y });
+      setMouseButtonDown(true);
     }
   }, [
-    getGridCoordinatesFromEvent, cells, pushCanvasHistory, currentFrameIndex, moveState, selection, 
-    isPointInEffectiveSelection, commitMove, clearSelection, setJustCommittedMove,
-    justCommittedMove, startSelection, setPendingSelectionStart, setMouseButtonDown,
-    setMoveState, setSelectionMode, getCell, updateSelection, pendingSelectionStart
+    getGridCoordinatesFromEvent,
+    selection,
+    pushCanvasHistory,
+    cells,
+    currentFrameIndex,
+    moveState,
+    isPointInEffectiveSelection,
+    commitMove,
+    clearSelection,
+    setJustCommittedMove,
+    beginSelectionPreview,
+    startSelection,
+    setPendingSelectionStart,
+    setMouseButtonDown,
+    setMoveState,
+    setSelectionMode,
+    getCell,
+    updateSelection,
+    pendingSelectionStart,
+    justCommittedMove,
+    resetSelectionGesture,
+    updateSelectionPreview
   ]);
 
   // Handle selection tool mouse move
@@ -163,13 +288,16 @@ export const useCanvasSelection = () => {
         setPendingSelectionStart(null);
       }
       updateSelection(x, y);
+      updateSelectionPreview(x, y);
     } else if (selectionMode === 'dragging' && selection.active) {
       // Update selection bounds while dragging
       updateSelection(x, y);
+      updateSelectionPreview(x, y);
     }
   }, [
     getGridCoordinatesFromEvent, selectionMode, moveState, setMoveState, 
-    selection, updateSelection, mouseButtonDown, pendingSelectionStart, setPendingSelectionStart
+    selection, updateSelection, mouseButtonDown, pendingSelectionStart, setPendingSelectionStart,
+    updateSelectionPreview
   ]);
 
   // Handle selection tool mouse up
@@ -195,7 +323,18 @@ export const useCanvasSelection = () => {
       // Single click completed - clear mouse button state but keep pending selection
       setMouseButtonDown(false);
     }
-  }, [selectionMode, moveState, setMoveState, setSelectionMode, setMouseButtonDown]);
+
+    if (selectionGestureActiveRef.current) {
+      finalizeSelectionGesture();
+    }
+  }, [
+    selectionMode,
+    moveState,
+    setMoveState,
+    setSelectionMode,
+    setMouseButtonDown,
+    finalizeSelectionGesture
+  ]);
 
   return {
     handleSelectionMouseDown,

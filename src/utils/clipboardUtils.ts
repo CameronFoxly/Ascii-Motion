@@ -3,6 +3,7 @@
  */
 
 import type { Cell } from '../types';
+import { getBoundsFromMask } from './selectionUtils';
 
 /**
  * Convert a selection of canvas cells to text format for OS clipboard
@@ -15,49 +16,68 @@ import type { Cell } from '../types';
  * @param maxY - Bottom boundary of selection
  * @returns Text representation suitable for pasting into text editors
  */
-export const selectionToText = (
-  cellsData: Map<string, Cell>,
-  minX: number,
-  maxX: number,
-  minY: number,
-  maxY: number
+export const maskToText = (
+  canvasData: Map<string, Cell>,
+  mask: Set<string>
 ): string => {
+  if (mask.size === 0) {
+    return '';
+  }
+
+  const bounds = getBoundsFromMask(mask);
+  if (!bounds) {
+    return '';
+  }
+
+  const rowMap = new Map<number, { selected: Set<number>; minX: number; maxX: number }>();
+
+  mask.forEach((key) => {
+    const [x, y] = key.split(',').map(Number);
+    const row = rowMap.get(y);
+    if (row) {
+      row.selected.add(x);
+      row.minX = Math.min(row.minX, x);
+      row.maxX = Math.max(row.maxX, x);
+    } else {
+      rowMap.set(y, {
+        selected: new Set([x]),
+        minX: x,
+        maxX: x,
+      });
+    }
+  });
+
   const lines: string[] = [];
-  
-  for (let y = minY; y <= maxY; y++) {
+
+  for (let y = bounds.minY; y <= bounds.maxY; y++) {
+    const row = rowMap.get(y);
+    if (!row) {
+      // Preserve vertical gaps with empty line (will be cropped at end if trailing)
+      lines.push('');
+      continue;
+    }
+
     let line = '';
-    let lastCharIndex = -1;
-    
-    // First pass: build the full line with spaces for empty cells
-    for (let x = minX; x <= maxX; x++) {
-      const cellKey = `${x},${y}`;
-      const cell = cellsData.get(cellKey);
-      
-      if (cell && cell.char && cell.char.trim() !== '') {
-        // Pad with spaces up to this position if needed
-        while (line.length < (x - minX)) {
-          line += ' ';
-        }
-        line += cell.char;
-        lastCharIndex = line.length - 1;
+    for (let x = row.minX; x <= row.maxX; x++) {
+      if (row.selected.has(x)) {
+        const cell = canvasData.get(`${x},${y}`);
+        line += cell?.char ?? ' ';
+      } else {
+        // Internal hole within selection row
+        line += ' ';
       }
     }
-    
-    // Second pass: crop trailing spaces (but keep spaces before characters)
-    if (lastCharIndex >= 0) {
-      line = line.substring(0, lastCharIndex + 1);
-    } else {
-      line = ''; // Empty line if no characters found
-    }
-    
+
+    // Trim trailing blanks so exported text has no trailing whitespace
+    line = line.replace(/\s+$/, '');
     lines.push(line);
   }
-  
-  // Remove trailing empty lines
+
+  // Remove trailing empty lines to avoid extra newlines
   while (lines.length > 0 && lines[lines.length - 1] === '') {
     lines.pop();
   }
-  
+
   return lines.join('\n');
 };
 
@@ -66,14 +86,9 @@ export const selectionToText = (
  */
 export const rectangularSelectionToText = (
   canvasData: Map<string, Cell>,
-  selection: { start: { x: number; y: number }; end: { x: number; y: number } }
+  selectedCells: Set<string>
 ): string => {
-  const minX = Math.min(selection.start.x, selection.end.x);
-  const maxX = Math.max(selection.start.x, selection.end.x);
-  const minY = Math.min(selection.start.y, selection.end.y);
-  const maxY = Math.max(selection.start.y, selection.end.y);
-  
-  return selectionToText(canvasData, minX, maxX, minY, maxY);
+  return maskToText(canvasData, selectedCells);
 };
 
 /**
@@ -83,29 +98,7 @@ export const lassoSelectionToText = (
   canvasData: Map<string, Cell>,
   selectedCells: Set<string>
 ): string => {
-  if (selectedCells.size === 0) return '';
-  
-  // Find bounding box of selected cells
-  const cellCoords = Array.from(selectedCells).map(key => {
-    const [x, y] = key.split(',').map(Number);
-    return { x, y };
-  });
-  
-  const minX = Math.min(...cellCoords.map(c => c.x));
-  const maxX = Math.max(...cellCoords.map(c => c.x));
-  const minY = Math.min(...cellCoords.map(c => c.y));
-  const maxY = Math.max(...cellCoords.map(c => c.y));
-  
-  // Create a filtered map with only selected cells
-  const selectedCellsData = new Map<string, Cell>();
-  selectedCells.forEach(cellKey => {
-    const cell = canvasData.get(cellKey);
-    if (cell) {
-      selectedCellsData.set(cellKey, cell);
-    }
-  });
-  
-  return selectionToText(selectedCellsData, minX, maxX, minY, maxY);
+  return maskToText(canvasData, selectedCells);
 };
 
 /**

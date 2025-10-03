@@ -86,10 +86,14 @@ export interface ToolState {
   magicWandContiguous: boolean;
 }
 
+export type SelectionShape = 'rectangle' | 'custom';
+
 export interface Selection {
   start: { x: number; y: number };
   end: { x: number; y: number };
   active: boolean;
+  selectedCells: Set<string>;
+  shape: SelectionShape;
 }
 
 export interface LassoSelection {

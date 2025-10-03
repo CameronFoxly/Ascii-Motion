@@ -7,6 +7,11 @@ import {
   magicWandSelectionToText, 
   writeToOSClipboard 
 } from '../utils/clipboardUtils';
+import { 
+  createRectSelectionMask,
+  updateSelectionFromMask,
+  getBoundsFromMask
+} from '../utils/selectionUtils';
 
 interface ToolStoreState extends ToolState {
   // Rectangular selection state
@@ -107,6 +112,7 @@ interface ToolStoreState extends ToolState {
   startSelection: (x: number, y: number) => void;
   updateSelection: (x: number, y: number) => void;
   clearSelection: () => void;
+  setSelectionFromMask: (mask: Set<string>) => void;
   
   // Lasso selection actions
   startLassoSelection: () => void;
@@ -115,11 +121,13 @@ interface ToolStoreState extends ToolState {
   setLassoPath: (path: { x: number; y: number }[]) => void;
   finalizeLassoSelection: () => void;
   clearLassoSelection: () => void;
+  setLassoSelectionFromMask: (mask: Set<string>, path?: { x: number; y: number }[]) => void;
   
   // Magic wand selection actions
   startMagicWandSelection: (targetCell: any, selectedCells: Set<string>) => void;
   updateMagicWandSelectedCells: (selectedCells: Set<string>) => void;
   clearMagicWandSelection: () => void;
+  setMagicWandSelectionFromMask: (mask: Set<string>, targetCell?: any) => void;
   
   // Clipboard actions
   copySelection: (canvasData: Map<string, any>) => void;
@@ -160,6 +168,29 @@ interface ToolStoreState extends ToolState {
   // Playback mode actions
   setPlaybackMode: (enabled: boolean) => void;
 }
+
+const createEmptySelection = (): Selection => ({
+  start: { x: 0, y: 0 },
+  end: { x: 0, y: 0 },
+  active: false,
+  selectedCells: new Set<string>(),
+  shape: 'rectangle'
+});
+
+const buildSelectionFromMask = (mask: Set<string>): Selection => {
+  if (mask.size === 0) {
+    return createEmptySelection();
+  }
+
+  const { start, end, selectedCells, shape } = updateSelectionFromMask(mask);
+  return {
+    start,
+    end,
+    selectedCells,
+    shape,
+    active: true
+  };
+};
 
 export const useToolStore = create<ToolStoreState>((set, get) => ({
   // Initial state
@@ -206,11 +237,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   },
   
   // Rectangular selection state
-  selection: {
-    start: { x: 0, y: 0 },
-    end: { x: 0, y: 0 },
-    active: false
-  },
+  selection: createEmptySelection(),
   
   // Lasso selection state
   lassoSelection: {
@@ -356,31 +383,45 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
 
   // Selection actions
   startSelection: (x: number, y: number) => {
+    const mask = createRectSelectionMask({ x, y }, { x, y });
     set({
       selection: {
         start: { x, y },
         end: { x, y },
-        active: true
+        active: true,
+        selectedCells: mask,
+        shape: 'rectangle'
       }
     });
   },
 
   updateSelection: (x: number, y: number) => {
-    set((state) => ({
-      selection: {
-        ...state.selection,
-        end: { x, y }
+    set((state) => {
+      if (!state.selection.active) {
+        return {};
       }
-    }));
+
+      const mask = createRectSelectionMask(state.selection.start, { x, y });
+      return {
+        selection: {
+          ...state.selection,
+          end: { x, y },
+          selectedCells: mask,
+          shape: 'rectangle'
+        }
+      };
+    });
   },
 
   clearSelection: () => {
     set({
-      selection: {
-        start: { x: 0, y: 0 },
-        end: { x: 0, y: 0 },
-        active: false
-      }
+      selection: createEmptySelection()
+    });
+  },
+
+  setSelectionFromMask: (mask: Set<string>) => {
+    set({
+      selection: buildSelectionFromMask(mask)
     });
   },
 
@@ -409,7 +450,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     set((state) => ({
       lassoSelection: {
         ...state.lassoSelection,
-        selectedCells
+        selectedCells: new Set(selectedCells)
       }
     }));
   },
@@ -438,6 +479,29 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
         path: [],
         selectedCells: new Set<string>(),
         active: false,
+        isDrawing: false
+      }
+    });
+  },
+
+  setLassoSelectionFromMask: (mask: Set<string>, path: { x: number; y: number }[] = []) => {
+    if (mask.size === 0) {
+      set({
+        lassoSelection: {
+          path: [],
+          selectedCells: new Set<string>(),
+          active: false,
+          isDrawing: false
+        }
+      });
+      return;
+    }
+
+    set({
+      lassoSelection: {
+        path,
+        selectedCells: new Set(mask),
+        active: true,
         isDrawing: false
       }
     });
@@ -475,35 +539,59 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     });
   },
 
+  setMagicWandSelectionFromMask: (mask: Set<string>, targetCell: any = null) => {
+    if (mask.size === 0) {
+      set({
+        magicWandSelection: {
+          selectedCells: new Set<string>(),
+          targetCell: null,
+          active: false,
+          contiguous: get().magicWandContiguous
+        }
+      });
+      return;
+    }
+
+    set((state) => ({
+      magicWandSelection: {
+        selectedCells: new Set(mask),
+        targetCell: targetCell ?? state.magicWandSelection.targetCell,
+        active: true,
+        contiguous: state.magicWandSelection.contiguous
+      }
+    }));
+  },
+
   // Clipboard actions
   copySelection: (canvasData: Map<string, any>) => {
     const { selection } = get();
-    if (!selection.active) return;
+    if (!selection.active || selection.selectedCells.size === 0) {
+      return;
+    }
 
-    const minX = Math.min(selection.start.x, selection.end.x);
-    const maxX = Math.max(selection.start.x, selection.end.x);
-    const minY = Math.min(selection.start.y, selection.end.y);
-    const maxY = Math.max(selection.start.y, selection.end.y);
+    const bounds = getBoundsFromMask(selection.selectedCells);
+    if (!bounds) {
+      return;
+    }
 
     const copiedData = new Map<string, any>();
-    
-    for (let y = minY; y <= maxY; y++) {
-      for (let x = minX; x <= maxX; x++) {
-        const key = `${x},${y}`;
-        const relativeKey = `${x - minX},${y - minY}`;
-        if (canvasData.has(key)) {
-          copiedData.set(relativeKey, canvasData.get(key));
-        }
+    selection.selectedCells.forEach((key) => {
+      const cell = canvasData.get(key);
+      if (!cell) {
+        return;
       }
-    }
+      const [x, y] = key.split(',').map(Number);
+      const relativeKey = `${x - bounds.minX},${y - bounds.minY}`;
+      copiedData.set(relativeKey, cell);
+    });
 
     set({ 
       clipboard: copiedData,
-      clipboardOriginalPosition: { x: minX, y: minY }
+      clipboardOriginalPosition: { x: bounds.minX, y: bounds.minY }
     });
     
     // Also copy to OS clipboard as text
-    const textForClipboard = rectangularSelectionToText(canvasData, selection);
+    const textForClipboard = rectangularSelectionToText(canvasData, selection.selectedCells);
     if (textForClipboard.trim() !== '') {
       writeToOSClipboard(textForClipboard).catch(error => {
         console.warn('Failed to copy to OS clipboard:', error);

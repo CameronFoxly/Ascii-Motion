@@ -101,26 +101,25 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     } else {
       // Enter move mode for the first time
       const { getCell } = useCanvasStore.getState();
-      const startX = Math.min(selection.start.x, selection.end.x);
-      const endX = Math.max(selection.start.x, selection.end.x);
-      const startY = Math.min(selection.start.y, selection.end.y);
-      const endY = Math.max(selection.start.y, selection.end.y);
-      
-      // Store only the non-empty cells from the selection
+  const startX = Math.min(selection.start.x, selection.end.x);
+  const startY = Math.min(selection.start.y, selection.end.y);
+
       const originalData = new Map();
-      for (let cy = startY; cy <= endY; cy++) {
-        for (let cx = startX; cx <= endX; cx++) {
-          const cell = getCell(cx, cy);
-          // Only store non-empty cells (not spaces or empty cells)
-          if (cell && cell.char !== ' ') {
-            originalData.set(`${cx},${cy}`, cell);
-          }
+      const originalPositions = new Set<string>();
+
+      selection.selectedCells.forEach((cellKey) => {
+        originalPositions.add(cellKey);
+        const [cx, cy] = cellKey.split(',').map(Number);
+        const cell = getCell(cx, cy);
+        // Only store non-empty cells (not spaces or empty cells)
+        if (cell && cell.char !== ' ') {
+          originalData.set(cellKey, cell);
         }
-      }
+      });
       
       setMoveState({
         originalData,
-        originalPositions: new Set(originalData.keys()),
+        originalPositions,
         startPos: { x: startX, y: startY }, // Use selection start as reference point
         baseOffset: { x: 0, y: 0 },
         currentOffset: arrowOffset // Start with the arrow offset

@@ -1,17 +1,18 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useCanvasContext, useCanvasDimensions } from '../contexts/CanvasContext';
 import { useCanvasState } from './useCanvasState';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
 import type { Cell } from '../types';
+import { unionSelectionMasks, subtractSelectionMask } from '../utils/selectionUtils';
 
 /**
  * Hook for handling magic wand selection tool behavior
  * Manages character/color-based selection creation, movement, and drag operations
  */
 export const useCanvasMagicWandSelection = () => {
-  const { canvasRef, mouseButtonDown, setMouseButtonDown } = useCanvasContext();
+  const { canvasRef, mouseButtonDown, setMouseButtonDown, setSelectionPreview } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
   const {
     selectionMode,
@@ -33,8 +34,94 @@ export const useCanvasMagicWandSelection = () => {
     pushCanvasHistory,
     magicMatchChar,
     magicMatchColor,
-    magicMatchBgColor
+    magicMatchBgColor,
+    setMagicWandSelectionFromMask
   } = useToolStore();
+
+  const selectionModifierRef = useRef<'replace' | 'add' | 'subtract'>('replace');
+  const baseSelectionMaskRef = useRef<Set<string>>(new Set());
+  const selectionGestureActiveRef = useRef(false);
+  const baseTargetCellRef = useRef<Cell | null>(null);
+
+  const clearSelectionPreview = useCallback(() => {
+    setSelectionPreview({
+      active: false,
+      modifier: 'replace',
+      tool: null,
+      baseCells: [],
+      gestureCells: []
+    });
+  }, [setSelectionPreview]);
+
+  const resetSelectionGesture = useCallback(() => {
+    selectionModifierRef.current = 'replace';
+    baseSelectionMaskRef.current = new Set();
+    selectionGestureActiveRef.current = false;
+    baseTargetCellRef.current = null;
+    clearSelectionPreview();
+  }, [clearSelectionPreview]);
+
+  const beginSelectionPreview = useCallback((modifier: 'replace' | 'add' | 'subtract') => {
+    if (modifier === 'replace') {
+      clearSelectionPreview();
+      return;
+    }
+
+    setSelectionPreview({
+      active: true,
+      modifier,
+      tool: 'magicwand',
+      baseCells: Array.from(baseSelectionMaskRef.current),
+      gestureCells: []
+    });
+  }, [setSelectionPreview, clearSelectionPreview]);
+
+  const updateSelectionPreview = useCallback((gestureCells: Set<string>) => {
+    if (!selectionGestureActiveRef.current) {
+      return;
+    }
+
+    if (selectionModifierRef.current === 'replace') {
+      clearSelectionPreview();
+      return;
+    }
+
+    setSelectionPreview({
+      active: true,
+      modifier: selectionModifierRef.current,
+      tool: 'magicwand',
+      baseCells: Array.from(baseSelectionMaskRef.current),
+      gestureCells: Array.from(gestureCells)
+    });
+  }, [setSelectionPreview, clearSelectionPreview]);
+
+  const finalizeSelectionGesture = useCallback(() => {
+    if (!selectionGestureActiveRef.current) {
+      return;
+    }
+
+    const currentMask = magicWandSelection.active ? new Set(magicWandSelection.selectedCells) : new Set<string>();
+    let nextMask: Set<string>;
+
+    switch (selectionModifierRef.current) {
+      case 'add':
+        nextMask = unionSelectionMasks(baseSelectionMaskRef.current, currentMask);
+        break;
+      case 'subtract':
+        nextMask = subtractSelectionMask(baseSelectionMaskRef.current, currentMask);
+        break;
+      default:
+        nextMask = currentMask;
+        break;
+    }
+
+    const finalTarget = selectionModifierRef.current === 'replace'
+      ? magicWandSelection.targetCell
+      : baseTargetCellRef.current ?? magicWandSelection.targetCell;
+
+    setMagicWandSelectionFromMask(nextMask, finalTarget ?? undefined);
+    resetSelectionGesture();
+  }, [magicWandSelection, setMagicWandSelectionFromMask, resetSelectionGesture]);
 
   // Convert mouse coordinates to grid coordinates
   const getGridCoordinatesFromEvent = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -152,48 +239,28 @@ export const useCanvasMagicWandSelection = () => {
   // Handle magic wand selection mouse down
   const handleMagicWandMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const { x, y } = getGridCoordinatesFromEvent(event);
-    
+    const modifier: 'replace' | 'add' | 'subtract' = event.altKey ? 'subtract' : (event.shiftKey ? 'add' : 'replace');
+    selectionModifierRef.current = modifier;
+
+    const existingMask = magicWandSelection.active ? new Set(magicWandSelection.selectedCells) : new Set<string>();
+    baseTargetCellRef.current = magicWandSelection.active ? magicWandSelection.targetCell : null;
+
     // Save current state for undo
     pushCanvasHistory(new Map(cells), currentFrameIndex);
 
-    // If there's an uncommitted move and clicking outside selection, commit it first
-    if (moveState && magicWandSelection.active && !isPointInMagicWandSelection(x, y)) {
+    if (moveState && magicWandSelection.active && !isPointInMagicWandSelection(x, y) && modifier === 'replace') {
       commitMove();
       clearMagicWandSelection();
       setJustCommittedMove(true);
-      // Don't start new selection on this click - just commit and clear
-      return;
-    } else if (justCommittedMove) {
-      // Previous click committed a move, this click starts fresh
-      setJustCommittedMove(false);
-      
-      // Clear any existing selection and create new one
-      clearMagicWandSelection();
-      
-      // Get the target cell
-      const targetCell = getCell(x, y);
-      
-      // Find all matching cells
-      const matchingCells = findMatchingCells(x, y, targetCell);
-      
-      // Only create selection if we found matching cells
-      if (matchingCells.size > 0) {
-        startMagicWandSelection(targetCell, matchingCells);
-        setSelectionMode('none');
-      }
-      
-      setMouseButtonDown(true);
+      resetSelectionGesture();
       return;
     }
 
-    // Check if we clicked inside an existing selection to start move mode
-    if (magicWandSelection.active && isPointInMagicWandSelection(x, y)) {
-      // Start move mode
+    // Check if we clicked inside an existing selection to start move mode (only without modifiers)
+    if (magicWandSelection.active && isPointInMagicWandSelection(x, y) && modifier === 'replace') {
       setSelectionMode('moving');
-      
+
       if (moveState) {
-        // Already have a moveState (continuing from arrow key movement)
-        // Adjust startPos to account for existing currentOffset so position doesn't jump
         const adjustedStartPos = {
           x: x - moveState.currentOffset.x,
           y: y - moveState.currentOffset.y
@@ -203,18 +270,15 @@ export const useCanvasMagicWandSelection = () => {
           startPos: adjustedStartPos
         });
       } else {
-        // First time moving - create new moveState
-        // Store only the selected cells, not all cells
         const originalData = new Map<string, Cell>();
         magicWandSelection.selectedCells.forEach((cellKey) => {
           const [cx, cy] = cellKey.split(',').map(Number);
           const cell = getCell(cx, cy);
-          // Only store non-empty cells
           if (cell && !isCellEmpty(cell)) {
             originalData.set(cellKey, cell);
           }
         });
-        
+
         setMoveState({
           originalData,
           originalPositions: new Set(originalData.keys()),
@@ -224,44 +288,53 @@ export const useCanvasMagicWandSelection = () => {
         });
       }
       setMouseButtonDown(true);
+      resetSelectionGesture();
       return;
     }
 
-    // Clear any existing selection and create new one
-    clearMagicWandSelection();
+    setJustCommittedMove(false);
 
-    // Get the target cell
     const targetCell = getCell(x, y);
-
-    // Find all matching cells
     const matchingCells = findMatchingCells(x, y, targetCell);
 
-    // Only create selection if we found matching cells
-    if (matchingCells.size > 0) {
-      startMagicWandSelection(targetCell, matchingCells);
-      setSelectionMode('none');
+    if (matchingCells.size === 0) {
+      if (modifier === 'replace') {
+        clearMagicWandSelection();
+      }
+      resetSelectionGesture();
+      setMouseButtonDown(true);
+      return;
     }
 
+    baseSelectionMaskRef.current = existingMask;
+    selectionGestureActiveRef.current = true;
+    beginSelectionPreview(modifier);
+
+    startMagicWandSelection(targetCell, matchingCells);
+    setSelectionMode('none');
+    updateSelectionPreview(matchingCells);
     setMouseButtonDown(true);
   }, [
-    getGridCoordinatesFromEvent, 
-    pushCanvasHistory, 
-    cells, 
+    getGridCoordinatesFromEvent,
+    magicWandSelection,
+    pushCanvasHistory,
+    cells,
     currentFrameIndex,
-    moveState, 
-    magicWandSelection, 
+    moveState,
     isPointInMagicWandSelection,
     commitMove,
+    clearMagicWandSelection,
+    setJustCommittedMove,
+    resetSelectionGesture,
+    beginSelectionPreview,
     setSelectionMode,
     setMoveState,
     setMouseButtonDown,
-    clearMagicWandSelection,
-    setJustCommittedMove,
-    justCommittedMove,
     getCell,
     isCellEmpty,
     findMatchingCells,
-    startMagicWandSelection
+    startMagicWandSelection,
+    updateSelectionPreview
   ]);
 
   // Handle mouse move during magic wand selection
@@ -307,7 +380,19 @@ export const useCanvasMagicWandSelection = () => {
     if (justCommittedMove) {
       setTimeout(() => setJustCommittedMove(false), 100);
     }
-  }, [mouseButtonDown, setMouseButtonDown, selectionMode, moveState, justCommittedMove, setJustCommittedMove]);
+
+    if (selectionGestureActiveRef.current) {
+      finalizeSelectionGesture();
+    }
+  }, [
+    mouseButtonDown,
+    setMouseButtonDown,
+    selectionMode,
+    moveState,
+    justCommittedMove,
+    setJustCommittedMove,
+    finalizeSelectionGesture
+  ]);
 
   return {
     handleMagicWandMouseDown,
