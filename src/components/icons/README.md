@@ -70,3 +70,4 @@ import { YourIcon } from '../icons';
 ## Current Custom Icons
 
 - **GradientIcon** - Pixelated gradient pattern for the gradient fill tool
+- **GitHubIcon** - Official GitHub mark (24px) for better brand recognition

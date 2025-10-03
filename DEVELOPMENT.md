@@ -95,10 +95,11 @@ scripts/version-bump.js           # Version management script
 ```
 
 #### **Version Display Component**
-- **Location**: Header next to "ASCII MOTION" title
-- **Format**: `v0.1.23` (subtle grey monospace text)
-- **Interactive**: Click to open version history modal
+- **Location**: ~~Header next to "ASCII MOTION" title~~ **Now integrated into About dialog** (Oct 2, 2025)
+- **Format**: `v0.1.23` displayed in dialog header
+- **Interactive**: Version history accessible via collapsible section in About dialog
 - **Metadata**: Shows build date, git hash, and complete changelog
+- **Access**: Via Hamburger Menu → About → Version History (collapsible)
 
 #### **Version Management Script**
 ```javascript
@@ -5536,6 +5537,7 @@ Reorganized header UI to improve project file management and discoverability of 
 - **Scrollable**: Handles comprehensive list with smooth scrolling
 
 #### **4. About Dialog** (`AboutDialog.tsx`)
+- **Version Number**: Displayed in dialog header (v0.1.x)
 - **App Description**: Concise overview of ASCII Motion's capabilities
 - **Key Features List**: Professional drawing tools, animation, palettes, import/export, etc.
 - **Open Source Section**:
@@ -5543,6 +5545,21 @@ Reorganized header UI to improve project file management and discoverability of 
   - Links to GitHub Issues for bug reports and feature requests
   - Encourages community contributions
 - **MIT License**: Displayed at bottom
+- **Version History** (Collapsible Section):
+  - **Current Build Info**: Version number, build hash, and build date
+  - **Release History**: Complete changelog with all versions and commit messages
+  - **Timeline View**: Same format as previous VersionDisplay modal
+  - **Automated Population**: Uses VERSION_HISTORY from version.ts (populated by version-bump.js)
+  - **Collapsible**: Expandable section to keep dialog clean by default
+
+#### **5. Version Display Consolidation**
+- **Removed**: Standalone `VersionDisplay.tsx` component from header
+- **Consolidated**: All version information now in About dialog
+- **Benefits**:
+  - Cleaner header with more space for logo
+  - All app information in one place
+  - Version history accessible but not intrusive
+  - Maintains all automated commit tracking logic
 
 ### **Documentation Updates**
 
@@ -5581,20 +5598,26 @@ export const TOOL_HOTKEYS: ToolHotkey[] = [
 - Comments in `useKeyboardShortcuts.ts`
 
 ### **Files Modified**
-- `src/App.tsx` - Added HamburgerMenu to header
+- `src/App.tsx` - Added HamburgerMenu to header, removed VersionDisplay
 - `src/components/features/ExportImportButtons.tsx` - Removed session file options
 - `src/components/features/HamburgerMenu.tsx` - NEW: Main menu component
-- `src/components/features/AboutDialog.tsx` - NEW: About dialog
+- `src/components/features/AboutDialog.tsx` - NEW: About dialog with version history
 - `src/components/features/KeyboardShortcutsDialog.tsx` - NEW: Shortcuts reference
 - `src/components/ui/menubar.tsx` - Added via shadcn CLI
 - `COPILOT_INSTRUCTIONS.md` - Added keyboard shortcuts maintenance notes
 - `DEVELOPMENT.md` - This documentation update
+
+### **Files Deprecated** 
+- `src/components/common/VersionDisplay.tsx` - Functionality moved to AboutDialog
 
 ### **User Experience Improvements**
 - ✅ **Clearer Project Management**: "Save/Open Project" more intuitive than "Session File"
 - ✅ **Keyboard Shortcut Discovery**: Comprehensive reference easily accessible
 - ✅ **About & Help**: Users can learn about the app and get support
 - ✅ **Cleaner Menus**: Export/Import dropdowns focus on output formats, not project files
+- ✅ **Cleaner Header**: More space for logo, removed version number clutter
+- ✅ **Consolidated Information**: All app info, version, and history in one place
+- ✅ **Version History Preserved**: Complete changelog accessible via collapsible section
 - ✅ **Consistent Height**: All header buttons match visually
 - ✅ **Professional UI**: Hamburger menu follows industry standards
 

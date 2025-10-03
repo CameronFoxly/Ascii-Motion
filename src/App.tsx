@@ -35,7 +35,6 @@ import { AddFramesDialog } from './components/features/timeEffects/AddFramesDial
 import { WaveWarpDialog } from './components/features/timeEffects/WaveWarpDialog'
 import { WiggleDialog } from './components/features/timeEffects/WiggleDialog'
 import { useLayoutState } from './hooks/useLayoutState'
-import { VersionDisplay } from './components/common/VersionDisplay'
 
 function App() {
   const { layout, toggleLeftPanel, toggleRightPanel, toggleBottomPanel, toggleFullscreen } = useLayoutState()
@@ -55,9 +54,6 @@ function App() {
                   <div className="text-purple-400">  -▐▛▀▜▌ ▝▀▚▖▐▌     █    █      ▐▌  ▐▌▐▌ ▐▌ █    █  ▐▌ ▐▌▐▌ ▝▜▌</div>
                   <div className="text-purple-300">  -▐▌ ▐▌▗▄▄▞▘▝▚▄▄▖▗▄█▄▖▗▄█▄▖    ▐▌  ▐▌▝▚▄▞▘ █  ▗▄█▄▖▝▚▄▞▘▐▌  ▐▌</div>
                 </pre>
-                <div className="absolute left-full ml-3" style={{ bottom: '-.5em' }}>
-                  <VersionDisplay />
-                </div>
               </div>
               <div className="flex items-center gap-2">
                 <ExportImportButtons />

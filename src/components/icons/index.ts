@@ -3,5 +3,6 @@
 // that aren't available in Lucide React
 
 export { GradientIcon } from './GradientIcon';
+export { GitHubIcon } from './GitHubIcon';
 export type { IconProps } from './types';
 export { defaultIconProps } from './types';
