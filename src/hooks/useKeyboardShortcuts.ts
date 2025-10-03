@@ -204,7 +204,7 @@ export const useKeyboardShortcuts = () => {
   
   // Frame navigation and management hooks
   const { navigateNext, navigatePrevious, canNavigate } = useFrameNavigation();
-  const { addFrame, removeFrame } = useAnimationHistory();
+  const { addFrame, removeFrame, duplicateFrame } = useAnimationHistory();
   
   // Flip utilities for Shift+H and Shift+V
   const { flipHorizontal, flipVertical } = useFlipUtilities();
@@ -551,7 +551,7 @@ export const useKeyboardShortcuts = () => {
       }
     }
 
-    // Handle flip utility hotkeys (Shift+H and Shift+V)
+    // Handle flip utility hotkeys (Shift+H and Shift+V) and onion skinning (Shift+O)
     if (event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey) {
       if (event.key === 'H' || event.key === 'h') {
         event.preventDefault();
@@ -561,6 +561,11 @@ export const useKeyboardShortcuts = () => {
       if (event.key === 'V' || event.key === 'v') {
         event.preventDefault();
         flipVertical();
+        return;
+      }
+      if (event.key === 'O' || event.key === 'o') {
+        event.preventDefault();
+        toggleOnionSkin();
         return;
       }
     }
@@ -645,6 +650,13 @@ export const useKeyboardShortcuts = () => {
         }
         break;
         
+      case 'd':
+        // Ctrl+D = Duplicate current frame
+        if (!event.shiftKey) {
+          event.preventDefault();
+          duplicateFrame(currentFrameIndex);
+        }
+        break;
 
         
       case 'a':
@@ -702,14 +714,6 @@ export const useKeyboardShortcuts = () => {
           }
         } else {
           startPasteFromClipboard();
-        }
-        break;
-        
-      case 'o':
-        // Shift+O = Toggle Onion Skin
-        if (event.shiftKey) {
-          event.preventDefault();
-          toggleOnionSkin();
         }
         break;
         
@@ -780,7 +784,8 @@ export const useKeyboardShortcuts = () => {
     navigatePrevious,
     canNavigate,
     addFrame,
-    removeFrame
+    removeFrame,
+    duplicateFrame
   ]);
 
   useEffect(() => {
