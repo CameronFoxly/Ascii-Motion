@@ -242,6 +242,67 @@ export const useKeyboardShortcuts = () => {
     textToolState
   } = useToolStore();
 
+  const startPasteFromClipboard = useCallback(() => {
+    const {
+      activeClipboardType,
+      clipboard,
+      lassoClipboard,
+      magicWandClipboard,
+      getClipboardOriginalPosition: getRectOrigin,
+      getLassoClipboardOriginalPosition: getLassoOrigin,
+      getMagicWandClipboardOriginalPosition: getMagicOrigin
+    } = useToolStore.getState();
+
+    const priority: Array<'magicwand' | 'lasso' | 'rectangle'> = [];
+    if (activeClipboardType) {
+      priority.push(activeClipboardType);
+    }
+    priority.push('magicwand', 'lasso', 'rectangle');
+
+    const seen = new Set<string>();
+
+    const ensureStarted = (origin: { x: number; y: number } | null | undefined) => {
+      const fallbackPosition = origin || { x: 0, y: 0 };
+      return startPasteMode(fallbackPosition);
+    };
+
+    for (const type of priority) {
+      if (seen.has(type)) {
+        continue;
+      }
+      seen.add(type);
+
+      switch (type) {
+        case 'magicwand': {
+          if (magicWandClipboard && magicWandClipboard.size > 0) {
+            if (ensureStarted(getMagicOrigin())) {
+              return true;
+            }
+          }
+          break;
+        }
+        case 'lasso': {
+          if (lassoClipboard && lassoClipboard.size > 0) {
+            if (ensureStarted(getLassoOrigin())) {
+              return true;
+            }
+          }
+          break;
+        }
+        case 'rectangle': {
+          if (clipboard && clipboard.size > 0) {
+            if (ensureStarted(getRectOrigin())) {
+              return true;
+            }
+          }
+          break;
+        }
+      }
+    }
+
+    return false;
+  }, [startPasteMode]);
+
   // Helper function to swap foreground/background colors
   const swapForegroundBackground = useCallback(() => {
     const { selectedColor, selectedBgColor, setSelectedColor, setSelectedBgColor } = useToolStore.getState();
@@ -640,22 +701,7 @@ export const useKeyboardShortcuts = () => {
             setCanvasData(newCells);
           }
         } else {
-          // Start paste mode if any clipboard has data (prioritize magic wand, then lasso, then rectangular)
-          if (hasMagicWandClipboard()) {
-            // Always use stored original position for consistent paste behavior
-            const originalPos = getMagicWandClipboardOriginalPosition();
-            startPasteMode(originalPos || { x: 0, y: 0 });
-          } else if (hasLassoClipboard()) {
-            // Always use stored original position for consistent paste behavior
-            const originalPos = getLassoClipboardOriginalPosition();
-            startPasteMode(originalPos || { x: 0, y: 0 });
-          } else if (hasClipboard()) {
-            // Always use stored original position for consistent paste behavior
-            const originalPos = getClipboardOriginalPosition();
-            const pastePos = originalPos || { x: 0, y: 0 };
-            
-            startPasteMode(pastePos);
-          }
+          startPasteFromClipboard();
         }
         break;
         
@@ -719,9 +765,10 @@ export const useKeyboardShortcuts = () => {
     hasClipboard,
     hasLassoClipboard,
     hasMagicWandClipboard,
-    getClipboardOriginalPosition,
-    getLassoClipboardOriginalPosition,
-    getMagicWandClipboardOriginalPosition,
+  getClipboardOriginalPosition,
+  getLassoClipboardOriginalPosition,
+  getMagicWandClipboardOriginalPosition,
+  startPasteFromClipboard,
     textToolState,
     setActiveTool,
     toggleOnionSkin,
@@ -767,14 +814,7 @@ export const useKeyboardShortcuts = () => {
           setCanvasData(newCells);
         }
       } else {
-        // Start paste mode if clipboard has data
-        if (hasClipboard()) {
-          // Always use stored original position for consistent paste behavior
-          const originalPos = getClipboardOriginalPosition();
-          const pastePos = originalPos || { x: 0, y: 0 };
-          
-          startPasteMode(pastePos);
-        }
+        startPasteFromClipboard();
       }
     }
   };

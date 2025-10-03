@@ -34,7 +34,8 @@ export const usePasteMode = () => {
     hasMagicWandClipboard,
     clearSelection, 
     clearLassoSelection,
-    clearMagicWandSelection
+    clearMagicWandSelection,
+    activeClipboardType
   } = useToolStore();
   const { cells, setCanvasData } = useCanvasStore();
   const [pasteMode, setPasteMode] = useState<PasteModeState>({
@@ -46,17 +47,41 @@ export const usePasteMode = () => {
 
   // Get the active clipboard data (prioritize magic wand, then lasso, then regular clipboard)
   const getActiveClipboard = useCallback(() => {
-    if (hasMagicWandClipboard() && magicWandClipboard) {
-      return magicWandClipboard;
+    const priority: Array<'magicwand' | 'lasso' | 'rectangle'> = [];
+    if (activeClipboardType) {
+      priority.push(activeClipboardType);
     }
-    if (hasLassoClipboard() && lassoClipboard) {
-      return lassoClipboard;
+    priority.push('magicwand', 'lasso', 'rectangle');
+
+    const seen = new Set<string>();
+
+    for (const type of priority) {
+      if (seen.has(type)) {
+        continue;
+      }
+      seen.add(type);
+
+      switch (type) {
+        case 'magicwand':
+          if (hasMagicWandClipboard() && magicWandClipboard) {
+            return magicWandClipboard;
+          }
+          break;
+        case 'lasso':
+          if (hasLassoClipboard() && lassoClipboard) {
+            return lassoClipboard;
+          }
+          break;
+        case 'rectangle':
+          if (clipboard) {
+            return clipboard;
+          }
+          break;
+      }
     }
-    if (clipboard) {
-      return clipboard;
-    }
+
     return null;
-  }, [hasMagicWandClipboard, magicWandClipboard, hasLassoClipboard, lassoClipboard, clipboard]);
+  }, [activeClipboardType, hasMagicWandClipboard, magicWandClipboard, hasLassoClipboard, lassoClipboard, clipboard]);
 
   /**
    * Calculate bounds of clipboard data

@@ -38,6 +38,7 @@ interface ToolStoreState extends ToolState {
   // Clipboard for copy/paste
   clipboard: Map<string, any> | null;
   clipboardOriginalPosition: { x: number; y: number } | null;
+  activeClipboardType: 'rectangle' | 'lasso' | 'magicwand' | null;
   
   // Lasso clipboard for copy/paste
   lassoClipboard: Map<string, any> | null;
@@ -133,6 +134,8 @@ interface ToolStoreState extends ToolState {
   copySelection: (canvasData: Map<string, any>) => void;
   pasteSelection: (x: number, y: number) => Map<string, any> | null;
   hasClipboard: () => boolean;
+  getActiveClipboardType: () => 'rectangle' | 'lasso' | 'magicwand' | null;
+  getActiveClipboardOriginalPosition: () => { x: number; y: number } | null;
   getClipboardOriginalPosition: () => { x: number; y: number } | null;
   
   // Lasso clipboard actions
@@ -267,6 +270,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   // Clipboard state
   clipboard: null,
   clipboardOriginalPosition: null,
+  activeClipboardType: null,
   
   // Lasso clipboard state
   lassoClipboard: null,
@@ -587,7 +591,8 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
 
     set({ 
       clipboard: copiedData,
-      clipboardOriginalPosition: { x: bounds.minX, y: bounds.minY }
+      clipboardOriginalPosition: { x: bounds.minX, y: bounds.minY },
+      activeClipboardType: 'rectangle'
     });
     
     // Also copy to OS clipboard as text
@@ -600,12 +605,38 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   },
 
   pasteSelection: (x: number, y: number) => {
-    const { clipboard } = get();
-    if (!clipboard) return null;
+    const { activeClipboardType, clipboard, lassoClipboard, magicWandClipboard } = get();
+
+    let sourceClipboard: Map<string, any> | null = null;
+    switch (activeClipboardType) {
+      case 'magicwand':
+        sourceClipboard = magicWandClipboard ?? null;
+        break;
+      case 'lasso':
+        sourceClipboard = lassoClipboard ?? null;
+        break;
+      case 'rectangle':
+        sourceClipboard = clipboard ?? null;
+        break;
+    }
+
+    if (!sourceClipboard) {
+      if (magicWandClipboard && magicWandClipboard.size > 0) {
+        sourceClipboard = magicWandClipboard;
+      } else if (lassoClipboard && lassoClipboard.size > 0) {
+        sourceClipboard = lassoClipboard;
+      } else if (clipboard && clipboard.size > 0) {
+        sourceClipboard = clipboard;
+      }
+    }
+
+    if (!sourceClipboard) {
+      return null;
+    }
 
     const pastedData = new Map<string, any>();
     
-    clipboard.forEach((cell, relativeKey) => {
+    sourceClipboard.forEach((cell, relativeKey) => {
       const [relX, relY] = relativeKey.split(',').map(Number);
       const absoluteKey = `${x + relX},${y + relY}`;
       pastedData.set(absoluteKey, cell);
@@ -617,7 +648,26 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   hasClipboard: () => {
     const state = get();
     return (state.clipboard !== null && state.clipboard!.size > 0) || 
-           (state.lassoClipboard !== null && state.lassoClipboard!.size > 0);
+           (state.lassoClipboard !== null && state.lassoClipboard!.size > 0) ||
+           (state.magicWandClipboard !== null && state.magicWandClipboard!.size > 0);
+  },
+
+  getActiveClipboardType: () => {
+    return get().activeClipboardType;
+  },
+
+  getActiveClipboardOriginalPosition: () => {
+    const state = get();
+    switch (state.activeClipboardType) {
+      case 'magicwand':
+        return state.magicWandClipboardOriginalPosition;
+      case 'lasso':
+        return state.lassoClipboardOriginalPosition;
+      case 'rectangle':
+        return state.clipboardOriginalPosition;
+      default:
+        return null;
+    }
   },
 
   getClipboardOriginalPosition: () => {
@@ -654,7 +704,8 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
 
     set({ 
       lassoClipboard: copiedData,
-      lassoClipboardOriginalPosition: { x: minX, y: minY }
+      lassoClipboardOriginalPosition: { x: minX, y: minY },
+      activeClipboardType: 'lasso'
     });
     
     // Also copy to OS clipboard as text
@@ -720,7 +771,8 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     
     set({ 
       magicWandClipboard: copiedData,
-      magicWandClipboardOriginalPosition: { x: minX, y: minY }
+      magicWandClipboardOriginalPosition: { x: minX, y: minY },
+      activeClipboardType: 'magicwand'
     });
     
     // Also copy to OS clipboard as text
