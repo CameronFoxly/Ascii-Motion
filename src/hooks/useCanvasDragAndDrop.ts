@@ -11,7 +11,7 @@ import { useCanvasState } from './useCanvasState';
  * Used by drawing tools (pencil, eraser) and rectangle tool
  */
 export const useCanvasDragAndDrop = () => {
-  const { canvasRef, isDrawing, setIsDrawing, setMouseButtonDown, shiftKeyDown } = useCanvasContext();
+  const { canvasRef, isDrawing, setIsDrawing, setMouseButtonDown, shiftKeyDown, cellWidth, cellHeight } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
   const { width, height, cells, clearCell } = useCanvasStore();
   const { currentFrameIndex } = useAnimationStore();
@@ -34,19 +34,29 @@ export const useCanvasDragAndDrop = () => {
       return { x, y }; // No constraint when shift is not held
     }
 
-    // Calculate deltas from start position
+    // Calculate deltas from start position (in grid cells)
     const deltaX = x - startX;
     const deltaY = y - startY;
     
-    // Use the larger absolute delta to maintain square/circle aspect ratio
-    const maxDelta = Math.max(Math.abs(deltaX), Math.abs(deltaY));
+    // To create a visually circular ellipse, we need to account for the cell aspect ratio
+    // Typical monospace fonts have an aspect ratio of ~0.6 (width < height)
+    // Convert grid deltas to visual (pixel-based) deltas
+    const visualDeltaX = Math.abs(deltaX) * cellWidth;
+    const visualDeltaY = Math.abs(deltaY) * cellHeight;
+    
+    // Use the larger visual delta to maintain a circular appearance
+    const maxVisualDelta = Math.max(visualDeltaX, visualDeltaY);
+    
+    // Convert back to grid coordinates
+    const constrainedGridDeltaX = maxVisualDelta / cellWidth;
+    const constrainedGridDeltaY = maxVisualDelta / cellHeight;
     
     // Apply the constraint in the direction of the original movement
-    const constrainedX = startX + (deltaX >= 0 ? maxDelta : -maxDelta);
-    const constrainedY = startY + (deltaY >= 0 ? maxDelta : -maxDelta);
+    const constrainedX = startX + (deltaX >= 0 ? constrainedGridDeltaX : -constrainedGridDeltaX);
+    const constrainedY = startY + (deltaY >= 0 ? constrainedGridDeltaY : -constrainedGridDeltaY);
     
     return { x: constrainedX, y: constrainedY };
-  }, [shiftKeyDown]);
+  }, [shiftKeyDown, cellWidth, cellHeight]);
 
   // Bresenham line algorithm for gap filling during drag operations
   const getLinePoints = useCallback((x0: number, y0: number, x1: number, y1: number) => {
