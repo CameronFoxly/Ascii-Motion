@@ -182,18 +182,15 @@ const processHistoryAction = (
         animationStore.removeFrameRange(deleteRangeAction.data.frameIndices);
         console.log(`✅ Redo: Deleted ${deleteRangeAction.data.frameIndices.length} frames`);
       } else {
-        // Undo: Re-add the deleted frames
-        const sortedFrames = deleteRangeAction.data.frameIndices
-          .map((index, i) => ({ index, frame: deleteRangeAction.data.frames[i] }))
-          .sort((a, b) => a.index - b.index);
-        
-        sortedFrames.forEach(({ index, frame }) => {
-          animationStore.addFrame(index, frame.data, frame.duration);
-          animationStore.updateFrameName(index, frame.name);
-          animationStore.setFrameData(index, frame.data);
-        });
-        
-        animationStore.setCurrentFrame(deleteRangeAction.data.previousCurrentFrame);
+        // Undo: Restore snapshot prior to deletion
+        const { previousFrames, previousCurrentFrame, previousSelection } = deleteRangeAction.data;
+
+        animationStore.replaceFrames(
+          previousFrames,
+          previousCurrentFrame,
+          previousSelection.length > 0 ? previousSelection : undefined
+        );
+
         console.log(`✅ Undo: Restored ${deleteRangeAction.data.frames.length} deleted frames`);
       }
       break;

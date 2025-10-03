@@ -330,6 +330,8 @@ export interface DeleteFrameRangeHistoryAction extends HistoryAction {
     frames: Frame[];
     previousCurrentFrame: number;
     newCurrentFrame: number;
+    previousFrames: Frame[];
+    previousSelection: number[];
   };
 }
 

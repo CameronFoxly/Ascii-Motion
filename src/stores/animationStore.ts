@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Animation, Frame, FrameId, Cell } from '../types';
 import { DEFAULT_FRAME_DURATION } from '../constants';
+import { cloneFrames } from '../utils/frameUtils';
 
 interface AnimationState extends Animation {
   // Drag state for frame reordering
@@ -32,6 +33,7 @@ interface AnimationState extends Animation {
   updateFrameDuration: (index: number, duration: number) => void;
   updateFrameName: (index: number, name: string) => void;
   reorderFrames: (fromIndex: number, toIndex: number) => void;
+  replaceFrames: (frames: Frame[], currentIndex: number, selectedIndices?: number[]) => void;
   
   // Batch operations for multi-frame selection
   removeFrameRange: (frameIndices: number[]) => void;
@@ -219,6 +221,32 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
         // Don't modify selectedFrameIndices
       };
     });
+  },
+
+  replaceFrames: (frames: Frame[], currentIndex: number, selectedIndices?: number[]) => {
+    const clonedFrames = cloneFrames(frames);
+
+    set(() => {
+      const selectionArray = selectedIndices && selectedIndices.length > 0
+        ? Array.from(new Set(selectedIndices)).sort((a, b) => a - b)
+        : [currentIndex];
+
+      const lastFrameIndex = Math.max(clonedFrames.length - 1, 0);
+      const clampedSelection = selectionArray
+        .map((idx) => Math.max(0, Math.min(idx, lastFrameIndex)));
+
+      return {
+        frames: clonedFrames,
+        currentFrameIndex: Math.max(0, Math.min(currentIndex, lastFrameIndex)),
+        selectedFrameIndices: new Set(clampedSelection),
+        totalDuration: clonedFrames.reduce((total, f) => total + f.duration, 0),
+        isDeletingFrame: true
+      };
+    });
+
+    setTimeout(() => {
+      set({ isDeletingFrame: false });
+    }, 50);
   },
 
   updateFrameDuration: (index: number, duration: number) => {

@@ -10,6 +10,7 @@ import type {
   UpdateDurationHistoryAction,
   UpdateNameHistoryAction
 } from '../types';
+import { cloneFrame, cloneFrames } from '../utils/frameUtils';
 
 /**
  * Custom hook that provides animation actions with integrated undo/redo history
@@ -19,6 +20,7 @@ export const useAnimationHistory = () => {
   const { 
     frames, 
     currentFrameIndex, 
+    selectedFrameIndices,
     addFrame: addFrameStore, 
     removeFrame: removeFrameStore, 
     duplicateFrame: duplicateFrameStore, 
@@ -82,10 +84,7 @@ export const useAnimationHistory = () => {
       data: {
         originalIndex: index,
         newIndex: index + 1,
-        frame: {
-          ...frameToDuplicate,
-          data: new Map(frameToDuplicate.data)
-        },
+        frame: cloneFrame(frameToDuplicate),
         previousCurrentFrame
       }
     };
@@ -120,10 +119,7 @@ export const useAnimationHistory = () => {
       description: `Delete frame ${index + 1}`,
       data: {
         frameIndex: index,
-        frame: {
-          ...frameToDelete,
-          data: new Map(frameToDelete.data)
-        },
+        frame: cloneFrame(frameToDelete),
         previousCurrentFrame,
         newCurrentFrame
       }
@@ -259,7 +255,9 @@ export const useAnimationHistory = () => {
     const sortedIndices = [...frameIndices].sort((a, b) => a - b);
     
     // Collect frames to be deleted
-    const framesToDelete = sortedIndices.map(idx => frames[idx]).filter(Boolean);
+    const framesToDelete = sortedIndices
+      .map(idx => frames[idx])
+      .filter((frame): frame is typeof frames[number] => Boolean(frame));
     
     if (framesToDelete.length === 0 || framesToDelete.length >= frames.length) {
       // Can't delete all frames
@@ -276,18 +274,21 @@ export const useAnimationHistory = () => {
     ));
     
     // Create history action
+    const previousFramesSnapshot = cloneFrames(frames);
+
+    const selectionBeforeDelete = Array.from(selectedFrameIndices).sort((a, b) => a - b);
+
     const historyAction: import('../types').DeleteFrameRangeHistoryAction = {
       type: 'delete_frame_range',
       timestamp: Date.now(),
       description: `Delete ${framesToDelete.length} frame${framesToDelete.length > 1 ? 's' : ''}`,
       data: {
         frameIndices: sortedIndices,
-        frames: framesToDelete.map(f => ({
-          ...f,
-          data: new Map(f.data)
-        })),
+  frames: framesToDelete.map((frame) => cloneFrame(frame)),
         previousCurrentFrame,
-        newCurrentFrame
+        newCurrentFrame,
+        previousFrames: previousFramesSnapshot,
+        previousSelection: selectionBeforeDelete
       }
     };
     
@@ -296,17 +297,14 @@ export const useAnimationHistory = () => {
     
     // Record in history
     pushToHistory(historyAction);
-  }, [frames, currentFrameIndex, pushToHistory]);
+  }, [frames, currentFrameIndex, pushToHistory, selectedFrameIndices]);
 
   /**
    * Delete all frames and reset to single blank frame with history recording
    */
   const deleteAllFramesWithReset = useCallback(() => {
     const previousCurrentFrame = currentFrameIndex;
-    const framesToSave = frames.map(f => ({
-      ...f,
-      data: new Map(f.data)
-    }));
+    const framesToSave = cloneFrames(frames);
     
     // Create history action
     const historyAction: import('../types').DeleteAllFramesHistoryAction = {
