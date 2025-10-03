@@ -1,12 +1,29 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.30";
-export const BUILD_DATE = "2025-10-02T07:21:20.989Z";
-export const BUILD_HASH = "1658af8";
+export const VERSION = "0.1.31";
+export const BUILD_DATE = "2025-10-03T07:18:28.773Z";
+export const BUILD_HASH = "40d2c0a";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.31",
+    "date": "2025-10-03T07:18:28.773Z",
+    "commits": [
+      "Added about section",
+      "Added main hamburger menu",
+      "Fixed onion skin and duplicate frame hotkeys",
+      "Fixed circle draw tool",
+      "Fixed lasso styling",
+      "Fixed selection copy and paste issues",
+      "Cleaned up visual styling of selection tool overlays",
+      "Set up add and remove alt and shift tools for selection",
+      "Fixed flipping selection bugs",
+      "Add brush preview overlay to canvas",
+      "Update readme"
+    ]
+  },
   {
     "version": "0.1.30",
     "date": "2025-10-02T07:21:20.989Z",
