@@ -17,6 +17,7 @@ import { PlaybackOverlay } from './components/features/PlaybackOverlay'
 import { FullscreenToggle } from './components/features/FullscreenToggle'
 import { cn } from '@/lib/utils'
 import { PerformanceOverlay } from './components/common/PerformanceOverlay'
+import { HamburgerMenu } from './components/features/HamburgerMenu'
 import { ExportImportButtons } from './components/features/ExportImportButtons'
 import { ImportModal } from './components/features/ImportModal'
 import { MediaImportPanel } from './components/features/MediaImportPanel'
@@ -46,7 +47,8 @@ function App() {
         <header className="flex-shrink-0 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="px-4 py-2">
             <div className="flex justify-between items-center">
-              <div className="flex gap-3 relative">
+              <div className="flex gap-3 relative items-center">
+                <HamburgerMenu />
                 <pre className="font-mono text-[6px] leading-[1.1] ascii-logo-selectable tracking-tighter">
                   <div className="text-purple-500">----▗▄▖  ▗▄▄▖ ▗▄▄▖▗▄▄▄▖▗▄▄▄▖    ▗▖  ▗▖ ▗▄▖▗▄▄▄▖▗▄▄▄▖ ▗▄▖ ▗▖  ▗▖</div>
                   <div className="text-purple-400"> --▐▌ ▐▌▐▌   ▐▌     █    █      ▐▛▚▞▜▌▐▌ ▐▌ █    █  ▐▌ ▐▌▐▛▚▖▐▌</div>

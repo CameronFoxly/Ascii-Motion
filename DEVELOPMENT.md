@@ -5498,6 +5498,109 @@ This implementation follows established ASCII Motion patterns:
 
 The gradient fill tool will integrate seamlessly with existing architecture while providing powerful new creative capabilities for ASCII art creation.
 
+---
+
+## **UI Enhancement: Hamburger Menu & Keyboard Shortcuts Dialog** - ✅ **COMPLETED** (Oct 2, 2025)
+
+### **Overview**
+Reorganized header UI to improve project file management and discoverability of keyboard shortcuts and app information.
+
+### **Changes Made**
+
+#### **1. Hamburger Menu** (`HamburgerMenu.tsx`)
+- **Location**: Left of ASCII Motion logo in header bar
+- **Height**: Matches Import/Export/Theme toggle buttons (h-8)
+- **Menu Items**:
+  - **Save Project**: Opens session export dialog (renamed from "Session File" export)
+  - **Open Project**: Opens session import dialog (renamed from "Session File" import)
+  - **--- Separator ---**
+  - **Keyboard Shortcuts**: Opens comprehensive keyboard shortcuts reference dialog
+  - **About**: Opens app information dialog
+
+#### **2. Updated Export/Import Menus**
+- **Removed** "Session File" from both Export and Import dropdown menus
+- Session file operations now exclusively accessible via hamburger menu as "Save/Open Project"
+- Maintains all other export formats (Image, Video, HTML, JSON, Text)
+- Maintains all other import formats (Image/Video, JSON)
+
+#### **3. Keyboard Shortcuts Dialog** (`KeyboardShortcutsDialog.tsx`)
+- **Comprehensive Reference**: All keyboard shortcuts organized by functionality
+- **Categories**:
+  - Tool Selection (P, E, G, M, L, W, I, R, O, T, F, Alt)
+  - Canvas Actions (Cmd+A, C, V, Z, Delete, Esc, Shift+H/V, Space)
+  - Color Management (X, [, ])
+  - Zoom & Navigation (+, =, -)
+  - Animation & Timeline (,, ., Cmd+N, Cmd+D, Cmd+Delete, Shift+O)
+  - Performance (Ctrl+Shift+P)
+- **Platform-Aware**: Shows ⌘ on Mac, Ctrl on Windows/Linux
+- **Scrollable**: Handles comprehensive list with smooth scrolling
+
+#### **4. About Dialog** (`AboutDialog.tsx`)
+- **App Description**: Concise overview of ASCII Motion's capabilities
+- **Key Features List**: Professional drawing tools, animation, palettes, import/export, etc.
+- **Open Source Section**:
+  - Links to GitHub repository
+  - Links to GitHub Issues for bug reports and feature requests
+  - Encourages community contributions
+- **MIT License**: Displayed at bottom
+
+### **Documentation Updates**
+
+#### **🚨 CRITICAL REQUIREMENT: Keyboard Shortcuts Maintenance**
+When adding ANY new keyboard shortcut (tool hotkey or action shortcut):
+
+**1. Update the constants/hotkeys system** (for tool hotkeys):
+```typescript
+// src/constants/hotkeys.ts
+export const TOOL_HOTKEYS: ToolHotkey[] = [
+  { tool: 'your-tool', key: 'y', displayName: 'Y', description: 'Your tool' },
+];
+```
+
+**2. Update the Keyboard Shortcuts Dialog** (MANDATORY):
+```typescript
+// src/components/features/KeyboardShortcutsDialog.tsx
+// Add to appropriate section in KEYBOARD_SHORTCUTS array
+{
+  title: 'Tool Selection', // or appropriate category
+  shortcuts: [
+    { keys: ['Y'], description: 'Your tool' },
+  ]
+}
+```
+
+**3. Update useKeyboardShortcuts** (for non-tool shortcuts):
+```typescript
+// src/hooks/useKeyboardShortcuts.ts
+// Add handler logic
+```
+
+**Note**: This requirement is documented in:
+- `COPILOT_INSTRUCTIONS.md` - Step 9 of tool creation guide
+- `DEVELOPMENT.md` - This section
+- Comments in `useKeyboardShortcuts.ts`
+
+### **Files Modified**
+- `src/App.tsx` - Added HamburgerMenu to header
+- `src/components/features/ExportImportButtons.tsx` - Removed session file options
+- `src/components/features/HamburgerMenu.tsx` - NEW: Main menu component
+- `src/components/features/AboutDialog.tsx` - NEW: About dialog
+- `src/components/features/KeyboardShortcutsDialog.tsx` - NEW: Shortcuts reference
+- `src/components/ui/menubar.tsx` - Added via shadcn CLI
+- `COPILOT_INSTRUCTIONS.md` - Added keyboard shortcuts maintenance notes
+- `DEVELOPMENT.md` - This documentation update
+
+### **User Experience Improvements**
+- ✅ **Clearer Project Management**: "Save/Open Project" more intuitive than "Session File"
+- ✅ **Keyboard Shortcut Discovery**: Comprehensive reference easily accessible
+- ✅ **About & Help**: Users can learn about the app and get support
+- ✅ **Cleaner Menus**: Export/Import dropdowns focus on output formats, not project files
+- ✅ **Consistent Height**: All header buttons match visually
+- ✅ **Professional UI**: Hamburger menu follows industry standards
+
+---
+
 ## Contributing
 
 Follow the component structure and Copilot instructions in `COPILOT_INSTRUCTIONS.md` for consistent code organization.
+

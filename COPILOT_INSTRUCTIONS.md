@@ -902,6 +902,9 @@ const renderFunction = useCallback(() => {
 ];
 
 // ✅ Tool Hotkey Integration Pattern - useKeyboardShortcuts.ts
+// 🚨 IMPORTANT: When adding ANY new keyboard shortcut (tool or action), 
+// you MUST update the Keyboard Shortcuts Dialog component to keep it comprehensive.
+// File: src/components/features/KeyboardShortcutsDialog.tsx
 export const useKeyboardShortcuts = () => {
   // Handle tool hotkeys (single key presses for tool switching)
   // Only process if no modifier keys are pressed and key is a valid tool hotkey
@@ -1724,6 +1727,20 @@ export const TOOL_HOTKEYS: ToolHotkey[] = [
   // ... existing hotkeys
   { tool: 'your-new-tool', key: 'y', displayName: 'Y', description: 'Your new tool hotkey' },
 ];
+```
+
+**🚨 CRITICAL: When adding a hotkey, you MUST also update the Keyboard Shortcuts Dialog:**
+**File**: `src/components/features/KeyboardShortcutsDialog.tsx`
+
+Add your new hotkey to the appropriate section in the `KEYBOARD_SHORTCUTS` array:
+```typescript
+{
+  title: 'Tool Selection',
+  shortcuts: [
+    // ... existing shortcuts
+    { keys: ['Y'], description: 'Your new tool' },
+  ]
+}
 ```
 
 **Hotkey Selection Guidelines:**
