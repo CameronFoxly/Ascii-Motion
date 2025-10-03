@@ -166,14 +166,7 @@ export const AnimationTimeline: React.FC = () => {
         // Check if we're dragging a selected frame and there are multiple selections
         if (selectedFrames.length > 1 && selectedFrames.includes(dragIndex)) {
           // Batch reorder all selected frames
-          let targetIndex = dragOverIndex;
-          
-          // Adjust target index when moving forward (except for end drops)
-          if (dragOverIndex < frames.length && dragIndex < dragOverIndex) {
-            targetIndex = dragOverIndex - 1;
-          }
-          
-          reorderFrameRange(selectedFrames, targetIndex);
+          reorderFrameRange(selectedFrames, dragOverIndex);
         } else {
           // Single frame reorder
           let targetIndex = dragOverIndex;

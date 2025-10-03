@@ -409,8 +409,8 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
         return state;
       }
       
-      // Extract frames to move
-      const framesToMove = sortedIndices.map(idx => state.frames[idx]);
+  // Extract frames to move
+  const framesToMove = sortedIndices.map(idx => state.frames[idx]);
       
       // Remove moved frames from original positions (in descending order)
       const newFrames = state.frames.filter((_, idx) => !sortedIndices.includes(idx));
@@ -438,10 +438,26 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
       
       newCurrentIndex = Math.max(0, Math.min(newCurrentIndex, newFrames.length - 1));
       
+      const frameIdToNewIndex = new Map<FrameId, number>();
+      newFrames.forEach((frame, index) => {
+        frameIdToNewIndex.set(frame.id, index);
+      });
+
+      const updatedSelection = new Set<number>();
+      state.selectedFrameIndices.forEach((idx) => {
+        const originalFrame = state.frames[idx];
+        if (!originalFrame) return;
+        const newIndex = frameIdToNewIndex.get(originalFrame.id);
+        if (newIndex !== undefined) {
+          updatedSelection.add(newIndex);
+        }
+      });
+
       return {
         ...state,
         frames: newFrames,
         currentFrameIndex: newCurrentIndex,
+  selectedFrameIndices: updatedSelection.size > 0 ? updatedSelection : state.selectedFrameIndices,
         totalDuration: newFrames.reduce((total, frame) => total + frame.duration, 0),
         isDraggingFrame: true
       };
