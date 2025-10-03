@@ -34,13 +34,22 @@ export const AnimationTimeline: React.FC = () => {
   const {
     frames,
     currentFrameIndex,
+    selectedFrameIndices,
     isPlaying,
     looping,
     onionSkin,
     timelineZoom,
     setLooping,
-    setDraggingFrame
+    setDraggingFrame,
+    selectFrameRange,
+    clearSelection,
+    isFrameSelected
   } = useAnimationStore();
+
+  // Helper to get selected frame indices as sorted array
+  const getSelectedFrames = useCallback(() => {
+    return Array.from(selectedFrameIndices).sort((a, b) => a - b);
+  }, [selectedFrameIndices]);
 
   // Use history-enabled animation actions
   const {
@@ -48,7 +57,9 @@ export const AnimationTimeline: React.FC = () => {
     removeFrame,
     duplicateFrame,
     updateFrameDuration,
-    reorderFrames
+    reorderFrames,
+    deleteFrameRange,
+    reorderFrameRange
   } = useAnimationHistory();
 
   const {
@@ -150,15 +161,30 @@ export const AnimationTimeline: React.FC = () => {
           dragOverIndex >= 0 && dragOverIndex <= frames.length &&
           dragIndex !== dragOverIndex) {
         
-        // For drops, use dragOverIndex directly - the store will handle end-of-list
-        let targetIndex = dragOverIndex;
+        const selectedFrames = getSelectedFrames();
         
-        // Adjust target index when moving forward (except for end drops)
-        if (dragOverIndex < frames.length && dragIndex < dragOverIndex) {
-          targetIndex = dragOverIndex - 1;
+        // Check if we're dragging a selected frame and there are multiple selections
+        if (selectedFrames.length > 1 && selectedFrames.includes(dragIndex)) {
+          // Batch reorder all selected frames
+          let targetIndex = dragOverIndex;
+          
+          // Adjust target index when moving forward (except for end drops)
+          if (dragOverIndex < frames.length && dragIndex < dragOverIndex) {
+            targetIndex = dragOverIndex - 1;
+          }
+          
+          reorderFrameRange(selectedFrames, targetIndex);
+        } else {
+          // Single frame reorder
+          let targetIndex = dragOverIndex;
+          
+          // Adjust target index when moving forward (except for end drops)
+          if (dragOverIndex < frames.length && dragIndex < dragOverIndex) {
+            targetIndex = dragOverIndex - 1;
+          }
+          
+          reorderFrames(dragIndex, targetIndex);
         }
-        
-        reorderFrames(dragIndex, targetIndex);
       }
     }
     
@@ -167,7 +193,7 @@ export const AnimationTimeline: React.FC = () => {
       setDraggedIndex(null);
       setDragOverIndex(null);
     }, 100);
-  }, [dragOverIndex, reorderFrames, frames.length]);
+  }, [dragOverIndex, reorderFrames, reorderFrameRange, frames.length, getSelectedFrames]);
 
   // Handle drag end
   const handleDragEnd = useCallback(() => {
@@ -179,12 +205,27 @@ export const AnimationTimeline: React.FC = () => {
     }, 100);
   }, [setDraggingFrame]);
 
-  // Handle frame selection
-  const handleFrameSelect = useCallback((frameIndex: number) => {
-    if (!isPlaying) {
+  // Handle frame selection (modified to support shift-click range selection)
+  const handleFrameSelect = useCallback((frameIndex: number, event: React.MouseEvent) => {
+    if (isPlaying) return;
+    
+    if (event.shiftKey) {
+      // Shift+Click: Extend selection to span existing selection bounds and clicked frame
+      const selected = getSelectedFrames();
+      const currentMin = selected.length > 0 ? selected[0] : currentFrameIndex;
+      const currentMax = selected.length > 0 ? selected[selected.length - 1] : currentFrameIndex;
+      const newMin = Math.min(currentMin, frameIndex);
+      const newMax = Math.max(currentMax, frameIndex);
+      selectFrameRange(newMin, newMax);
+
+      // Update current frame WITHOUT clearing the extended selection
+      const { setCurrentFrameOnly } = useAnimationStore.getState();
+      setCurrentFrameOnly(frameIndex);
+    } else {
+      // Normal click: Navigate (this will clear selection automatically)
       navigateToFrame(frameIndex);
     }
-  }, [isPlaying, navigateToFrame]);
+  }, [isPlaying, currentFrameIndex, selectFrameRange, navigateToFrame, getSelectedFrames]);
 
   // Handle adding new frame
   const handleAddFrame = useCallback(() => {
@@ -235,12 +276,18 @@ export const AnimationTimeline: React.FC = () => {
     }
   }, [frames.length, currentFrameIndex, duplicateFrame]);
 
-  // Handle deleting current frame
+  // Handle deleting current/selected frames from toolbar
   const handleDeleteFrame = useCallback(() => {
-    if (frames.length > 1) {
+    if (frames.length <= 1) return;
+
+    const selectedFrames = getSelectedFrames();
+
+    if (selectedFrames.length > 1) {
+      deleteFrameRange(selectedFrames);
+    } else {
       removeFrame(currentFrameIndex);
     }
-  }, [frames.length, currentFrameIndex, removeFrame]);
+  }, [frames.length, getSelectedFrames, deleteFrameRange, removeFrame, currentFrameIndex]);
 
   // Handle individual frame duplicate
   const handleFrameDuplicate = useCallback((frameIndex: number) => {
@@ -251,10 +298,19 @@ export const AnimationTimeline: React.FC = () => {
 
   // Handle individual frame delete
   const handleFrameDelete = useCallback((frameIndex: number) => {
-    if (frames.length > 1) {
+    if (frames.length <= 1) return;
+    
+    const selectedFrames = getSelectedFrames();
+    
+    // If multiple frames are selected and the clicked frame is in the selection, delete all selected
+    if (selectedFrames.length > 1 && selectedFrames.includes(frameIndex)) {
+      // Batch delete all selected frames
+      deleteFrameRange(selectedFrames);
+    } else {
+      // Single frame delete
       removeFrame(frameIndex);
     }
-  }, [frames.length, removeFrame]);
+  }, [frames.length, getSelectedFrames, deleteFrameRange, removeFrame]);
 
   // Handle frame duration change
   const handleFrameDurationChange = useCallback((frameIndex: number, duration: number) => {
@@ -324,6 +380,12 @@ export const AnimationTimeline: React.FC = () => {
                 userSelect: 'none', // Prevent text selection
                 WebkitUserSelect: 'none' // Webkit browsers
               }}
+              onClick={(e) => {
+                // Clear selection when clicking empty timeline area
+                if (e.target === e.currentTarget) {
+                  clearSelection();
+                }
+              }}
             >
               {frames.map((frame, index) => (
                 <React.Fragment key={frame.id}>
@@ -350,11 +412,12 @@ export const AnimationTimeline: React.FC = () => {
                   <FrameThumbnail
                     frame={frame}
                     frameIndex={index}
-                    isSelected={index === currentFrameIndex}
+                    isActive={index === currentFrameIndex}
+                    isSelected={isFrameSelected(index)}
                     canvasWidth={canvasWidth}
                     canvasHeight={canvasHeight}
                     scaleZoom={timelineZoom}
-                    onSelect={() => handleFrameSelect(index)}
+                    onSelect={(e) => handleFrameSelect(index, e)}
                     onDuplicate={() => handleFrameDuplicate(index)}
                     onDelete={() => handleFrameDelete(index)}
                     onDurationChange={(duration) => handleFrameDurationChange(index, duration)}

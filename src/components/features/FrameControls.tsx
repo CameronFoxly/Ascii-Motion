@@ -75,7 +75,7 @@ export const FrameControls: React.FC<FrameControlsProps> = ({
               Delete
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Delete current frame (Ctrl+Delete or Ctrl+Backspace)</TooltipContent>
+          <TooltipContent>Delete selected frames (Ctrl+Delete or Ctrl+Backspace)</TooltipContent>
         </Tooltip>
       </div>
     </TooltipProvider>

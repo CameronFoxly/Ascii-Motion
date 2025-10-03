@@ -174,6 +174,81 @@ const processHistoryAction = (
         console.log(`✅ Undo: Restored durations for ${durationsAction.data.previousDurations.length} frames`);
       }
       break;
+
+    case 'delete_frame_range':
+      const deleteRangeAction = action as import('../types').DeleteFrameRangeHistoryAction;
+      if (isRedo) {
+        // Redo: Re-delete the frames
+        animationStore.removeFrameRange(deleteRangeAction.data.frameIndices);
+        console.log(`✅ Redo: Deleted ${deleteRangeAction.data.frameIndices.length} frames`);
+      } else {
+        // Undo: Re-add the deleted frames
+        const sortedFrames = deleteRangeAction.data.frameIndices
+          .map((index, i) => ({ index, frame: deleteRangeAction.data.frames[i] }))
+          .sort((a, b) => a.index - b.index);
+        
+        sortedFrames.forEach(({ index, frame }) => {
+          animationStore.addFrame(index, frame.data, frame.duration);
+          animationStore.updateFrameName(index, frame.name);
+          animationStore.setFrameData(index, frame.data);
+        });
+        
+        animationStore.setCurrentFrame(deleteRangeAction.data.previousCurrentFrame);
+        console.log(`✅ Undo: Restored ${deleteRangeAction.data.frames.length} deleted frames`);
+      }
+      break;
+
+    case 'delete_all_frames':
+      const deleteAllAction = action as import('../types').DeleteAllFramesHistoryAction;
+      if (isRedo) {
+        // Redo: Clear all frames again
+        animationStore.clearAllFrames();
+        console.log('✅ Redo: Cleared all frames');
+      } else {
+        // Undo: Restore all deleted frames
+        deleteAllAction.data.frames.forEach((frame, index) => {
+          if (index === 0) {
+            // Replace the default frame created by clearAllFrames
+            animationStore.setFrameData(0, frame.data);
+            animationStore.updateFrameName(0, frame.name);
+            animationStore.updateFrameDuration(0, frame.duration);
+          } else {
+            // Add additional frames
+            animationStore.addFrame(index, frame.data, frame.duration);
+            animationStore.updateFrameName(index, frame.name);
+          }
+        });
+        
+        animationStore.setCurrentFrame(deleteAllAction.data.previousCurrentFrame);
+        console.log(`✅ Undo: Restored ${deleteAllAction.data.frames.length} frames`);
+      }
+      break;
+
+    case 'reorder_frame_range':
+      const reorderRangeAction = action as import('../types').ReorderFrameRangeHistoryAction;
+      if (isRedo) {
+        // Redo: Re-perform the reorder
+        animationStore.reorderFrameRange(
+          reorderRangeAction.data.frameIndices,
+          reorderRangeAction.data.targetIndex
+        );
+        console.log(`✅ Redo: Reordered ${reorderRangeAction.data.frameIndices.length} frames to position ${reorderRangeAction.data.targetIndex}`);
+      } else {
+        // Undo: Reverse the reorder by moving frames back to original positions
+        // Calculate where the frames ended up after the original move
+        const sortedIndices = [...reorderRangeAction.data.frameIndices].sort((a, b) => a - b);
+        const framesBefore = sortedIndices.filter(idx => idx < reorderRangeAction.data.targetIndex).length;
+        const adjustedTarget = Math.max(0, reorderRangeAction.data.targetIndex - framesBefore);
+        
+        // Create array of new positions (where frames currently are)
+        const currentPositions = sortedIndices.map((_, i) => adjustedTarget + i);
+        
+        // Move frames back to their original positions
+        animationStore.reorderFrameRange(currentPositions, sortedIndices[0]);
+        animationStore.setCurrentFrame(reorderRangeAction.data.previousCurrentFrame);
+        console.log(`✅ Undo: Restored ${reorderRangeAction.data.frameIndices.length} frames to original positions`);
+      }
+      break;
       
     default:
       console.warn('Unknown history action type:', (action as any).type);
@@ -199,12 +274,12 @@ const processHistoryAction = (
 export const useKeyboardShortcuts = () => {
   const { cells, setCanvasData, width, height } = useCanvasStore();
   const { startPasteMode, commitPaste, pasteMode } = useCanvasContext();
-  const { toggleOnionSkin, currentFrameIndex, frames } = useAnimationStore();
+  const { toggleOnionSkin, currentFrameIndex, frames, selectedFrameIndices } = useAnimationStore();
   const { zoomIn, zoomOut } = useZoomControls();
   
   // Frame navigation and management hooks
   const { navigateNext, navigatePrevious, canNavigate } = useFrameNavigation();
-  const { addFrame, removeFrame, duplicateFrame } = useAnimationHistory();
+  const { addFrame, removeFrame, duplicateFrame, deleteFrameRange } = useAnimationHistory();
   
   // Flip utilities for Shift+H and Shift+V
   const { flipHorizontal, flipVertical } = useFlipUtilities();
@@ -636,7 +711,17 @@ export const useKeyboardShortcuts = () => {
     if ((event.key === 'Delete' || event.key === 'Backspace') && (event.metaKey || event.ctrlKey)) {
       if (frames.length > 1) {
         event.preventDefault();
-        removeFrame(currentFrameIndex);
+        
+        // Check if multiple frames are selected
+        const selectedFrames = Array.from(selectedFrameIndices).sort((a, b) => a - b);
+        
+        if (selectedFrames.length > 1) {
+          // Batch delete all selected frames
+          deleteFrameRange(selectedFrames);
+        } else {
+          // Single frame delete
+          removeFrame(currentFrameIndex);
+        }
       }
       return;
     }

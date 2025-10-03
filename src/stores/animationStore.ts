@@ -12,6 +12,9 @@ interface AnimationState extends Animation {
   // Timeline zoom state
   timelineZoom: number; // 0.5 to 1.0 (50% to 100%)
   
+  // Multi-frame selection state
+  selectedFrameIndices: Set<number>; // Set of selected frame indices (includes active frame)
+  
   // Onion skin state
   onionSkin: {
     enabled: boolean;
@@ -25,9 +28,15 @@ interface AnimationState extends Animation {
   removeFrame: (index: number) => void;
   duplicateFrame: (index: number) => void;
   setCurrentFrame: (index: number) => void;
+  setCurrentFrameOnly: (index: number) => void; // Set current frame without clearing selection
   updateFrameDuration: (index: number, duration: number) => void;
   updateFrameName: (index: number, name: string) => void;
   reorderFrames: (fromIndex: number, toIndex: number) => void;
+  
+  // Batch operations for multi-frame selection
+  removeFrameRange: (frameIndices: number[]) => void;
+  clearAllFrames: () => void;
+  reorderFrameRange: (frameIndices: number[], targetIndex: number) => void;
   
   // Bulk import operations
   importFramesOverwrite: (frames: Array<{ data: Map<string, Cell>, duration: number }>, startIndex: number) => void;
@@ -48,6 +57,13 @@ interface AnimationState extends Animation {
   setPreviousFrames: (count: number) => void;
   setNextFrames: (count: number) => void;
   setOnionSkinEnabled: (enabled: boolean) => void;
+  
+  // Selection management actions
+  selectFrameRange: (startIndex: number, endIndex: number) => void;
+  clearSelection: () => void;
+  isFrameSelected: (index: number) => boolean;
+  getSelectedFrameIndices: () => number[];
+  getSelectionRange: () => { start: number; end: number } | null;
   
   // Frame data management
   setFrameData: (frameIndex: number, data: Map<string, Cell>) => void;
@@ -85,6 +101,7 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   // Initial state
   frames: [createEmptyFrame(undefined, "Frame 1")],
   currentFrameIndex: 0,
+  selectedFrameIndices: new Set([0]), // Active frame is always selected
   isPlaying: false,
   frameRate: 12,
   totalDuration: DEFAULT_FRAME_DURATION,
@@ -125,6 +142,7 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
       return {
         frames: newFrames,
         currentFrameIndex: insertIndex,
+        selectedFrameIndices: new Set([insertIndex]), // Update selection to new frame
         totalDuration: get().calculateTotalDuration()
       };
     });
@@ -147,6 +165,7 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
       return {
         frames: newFrames,
         currentFrameIndex: newCurrentIndex,
+        selectedFrameIndices: new Set([Math.max(0, newCurrentIndex)]),
         totalDuration: get().calculateTotalDuration(),
         isDeletingFrame: true // Set flag during the same update to prevent frame sync
       };
@@ -176,6 +195,7 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
       return {
         frames: newFrames,
         currentFrameIndex: index + 1,
+        selectedFrameIndices: new Set([index + 1]),
         totalDuration: get().calculateTotalDuration()
       };
     });
@@ -184,7 +204,20 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   setCurrentFrame: (index: number) => {
     set((state) => {
       if (index < 0 || index >= state.frames.length) return state;
-      return { currentFrameIndex: index };
+      return { 
+        currentFrameIndex: index,
+        selectedFrameIndices: new Set([index]) // Reset to single selection
+      };
+    });
+  },
+
+  setCurrentFrameOnly: (index: number) => {
+    set((state) => {
+      if (index < 0 || index >= state.frames.length) return state;
+      return { 
+        currentFrameIndex: index
+        // Don't modify selectedFrameIndices
+      };
     });
   },
 
@@ -278,6 +311,119 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
     }, 100);
   },
 
+  // Batch operation: Remove multiple frames at once
+  removeFrameRange: (frameIndices: number[]) => {
+    set((state) => {
+      if (frameIndices.length === 0) return state;
+      
+      // Sort indices in descending order for safe removal
+      const sortedIndices = [...frameIndices].sort((a, b) => b - a);
+      
+      // Check if we'd be removing all frames
+      if (sortedIndices.length >= state.frames.length) {
+        // Can't remove all frames - must keep at least one
+        return state;
+      }
+      
+      // Filter out frames at the specified indices
+      const indicesToRemove = new Set(sortedIndices);
+      const newFrames = state.frames.filter((_, index) => !indicesToRemove.has(index));
+      
+      // Calculate new current frame index
+      let newCurrentIndex = state.currentFrameIndex;
+      
+      // Count how many frames before current are being removed
+      const removedBeforeCurrent = sortedIndices.filter(idx => idx < state.currentFrameIndex).length;
+      newCurrentIndex -= removedBeforeCurrent;
+      
+      // Ensure new index is within bounds
+      newCurrentIndex = Math.max(0, Math.min(newCurrentIndex, newFrames.length - 1));
+      
+      return {
+        frames: newFrames,
+        currentFrameIndex: newCurrentIndex,
+        selectedFrameIndices: new Set([newCurrentIndex]),
+        totalDuration: get().calculateTotalDuration(),
+        isDeletingFrame: true
+      };
+    });
+    
+    setTimeout(() => {
+      set({ isDeletingFrame: false });
+    }, 100);
+  },
+
+  // Batch operation: Clear all frames and create a single blank frame
+  clearAllFrames: () => {
+    set(() => ({
+      frames: [createEmptyFrame(undefined, "Frame 1")],
+      currentFrameIndex: 0,
+      selectedFrameIndices: new Set([0]),
+      totalDuration: DEFAULT_FRAME_DURATION,
+      isDeletingFrame: true
+    }));
+    
+    setTimeout(() => {
+      set({ isDeletingFrame: false });
+    }, 100);
+  },
+
+  // Batch operation: Reorder multiple frames as a contiguous group
+  reorderFrameRange: (frameIndices: number[], targetIndex: number) => {
+    set((state) => {
+      if (frameIndices.length === 0) return state;
+      
+      // Sort frame indices to maintain order
+      const sortedIndices = [...frameIndices].sort((a, b) => a - b);
+      
+      // Validate indices
+      if (sortedIndices.some(idx => idx < 0 || idx >= state.frames.length)) {
+        return state;
+      }
+      
+      // Extract frames to move
+      const framesToMove = sortedIndices.map(idx => state.frames[idx]);
+      
+      // Remove moved frames from original positions (in descending order)
+      const newFrames = state.frames.filter((_, idx) => !sortedIndices.includes(idx));
+      
+      // Calculate adjusted target index after removal
+      const framesBefore = sortedIndices.filter(idx => idx < targetIndex).length;
+      const adjustedTarget = Math.max(0, targetIndex - framesBefore);
+      
+      // Insert frames at target position
+      newFrames.splice(adjustedTarget, 0, ...framesToMove);
+      
+      // Calculate new current frame index
+      let newCurrentIndex = state.currentFrameIndex;
+      
+      if (sortedIndices.includes(state.currentFrameIndex)) {
+        // Current frame is being moved
+        const positionInSelection = sortedIndices.indexOf(state.currentFrameIndex);
+        newCurrentIndex = adjustedTarget + positionInSelection;
+      } else {
+        // Adjust current index based on how many frames moved around it
+        const movedFromBefore = sortedIndices.filter(idx => idx < state.currentFrameIndex).length;
+        const movedToBefore = adjustedTarget <= state.currentFrameIndex ? framesToMove.length : 0;
+        newCurrentIndex = state.currentFrameIndex - movedFromBefore + movedToBefore;
+      }
+      
+      newCurrentIndex = Math.max(0, Math.min(newCurrentIndex, newFrames.length - 1));
+      
+      return {
+        ...state,
+        frames: newFrames,
+        currentFrameIndex: newCurrentIndex,
+        totalDuration: newFrames.reduce((total, frame) => total + frame.duration, 0),
+        isDraggingFrame: true
+      };
+    });
+    
+    setTimeout(() => {
+      set({ isDraggingFrame: false });
+    }, 100);
+  },
+
   // Frame data management
   setFrameData: (frameIndex: number, data: Map<string, Cell>) => {
     set((state) => {
@@ -301,6 +447,7 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   play: () => {
     set((state) => ({
       isPlaying: true,
+      selectedFrameIndices: new Set([state.currentFrameIndex]), // Clear selection to single frame
       onionSkin: {
         ...state.onionSkin,
         wasEnabledBeforePlayback: state.onionSkin.enabled,
@@ -323,6 +470,7 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
     set((state) => ({
       isPlaying: false,
       currentFrameIndex: 0,
+      selectedFrameIndices: new Set([0]), // Clear selection to first frame
       onionSkin: {
         ...state.onionSkin,
         enabled: state.onionSkin.wasEnabledBeforePlayback // Restore previous state
@@ -350,9 +498,18 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
     set((state) => {
       const nextIndex = state.currentFrameIndex + 1;
       if (nextIndex >= state.frames.length) {
-        return state.looping ? { currentFrameIndex: 0 } : state;
+        if (!state.looping) {
+          return state;
+        }
+        return {
+          currentFrameIndex: 0,
+          selectedFrameIndices: new Set([0])
+        };
       }
-      return { currentFrameIndex: nextIndex };
+      return {
+        currentFrameIndex: nextIndex,
+        selectedFrameIndices: new Set([nextIndex])
+      };
     });
   },
 
@@ -360,16 +517,29 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
     set((state) => {
       const prevIndex = state.currentFrameIndex - 1;
       if (prevIndex < 0) {
-        return state.looping ? { currentFrameIndex: state.frames.length - 1 } : state;
+        if (!state.looping) {
+          return state;
+        }
+        const lastIndex = Math.max(0, state.frames.length - 1);
+        return {
+          currentFrameIndex: lastIndex,
+          selectedFrameIndices: new Set([lastIndex])
+        };
       }
-      return { currentFrameIndex: prevIndex };
+      return {
+        currentFrameIndex: prevIndex,
+        selectedFrameIndices: new Set([prevIndex])
+      };
     });
   },
 
   goToFrame: (index: number) => {
     const { frames } = get();
     if (index >= 0 && index < frames.length) {
-      set({ currentFrameIndex: index });
+      set({
+        currentFrameIndex: index,
+        selectedFrameIndices: new Set([index])
+      });
     }
   },
 
@@ -437,6 +607,42 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
         enabled
       }
     }));
+  },
+
+  // Selection management actions
+  selectFrameRange: (startIndex: number, endIndex: number) => {
+    const start = Math.min(startIndex, endIndex);
+    const end = Math.max(startIndex, endIndex);
+    const indices = new Set<number>();
+    const { frames } = get();
+    
+    for (let i = start; i <= end; i++) {
+      if (i >= 0 && i < frames.length) {
+        indices.add(i);
+      }
+    }
+    
+    set({ selectedFrameIndices: indices });
+  },
+  
+  clearSelection: () => {
+    const { currentFrameIndex } = get();
+    // Keep only the active frame selected
+    set({ selectedFrameIndices: new Set([currentFrameIndex]) });
+  },
+  
+  isFrameSelected: (index: number) => {
+    return get().selectedFrameIndices.has(index);
+  },
+  
+  getSelectedFrameIndices: () => {
+    return Array.from(get().selectedFrameIndices).sort((a, b) => a - b);
+  },
+  
+  getSelectionRange: () => {
+    const indices = get().getSelectedFrameIndices();
+    if (indices.length === 0) return null;
+    return { start: indices[0], end: indices[indices.length - 1] };
   },
 
   // Bulk import operations

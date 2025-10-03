@@ -249,6 +249,136 @@ export const useAnimationHistory = () => {
     }
   }, [frames.length, currentFrameIndex, addFrame, duplicateFrame]);
 
+  /**
+   * Delete multiple frames at once with history recording
+   */
+  const deleteFrameRange = useCallback((frameIndices: number[]) => {
+    if (frameIndices.length === 0) return;
+    
+    // Sort indices to get correct frame data before deletion
+    const sortedIndices = [...frameIndices].sort((a, b) => a - b);
+    
+    // Collect frames to be deleted
+    const framesToDelete = sortedIndices.map(idx => frames[idx]).filter(Boolean);
+    
+    if (framesToDelete.length === 0 || framesToDelete.length >= frames.length) {
+      // Can't delete all frames
+      return;
+    }
+    
+    const previousCurrentFrame = currentFrameIndex;
+    
+    // Calculate new current frame after deletion
+    const removedBeforeCurrent = sortedIndices.filter(idx => idx < currentFrameIndex).length;
+    const newCurrentFrame = Math.max(0, Math.min(
+      currentFrameIndex - removedBeforeCurrent,
+      frames.length - framesToDelete.length - 1
+    ));
+    
+    // Create history action
+    const historyAction: import('../types').DeleteFrameRangeHistoryAction = {
+      type: 'delete_frame_range',
+      timestamp: Date.now(),
+      description: `Delete ${framesToDelete.length} frame${framesToDelete.length > 1 ? 's' : ''}`,
+      data: {
+        frameIndices: sortedIndices,
+        frames: framesToDelete.map(f => ({
+          ...f,
+          data: new Map(f.data)
+        })),
+        previousCurrentFrame,
+        newCurrentFrame
+      }
+    };
+    
+    // Execute the action
+    useAnimationStore.getState().removeFrameRange(sortedIndices);
+    
+    // Record in history
+    pushToHistory(historyAction);
+  }, [frames, currentFrameIndex, pushToHistory]);
+
+  /**
+   * Delete all frames and reset to single blank frame with history recording
+   */
+  const deleteAllFramesWithReset = useCallback(() => {
+    const previousCurrentFrame = currentFrameIndex;
+    const framesToSave = frames.map(f => ({
+      ...f,
+      data: new Map(f.data)
+    }));
+    
+    // Create history action
+    const historyAction: import('../types').DeleteAllFramesHistoryAction = {
+      type: 'delete_all_frames',
+      timestamp: Date.now(),
+      description: 'Delete all frames',
+      data: {
+        frames: framesToSave,
+        previousCurrentFrame
+      }
+    };
+    
+    // Execute the action
+    useAnimationStore.getState().clearAllFrames();
+    
+    // Record in history
+    pushToHistory(historyAction);
+  }, [frames, currentFrameIndex, pushToHistory]);
+
+  /**
+   * Reorder multiple frames as a contiguous group with history recording
+   */
+  const reorderFrameRange = useCallback((frameIndices: number[], targetIndex: number) => {
+    if (frameIndices.length === 0) return;
+    
+    const sortedIndices = [...frameIndices].sort((a, b) => a - b);
+    
+    // Validate indices
+    if (sortedIndices.some(idx => idx < 0 || idx >= frames.length)) {
+      return;
+    }
+    
+    const previousCurrentFrame = currentFrameIndex;
+    
+    // Calculate new current frame after reordering
+    let newCurrentFrame = currentFrameIndex;
+    
+    if (sortedIndices.includes(currentFrameIndex)) {
+      // Current frame is being moved
+      const framesBefore = sortedIndices.filter(idx => idx < targetIndex).length;
+      const adjustedTarget = Math.max(0, targetIndex - framesBefore);
+      const positionInSelection = sortedIndices.indexOf(currentFrameIndex);
+      newCurrentFrame = adjustedTarget + positionInSelection;
+    } else {
+      // Adjust current index based on movement
+      const movedFromBefore = sortedIndices.filter(idx => idx < currentFrameIndex).length;
+      const movedToBefore = targetIndex <= currentFrameIndex ? frameIndices.length : 0;
+      newCurrentFrame = currentFrameIndex - movedFromBefore + movedToBefore;
+    }
+    
+    newCurrentFrame = Math.max(0, Math.min(newCurrentFrame, frames.length - 1));
+    
+    // Create history action
+    const historyAction: import('../types').ReorderFrameRangeHistoryAction = {
+      type: 'reorder_frame_range',
+      timestamp: Date.now(),
+      description: `Move ${frameIndices.length} frame${frameIndices.length > 1 ? 's' : ''} to position ${targetIndex + 1}`,
+      data: {
+        frameIndices: sortedIndices,
+        targetIndex,
+        previousCurrentFrame,
+        newCurrentFrame
+      }
+    };
+    
+    // Execute the action
+    useAnimationStore.getState().reorderFrameRange(sortedIndices, targetIndex);
+    
+    // Record in history
+    pushToHistory(historyAction);
+  }, [frames, currentFrameIndex, pushToHistory]);
+
   return {
     addFrame,
     duplicateFrame,
@@ -256,6 +386,9 @@ export const useAnimationHistory = () => {
     reorderFrames,
     updateFrameDuration,
     updateFrameName,
-    addMultipleFrames
+    addMultipleFrames,
+    deleteFrameRange,
+    deleteAllFramesWithReset,
+    reorderFrameRange
   };
 };

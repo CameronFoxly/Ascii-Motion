@@ -9,11 +9,12 @@ import { useCanvasStore } from '../../stores/canvasStore';
 interface FrameThumbnailProps {
   frame: Frame;
   frameIndex: number;
-  isSelected: boolean;
+  isActive: boolean;      // Is this the active frame (displayed on canvas)?
+  isSelected: boolean;    // Is this frame in the selection?
   canvasWidth: number;
   canvasHeight: number;
   scaleZoom?: number; // Timeline zoom scaling (0.5 to 1.0)
-  onSelect: () => void;
+  onSelect: (event: React.MouseEvent) => void; // Now passes event for shift-click detection
   onDuplicate: () => void;
   onDelete: () => void;
   onDurationChange: (duration: number) => void;
@@ -32,6 +33,7 @@ interface FrameThumbnailProps {
 export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
   frame,
   frameIndex,
+  isActive,
   isSelected,
   canvasWidth,
   canvasHeight,
@@ -222,30 +224,45 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
     }
   };
 
-  // Calculate onion skin border styling
-  const getOnionSkinBorderStyle = () => {
+  // Calculate frame card border styling based on state
+  const getBorderStyle = () => {
+    if (isDragging) {
+      return 'border-primary/50 bg-primary/10';
+    }
+    
+    if (isActive) {
+      // Active frame: Full white border
+      return 'border-white bg-white/5';
+    }
+    
+    if (isSelected) {
+      // Selected but not active: Dimmer white border (60% opacity)
+      return 'border-white/60 bg-white/5';
+    }
+    
+    // Unselected: Default border
+    return 'border-border hover:border-primary/50';
+  };
+
+  // Onion skin indicator on canvas preview box (not card border)
+  const getCanvasPreviewBorder = () => {
     if (isOnionSkinPrevious) {
-      return 'border-purple-500/60 bg-purple-50/20';
+      return 'border-purple-500/60';
     }
     if (isOnionSkinNext) {
-      return 'border-red-500/60 bg-red-50/20';
+      return 'border-red-500/60';
     }
-    return '';
+    return 'border-border';
   };
 
   return (
     <Card
       className={`
         relative flex-shrink-0 cursor-pointer transition-all duration-150 ease-out select-none overflow-hidden flex flex-col
-        ${isSelected 
-          ? 'border-white bg-white/5' 
-          : isOnionSkinPrevious || isOnionSkinNext
-            ? getOnionSkinBorderStyle()
-            : 'border-border hover:border-primary/50'
-        }
+        ${getBorderStyle()}
         ${isDragging ? 'opacity-50 scale-95' : ''}
       `}
-      onClick={onSelect}
+      onClick={(e) => onSelect(e)} // Pass event to parent
       {...dragHandleProps}
       data-frame-index={frameIndex}
       style={{
@@ -314,7 +331,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
 
       {/* Frame preview - flexible space between header and duration */}
       <div className="flex-1 mb-1 overflow-hidden min-h-0">
-        <div className="bg-muted/30 p-1 rounded border h-full flex items-center justify-center">
+        <div className={`bg-muted/30 p-1 rounded border h-full flex items-center justify-center ${getCanvasPreviewBorder()}`}>
           {thumbnailCanvas ? (
             <img 
               src={thumbnailCanvas} 

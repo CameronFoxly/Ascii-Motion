@@ -232,7 +232,10 @@ export type HistoryActionType =
   | 'add_frame'        // Add new frame
   | 'duplicate_frame'  // Duplicate existing frame
   | 'delete_frame'     // Delete frame
+  | 'delete_frame_range'  // Delete multiple frames
+  | 'delete_all_frames'   // Delete all frames and reset
   | 'reorder_frames'   // Reorder frame positions
+  | 'reorder_frame_range' // Reorder multiple frames as a group
   | 'update_duration'  // Change frame duration
   | 'update_name'      // Change frame name
   | 'navigate_frame'   // Navigate to different frame
@@ -320,6 +323,34 @@ export interface NavigateFrameHistoryAction extends HistoryAction {
   };
 }
 
+export interface DeleteFrameRangeHistoryAction extends HistoryAction {
+  type: 'delete_frame_range';
+  data: {
+    frameIndices: number[];
+    frames: Frame[];
+    previousCurrentFrame: number;
+    newCurrentFrame: number;
+  };
+}
+
+export interface DeleteAllFramesHistoryAction extends HistoryAction {
+  type: 'delete_all_frames';
+  data: {
+    frames: Frame[];
+    previousCurrentFrame: number;
+  };
+}
+
+export interface ReorderFrameRangeHistoryAction extends HistoryAction {
+  type: 'reorder_frame_range';
+  data: {
+    frameIndices: number[];
+    targetIndex: number;
+    previousCurrentFrame: number;
+    newCurrentFrame: number;
+  };
+}
+
 export interface ApplyEffectHistoryAction extends HistoryAction {
   type: 'apply_effect';
   data: {
@@ -357,7 +388,10 @@ export type AnyHistoryAction =
   | AddFrameHistoryAction 
   | DuplicateFrameHistoryAction
   | DeleteFrameHistoryAction
+  | DeleteFrameRangeHistoryAction
+  | DeleteAllFramesHistoryAction
   | ReorderFramesHistoryAction
+  | ReorderFrameRangeHistoryAction
   | UpdateDurationHistoryAction
   | UpdateNameHistoryAction
   | NavigateFrameHistoryAction
