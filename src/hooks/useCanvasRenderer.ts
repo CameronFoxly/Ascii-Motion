@@ -480,43 +480,6 @@ export const useCanvasRenderer = () => {
       });
     }
 
-    // Draw magic wand selection overlay
-    if (magicWandSelection.active && magicWandSelection.selectedCells.size > 0) {
-      // Highlight selected cells
-      magicWandSelection.selectedCells.forEach(cellKey => {
-        const [x, y] = cellKey.split(',').map(Number);
-        
-        // Apply move offset if in move mode  
-        let cellX = x;
-        let cellY = y;
-        if (moveState) {
-          const totalOffset = getTotalOffset(moveState);
-          cellX = x + totalOffset.x;
-          cellY = y + totalOffset.y;
-        }
-        
-        // Draw cell highlight - use orange color to distinguish from other selections
-        ctx.fillStyle = 'rgba(255, 165, 0, 0.3)'; // Orange with transparency
-        ctx.fillRect(
-          Math.round(cellX * effectiveCellWidth + panOffset.x),
-          Math.round(cellY * effectiveCellHeight + panOffset.y),
-          Math.round(effectiveCellWidth),
-          Math.round(effectiveCellHeight)
-        );
-        
-        // Draw cell border
-        ctx.strokeStyle = '#FF8C00'; // Darker orange border
-        ctx.lineWidth = 1;
-        ctx.setLineDash([]);
-        ctx.strokeRect(
-          Math.round(cellX * effectiveCellWidth + panOffset.x),
-          Math.round(cellY * effectiveCellHeight + panOffset.y),
-          Math.round(effectiveCellWidth),
-          Math.round(effectiveCellHeight)
-        );
-      });
-    }
-
     // Draw paste preview overlay
     if (pasteMode.isActive && pasteMode.preview) {
       const { position, data, bounds } = pasteMode.preview;

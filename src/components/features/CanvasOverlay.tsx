@@ -18,7 +18,7 @@ export const CanvasOverlay: React.FC = () => {
     getTotalOffset,
   } = useCanvasState();
 
-  const { selection, lassoSelection, linePreview, activeTool } = useToolStore();
+  const { selection, lassoSelection, magicWandSelection, linePreview, activeTool } = useToolStore();
   const { 
     isApplying: gradientApplying, 
     startPoint: gradientStart, 
@@ -57,6 +57,8 @@ export const CanvasOverlay: React.FC = () => {
     // Clear previous overlay
     ctx.clearRect(0, 0, overlayCanvas.width / (window.devicePixelRatio || 1), overlayCanvas.height / (window.devicePixelRatio || 1));
 
+    const totalOffset = moveState ? getTotalOffset(moveState) : { x: 0, y: 0 };
+
     const drawCells = (cells: Set<string>, options: { fillStyle?: string; strokeStyle?: string; lineDash?: number[] }) => {
       if (!cells || cells.size === 0) return;
 
@@ -67,14 +69,8 @@ export const CanvasOverlay: React.FC = () => {
 
       cells.forEach((cellKey) => {
         const [rawX, rawY] = cellKey.split(',').map(Number);
-        let cellX = rawX;
-        let cellY = rawY;
-
-        if (moveState) {
-          const totalOffset = getTotalOffset(moveState);
-          cellX += totalOffset.x;
-          cellY += totalOffset.y;
-        }
+        let cellX = rawX + totalOffset.x;
+        let cellY = rawY + totalOffset.y;
 
         if (cellX < 0 || cellY < 0 || cellX >= width || cellY >= height) {
           return;
@@ -98,6 +94,210 @@ export const CanvasOverlay: React.FC = () => {
       if (lineDash) {
         ctx.setLineDash([]);
       }
+    };
+
+    const selectionFillColor = 'rgba(192, 132, 252, 0.18)';
+    const selectionOutlineColor = '#C084FC';
+    const selectionLineDash: [number, number] = [6, 4];
+
+    const adjustCellsForOffset = (cells: Set<string>): Set<string> => {
+      const adjusted = new Set<string>();
+      cells.forEach((cellKey) => {
+        const [rawX, rawY] = cellKey.split(',').map(Number);
+        const adjX = rawX + totalOffset.x;
+        const adjY = rawY + totalOffset.y;
+
+        if (adjX < 0 || adjY < 0 || adjX >= width || adjY >= height) {
+          return;
+        }
+
+        adjusted.add(`${adjX},${adjY}`);
+      });
+      return adjusted;
+    };
+
+    const buildIslands = (cells: Set<string>): Set<string>[] => {
+      const visited = new Set<string>();
+      const islands: Set<string>[] = [];
+      const neighborOffsets = [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1]
+      ];
+
+      cells.forEach((cellKey) => {
+        if (visited.has(cellKey)) {
+          return;
+        }
+
+        const island = new Set<string>();
+        const stack: string[] = [cellKey];
+        visited.add(cellKey);
+
+        while (stack.length > 0) {
+          const currentKey = stack.pop()!;
+          island.add(currentKey);
+          const [cx, cy] = currentKey.split(',').map(Number);
+
+          neighborOffsets.forEach(([dx, dy]) => {
+            const neighborKey = `${cx + dx},${cy + dy}`;
+            if (!visited.has(neighborKey) && cells.has(neighborKey)) {
+              visited.add(neighborKey);
+              stack.push(neighborKey);
+            }
+          });
+        }
+
+        islands.push(island);
+      });
+
+      return islands;
+    };
+
+    const buildOutlineLoops = (island: Set<string>): { x: number; y: number }[][] => {
+      const edgeMap = new Map<string, Map<string, { x: number; y: number }>>();
+      const edgeKeys = new Set<string>();
+
+      const pointKey = (point: { x: number; y: number }) => `${point.x},${point.y}`;
+
+      const addEdge = (from: { x: number; y: number }, to: { x: number; y: number }) => {
+        const fromKey = pointKey(from);
+        const toKey = pointKey(to);
+
+        if (!edgeMap.has(fromKey)) {
+          edgeMap.set(fromKey, new Map());
+        }
+
+        const fromEdges = edgeMap.get(fromKey)!;
+        if (!fromEdges.has(toKey)) {
+          fromEdges.set(toKey, to);
+          edgeKeys.add(`${fromKey}|${toKey}`);
+        }
+      };
+
+      island.forEach((cellKey) => {
+        const [x, y] = cellKey.split(',').map(Number);
+
+        const neighbors = [
+          { dx: 0, dy: -1, from: { x, y }, to: { x: x + 1, y } }, // top edge
+          { dx: 1, dy: 0, from: { x: x + 1, y }, to: { x: x + 1, y: y + 1 } }, // right edge
+          { dx: 0, dy: 1, from: { x: x + 1, y: y + 1 }, to: { x, y: y + 1 } }, // bottom edge
+          { dx: -1, dy: 0, from: { x, y: y + 1 }, to: { x, y } } // left edge
+        ];
+
+        neighbors.forEach(({ dx, dy, from, to }) => {
+          const neighborKey = `${x + dx},${y + dy}`;
+          if (!island.has(neighborKey)) {
+            addEdge(from, to);
+          }
+        });
+      });
+
+      const parsePoint = (key: string): { x: number; y: number } => {
+        const [px, py] = key.split(',').map(Number);
+        return { x: px, y: py };
+      };
+
+      const loops: { x: number; y: number }[][] = [];
+
+      while (edgeKeys.size > 0) {
+        const firstKey = edgeKeys.values().next().value as string;
+        const [startFromKey, startToKey] = firstKey.split('|');
+        const loop: { x: number; y: number }[] = [];
+
+        let currentFromKey = startFromKey;
+        let currentToKey = startToKey;
+        loop.push(parsePoint(currentFromKey));
+
+        while (true) {
+          const fromEdges = edgeMap.get(currentFromKey);
+          if (!fromEdges) {
+            break;
+          }
+
+          const nextPoint = fromEdges.get(currentToKey);
+          if (!nextPoint) {
+            break;
+          }
+
+          loop.push(nextPoint);
+
+          fromEdges.delete(currentToKey);
+          edgeKeys.delete(`${currentFromKey}|${currentToKey}`);
+          if (fromEdges.size === 0) {
+            edgeMap.delete(currentFromKey);
+          }
+
+          if (currentToKey === startFromKey) {
+            break;
+          }
+
+          const nextEdges = edgeMap.get(currentToKey);
+          if (!nextEdges || nextEdges.size === 0) {
+            break;
+          }
+
+          const nextToEntry = nextEdges.entries().next().value as [string, { x: number; y: number }];
+          currentFromKey = currentToKey;
+          currentToKey = nextToEntry[0];
+        }
+
+        loops.push(loop);
+      }
+
+      return loops;
+    };
+
+    const drawSelectionIslands = (cells: Set<string>) => {
+      if (!cells || cells.size === 0) {
+        return;
+      }
+
+      const adjustedCells = adjustCellsForOffset(cells);
+      if (adjustedCells.size === 0) {
+        return;
+      }
+
+      ctx.fillStyle = selectionFillColor;
+      adjustedCells.forEach((cellKey) => {
+        const [x, y] = cellKey.split(',').map(Number);
+        const pixelX = x * effectiveCellWidth + panOffset.x;
+        const pixelY = y * effectiveCellHeight + panOffset.y;
+        ctx.fillRect(pixelX, pixelY, effectiveCellWidth, effectiveCellHeight);
+      });
+
+      const islands = buildIslands(adjustedCells);
+
+      ctx.strokeStyle = selectionOutlineColor;
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.setLineDash(selectionLineDash);
+
+      islands.forEach((island) => {
+        const loops = buildOutlineLoops(island);
+        loops.forEach((loop) => {
+          if (loop.length < 2) {
+            return;
+          }
+
+          ctx.beginPath();
+          loop.forEach((point, index) => {
+            const pixelX = point.x * effectiveCellWidth + panOffset.x;
+            const pixelY = point.y * effectiveCellHeight + panOffset.y;
+            if (index === 0) {
+              ctx.moveTo(pixelX, pixelY);
+            } else {
+              ctx.lineTo(pixelX, pixelY);
+            }
+          });
+          ctx.closePath();
+          ctx.stroke();
+        });
+      });
+
+      ctx.setLineDash([]);
     };
 
     const previewActive = selectionPreview.active && selectionPreview.tool !== null && selectionPreview.modifier !== 'replace';
@@ -127,7 +327,7 @@ export const CanvasOverlay: React.FC = () => {
           addFill: 'rgba(56, 189, 248, 0.25)',
           addStroke: undefined,
           subtractFill: 'rgba(239, 68, 68, 0.22)',
-          subtractStroke: '#EF4444'
+          subtractStroke: undefined
         }
       } as const;
 
@@ -146,69 +346,22 @@ export const CanvasOverlay: React.FC = () => {
 
         drawCells(remainingCells, { fillStyle: styles.baseFill });
         if (gestureCells.size > 0) {
-          drawCells(gestureCells, { fillStyle: styles.subtractFill, strokeStyle: styles.subtractStroke, lineDash: [4, 3] });
+          drawCells(gestureCells, { fillStyle: styles.subtractFill, strokeStyle: styles.subtractStroke, lineDash: styles.subtractStroke ? [4, 3] : undefined });
         }
       }
     }
 
     // Draw selection overlay
-    if (selection.active) {
-      let startX = Math.min(selection.start.x, selection.end.x);
-      let startY = Math.min(selection.start.y, selection.end.y);
-      let endX = Math.max(selection.start.x, selection.end.x);
-      let endY = Math.max(selection.start.y, selection.end.y);
-
-      // If moving, adjust the marquee position by the move offset
-      if (moveState) {
-        const totalOffset = getTotalOffset(moveState);
-        startX += totalOffset.x;
-        startY += totalOffset.y;
-        endX += totalOffset.x;
-        endY += totalOffset.y;
-      }
-
-      // Draw selection rectangle with dashed border
-      ctx.strokeStyle = '#3B82F6';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 5]);
-      ctx.strokeRect(
-        startX * effectiveCellWidth + panOffset.x,
-        startY * effectiveCellHeight + panOffset.y,
-        (endX - startX + 1) * effectiveCellWidth,
-        (endY - startY + 1) * effectiveCellHeight
-      );
-      ctx.setLineDash([]);
+    if (selection.active && selection.selectedCells.size > 0) {
+      drawSelectionIslands(selection.selectedCells);
     }
 
-    // Draw lasso selection overlay
     if (lassoSelection.active && lassoSelection.selectedCells.size > 0) {
-      ctx.strokeStyle = '#3B82F6';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 5]);
+      drawSelectionIslands(lassoSelection.selectedCells);
+    }
 
-      // Draw individual cell highlights for lasso selection
-      lassoSelection.selectedCells.forEach(cellKey => {
-        const [x, y] = cellKey.split(',').map(Number);
-        
-        let cellX = x;
-        let cellY = y;
-        
-        // If moving, adjust the cell position by the move offset
-        if (moveState) {
-          const totalOffset = getTotalOffset(moveState);
-          cellX += totalOffset.x;
-          cellY += totalOffset.y;
-        }
-        
-        ctx.strokeRect(
-          cellX * effectiveCellWidth + panOffset.x,
-          cellY * effectiveCellHeight + panOffset.y,
-          effectiveCellWidth,
-          effectiveCellHeight
-        );
-      });
-      
-      ctx.setLineDash([]);
+    if (magicWandSelection.active && magicWandSelection.selectedCells.size > 0) {
+      drawSelectionIslands(magicWandSelection.selectedCells);
     }
 
     // Draw shift+click line preview
