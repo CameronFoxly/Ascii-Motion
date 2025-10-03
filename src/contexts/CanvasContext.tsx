@@ -323,5 +323,32 @@ export const useCanvasDimensions = () => {
         y: Math.max(0, Math.min(y, gridHeight - 1)),
       };
     },
+    getGridCoordinatesWithCenter: (
+      mouseX: number, 
+      mouseY: number, 
+      canvasRect: DOMRect,
+      gridWidth: number,
+      gridHeight: number
+    ) => {
+      // Get relative position within canvas (in CSS pixels)
+      const relativeX = mouseX - canvasRect.left;
+      const relativeY = mouseY - canvasRect.top;
+      
+      // Account for pan offset - subtract pan offset to get actual grid position
+      const adjustedX = relativeX - panOffset.x;
+      const adjustedY = relativeY - panOffset.y;
+      
+      // Account for zoom - divide by zoomed cell size
+      const effectiveCellWidth = cellWidth * zoom;
+      const effectiveCellHeight = cellHeight * zoom;
+      const x = Math.floor(adjustedX / effectiveCellWidth);
+      const y = Math.floor(adjustedY / effectiveCellHeight);
+      
+      // Return cell center coordinates (add 0.5 to snap to center)
+      return {
+        x: Math.max(0.5, Math.min(x + 0.5, gridWidth - 0.5)),
+        y: Math.max(0.5, Math.min(y + 0.5, gridHeight - 0.5)),
+      };
+    },
   };
 };

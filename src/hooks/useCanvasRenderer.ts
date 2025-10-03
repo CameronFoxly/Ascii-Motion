@@ -11,7 +11,6 @@ import { useMemoizedGrid } from './useMemoizedGrid';
 import { useDrawingTool } from './useDrawingTool';
 import { useOnionSkinRenderer } from './useOnionSkinRenderer';
 import { measureCanvasRender, finishCanvasRender } from '../utils/performance';
-import { smoothPolygonPath } from '../utils/polygon';
 import { 
   setupTextRendering
 } from '../utils/canvasTextRendering';
@@ -354,35 +353,8 @@ export const useCanvasRenderer = () => {
 
     // Draw lasso selection overlay
     if (toolState.lassoSelection.active) {
-      if (toolState.lassoSelection.isDrawing && toolState.lassoSelection.path.length > 1) {
-        // Draw the lasso path being drawn - use minimal smoothing to match selection
-        const previewPath = [...toolState.lassoSelection.path, toolState.lassoSelection.path[0]];
-        const smoothedPath = smoothPolygonPath(previewPath, 0.2);
-        
-        if (smoothedPath.length > 1) {
-          ctx.strokeStyle = '#A855F7'; // Purple
-          ctx.lineWidth = 2;
-          ctx.setLineDash([3, 3]);
-          
-          ctx.beginPath();
-          const firstPoint = smoothedPath[0];
-          ctx.moveTo(
-            (firstPoint.x + 0.5) * effectiveCellWidth + panOffset.x,
-            (firstPoint.y + 0.5) * effectiveCellHeight + panOffset.y
-          );
-          
-          for (let i = 1; i < smoothedPath.length; i++) {
-            const point = smoothedPath[i];
-            ctx.lineTo(
-              (point.x + 0.5) * effectiveCellWidth + panOffset.x,
-              (point.y + 0.5) * effectiveCellHeight + panOffset.y
-            );
-          }
-          ctx.stroke();
-          ctx.setLineDash([]);
-        }
-      }
-
+      // Note: Lasso path drawing removed for cleaner UX - only show filled selection
+      
       // Highlight selected cells
       if (lassoSelection.selectedCells.size > 0) {
         ctx.fillStyle = 'rgba(168, 85, 247, 0.2)'; // Purple highlight with transparency
@@ -410,56 +382,7 @@ export const useCanvasRenderer = () => {
           }
         });
 
-        // Draw selection border for completed lasso
-        if (!lassoSelection.isDrawing && lassoSelection.path.length > 2) {
-          // Use smoothed path to match the selection calculation
-          const smoothedPath = smoothPolygonPath(lassoSelection.path, 0.5);
-          
-          if (smoothedPath.length > 0) {
-            ctx.strokeStyle = '#A855F7'; // Purple border
-            ctx.lineWidth = 2;
-            ctx.setLineDash([5, 5]);
-            
-            ctx.beginPath();
-            const firstPoint = smoothedPath[0];
-            
-            // Apply move offset to path if in move mode
-            let startX = firstPoint.x;
-            let startY = firstPoint.y;
-            if (moveState) {
-              const totalOffset = getTotalOffset(moveState);
-              startX = firstPoint.x + totalOffset.x;
-              startY = firstPoint.y + totalOffset.y;
-            }
-            
-            ctx.moveTo(
-              (startX + 0.5) * effectiveCellWidth + panOffset.x,
-              (startY + 0.5) * effectiveCellHeight + panOffset.y
-            );
-            
-            for (let i = 1; i < smoothedPath.length; i++) {
-              const point = smoothedPath[i];
-              let pathX = point.x;
-              let pathY = point.y;
-              
-              if (moveState) {
-                const totalOffset = getTotalOffset(moveState);
-                pathX = point.x + totalOffset.x;
-                pathY = point.y + totalOffset.y;
-              }
-              
-              ctx.lineTo(
-                (pathX + 0.5) * effectiveCellWidth + panOffset.x,
-                (pathY + 0.5) * effectiveCellHeight + panOffset.y
-              );
-            }
-            
-            // Close the path
-            ctx.closePath();
-            ctx.stroke();
-            ctx.setLineDash([]);
-          }
-        }
+        // Note: Lasso path border removed for cleaner UX - only show filled selection
       }
     }
 

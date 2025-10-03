@@ -14,7 +14,7 @@ import type { Cell } from '../types';
  */
 export const useCanvasLassoSelection = () => {
   const { canvasRef, mouseButtonDown, setMouseButtonDown, setSelectionPreview } = useCanvasContext();
-  const { getGridCoordinates } = useCanvasDimensions();
+  const { getGridCoordinates, getGridCoordinatesWithCenter } = useCanvasDimensions();
   const {
     selectionMode,
     moveState,
@@ -126,7 +126,7 @@ export const useCanvasLassoSelection = () => {
     resetSelectionGesture();
   }, [lassoSelection, setLassoSelectionFromMask, resetSelectionGesture]);
 
-  // Convert mouse coordinates to grid coordinates
+  // Convert mouse coordinates to grid coordinates (with center snapping for lasso)
   const getGridCoordinatesFromEvent = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -137,6 +137,18 @@ export const useCanvasLassoSelection = () => {
 
     return getGridCoordinates(mouseX, mouseY, rect, width, height);
   }, [getGridCoordinates, width, height, canvasRef]);
+
+  // Convert mouse coordinates to grid coordinates with center snapping for lasso path
+  const getGridCoordinatesWithCenterFromEvent = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0.5, y: 0.5 };
+
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = event.clientX;
+    const mouseY = event.clientY;
+
+    return getGridCoordinatesWithCenter(mouseX, mouseY, rect, width, height);
+  }, [getGridCoordinatesWithCenter, width, height, canvasRef]);
 
   // Check if a point is inside the current lasso selection
   const isPointInLassoSelection = useCallback((x: number, y: number) => {
@@ -187,7 +199,9 @@ export const useCanvasLassoSelection = () => {
       selectionGestureActiveRef.current = true;
       beginSelectionPreview(modifier);
       startLassoSelection();
-      addLassoPoint(x, y);
+      // Use center coordinates for lasso path
+      const centerCoords = getGridCoordinatesWithCenterFromEvent(event);
+      addLassoPoint(centerCoords.x, centerCoords.y);
       setMouseButtonDown(true);
       setSelectionMode('dragging');
       return;
@@ -246,11 +260,14 @@ export const useCanvasLassoSelection = () => {
     selectionGestureActiveRef.current = true;
     beginSelectionPreview(modifier);
     startLassoSelection();
-    addLassoPoint(x, y);
+    // Use center coordinates for lasso path
+    const centerCoords = getGridCoordinatesWithCenterFromEvent(event);
+    addLassoPoint(centerCoords.x, centerCoords.y);
     setMouseButtonDown(true);
     setSelectionMode('dragging');
   }, [
     getGridCoordinatesFromEvent,
+    getGridCoordinatesWithCenterFromEvent,
     lassoSelection,
     pushCanvasHistory,
     cells,
@@ -290,8 +307,9 @@ export const useCanvasLassoSelection = () => {
       });
       // Note: Canvas modification happens in renderGrid for preview, actual move on mouse release
     } else if (mouseButtonDown && lassoSelection.isDrawing && selectionMode === 'dragging') {
-      // Add point to lasso path and update selected cells in real-time
-      addLassoPoint(x, y);
+      // Add point to lasso path using center coordinates
+      const centerCoords = getGridCoordinatesWithCenterFromEvent(event);
+      addLassoPoint(centerCoords.x, centerCoords.y);
       
       // Calculate selected cells from current path for real-time feedback
       if (lassoSelection.path.length >= 2) {
@@ -305,7 +323,7 @@ export const useCanvasLassoSelection = () => {
       }
     }
   }, [
-    getGridCoordinatesFromEvent, selectionMode, moveState, setMoveState, 
+    getGridCoordinatesFromEvent, getGridCoordinatesWithCenterFromEvent, selectionMode, moveState, setMoveState, 
     mouseButtonDown, lassoSelection, addLassoPoint, updateLassoSelectedCells,
     width, height, updateSelectionPreview
   ]);
