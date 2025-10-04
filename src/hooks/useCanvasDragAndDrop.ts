@@ -13,7 +13,7 @@ import { useCanvasState } from './useCanvasState';
 export const useCanvasDragAndDrop = () => {
   const { canvasRef, isDrawing, setIsDrawing, setMouseButtonDown, shiftKeyDown, cellWidth, cellHeight } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
-  const { width, height, cells, clearCell } = useCanvasStore();
+  const { width, height, cells } = useCanvasStore();
   const { currentFrameIndex } = useAnimationStore();
   const { 
     selection,
@@ -26,7 +26,7 @@ export const useCanvasDragAndDrop = () => {
     clearLinePreview
   } = useToolStore();
   const { setSelectionMode } = useCanvasState();
-  const { drawAtPosition, drawRectangle, drawEllipse, drawBrushLine, activeTool } = useDrawingTool();
+  const { drawAtPosition, drawRectangle, drawEllipse, drawBrushLine, eraseBrushLine, activeTool } = useDrawingTool();
 
   // Helper function to apply aspect ratio constraints when shift is held
   const constrainToAspectRatio = useCallback((x: number, y: number, startX: number, startY: number) => {
@@ -137,11 +137,8 @@ export const useCanvasDragAndDrop = () => {
           // Use brush-aware gap-filling for pencil to respect brush settings
           drawBrushLine(pencilLastPosition.x, pencilLastPosition.y, x, y);
         } else if (activeTool === 'eraser') {
-          // For eraser, clear cells along the line
-          const points = getLinePoints(pencilLastPosition.x, pencilLastPosition.y, x, y);
-          points.forEach(({ x: px, y: py }: { x: number; y: number }) => {
-            clearCell(px, py);
-          });
+          // Use brush-aware gap-filling for eraser to respect brush size/shape
+          eraseBrushLine(pencilLastPosition.x, pencilLastPosition.y, x, y);
         }
         
         // Update position after gap-filling
@@ -154,7 +151,7 @@ export const useCanvasDragAndDrop = () => {
     }
     
     // Handle shift+click line preview for pencil tool
-    if (!isDrawing && activeTool === 'pencil' && shiftKeyDown) {
+    if (!isDrawing && (activeTool === 'pencil' || activeTool === 'eraser') && shiftKeyDown) {
       if (pencilLastPosition) {
         // Generate preview line from last position to current position
         const previewPoints = getLinePoints(pencilLastPosition.x, pencilLastPosition.y, x, y);
@@ -167,7 +164,7 @@ export const useCanvasDragAndDrop = () => {
       // Clear preview when conditions not met
       clearLinePreview();
     }
-  }, [getGridCoordinatesFromEvent, isDrawing, activeTool, shiftKeyDown, pencilLastPosition, handleDrawing, drawBrushLine, getLinePoints, clearCell, setLinePreview, clearLinePreview]);
+  }, [getGridCoordinatesFromEvent, isDrawing, activeTool, shiftKeyDown, pencilLastPosition, handleDrawing, drawBrushLine, eraseBrushLine, getLinePoints, setLinePreview, clearLinePreview]);
 
   // Handle rectangle tool mouse down
   const handleRectangleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {

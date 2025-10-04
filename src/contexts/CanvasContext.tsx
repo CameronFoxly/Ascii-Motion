@@ -49,7 +49,7 @@ interface CanvasState {
   // Hover preview state (for tool-specific previews like brush outline)
   hoverPreview: {
     active: boolean;
-    mode: 'none' | 'brush' | 'rectangle' | 'ellipse' | 'line';
+    mode: 'none' | 'brush' | 'eraser-brush' | 'rectangle' | 'ellipse' | 'line';
     cells: Array<{ x: number; y: number }>;
   };
   
@@ -95,7 +95,7 @@ interface CanvasActions {
   setHoveredCell: (cell: { x: number; y: number } | null) => void;
   setHoverPreview: (preview: {
     active: boolean;
-    mode: 'none' | 'brush' | 'rectangle' | 'ellipse' | 'line';
+    mode: 'none' | 'brush' | 'eraser-brush' | 'rectangle' | 'ellipse' | 'line';
     cells: Array<{ x: number; y: number }>;
   }) => void;
   
@@ -168,7 +168,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   // Hover preview state (for tool-specific previews like brush outline)
   const [hoverPreview, setHoverPreview] = useState<{
     active: boolean;
-    mode: 'none' | 'brush' | 'rectangle' | 'ellipse' | 'line';
+    mode: 'none' | 'brush' | 'eraser-brush' | 'rectangle' | 'ellipse' | 'line';
     cells: Array<{ x: number; y: number }>;
   }>({
     active: false,

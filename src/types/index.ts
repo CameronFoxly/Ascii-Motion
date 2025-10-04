@@ -74,13 +74,20 @@ export type Tool =
 
 export type BrushShape = 'circle' | 'square' | 'horizontal' | 'vertical';
 
+export interface BrushSettings {
+  size: number;
+  shape: BrushShape;
+}
+
 export interface ToolState {
   activeTool: Tool;
   selectedChar: string;
   selectedColor: string;
   selectedBgColor: string;
-  brushSize: number;
-  brushShape: BrushShape;
+  brushSettings: {
+    pencil: BrushSettings;
+    eraser: BrushSettings;
+  };
   rectangleFilled: boolean;
   paintBucketContiguous: boolean;
   magicWandContiguous: boolean;

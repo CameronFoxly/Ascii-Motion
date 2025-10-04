@@ -5,7 +5,7 @@
  * Follows the established UI patterns from other tool options
  */
 
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { useToolStore } from '../../stores/toolStore';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -15,18 +15,25 @@ import type { BrushShape } from '../../types';
 import { BrushPreview } from './BrushPreview';
 
 interface BrushControlsProps {
+  tool: 'pencil' | 'eraser';
   className?: string;
 }
 
-export const BrushControls: React.FC<BrushControlsProps> = ({ className = '' }) => {
-  const { brushSize, brushShape, setBrushSize, setBrushShape } = useToolStore();
+export const BrushControls: React.FC<BrushControlsProps> = ({ tool, className = '' }) => {
+  const brushSize = useToolStore((state) => state.brushSettings[tool].size);
+  const brushShape = useToolStore((state) => state.brushSettings[tool].shape);
+  const setBrushSize = useToolStore((state) => state.setBrushSize);
+  const setBrushShape = useToolStore((state) => state.setBrushShape);
+
+  const labelPrefix = tool === 'eraser' ? 'Eraser' : 'Brush';
+  const tooltipPrefix = tool === 'eraser' ? 'Eraser brush' : 'Brush';
   
-  const brushShapes: Array<{ 
+  const brushShapes = useMemo<Array<{ 
     id: BrushShape; 
     name: string; 
     icon: React.ReactNode; 
     description: string;
-  }> = [
+  }>>(() => ([
     { 
       id: 'circle', 
       name: 'Circle', 
@@ -51,17 +58,21 @@ export const BrushControls: React.FC<BrushControlsProps> = ({ className = '' }) 
       icon: <MoreVertical className="h-3 w-3" />, 
       description: 'Vertical line brush' 
     },
-  ];
+  ]), []);
+
+  const handleSliderChange = useCallback((value: number) => {
+    setBrushSize(value, tool);
+  }, [setBrushSize, tool]);
 
   return (
     <TooltipProvider>
       <div className={`space-y-2 ${className}`}>
         {/* Brush Preview */}
-        <BrushPreview className="mt-2" />
+        <BrushPreview tool={tool} className="mt-2" />
         
         {/* Brush Shape Selection */}
         <div className="space-y-2">
-          <div className="text-xs text-muted-foreground">Brush Shape:</div>
+          <div className="text-xs text-muted-foreground">{labelPrefix} Shape:</div>
           <div className="grid grid-cols-4 gap-1">
             {brushShapes.map((shape) => (
               <Tooltip key={shape.id}>
@@ -70,7 +81,7 @@ export const BrushControls: React.FC<BrushControlsProps> = ({ className = '' }) 
                     variant={brushShape === shape.id ? "default" : "outline"}
                     size="sm"
                     className="h-8 w-full p-0"
-                    onClick={() => setBrushShape(shape.id)}
+                    onClick={() => setBrushShape(shape.id, tool)}
                   >
                     {shape.icon}
                   </Button>
@@ -86,7 +97,7 @@ export const BrushControls: React.FC<BrushControlsProps> = ({ className = '' }) 
         {/* Brush Size Controls */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <div className="text-xs text-muted-foreground">Brush Size:</div>
+            <div className="text-xs text-muted-foreground">{labelPrefix} Size:</div>
             <div className="text-xs font-mono text-muted-foreground">{brushSize}</div>
           </div>
           <div className="flex items-center gap-2">
@@ -96,20 +107,20 @@ export const BrushControls: React.FC<BrushControlsProps> = ({ className = '' }) 
                   variant="outline"
                   size="sm"
                   className="h-6 w-6 p-0"
-                  onClick={() => setBrushSize(Math.max(1, brushSize - 1))}
+                  onClick={() => setBrushSize(Math.max(1, brushSize - 1), tool)}
                   disabled={brushSize <= 1}
                 >
                   <Minus className="h-3 w-3" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Decrease brush size ([)</p>
+                <p>Decrease {tooltipPrefix.toLowerCase()} size ([)</p>
               </TooltipContent>
             </Tooltip>
             <div className="flex-1 px-1">
               <Slider
                 value={brushSize}
-                onValueChange={setBrushSize}
+                onValueChange={handleSliderChange}
                 min={1}
                 max={20}
                 step={1}
@@ -122,14 +133,14 @@ export const BrushControls: React.FC<BrushControlsProps> = ({ className = '' }) 
                   variant="outline"
                   size="sm"
                   className="h-6 w-6 p-0"
-                  onClick={() => setBrushSize(Math.min(20, brushSize + 1))}
+                  onClick={() => setBrushSize(Math.min(20, brushSize + 1), tool)}
                   disabled={brushSize >= 20}
                 >
                   <Plus className="h-3 w-3" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Increase brush size (])</p>
+                <p>Increase {tooltipPrefix.toLowerCase()} size (])</p>
               </TooltipContent>
             </Tooltip>
           </div>

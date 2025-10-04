@@ -92,7 +92,7 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
   const effectiveTool = (altKeyDown && shouldAllowEyedropperOverride) ? 'eyedropper' : activeTool;
 
   // Tools that actually have configurable options. (Removed 'eraser' and 'text' per layout bug fix.)
-  const hasOptions = ['rectangle', 'ellipse', 'paintbucket', 'gradientfill', 'magicwand', 'pencil', 'eyedropper'].includes(effectiveTool);
+  const hasOptions = ['rectangle', 'ellipse', 'paintbucket', 'gradientfill', 'magicwand', 'pencil', 'eraser', 'eyedropper'].includes(effectiveTool);
 
   // Get the current tool's icon
   const getCurrentToolIcon = () => {
@@ -485,10 +485,10 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                     </Card>
                   )}
                   
-                  {/* Pencil tool brush controls - Separate container */}
-                  {effectiveTool === 'pencil' && (
+                  {/* Brush controls - Separate container */}
+                  {(effectiveTool === 'pencil' || effectiveTool === 'eraser') && (
                     <div className="mt-2">
-                      <BrushControls />
+                      <BrushControls tool={effectiveTool === 'eraser' ? 'eraser' : 'pencil'} />
                     </div>
                   )}
                   

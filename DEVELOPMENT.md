@@ -612,6 +612,7 @@ ls dev-tools/ | wc -l  # Should show organized test utilities count
 - [x] **Ellipse Drawing Tool** - Complete ellipse tool with filled/hollow modes (Sept 3, 2025)
 - [x] **Aspect Ratio Locking** - Shift key constraints for rectangle and ellipse tools (Sept 3, 2025)
 - [x] **Enhanced Pencil Tool** - Shift+click line drawing functionality (Sept 3, 2025)
+- [x] **Eraser Brush Parity** - Shared brush controls, previews, and active-tool hotkeys (Oct 4, 2025)
 - [x] **Zoom and Navigation System** - Complete zoom/pan controls with space key override (Sept 4, 2025)
 - [x] Keyboard shortcuts (Cmd/Ctrl+C, Cmd/Ctrl+V, Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Cmd/Ctrl+A, Alt for temporary eyedropper)
 - [x] **Arrow Key Selection Movement** ✅ **COMPLETE** - All selection tools support arrow key movement for precise positioning (Sept 10, 2025)

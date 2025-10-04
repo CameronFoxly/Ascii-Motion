@@ -11,12 +11,18 @@ import { useCanvasContext } from '../../contexts/CanvasContext';
 import { calculateBrushCells } from '../../utils/brushUtils';
 
 interface BrushPreviewProps {
+  tool?: 'pencil' | 'eraser';
   className?: string;
 }
 
-export const BrushPreview: React.FC<BrushPreviewProps> = ({ className = '' }) => {
-  const { brushSize, brushShape, selectedChar, selectedColor, selectedBgColor } = useToolStore();
+export const BrushPreview: React.FC<BrushPreviewProps> = ({ tool = 'pencil', className = '' }) => {
+  const brushSize = useToolStore((state) => state.brushSettings[tool].size);
+  const brushShape = useToolStore((state) => state.brushSettings[tool].shape);
+  const selectedChar = useToolStore((state) => state.selectedChar);
+  const selectedColor = useToolStore((state) => state.selectedColor);
+  const selectedBgColor = useToolStore((state) => state.selectedBgColor);
   const { fontMetrics, cellWidth, cellHeight } = useCanvasContext();
+  const isEraserPreview = tool === 'eraser';
   
   // Fixed preview dimensions - use a grid size that accommodates largest brushes
   const previewGridWidth = 11; // 11 cells wide
@@ -90,6 +96,20 @@ export const BrushPreview: React.FC<BrushPreviewProps> = ({ className = '' }) =>
             const cellKey = `${x},${y}`;
             const isBrushCell = brushCellSet.has(cellKey);
             
+            const backgroundColor = isBrushCell
+              ? (isEraserPreview
+                ? 'rgba(248, 250, 252, 0.25)'
+                : (selectedBgColor === 'transparent' ? 'rgba(255,255,255,0.1)' : selectedBgColor))
+              : 'transparent';
+
+            const textColor = isBrushCell
+              ? (isEraserPreview ? 'transparent' : selectedColor)
+              : 'transparent';
+
+            const borderStyle = isBrushCell
+              ? (isEraserPreview ? '1px dashed rgba(226, 232, 240, 0.6)' : '1px solid rgba(255,255,255,0.3)')
+              : 'none';
+
             return (
               <div
                 key={cellKey}
@@ -99,17 +119,16 @@ export const BrushPreview: React.FC<BrushPreviewProps> = ({ className = '' }) =>
                   top: y * cellHeight,
                   width: cellWidth,
                   height: cellHeight,
-                  backgroundColor: isBrushCell 
-                    ? (selectedBgColor === 'transparent' ? 'rgba(255,255,255,0.1)' : selectedBgColor)
-                    : 'transparent',
-                  color: isBrushCell ? selectedColor : 'transparent',
-                  border: isBrushCell ? '1px solid rgba(255,255,255,0.3)' : 'none',
+                  backgroundColor,
+                  color: textColor,
+                  border: borderStyle,
                   fontFamily: fontMetrics.fontFamily,
                   fontSize: fontMetrics.fontSize,
                   lineHeight: 1,
                 }}
               >
-                {isBrushCell && selectedChar}
+                {isBrushCell && !isEraserPreview && selectedChar}
+                {isBrushCell && isEraserPreview && <span className="text-[0.6rem] leading-none text-foreground/40">×</span>}
               </div>
             );
           })

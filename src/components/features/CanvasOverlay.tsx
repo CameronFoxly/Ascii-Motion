@@ -625,6 +625,13 @@ export const CanvasOverlay: React.FC = () => {
               strokeStyle: 'rgba(168, 85, 247, 0.5)', // Purple outline
               lineWidth: 1
             };
+          case 'eraser-brush':
+            return {
+              fillStyle: 'rgba(248, 250, 252, 0.25)', // Soft neutral fill
+              strokeStyle: 'rgba(226, 232, 240, 0.7)', // Light gray outline
+              lineWidth: 1,
+              lineDash: [4, 2] as [number, number]
+            };
           // Future modes can have different visual styles
           case 'rectangle':
           case 'ellipse':
@@ -646,6 +653,11 @@ export const CanvasOverlay: React.FC = () => {
       ctx.fillStyle = style.fillStyle;
       ctx.strokeStyle = style.strokeStyle;
       ctx.lineWidth = style.lineWidth;
+      if ('lineDash' in style && style.lineDash) {
+        ctx.setLineDash(style.lineDash);
+      } else {
+        ctx.setLineDash([]);
+      }
       
       // Draw each cell in the preview pattern
       hoverPreview.cells.forEach(({ x, y }) => {

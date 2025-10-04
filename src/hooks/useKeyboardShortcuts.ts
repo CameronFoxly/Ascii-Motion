@@ -535,12 +535,17 @@ export const useKeyboardShortcuts = () => {
   }, []);
 
   const adjustBrushSize = useCallback((direction: 'decrease' | 'increase') => {
-    const { brushSize, setBrushSize } = useToolStore.getState();
-    const delta = direction === 'increase' ? 1 : -1;
-    const newSize = Math.max(1, Math.min(20, brushSize + delta));
+    const { activeTool, brushSettings, setBrushSize } = useToolStore.getState();
+    if (activeTool !== 'pencil' && activeTool !== 'eraser') {
+      return;
+    }
 
-    if (newSize !== brushSize) {
-      setBrushSize(newSize);
+    const currentSize = brushSettings[activeTool].size;
+    const delta = direction === 'increase' ? 1 : -1;
+    const newSize = Math.max(1, Math.min(20, currentSize + delta));
+
+    if (newSize !== currentSize) {
+      setBrushSize(newSize, activeTool);
     }
   }, []);
 

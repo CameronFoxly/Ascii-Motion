@@ -15,8 +15,7 @@ export const useDrawingTool = () => {
     selectedChar, 
     selectedColor, 
     selectedBgColor,
-    brushSize,
-    brushShape,
+    brushSettings,
     rectangleFilled,
     paintBucketContiguous,
     pickFromCell,
@@ -89,22 +88,6 @@ export const useDrawingTool = () => {
     return points;
   }, []);
 
-  // Draw a brush at the specified position
-  const drawBrush = useCallback((centerX: number, centerY: number) => {
-    const brushCells = calculateBrushCells(
-      centerX, 
-      centerY, 
-      brushSize, 
-      brushShape, 
-      fontMetrics.aspectRatio
-    );
-    
-    brushCells.forEach(({ x, y }) => {
-      const newCell = createCellWithToggles(x, y);
-      setCell(x, y, newCell);
-    });
-  }, [brushSize, brushShape, fontMetrics.aspectRatio, createCellWithToggles, setCell]);
-
   // Draw a line between two points using the line algorithm
   const drawLine = useCallback((x0: number, y0: number, x1: number, y1: number) => {
     const points = getLinePoints(x0, y0, x1, y1);
@@ -113,25 +96,53 @@ export const useDrawingTool = () => {
       setCell(x, y, newCell);
     });
   }, [getLinePoints, setCell, createCellWithToggles]);
-  
-  // Draw a brush line between two points
-  const drawBrushLine = useCallback((x0: number, y0: number, x1: number, y1: number) => {
+
+  const applyBrushStroke = useCallback((toolKey: 'pencil' | 'eraser', centerX: number, centerY: number) => {
+    const brush = brushSettings[toolKey];
+    const brushCells = calculateBrushCells(
+      centerX,
+      centerY,
+      brush.size,
+      brush.shape,
+      fontMetrics.aspectRatio
+    );
+
+    if (toolKey === 'eraser') {
+      brushCells.forEach(({ x, y }) => {
+        clearCell(x, y);
+      });
+    } else {
+      brushCells.forEach(({ x, y }) => {
+        const newCell = createCellWithToggles(x, y);
+        setCell(x, y, newCell);
+      });
+    }
+  }, [brushSettings, fontMetrics.aspectRatio, clearCell, createCellWithToggles, setCell]);
+
+  const applyBrushLine = useCallback((toolKey: 'pencil' | 'eraser', x0: number, y0: number, x1: number, y1: number) => {
     const points = getLinePoints(x0, y0, x1, y1);
     points.forEach(({ x, y }) => {
-      drawBrush(x, y);
+      applyBrushStroke(toolKey, x, y);
     });
-  }, [getLinePoints, drawBrush]);
+  }, [getLinePoints, applyBrushStroke]);
 
-  const drawAtPosition = useCallback((x: number, y: number, isShiftClick = false, isFirstStroke = false, toolOverride?: string) => {
+  const drawBrushLine = useCallback((x0: number, y0: number, x1: number, y1: number) => {
+    applyBrushLine('pencil', x0, y0, x1, y1);
+  }, [applyBrushLine]);
+
+  const eraseBrushLine = useCallback((x0: number, y0: number, x1: number, y1: number) => {
+    applyBrushLine('eraser', x0, y0, x1, y1);
+  }, [applyBrushLine]);
+
+  const drawAtPosition = useCallback((x: number, y: number, isShiftClick = false, _isFirstStroke = false, toolOverride?: string) => {
     const toolToUse = toolOverride || activeTool;
     switch (toolToUse) {
       case 'pencil': {
+        const brushTool: 'pencil' | 'eraser' = 'pencil';
         if (isShiftClick && pencilLastPosition) {
-          // Shift+click: Draw brush line from last position to current position
-          drawBrushLine(pencilLastPosition.x, pencilLastPosition.y, x, y);
+          applyBrushLine(brushTool, pencilLastPosition.x, pencilLastPosition.y, x, y);
         } else {
-          // Normal pencil drawing - draw brush at position
-          drawBrush(x, y);
+          applyBrushStroke(brushTool, x, y);
         }
         
         // Update position for potential shift+click line drawing
@@ -139,16 +150,11 @@ export const useDrawingTool = () => {
         break;
       }
       case 'eraser': {
-        // Apply same logic for eraser to prevent gaps
-        if (!isFirstStroke && pencilLastPosition && 
-            (Math.abs(x - pencilLastPosition.x) > 1 || Math.abs(y - pencilLastPosition.y) > 1)) {
-          // Clear cells along the line for smooth erasing
-          const points = getLinePoints(pencilLastPosition.x, pencilLastPosition.y, x, y);
-          points.forEach(({ x: px, y: py }) => {
-            clearCell(px, py);
-          });
+        const brushTool: 'pencil' | 'eraser' = 'eraser';
+        if (isShiftClick && pencilLastPosition) {
+          applyBrushLine(brushTool, pencilLastPosition.x, pencilLastPosition.y, x, y);
         } else {
-          clearCell(x, y);
+          applyBrushStroke(brushTool, x, y);
         }
         // Update last position for eraser too
         setPencilLastPosition({ x, y });
@@ -168,18 +174,15 @@ export const useDrawingTool = () => {
       }
     }
   }, [
-    activeTool, 
+    activeTool,
     paintBucketContiguous,
-    setCell, 
-    clearCell, 
-    getCell, 
+    getCell,
     fillArea,
     pickFromCell,
     pencilLastPosition,
     setPencilLastPosition,
-    drawLine,
-    drawBrush,
-    drawBrushLine,
+    applyBrushStroke,
+    applyBrushLine,
     createCellWithToggles,
     fillMatchChar,
     fillMatchColor,
@@ -282,6 +285,7 @@ export const useDrawingTool = () => {
     drawEllipse,
     drawLine, // Export for gap-filling in drag operations
     drawBrushLine, // Export for brush-aware gap-filling
+    eraseBrushLine, // Export for eraser gap-filling
     getEllipsePoints, // Export for preview rendering
     getLinePoints, // Export for line preview rendering
     activeTool

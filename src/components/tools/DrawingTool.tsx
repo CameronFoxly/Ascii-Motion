@@ -20,22 +20,25 @@ export const DrawingTool: React.FC = () => {
  * Provides visual feedback about the current drawing tool
  */
 export const DrawingToolStatus: React.FC = () => {
-  const { activeTool, selectedChar, selectedColor, selectedBgColor, brushSize, brushShape } = useToolStore();
+  const { activeTool, selectedChar, selectedColor, selectedBgColor, brushSettings } = useToolStore();
 
   if (activeTool === 'pencil') {
-    const shapeDisplay = getBrushShapeDisplayName(brushShape);
+    const { size, shape } = brushSettings.pencil;
+    const shapeDisplay = getBrushShapeDisplayName(shape);
     return (
       <span className="text-muted-foreground">
         Pencil: "{selectedChar}" with color {selectedColor}
-        {selectedBgColor !== '#FFFFFF' && ` on ${selectedBgColor}`} - {shapeDisplay} brush (size {brushSize}) - Click to draw, hold Shift+click for lines
+        {selectedBgColor !== '#FFFFFF' && ` on ${selectedBgColor}`} - {shapeDisplay} brush (size {size}) - Click to draw, hold Shift+click for lines
       </span>
     );
   }
 
   if (activeTool === 'eraser') {
+    const { size, shape } = brushSettings.eraser;
+    const shapeDisplay = getBrushShapeDisplayName(shape);
     return (
       <span className="text-muted-foreground">
-        Eraser: Click to remove characters
+        Eraser: {shapeDisplay} brush (size {size}) - Click to remove characters, hold Shift+click for clean lines
       </span>
     );
   }

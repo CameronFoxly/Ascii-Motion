@@ -21,8 +21,9 @@ import { calculateBrushCells } from '../utils/brushUtils';
  * - 'paint-bucket': Preview fill area before applying
  */
 export const useHoverPreview = () => {
-  const { activeTool, brushSize, brushShape } = useToolStore();
+  const { activeTool, brushSettings } = useToolStore();
   const { hoveredCell, fontMetrics, setHoverPreview, isDrawing } = useCanvasContext();
+  const activeBrush = activeTool === 'eraser' ? brushSettings.eraser : brushSettings.pencil;
   
   useEffect(() => {
     // Don't show preview while actively drawing
@@ -39,19 +40,20 @@ export const useHoverPreview = () => {
     
     // Calculate preview based on active tool
     switch (activeTool) {
-      case 'pencil': {
+      case 'pencil':
+      case 'eraser': {
         // Calculate brush pattern cells
         const brushCells = calculateBrushCells(
           hoveredCell.x,
           hoveredCell.y,
-          brushSize,
-          brushShape,
+          activeBrush.size,
+          activeBrush.shape,
           fontMetrics.aspectRatio
         );
         
         setHoverPreview({
           active: true,
-          mode: 'brush',
+          mode: activeTool === 'eraser' ? 'eraser-brush' : 'brush',
           cells: brushCells
         });
         break;
@@ -84,8 +86,8 @@ export const useHoverPreview = () => {
   }, [
     hoveredCell, 
     activeTool, 
-    brushSize, 
-    brushShape, 
+  activeBrush.size,
+  activeBrush.shape,
     fontMetrics.aspectRatio,
     isDrawing,
     setHoverPreview

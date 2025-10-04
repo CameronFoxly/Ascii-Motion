@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Tool, ToolState, Selection, LassoSelection, MagicWandSelection, TextToolState, AnyHistoryAction, CanvasHistoryAction, BrushShape } from '../types';
+import type { Tool, ToolState, Selection, LassoSelection, MagicWandSelection, TextToolState, AnyHistoryAction, CanvasHistoryAction, BrushShape, BrushSettings } from '../types';
 import { DEFAULT_COLORS } from '../constants';
 import { 
   rectangularSelectionToText, 
@@ -61,8 +61,9 @@ interface ToolStoreState extends ToolState {
   setSelectedChar: (char: string) => void;
   setSelectedColor: (color: string) => void;
   setSelectedBgColor: (color: string) => void;
-  setBrushSize: (size: number) => void;
-  setBrushShape: (shape: BrushShape) => void;
+  setBrushSize: (size: number, tool?: 'pencil' | 'eraser') => void;
+  setBrushShape: (shape: BrushShape, tool?: 'pencil' | 'eraser') => void;
+  getBrushSettings: (tool?: 'pencil' | 'eraser') => BrushSettings;
   setRectangleFilled: (filled: boolean) => void;
   setPaintBucketContiguous: (contiguous: boolean) => void;
   setMagicWandContiguous: (contiguous: boolean) => void;
@@ -201,8 +202,16 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   selectedChar: '@',
   selectedColor: DEFAULT_COLORS[2], // White (moved from index 1 to 2)
   selectedBgColor: DEFAULT_COLORS[0], // Transparent
-  brushSize: 1,
-  brushShape: 'circle' as BrushShape,
+  brushSettings: {
+    pencil: {
+      size: 1,
+      shape: 'circle' as BrushShape,
+    },
+    eraser: {
+      size: 1,
+      shape: 'circle' as BrushShape,
+    }
+  },
   rectangleFilled: false,
   paintBucketContiguous: true, // Default to contiguous fill
   magicWandContiguous: true, // Default to contiguous selection
@@ -313,8 +322,38 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   setSelectedChar: (char: string) => set({ selectedChar: char }),
   setSelectedColor: (color: string) => set({ selectedColor: color }),
   setSelectedBgColor: (color: string) => set({ selectedBgColor: color }),
-  setBrushSize: (size: number) => set({ brushSize: Math.max(1, Math.min(20, size)) }),
-  setBrushShape: (shape: BrushShape) => set({ brushShape: shape }),
+  setBrushSize: (size: number, tool?: 'pencil' | 'eraser') => {
+    const clampedSize = Math.max(1, Math.min(20, size));
+    const targetTool = tool ?? (get().activeTool === 'eraser' ? 'eraser' : 'pencil');
+
+    set((state) => ({
+      brushSettings: {
+        ...state.brushSettings,
+        [targetTool]: {
+          ...state.brushSettings[targetTool],
+          size: clampedSize,
+        }
+      }
+    }));
+  },
+  setBrushShape: (shape: BrushShape, tool?: 'pencil' | 'eraser') => {
+    const targetTool = tool ?? (get().activeTool === 'eraser' ? 'eraser' : 'pencil');
+
+    set((state) => ({
+      brushSettings: {
+        ...state.brushSettings,
+        [targetTool]: {
+          ...state.brushSettings[targetTool],
+          shape,
+        }
+      }
+    }));
+  },
+  getBrushSettings: (tool?: 'pencil' | 'eraser') => {
+    const targetTool = tool ?? (get().activeTool === 'eraser' ? 'eraser' : 'pencil');
+    const { brushSettings } = get();
+    return brushSettings[targetTool];
+  },
   setRectangleFilled: (filled: boolean) => set({ rectangleFilled: filled }),
   setPaintBucketContiguous: (contiguous: boolean) => set({ paintBucketContiguous: contiguous }),
   setMagicWandContiguous: (contiguous: boolean) => set({ magicWandContiguous: contiguous }),

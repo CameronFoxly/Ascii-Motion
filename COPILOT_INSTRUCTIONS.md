@@ -658,7 +658,7 @@ hoverPreview: {
 }
 
 // Hook pattern (useHoverPreview)
-- Monitors: hoveredCell, activeTool, tool settings (brushSize, brushShape, etc.)
+- Monitors: hoveredCell, activeTool, tool settings (brushSettings.*, etc.)
 - Calculates: Preview pattern based on active tool
 - Updates: CanvasContext.hoverPreview state
 - Clears: When mouse leaves canvas or drawing starts
@@ -3115,8 +3115,17 @@ const useCanvasStore = create<CanvasState>((set) => ({
 
 **If any checkbox above is unchecked, your work is not finished!**
 
-## Current Architecture Status (Enhanced October 2, 2025):
-🚨 **LATEST**: Flip Selection Sync & Move-State Safeguards (Oct 2, 2025)
+## Current Architecture Status (Enhanced October 4, 2025):
+🚨 **LATEST**: Eraser Brush Parity & Active-Tool Hotkeys (Oct 4, 2025)
+
+**Eraser Brush Parity & Active-Tool Hotkeys (Oct 4, 2025):**
+- ✅ **Unified Brush Controls**: `BrushControls` now renders for both pencil and eraser tools, sharing the same shadcn-aligned UI, preview grid, and slider/button controls with dynamic labeling.
+- ✅ **Per-Tool Brush Settings**: `toolStore` maintains `brushSettings.pencil` and `brushSettings.eraser`, exposing targeted setters (`setBrushSize`, `setBrushShape`) and selectors (`getBrushSettings`) so each tool preserves its own size/shape selection.
+- ✅ **Brush-Based Erasing**: `useDrawingTool` routes eraser strokes through `applyBrushStroke` / `applyBrushLine`, clearing every calculated brush cell (including shift-line gap fills) for smooth, artifact-free erasing.
+- ✅ **Hover & Overlay Feedback**: `useHoverPreview` and `CanvasOverlay` add an `eraser-brush` mode with dashed neutral styling, mirroring pencil previews while clearly signaling deletions.
+- ✅ **Bracket Hotkeys Respect Active Tool**: `[` and `]` shortcuts detect the active tool and adjust only that tool’s brush size, leaving the inactive brush untouched and keeping muscle memory intact.
+
+🚨 **PREVIOUS**: Flip Selection Sync & Move-State Safeguards (Oct 2, 2025)
 
 **Flip Selection Sync & Move-State Safeguards (Oct 2, 2025):**
 - ✅ **Selection Geometry Updates**: Magic wand and lasso selections now mirror their cell sets/paths after flips so highlights stay aligned and repeated flips use accurate bounds
@@ -3128,7 +3137,7 @@ const useCanvasStore = create<CanvasState>((set) => ({
 🚨 **PREVIOUS**: Brush System with Hover Preview (Oct 2, 2025)
 
 **Brush System with Hover Preview (Oct 2, 2025):**
-- ✅ **Brush Controls**: Comprehensive brush system for pencil tool with size (1-20) and shape (circle, square, horizontal, vertical) controls
+- ✅ **Brush Controls**: Comprehensive brush system for pencil and eraser tools with size (1-20) and shape (circle, square, horizontal, vertical) controls
 - ✅ **Visual Preview Box**: 11x7 grid preview showing exact 1:1 representation of brush pattern accounting for cell aspect ratio
 - ✅ **Increment Controls**: Plus/minus buttons for precise single-step brush size adjustments alongside slider
 - ✅ **Canvas Hover Preview**: Real-time brush outline preview on canvas showing exact cells that will be affected before drawing
