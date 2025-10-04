@@ -232,7 +232,7 @@ export const AnimationTimeline: React.FC = () => {
           onDrop={handleDrop}
         >
           <div
-            className={`h-full rounded-full transition-all duration-150 ease-out ${isActive ? 'w-1.5 bg-primary shadow-lg animate-pulse' : 'w-px bg-transparent'}`}
+            className={`h-[90%] rounded-full transition-all duration-150 ease-out ${isActive ? 'w-1.5 bg-primary shadow-lg animate-pulse' : 'w-px bg-transparent'}`}
           />
         </div>
       </div>
