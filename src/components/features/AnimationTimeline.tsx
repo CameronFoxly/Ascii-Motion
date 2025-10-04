@@ -80,6 +80,27 @@ export const AnimationTimeline: React.FC = () => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
+  const updateDropTargetIndex = useCallback((targetIndex: number) => {
+    if (draggedIndex === null) return;
+
+    const clampedIndex = Math.max(0, Math.min(frames.length, targetIndex));
+
+    if (clampedIndex === draggedIndex) {
+      return;
+    }
+
+    if (
+      (draggedIndex < clampedIndex && clampedIndex === draggedIndex + 1) ||
+      (draggedIndex > clampedIndex && clampedIndex === draggedIndex)
+    ) {
+      return;
+    }
+
+    if (clampedIndex !== dragOverIndex) {
+      setDragOverIndex(clampedIndex);
+    }
+  }, [draggedIndex, dragOverIndex, frames.length]);
+
   // Handle drag start
   const handleDragStart = useCallback((event: React.DragEvent, index: number) => {
     if (isPlaying) return; // Don't allow reordering during playback
@@ -110,19 +131,8 @@ export const AnimationTimeline: React.FC = () => {
       targetIndex = index;
     }
     
-    // Don't show drop indicator if it would result in no actual reordering
-    if (
-      (draggedIndex < index && targetIndex === draggedIndex + 1) || // Moving right: skip position immediately after original
-      (draggedIndex > index && targetIndex === draggedIndex)        // Moving left: skip original position
-    ) {
-      return;
-    }
-    
-    // Only update if the target index is actually different
-    if (targetIndex !== dragOverIndex) {
-      setDragOverIndex(targetIndex);
-    }
-  }, [draggedIndex]);
+    updateDropTargetIndex(targetIndex);
+  }, [draggedIndex, updateDropTargetIndex]);
 
   // Handle drag enter
   const handleDragEnter = useCallback((event: React.DragEvent, index: number) => {
@@ -131,25 +141,26 @@ export const AnimationTimeline: React.FC = () => {
       // Clear any existing drag over index first
       setDragOverIndex(null);
       
-      let targetIndex = index;
-      
-      // Don't show drop indicator if it would result in no actual reordering
-      if (
-        (draggedIndex < index && targetIndex === draggedIndex + 1) || // Moving right: skip position immediately after original
-        (draggedIndex > index && targetIndex === draggedIndex)        // Moving left: skip original position
-      ) {
-        return;
-      }
-      
-      setDragOverIndex(targetIndex);
+      updateDropTargetIndex(index);
     }
-  }, [draggedIndex]);
+  }, [draggedIndex, updateDropTargetIndex]);
 
   // Handle drag leave - simplified to do nothing, let dragEnter handle clearing
   const handleDragLeave = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     // Don't clear dragOverIndex here - let dragEnter handle it
   }, []);
+
+  const handleIndicatorDragOver = useCallback((event: React.DragEvent, targetIndex: number) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    updateDropTargetIndex(targetIndex);
+  }, [updateDropTargetIndex]);
+
+  const handleIndicatorDragEnter = useCallback((event: React.DragEvent, targetIndex: number) => {
+    event.preventDefault();
+    updateDropTargetIndex(targetIndex);
+  }, [updateDropTargetIndex]);
 
   // Handle drop
   const handleDrop = useCallback((event: React.DragEvent) => {
@@ -198,6 +209,35 @@ export const AnimationTimeline: React.FC = () => {
       setDraggingFrame(false); // Clear global drag state
     }, 100);
   }, [setDraggingFrame]);
+
+  const renderDropZone = useCallback((targetIndex: number, key: string) => {
+    if (draggedIndex === null) {
+      return <span key={key} className="w-0" aria-hidden="true" />;
+    }
+
+    const isActive = dragOverIndex === targetIndex;
+
+    return (
+      <div
+        key={key}
+        className="relative flex-shrink-0 self-stretch"
+        style={{ width: 0 }}
+        aria-hidden="true"
+      >
+        <div
+          className="pointer-events-auto absolute inset-y-0 left-1/2 -translate-x-1/2 w-12 flex items-center justify-center"
+          onDragOver={(e) => handleIndicatorDragOver(e, targetIndex)}
+          onDragEnter={(e) => handleIndicatorDragEnter(e, targetIndex)}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <div
+            className={`h-full rounded-full transition-all duration-150 ease-out ${isActive ? 'w-1.5 bg-primary shadow-lg animate-pulse' : 'w-px bg-transparent'}`}
+          />
+        </div>
+      </div>
+    );
+  }, [draggedIndex, dragOverIndex, handleIndicatorDragOver, handleIndicatorDragEnter, handleDragLeave, handleDrop]);
 
   // Handle frame selection (modified to support shift-click range selection)
   const handleFrameSelect = useCallback((frameIndex: number, event: React.MouseEvent) => {
@@ -399,28 +439,9 @@ export const AnimationTimeline: React.FC = () => {
                 }
               }}
             >
+              {renderDropZone(0, 'drop-zone-0')}
               {frames.map((frame, index) => (
                 <React.Fragment key={frame.id}>
-                  {/* Drop indicator line */}
-                  {dragOverIndex === index && draggedIndex !== null && draggedIndex !== index && (
-                    <div 
-                      key={`drop-indicator-${index}`}
-                      className="flex items-center justify-center mx-2 flex-shrink-0 self-stretch transition-all duration-150 ease-out animate-in fade-in slide-in-from-left-1"
-                      style={{
-                        animationDuration: '150ms',
-                        animationFillMode: 'both'
-                      }}
-                    >
-                      <div 
-                        className="bg-primary shadow-lg rounded-full flex-shrink-0 self-stretch animate-pulse transition-all duration-150 ease-out"
-                        style={{
-                          width: '4px',
-                          animation: 'expand-width 150ms ease-out forwards, pulse 2s infinite'
-                        }}
-                      />
-                    </div>
-                  )}
-                  
                   <FrameThumbnail
                     frame={frame}
                     frameIndex={index}
@@ -445,26 +466,7 @@ export const AnimationTimeline: React.FC = () => {
                       onDragEnd: handleDragEnd
                     }}
                   />
-                  
-                  {/* Drop indicator at the end */}
-                  {index === frames.length - 1 && dragOverIndex === frames.length && draggedIndex !== null && (
-                    <div 
-                      key={`drop-indicator-end`}
-                      className="flex items-center justify-center mx-2 flex-shrink-0 self-stretch transition-all duration-150 ease-out animate-in fade-in slide-in-from-right-1"
-                      style={{
-                        animationDuration: '150ms',
-                        animationFillMode: 'both'
-                      }}
-                    >
-                      <div 
-                        className="bg-primary shadow-lg rounded-full flex-shrink-0 self-stretch animate-pulse transition-all duration-150 ease-out"
-                        style={{
-                          width: '4px',
-                          animation: 'expand-width 150ms ease-out forwards, pulse 2s infinite'
-                        }}
-                      />
-                    </div>
-                  )}
+                  {renderDropZone(index + 1, `drop-zone-${index + 1}`)}
                 </React.Fragment>
               ))}
             </div>
