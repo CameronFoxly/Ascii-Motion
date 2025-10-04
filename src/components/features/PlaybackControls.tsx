@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { Play, Pause, Square, SkipBack, SkipForward, RotateCcw } from 'lucide-react';
+import { Play, Pause, Square, SkipBack, SkipForward, StepBack, StepForward, RotateCcw } from 'lucide-react';
 
 interface PlaybackControlsProps {
   isPlaying: boolean;
@@ -14,6 +14,8 @@ interface PlaybackControlsProps {
   onStop: () => void;
   onPrevious: () => void;
   onNext: () => void;
+  onFirst: () => void;
+  onLast: () => void;
   onToggleLoop: () => void;
   isLooping: boolean;
 }
@@ -32,12 +34,34 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
   onStop,
   onPrevious,
   onNext,
+  onFirst,
+  onLast,
   onToggleLoop,
   isLooping
 }) => {
+  const FIGURE_SPACE = '\u2007';
+  const formatFrameNumber = (value: number) => value.toString().padStart(3, FIGURE_SPACE);
+  const frameLabel = `${formatFrameNumber(currentFrame + 1)} / ${formatFrameNumber(totalFrames)}`;
+
   return (
     <TooltipProvider>
       <div className="flex items-center gap-2 p-2 bg-card/50 rounded-lg border-border/50 border">
+        {/* First frame */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onFirst}
+              disabled={isPlaying || currentFrame === 0}
+              className="h-8 w-8 p-0"
+            >
+              <SkipBack className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>First frame (Shift+&lt;)</TooltipContent>
+        </Tooltip>
+
         {/* Previous frame */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -48,7 +72,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
               disabled={isPlaying || currentFrame === 0}
               className="h-8 w-8 p-0"
             >
-              <SkipBack className="h-4 w-4" />
+              <StepBack className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Previous frame (,)</TooltipContent>
@@ -102,10 +126,26 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
               disabled={isPlaying || currentFrame === totalFrames - 1}
               className="h-8 w-8 p-0"
             >
-              <SkipForward className="h-4 w-4" />
+              <StepForward className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Next frame (.)</TooltipContent>
+        </Tooltip>
+
+        {/* Last frame */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onLast}
+              disabled={isPlaying || currentFrame === totalFrames - 1}
+              className="h-8 w-8 p-0"
+            >
+              <SkipForward className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Last frame (Shift+&gt;)</TooltipContent>
         </Tooltip>
 
         {/* Separator */}
@@ -114,8 +154,11 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
         {/* Frame indicator */}
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Frame:</span>
-          <Badge variant="secondary" className="text-sm min-w-[3rem] justify-center">
-            {currentFrame + 1} / {totalFrames}
+          <Badge
+            variant="secondary"
+            className="text-sm font-mono tabular-nums w-[5.5rem] justify-center whitespace-pre"
+          >
+            {frameLabel}
           </Badge>
         </div>
 

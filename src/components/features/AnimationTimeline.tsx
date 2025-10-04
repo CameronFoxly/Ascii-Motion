@@ -77,7 +77,9 @@ export const AnimationTimeline: React.FC = () => {
   const {
     navigateToFrame,
     navigateNext,
-    navigatePrevious
+    navigatePrevious,
+    navigateFirst,
+    navigateLast
   } = useFrameNavigation();
 
   // Drag and drop state
@@ -545,6 +547,8 @@ export const AnimationTimeline: React.FC = () => {
             onStop={stopPlayback}
             onPrevious={navigatePrevious}
             onNext={navigateNext}
+            onFirst={navigateFirst}
+            onLast={navigateLast}
             onToggleLoop={() => setLooping(!looping)}
             isLooping={looping}
           />

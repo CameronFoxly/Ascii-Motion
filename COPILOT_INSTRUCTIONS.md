@@ -3116,7 +3116,15 @@ const useCanvasStore = create<CanvasState>((set) => ({
 **If any checkbox above is unchecked, your work is not finished!**
 
 ## Current Architecture Status (Enhanced October 4, 2025):
-🚨 **LATEST**: Eraser Brush Parity & Active-Tool Hotkeys (Oct 4, 2025)
+🚨 **LATEST**: Timeline Jump Controls & Hotkeys (Oct 4, 2025)
+
+**Timeline Jump Controls & Hotkeys (Oct 4, 2025):**
+- ✅ **First/Last Frame Buttons**: `PlaybackControls` and the floating `PlaybackOverlay` now include chevron jump buttons flanking the existing skip controls, matching shadcn sizing, tooltips, and disabled states.
+- ✅ **Navigation Hook Extensions**: `useFrameNavigation` exposes `navigateFirst` and `navigateLast`, sharing the same playback/text-tool guards as other navigation helpers so timeline jumps stay in sync across UI surfaces.
+- ✅ **Global Hotkeys**: `useKeyboardShortcuts` binds `Shift+<` to `navigateFirst` and `Shift+>` to `navigateLast`, reusing the central `canNavigate` gate to avoid conflicts with playback, modal typing, or playback mode.
+- ✅ **Tooltip & Accessibility Updates**: Radix tooltip copy now surfaces the new shortcuts, keeping keyboard hints consistent across the timeline card and overlay.
+
+🚨 **PREVIOUS**: Eraser Brush Parity & Active-Tool Hotkeys (Oct 4, 2025)
 
 **Eraser Brush Parity & Active-Tool Hotkeys (Oct 4, 2025):**
 - ✅ **Unified Brush Controls**: `BrushControls` now renders for both pencil and eraser tools, sharing the same shadcn-aligned UI, preview grid, and slider/button controls with dynamic labeling.

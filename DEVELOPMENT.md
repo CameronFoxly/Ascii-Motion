@@ -2872,10 +2872,10 @@ src/utils/
 - **Visual indicators**: Canvas outline changes color during playback (green=playing, orange=paused)
 
 #### Phase 2.4: Frame Management ✅
-- **`useFrameNavigation` Hook**: Keyboard shortcuts (`,` `.` keys) 
+- **`useFrameNavigation` Hook**: Keyboard shortcuts (`,` `.` keys) plus Shift+&lt; / Shift+&gt; jumps to first/last frame
 - **Click-to-jump**: Frame selection and navigation
 - **Duration controls**: Per-frame millisecond editing
-- **Playback controls**: Play/pause/stop with keyboard shortcuts (Space, Esc)
+- **Playback controls**: Play/pause/stop and first/last frame buttons with keyboard shortcuts (Space, Esc, Shift+&lt;, Shift+&gt;)
 
 #### Phase 2.5: Integration & Polish ✅
 - **App integration**: Replaced "Coming Soon" timeline placeholder
@@ -2888,7 +2888,7 @@ src/utils/
 **New Components Created:**
 - `/src/components/features/AnimationTimeline.tsx` - Main timeline container
 - `/src/components/features/FrameThumbnail.tsx` - Individual frame with ASCII preview
-- `/src/components/features/PlaybackControls.tsx` - Play/pause/stop controls  
+- `/src/components/features/PlaybackControls.tsx` - Play/pause/stop and frame jump controls  
 - `/src/components/features/FrameControls.tsx` - Add/duplicate/delete buttons
 
 **New Hooks Created:**
@@ -2906,9 +2906,9 @@ src/utils/
 - ✅ Horizontal scrollable timeline with full ASCII thumbnails
 - ✅ Canvas read-only during playback with green outline indicator
 - ✅ Auto-save/load on frame switching
-- ✅ Click-to-navigate frames + keyboard shortcuts (`,` `.` keys)
+- ✅ Click-to-navigate frames + keyboard shortcuts (`,` `.` keys, Shift+&lt;/Shift+&gt;)
 - ✅ Frame duration controls and visual management
-- ✅ Playback controls with hotkeys (Space=play/pause, Esc=stop)
+- ✅ Playback controls with hotkeys (Space=play/pause, Esc=stop, Shift+&lt;/Shift+&gt;=jump to first/last)
 - ✅ Frame add/duplicate/delete functionality
 - ✅ Timeline shows frame count, total duration, and progress
 

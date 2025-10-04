@@ -48,10 +48,25 @@ export const useFrameNavigation = () => {
     }
   }, [isPlaying, isPlaybackMode, previousFrame, currentFrameIndex]);
 
+  const navigateFirst = useCallback(() => {
+    if (!isPlaying && !isPlaybackMode && frames.length > 0 && currentFrameIndex !== 0) {
+      goToFrame(0);
+    }
+  }, [isPlaying, isPlaybackMode, frames.length, currentFrameIndex, goToFrame]);
+
+  const navigateLast = useCallback(() => {
+    const lastIndex = frames.length - 1;
+    if (!isPlaying && !isPlaybackMode && lastIndex >= 0 && currentFrameIndex !== lastIndex) {
+      goToFrame(lastIndex);
+    }
+  }, [isPlaying, isPlaybackMode, frames.length, currentFrameIndex, goToFrame]);
+
   return {
     navigateToFrame,
     navigateNext,
     navigatePrevious,
+    navigateFirst,
+    navigateLast,
     canNavigate: !isPlaying && !isPlaybackMode && !textToolState.isTyping,
     currentFrameIndex,
     totalFrames: frames.length

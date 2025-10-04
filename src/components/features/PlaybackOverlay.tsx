@@ -30,7 +30,9 @@ export const PlaybackOverlay: React.FC<PlaybackOverlayProps> = ({ isVisible }) =
 
   const {
     navigateNext,
-    navigatePrevious
+    navigatePrevious,
+    navigateFirst,
+    navigateLast
   } = useFrameNavigation();
 
   if (!isVisible) return null;
@@ -54,6 +56,8 @@ export const PlaybackOverlay: React.FC<PlaybackOverlayProps> = ({ isVisible }) =
         onStop={stopPlayback}
         onPrevious={navigatePrevious}
         onNext={navigateNext}
+        onFirst={navigateFirst}
+        onLast={navigateLast}
         onToggleLoop={() => setLooping(!looping)}
         isLooping={looping}
       />

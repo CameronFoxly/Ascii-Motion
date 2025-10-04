@@ -333,7 +333,7 @@ export const useKeyboardShortcuts = () => {
   const { showSaveProjectDialog, showOpenProjectDialog } = useProjectFileActions();
   
   // Frame navigation and management hooks
-  const { navigateNext, navigatePrevious, canNavigate } = useFrameNavigation();
+  const { navigateNext, navigatePrevious, navigateFirst, navigateLast, canNavigate } = useFrameNavigation();
   const { addFrame, removeFrame, duplicateFrame, duplicateFrameRange, deleteFrameRange } = useAnimationHistory();
   
   // Flip utilities for Shift+H and Shift+V
@@ -768,8 +768,23 @@ export const useKeyboardShortcuts = () => {
       }
     }
 
-    // Handle flip utility hotkeys (Shift+H and Shift+V) and onion skinning (Shift+O)
+    // Handle shift-modified hotkeys (first/last frame, palette colors, flip utilities, onion skinning)
     if (event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      const isShiftComma = event.key === '<' || event.code === 'Comma';
+      const isShiftPeriod = event.key === '>' || event.code === 'Period';
+
+      if (canNavigate && isShiftComma) {
+        event.preventDefault();
+        navigateFirst();
+        return;
+      }
+
+      if (canNavigate && isShiftPeriod) {
+        event.preventDefault();
+        navigateLast();
+        return;
+      }
+
       if (isBracketLeft) {
         event.preventDefault();
         navigatePaletteColor('previous');
