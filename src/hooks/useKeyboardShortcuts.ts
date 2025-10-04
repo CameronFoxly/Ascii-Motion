@@ -10,6 +10,7 @@ import { useAnimationHistory } from './useAnimationHistory';
 import { usePaletteStore } from '../stores/paletteStore';
 import { useCharacterPaletteStore } from '../stores/characterPaletteStore';
 import { useFlipUtilities } from './useFlipUtilities';
+import { useProjectFileActions } from './useProjectFileActions';
 import { ANSI_COLORS } from '../constants/colors';
 import type { AnyHistoryAction, CanvasHistoryAction, FrameId } from '../types';
 
@@ -329,6 +330,7 @@ export const useKeyboardShortcuts = () => {
   const { startPasteMode, commitPaste, pasteMode } = useCanvasContext();
   const { toggleOnionSkin, currentFrameIndex, frames, selectedFrameIndices } = useAnimationStore();
   const { zoomIn, zoomOut } = useZoomControls();
+  const { showSaveProjectDialog, showOpenProjectDialog } = useProjectFileActions();
   
   // Frame navigation and management hooks
   const { navigateNext, navigatePrevious, canNavigate } = useFrameNavigation();
@@ -574,6 +576,15 @@ export const useKeyboardShortcuts = () => {
     }
   }, []);
 
+  const blockBrowserShortcut = useCallback((event: KeyboardEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (typeof event.stopImmediatePropagation === 'function') {
+      event.stopImmediatePropagation();
+    }
+    (event as unknown as { returnValue?: boolean }).returnValue = false;
+  }, []);
+
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     // If any modal dialog is open, disable all keyboard shortcuts
     // Check for shadcn/ui dialogs that are actually open and visible
@@ -586,8 +597,25 @@ export const useKeyboardShortcuts = () => {
       return;
     }
 
+    const isModifierPressed = event.metaKey || event.ctrlKey;
+    const normalizedKey = typeof event.key === 'string' ? event.key.toLowerCase() : '';
+
+    if (isModifierPressed && !event.altKey && !event.shiftKey) {
+      if (normalizedKey === 's') {
+        blockBrowserShortcut(event);
+        showSaveProjectDialog();
+        return;
+      }
+
+      if (normalizedKey === 'o') {
+        blockBrowserShortcut(event);
+        showOpenProjectDialog();
+        return;
+      }
+    }
+
     // If paste mode is active, let paste mode handle its own keyboard events (except Ctrl/Cmd+V to commit)
-    if (pasteMode.isActive && !((event.metaKey || event.ctrlKey) && event.key === 'v')) {
+    if (pasteMode.isActive && !(isModifierPressed && normalizedKey === 'v')) {
       return;
     }
 
@@ -603,7 +631,7 @@ export const useKeyboardShortcuts = () => {
     
     if (isInputFocused) {
       // Allow all modifier-based shortcuts (Cmd+A, Cmd+C, etc.) - these are text editing commands
-      if (event.metaKey || event.ctrlKey) {
+      if (isModifierPressed) {
         return; // Let the input field handle text editing shortcuts
       }
       
@@ -630,7 +658,7 @@ export const useKeyboardShortcuts = () => {
 
     // If text tool is actively typing, only allow Escape and modifier-based shortcuts
     // This prevents conflicts with single-key tool hotkeys and the space bar
-    if (textToolState.isTyping && !event.metaKey && !event.ctrlKey && event.key !== 'Escape') {
+    if (textToolState.isTyping && !isModifierPressed && event.key !== 'Escape') {
       return; // Let the text tool handle all other keys
     }
 
@@ -657,7 +685,7 @@ export const useKeyboardShortcuts = () => {
     }
 
     // Handle Delete/Backspace key (without modifier) - Clear selected cells
-    if ((event.key === 'Delete' || event.key === 'Backspace') && !event.metaKey && !event.ctrlKey) {
+    if ((event.key === 'Delete' || event.key === 'Backspace') && !isModifierPressed) {
       // Check if any selection is active and clear the selected cells
       if (magicWandSelection.active && magicWandSelection.selectedCells.size > 0) {
         event.preventDefault();
@@ -726,7 +754,7 @@ export const useKeyboardShortcuts = () => {
     const isBracketLeft = event.code === 'BracketLeft' || event.key === '[' || event.key === '{';
     const isBracketRight = event.code === 'BracketRight' || event.key === ']' || event.key === '}';
 
-    if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey) {
+    if (isModifierPressed && !event.altKey && !event.shiftKey) {
       if (isBracketLeft) {
         event.preventDefault();
         navigateCharacterPaletteCharacters('previous');
@@ -841,12 +869,10 @@ export const useKeyboardShortcuts = () => {
     }
 
     // Check for modifier keys (Cmd on Mac, Ctrl on Windows/Linux)
-    const isModifierPressed = event.metaKey || event.ctrlKey;
-    
     if (!isModifierPressed) return;
     
     // Handle Ctrl+Delete or Ctrl+Backspace for frame deletion (before the switch statement)
-    if ((event.key === 'Delete' || event.key === 'Backspace') && (event.metaKey || event.ctrlKey)) {
+    if ((event.key === 'Delete' || event.key === 'Backspace') && isModifierPressed) {
       if (frames.length > 1) {
         event.preventDefault();
         
@@ -864,7 +890,7 @@ export const useKeyboardShortcuts = () => {
       return;
     }
 
-    switch (event.key.toLowerCase()) {
+    switch (normalizedKey) {
       case 'n':
         // Ctrl+N = Add new frame after current frame
         if (!event.shiftKey) {
@@ -1013,15 +1039,33 @@ export const useKeyboardShortcuts = () => {
     canNavigate,
     addFrame,
     removeFrame,
-    duplicateFrame
+    duplicateFrame,
+    showSaveProjectDialog,
+    showOpenProjectDialog,
+    blockBrowserShortcut
   ]);
 
+  const handleShortcutKeyPress = useCallback((event: KeyboardEvent) => {
+    if ((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey) {
+      const normalizedKey = typeof event.key === 'string' ? event.key.toLowerCase() : '';
+      if (normalizedKey === 's' || normalizedKey === 'o') {
+        blockBrowserShortcut(event);
+      }
+    }
+  }, [blockBrowserShortcut]);
+
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('keypress', handleShortcutKeyPress, true);
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('keypress', handleShortcutKeyPress, true);
     };
-  }, [handleKeyDown]);
+  }, [handleKeyDown, handleShortcutKeyPress]);
 
   return {
     // Expose functions for UI buttons

@@ -7,11 +7,15 @@ import {
   MenubarMenu,
   MenubarSeparator,
   MenubarTrigger,
+  MenubarShortcut,
 } from '../ui/menubar';
 import { Menu, Save, FolderOpen, Info, Keyboard } from 'lucide-react';
-import { useExportStore } from '../../stores/exportStore';
 import { AboutDialog } from './AboutDialog';
 import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
+import { useProjectFileActions } from '../../hooks/useProjectFileActions';
+
+const isMacPlatform = () =>
+  typeof window !== 'undefined' && typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 
 /**
  * Hamburger menu button for the top header bar
@@ -20,20 +24,8 @@ import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
 export const HamburgerMenu: React.FC = () => {
   const [showAboutDialog, setShowAboutDialog] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
-  
-  const setActiveFormat = useExportStore(state => state.setActiveFormat);
-  const setShowExportModal = useExportStore(state => state.setShowExportModal);
-  const setShowImportModal = useExportStore(state => state.setShowImportModal);
-
-  const handleSaveProject = () => {
-    setActiveFormat('session');
-    setShowExportModal(true);
-  };
-
-  const handleOpenProject = () => {
-    setActiveFormat('session');
-    setShowImportModal(true);
-  };
+  const { showSaveProjectDialog, showOpenProjectDialog } = useProjectFileActions();
+  const isMac = isMacPlatform();
 
   return (
     <>
@@ -50,13 +42,15 @@ export const HamburgerMenu: React.FC = () => {
             </Button>
           </MenubarTrigger>
           <MenubarContent align="start" className="border-border/50">
-            <MenubarItem onClick={handleSaveProject} className="cursor-pointer">
+            <MenubarItem onClick={showSaveProjectDialog} className="cursor-pointer">
               <Save className="mr-2 h-4 w-4" />
               <span>Save Project</span>
+              <MenubarShortcut>{isMac ? '⌘S' : 'Ctrl+S'}</MenubarShortcut>
             </MenubarItem>
-            <MenubarItem onClick={handleOpenProject} className="cursor-pointer">
+            <MenubarItem onClick={showOpenProjectDialog} className="cursor-pointer">
               <FolderOpen className="mr-2 h-4 w-4" />
               <span>Open Project</span>
+              <MenubarShortcut>{isMac ? '⌘O' : 'Ctrl+O'}</MenubarShortcut>
             </MenubarItem>
             
             <MenubarSeparator />
