@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAnimationStore } from '../../stores/animationStore';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useAnimationPlayback } from '../../hooks/useAnimationPlayback';
@@ -24,6 +24,10 @@ import {
 } from '../ui/dropdown-menu';
 import { Menu, Clock, Plus, Zap } from 'lucide-react';
 import { MAX_LIMITS } from '../../constants';
+
+const AUTO_SCROLL_EDGE_RATIO = 0.1; // 10% edge band for auto-scrolling
+const AUTO_SCROLL_MIN_SPEED = 30; // px per second at edge boundary
+const AUTO_SCROLL_MAX_SPEED = 840; // px per second when cursor touches edge
 
 /**
  * Main animation timeline component
@@ -80,6 +84,129 @@ export const AnimationTimeline: React.FC = () => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const autoScrollFrameRef = useRef<number | null>(null);
+  const autoScrollLastTimeRef = useRef<number | null>(null);
+  const autoScrollVelocityRef = useRef<number>(0);
+
+  const stopAutoScroll = useCallback(() => {
+    if (autoScrollFrameRef.current !== null) {
+      cancelAnimationFrame(autoScrollFrameRef.current);
+    }
+    autoScrollFrameRef.current = null;
+    autoScrollLastTimeRef.current = null;
+    autoScrollVelocityRef.current = 0;
+  }, []);
+
+  const stepAutoScroll = useCallback((timestamp: number) => {
+    const container = scrollContainerRef.current;
+    if (!container) {
+      stopAutoScroll();
+      return;
+    }
+
+    if (autoScrollVelocityRef.current === 0) {
+      stopAutoScroll();
+      return;
+    }
+
+    const lastTimestamp = autoScrollLastTimeRef.current ?? timestamp;
+    const deltaSeconds = (timestamp - lastTimestamp) / 1000;
+    autoScrollLastTimeRef.current = timestamp;
+
+    if (deltaSeconds > 0) {
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      if (maxScroll <= 0) {
+        stopAutoScroll();
+        return;
+      }
+
+      const nextScroll = container.scrollLeft + autoScrollVelocityRef.current * deltaSeconds;
+      const clampedScroll = Math.max(0, Math.min(maxScroll, nextScroll));
+      const hitBoundary = (
+        (clampedScroll === 0 && autoScrollVelocityRef.current < 0) ||
+        (clampedScroll === maxScroll && autoScrollVelocityRef.current > 0)
+      );
+
+      container.scrollLeft = clampedScroll;
+
+      if (hitBoundary) {
+        autoScrollVelocityRef.current = 0;
+      }
+    }
+
+    if (autoScrollVelocityRef.current !== 0) {
+      autoScrollFrameRef.current = requestAnimationFrame(stepAutoScroll);
+    } else {
+      stopAutoScroll();
+    }
+  }, [stopAutoScroll]);
+
+  const startAutoScroll = useCallback(() => {
+    if (autoScrollFrameRef.current === null) {
+      autoScrollLastTimeRef.current = null;
+      autoScrollFrameRef.current = requestAnimationFrame(stepAutoScroll);
+    }
+  }, [stepAutoScroll]);
+
+  const updateAutoScrollFromEvent = useCallback((event: React.DragEvent) => {
+    if (!scrollContainerRef.current || draggedIndex === null) {
+      if (autoScrollVelocityRef.current !== 0) {
+        stopAutoScroll();
+      }
+      return;
+    }
+
+    const container = scrollContainerRef.current;
+    const rect = container.getBoundingClientRect();
+    const threshold = rect.width * AUTO_SCROLL_EDGE_RATIO;
+    const maxScroll = container.scrollWidth - container.clientWidth;
+
+    let velocity = 0;
+
+    if (threshold > 0) {
+      const { clientX } = event;
+
+      if (clientX < rect.left + threshold) {
+        const distance = rect.left + threshold - clientX;
+        const intensity = Math.min(1, distance / threshold);
+        velocity = -(
+          AUTO_SCROLL_MIN_SPEED +
+          intensity * (AUTO_SCROLL_MAX_SPEED - AUTO_SCROLL_MIN_SPEED)
+        );
+      } else if (clientX > rect.right - threshold) {
+        const distance = clientX - (rect.right - threshold);
+        const intensity = Math.min(1, distance / threshold);
+        velocity = AUTO_SCROLL_MIN_SPEED +
+          intensity * (AUTO_SCROLL_MAX_SPEED - AUTO_SCROLL_MIN_SPEED);
+      }
+    }
+
+    if (
+      maxScroll <= 0 ||
+      (velocity < 0 && container.scrollLeft <= 0) ||
+      (velocity > 0 && container.scrollLeft >= maxScroll)
+    ) {
+      velocity = 0;
+    }
+
+    if (velocity === 0) {
+      if (autoScrollVelocityRef.current !== 0) {
+        stopAutoScroll();
+      }
+      return;
+    }
+
+    autoScrollVelocityRef.current = velocity;
+    startAutoScroll();
+  }, [draggedIndex, startAutoScroll, stopAutoScroll]);
+
+  useEffect(() => {
+    return () => {
+      stopAutoScroll();
+    };
+  }, [stopAutoScroll]);
+
   const updateDropTargetIndex = useCallback((targetIndex: number) => {
     if (draggedIndex === null) return;
 
@@ -132,7 +259,8 @@ export const AnimationTimeline: React.FC = () => {
     }
     
     updateDropTargetIndex(targetIndex);
-  }, [draggedIndex, updateDropTargetIndex]);
+    updateAutoScrollFromEvent(event);
+  }, [draggedIndex, updateDropTargetIndex, updateAutoScrollFromEvent]);
 
   // Handle drag enter
   const handleDragEnter = useCallback((event: React.DragEvent, index: number) => {
@@ -142,8 +270,9 @@ export const AnimationTimeline: React.FC = () => {
       setDragOverIndex(null);
       
       updateDropTargetIndex(index);
+      updateAutoScrollFromEvent(event);
     }
-  }, [draggedIndex, updateDropTargetIndex]);
+  }, [draggedIndex, updateDropTargetIndex, updateAutoScrollFromEvent]);
 
   // Handle drag leave - simplified to do nothing, let dragEnter handle clearing
   const handleDragLeave = useCallback((event: React.DragEvent) => {
@@ -155,12 +284,14 @@ export const AnimationTimeline: React.FC = () => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
     updateDropTargetIndex(targetIndex);
-  }, [updateDropTargetIndex]);
+    updateAutoScrollFromEvent(event);
+  }, [updateDropTargetIndex, updateAutoScrollFromEvent]);
 
   const handleIndicatorDragEnter = useCallback((event: React.DragEvent, targetIndex: number) => {
     event.preventDefault();
     updateDropTargetIndex(targetIndex);
-  }, [updateDropTargetIndex]);
+    updateAutoScrollFromEvent(event);
+  }, [updateDropTargetIndex, updateAutoScrollFromEvent]);
 
   // Handle drop
   const handleDrop = useCallback((event: React.DragEvent) => {
@@ -193,22 +324,26 @@ export const AnimationTimeline: React.FC = () => {
       }
     }
     
+    stopAutoScroll();
+
     // Clean up drag state with delay to prevent race conditions
     setTimeout(() => {
       setDraggedIndex(null);
       setDragOverIndex(null);
     }, 100);
-  }, [dragOverIndex, reorderFrames, reorderFrameRange, frames.length, getSelectedFrames]);
+  }, [dragOverIndex, reorderFrames, reorderFrameRange, frames.length, getSelectedFrames, stopAutoScroll]);
 
   // Handle drag end
   const handleDragEnd = useCallback(() => {
     // Clean up drag state with delay to prevent race conditions
+    stopAutoScroll();
+
     setTimeout(() => {
       setDraggedIndex(null);
       setDragOverIndex(null);
       setDraggingFrame(false); // Clear global drag state
     }, 100);
-  }, [setDraggingFrame]);
+  }, [setDraggingFrame, stopAutoScroll]);
 
   const renderDropZone = useCallback((targetIndex: number, key: string) => {
     if (draggedIndex === null) {
@@ -232,7 +367,7 @@ export const AnimationTimeline: React.FC = () => {
           onDrop={handleDrop}
         >
           <div
-            className={`h-[90%] rounded-full transition-all duration-150 ease-out ${isActive ? 'w-1.5 bg-primary shadow-lg animate-pulse' : 'w-px bg-transparent'}`}
+            className={`h-[90%] rounded-full transition-all duration-150 ease-out ${isActive ? 'w-1.5 bg-primary shadow-lg animate-pulse animate-in fade-in' : 'w-px bg-transparent'}`}
           />
         </div>
       </div>
@@ -424,7 +559,7 @@ export const AnimationTimeline: React.FC = () => {
             <h4 className="text-xs font-medium text-muted-foreground">Frames</h4>
             <TimelineZoomControl />
           </div>
-          <div className="w-full overflow-x-auto">
+          <div className="w-full overflow-x-auto" ref={scrollContainerRef}>
             <div 
               className="flex gap-1" 
               style={{ 
@@ -432,6 +567,7 @@ export const AnimationTimeline: React.FC = () => {
                 userSelect: 'none', // Prevent text selection
                 WebkitUserSelect: 'none' // Webkit browsers
               }}
+              onDragOver={updateAutoScrollFromEvent}
               onClick={(e) => {
                 // Clear selection when clicking empty timeline area
                 if (e.target === e.currentTarget) {

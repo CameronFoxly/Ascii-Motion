@@ -22,15 +22,16 @@
 | T-05 | Delete selection (Ctrl/Cmd+Delete) | Highlight frames 1-3, use shortcut | Same as toolbar, history entry recorded |
 | T-06 | Reorder selection | Select frames 2-4, drag frame 2 handle after frame 6 | Group moves in order, undo restores original order and selection |
 | T-07 | Drop indicator hotspot | Drag a single frame so the indicator appears between frames, hover within the glow, then drop | Frame reorders at the highlighted slot even if the cursor isn’t touching a frame card |
-| T-08 | Set duration (selection) | Select frames 4-6, run **Set Duration**, enter `120` ms | Only selected frames change to 120 ms; history description lists 3 frames |
-| T-09 | Set duration (all) | Ensure single selection, run dialog, set `90` ms | Every frame adopts 90 ms, selection remains on active frame |
-| T-10 | Undo/Redo duplicate | Perform T-02, Undo, Redo | Undo removes copies & restores selection; Redo re-inserts and reselects copies |
-| T-11 | Undo/Redo delete | Perform T-04, Undo, Redo | Undo reinserts frames with original order & selection; Redo deletes again |
-| T-12 | Escape clears selection | Create multi selection, press **Escape** | Timeline selection collapses to active frame while canvas selections clear |
-| T-13 | Canvas interaction clears selection | Select frames 2-5, click canvas, draw a stroke | Timeline selection resets to active frame before drawing begins |
-| T-14 | Navigation clears selection | Multi-select frames, press `,` or `.` | Moves one frame and selection reduces to the new active frame only |
-| T-15 | Playback clears selection | Multi-select frames, press **Play** then **Stop** | Selection resets to the frame where playback stopped |
-| T-16 | Import/Export sanity | After multi operations, export JSON, re-import | Imported session retains frame order/durations and has single selection |
+| T-08 | Edge auto-scroll assist | With timeline wider than the viewport, drag frames toward either edge and hover in the outer 10% band | Timeline auto-scrolls smoothly; speed increases nearer the edge and stops when the cursor leaves the band |
+| T-09 | Set duration (selection) | Select frames 4-6, run **Set Duration**, enter `120` ms | Only selected frames change to 120 ms; history description lists 3 frames |
+| T-10 | Set duration (all) | Ensure single selection, run dialog, set `90` ms | Every frame adopts 90 ms, selection remains on active frame |
+| T-11 | Undo/Redo duplicate | Perform T-02, Undo, Redo | Undo removes copies & restores selection; Redo re-inserts and reselects copies |
+| T-12 | Undo/Redo delete | Perform T-04, Undo, Redo | Undo reinserts frames with original order & selection; Redo deletes again |
+| T-13 | Escape clears selection | Create multi selection, press **Escape** | Timeline selection collapses to active frame while canvas selections clear |
+| T-14 | Canvas interaction clears selection | Select frames 2-5, click canvas, draw a stroke | Timeline selection resets to active frame before drawing begins |
+| T-15 | Navigation clears selection | Multi-select frames, press `,` or `.` | Moves one frame and selection reduces to the new active frame only |
+| T-16 | Playback clears selection | Multi-select frames, press **Play** then **Stop** | Selection resets to the frame where playback stopped |
+| T-17 | Import/Export sanity | After multi operations, export JSON, re-import | Imported session retains frame order/durations and has single selection |
 
 ## 🔁 Regression Walkthroughs
 1. **Full Range Workflow**
@@ -68,6 +69,7 @@
 - Capture screenshots or short videos for regressions—attach to GitHub issues with frame indices.
 - If undo stack misbehaves, dump `useToolStore.getState().history` to inspect snapshots.
 - When executing T-07, keep the cursor inside the indicator’s glow to confirm the enlarged hotspot accepts the drop without touching adjacent frame cards.
+- For T-08, observe that auto-scroll speed ramps up as you approach the edge and halts when you move back toward center.
 - For flaky behavior, re-run scenario after a fresh reload; note if persisted projects impact reproduction.
 - Extend this checklist when new batch operations (e.g., copy/paste ranges) arrive.
 
