@@ -1,12 +1,35 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.31";
-export const BUILD_DATE = "2025-10-03T07:18:28.773Z";
-export const BUILD_HASH = "40d2c0a";
+export const VERSION = "0.1.33";
+export const BUILD_DATE = "2025-10-04T15:33:50.859Z";
+export const BUILD_HASH = "24db31f";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.33",
+    "date": "2025-10-04T15:33:50.859Z",
+    "commits": [
+      "Initial version"
+    ]
+  },
+  {
+    "version": "0.1.32",
+    "date": "2025-10-04T05:05:53.607Z",
+    "commits": [
+      "Added autoscroll when dragging on timeline",
+      "Decreased visual height of drop indicator.",
+      "Increased size of drag and drop frame reordering hotzone",
+      "Updated multiframe documentation and multiframe duration set",
+      "Added multiframe duplicaiton",
+      "Fixed batch move undo bugs",
+      "Fixed frame re-order bug",
+      "Fixed frame delete undo bug",
+      "Initial rough multiframe selection added",
+      "Update versions"
+    ]
+  },
   {
     "version": "0.1.31",
     "date": "2025-10-03T07:18:28.773Z",
