@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Animation, Frame, FrameId, Cell } from '../types';
 import { DEFAULT_FRAME_DURATION } from '../constants';
-import { cloneFrames } from '../utils/frameUtils';
+import { cloneFrame, cloneFrames, generateFrameId } from '../utils/frameUtils';
 
 interface AnimationState extends Animation {
   // Drag state for frame reordering
@@ -28,6 +28,7 @@ interface AnimationState extends Animation {
   addFrame: (atIndex?: number, canvasData?: Map<string, Cell>, duration?: number) => void;
   removeFrame: (index: number) => void;
   duplicateFrame: (index: number) => void;
+  duplicateFrameRange: (frameIndices: number[]) => void;
   setCurrentFrame: (index: number) => void;
   setCurrentFrameOnly: (index: number) => void; // Set current frame without clearing selection
   updateFrameDuration: (index: number, duration: number) => void;
@@ -183,22 +184,67 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
     set((state) => {
       const frameToDuplicate = state.frames[index];
       if (!frameToDuplicate) return state;
-      
+
       const duplicatedFrame: Frame = {
-        ...frameToDuplicate,
-        id: `frame-${Date.now()}-${Math.random()}` as FrameId,
-        name: `${frameToDuplicate.name} Copy`,
-        data: new Map(frameToDuplicate.data) // Deep copy the data
+        ...cloneFrame(frameToDuplicate),
+        id: generateFrameId(),
+        name: `${frameToDuplicate.name} Copy`
       };
-      
+
       const newFrames = [...state.frames];
       newFrames.splice(index + 1, 0, duplicatedFrame);
-      
+
       return {
         frames: newFrames,
         currentFrameIndex: index + 1,
         selectedFrameIndices: new Set([index + 1]),
         totalDuration: get().calculateTotalDuration()
+      };
+    });
+  },
+
+  duplicateFrameRange: (frameIndices: number[]) => {
+    set((state) => {
+      if (frameIndices.length === 0) return state;
+
+      const uniqueIndices = Array.from(new Set(frameIndices)).sort((a, b) => a - b);
+      if (uniqueIndices.some(idx => idx < 0 || idx >= state.frames.length)) {
+        return state;
+      }
+
+      const insertIndex = uniqueIndices[uniqueIndices.length - 1] + 1;
+      const duplicates: Frame[] = [];
+
+      uniqueIndices.forEach((idx, position) => {
+        const sourceFrame = state.frames[idx];
+        if (!sourceFrame) return;
+
+        const duplicatedFrame: Frame = {
+          ...cloneFrame(sourceFrame),
+          id: generateFrameId(),
+          name: `${sourceFrame.name} Copy${uniqueIndices.length > 1 ? ` ${position + 1}` : ''}`
+        };
+
+        duplicates.push(duplicatedFrame);
+      });
+
+      if (duplicates.length === 0) {
+        return state;
+      }
+
+      const newFrames = [...state.frames];
+      newFrames.splice(insertIndex, 0, ...duplicates);
+
+      const newSelection = new Set<number>();
+      for (let i = 0; i < duplicates.length; i++) {
+        newSelection.add(insertIndex + i);
+      }
+
+      return {
+        frames: newFrames,
+        currentFrameIndex: insertIndex,
+        selectedFrameIndices: newSelection,
+        totalDuration: newFrames.reduce((total, frame) => total + frame.duration, 0)
       };
     });
   },

@@ -1,4 +1,4 @@
-import type { Cell, Frame } from '../types';
+import type { Cell, Frame, FrameId } from '../types';
 
 const cloneCell = (cell: Cell): Cell => ({
   char: cell.char,
@@ -15,3 +15,5 @@ export const cloneFrame = (frame: Frame): Frame => ({
 });
 
 export const cloneFrames = (frames: Frame[]): Frame[] => frames.map(cloneFrame);
+
+export const generateFrameId = (): FrameId => `frame-${Date.now()}-${Math.random()}` as FrameId;

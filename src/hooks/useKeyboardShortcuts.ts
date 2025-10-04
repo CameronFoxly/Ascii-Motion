@@ -195,6 +195,36 @@ const processHistoryAction = (
       }
       break;
 
+    case 'duplicate_frame_range': {
+      const duplicateRangeAction = action as import('../types').DuplicateFrameRangeHistoryAction;
+      const {
+        previousFrames,
+        newFrames,
+        previousSelection,
+        newSelection,
+        previousCurrentFrame,
+        newCurrentFrame,
+        originalFrameIndices
+      } = duplicateRangeAction.data;
+
+      if (isRedo) {
+        animationStore.replaceFrames(
+          newFrames,
+          newCurrentFrame,
+          newSelection.length > 0 ? newSelection : undefined
+        );
+        console.log(`🔁 Redo: Duplicated ${originalFrameIndices.length} frame(s)`);
+      } else {
+        animationStore.replaceFrames(
+          previousFrames,
+          previousCurrentFrame,
+          previousSelection.length > 0 ? previousSelection : undefined
+        );
+        console.log(`↩️ Undo: Removed duplicated frames`);
+      }
+      break;
+    }
+
     case 'delete_all_frames':
       const deleteAllAction = action as import('../types').DeleteAllFramesHistoryAction;
       if (isRedo) {
@@ -301,7 +331,7 @@ export const useKeyboardShortcuts = () => {
   
   // Frame navigation and management hooks
   const { navigateNext, navigatePrevious, canNavigate } = useFrameNavigation();
-  const { addFrame, removeFrame, duplicateFrame, deleteFrameRange } = useAnimationHistory();
+  const { addFrame, removeFrame, duplicateFrame, duplicateFrameRange, deleteFrameRange } = useAnimationHistory();
   
   // Flip utilities for Shift+H and Shift+V
   const { flipHorizontal, flipVertical } = useFlipUtilities();
@@ -761,7 +791,12 @@ export const useKeyboardShortcuts = () => {
         // Ctrl+D = Duplicate current frame
         if (!event.shiftKey) {
           event.preventDefault();
-          duplicateFrame(currentFrameIndex);
+          const selectedFrames = Array.from(selectedFrameIndices).sort((a, b) => a - b);
+          if (selectedFrames.length > 1) {
+            duplicateFrameRange(selectedFrames);
+          } else {
+            duplicateFrame(currentFrameIndex);
+          }
         }
         break;
 

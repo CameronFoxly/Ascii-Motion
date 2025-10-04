@@ -24,6 +24,7 @@ export const useAnimationHistory = () => {
     addFrame: addFrameStore, 
     removeFrame: removeFrameStore, 
     duplicateFrame: duplicateFrameStore, 
+    duplicateFrameRange: duplicateFrameRangeStore,
     updateFrameDuration: updateFrameDurationStore, 
     updateFrameName: updateFrameNameStore, 
     reorderFrames: reorderFramesStore 
@@ -95,6 +96,58 @@ export const useAnimationHistory = () => {
     // Record in history
     pushToHistory(historyAction);
   }, [frames, currentFrameIndex, duplicateFrameStore, pushToHistory]);
+
+  const duplicateFrameRange = useCallback((frameIndices: number[]) => {
+    if (frameIndices.length === 0) return;
+
+    const uniqueIndices = Array.from(new Set(frameIndices)).sort((a, b) => a - b);
+
+    if (uniqueIndices.length === 1) {
+      duplicateFrame(uniqueIndices[0]);
+      return;
+    }
+
+    if (uniqueIndices.some(idx => idx < 0 || idx >= frames.length)) {
+      return;
+    }
+
+    const previousFramesSnapshot = cloneFrames(frames);
+    const previousSelection = Array.from(selectedFrameIndices).sort((a, b) => a - b);
+    const previousCurrentFrame = currentFrameIndex;
+
+    duplicateFrameRangeStore(uniqueIndices);
+
+    const {
+      frames: framesAfter,
+      selectedFrameIndices: selectionAfter,
+      currentFrameIndex: currentAfter
+    } = useAnimationStore.getState();
+
+    const newFramesSnapshot = cloneFrames(framesAfter);
+    const newSelection = Array.from(selectionAfter).sort((a, b) => a - b);
+    const previousFrameIds = new Set(previousFramesSnapshot.map(frame => frame.id));
+    const insertedFrameIds = framesAfter
+      .filter(frame => !previousFrameIds.has(frame.id))
+      .map(frame => frame.id);
+
+    const historyAction: import('../types').DuplicateFrameRangeHistoryAction = {
+      type: 'duplicate_frame_range',
+      timestamp: Date.now(),
+      description: `Duplicate ${uniqueIndices.length} frame${uniqueIndices.length > 1 ? 's' : ''}`,
+      data: {
+        originalFrameIndices: uniqueIndices,
+        insertedFrameIds,
+        previousFrames: previousFramesSnapshot,
+        newFrames: newFramesSnapshot,
+        previousSelection,
+        newSelection,
+        previousCurrentFrame,
+        newCurrentFrame: currentAfter
+      }
+    };
+
+    pushToHistory(historyAction);
+  }, [frames, currentFrameIndex, duplicateFrameRangeStore, pushToHistory, selectedFrameIndices, duplicateFrame]);
 
   /**
    * Remove a frame with history recording
@@ -393,6 +446,7 @@ export const useAnimationHistory = () => {
   return {
     addFrame,
     duplicateFrame,
+    duplicateFrameRange,
     removeFrame,
     reorderFrames,
     updateFrameDuration,

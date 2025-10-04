@@ -56,6 +56,7 @@ export const AnimationTimeline: React.FC = () => {
     addFrame,
     removeFrame,
     duplicateFrame,
+    duplicateFrameRange,
     updateFrameDuration,
     reorderFrames,
     deleteFrameRange,
@@ -264,10 +265,19 @@ export const AnimationTimeline: React.FC = () => {
 
   // Handle duplicating current frame
   const handleDuplicateFrame = useCallback(() => {
+    const selected = getSelectedFrames();
+    if (selected.length > 1) {
+      if (frames.length + selected.length > MAX_LIMITS.FRAME_COUNT) {
+        return;
+      }
+      duplicateFrameRange(selected);
+      return;
+    }
+
     if (frames.length < MAX_LIMITS.FRAME_COUNT) {
       duplicateFrame(currentFrameIndex);
     }
-  }, [frames.length, currentFrameIndex, duplicateFrame]);
+  }, [frames.length, currentFrameIndex, getSelectedFrames, duplicateFrame, duplicateFrameRange]);
 
   // Handle deleting current/selected frames from toolbar
   const handleDeleteFrame = useCallback(() => {
@@ -284,10 +294,19 @@ export const AnimationTimeline: React.FC = () => {
 
   // Handle individual frame duplicate
   const handleFrameDuplicate = useCallback((frameIndex: number) => {
-    if (frames.length < MAX_LIMITS.FRAME_COUNT) {
-      duplicateFrame(frameIndex);
+    if (frames.length >= MAX_LIMITS.FRAME_COUNT) return;
+
+    const selected = getSelectedFrames();
+    if (selected.length > 1 && selected.includes(frameIndex)) {
+      if (frames.length + selected.length > MAX_LIMITS.FRAME_COUNT) {
+        return;
+      }
+      duplicateFrameRange(selected);
+      return;
     }
-  }, [frames.length, duplicateFrame]);
+
+    duplicateFrame(frameIndex);
+  }, [frames.length, getSelectedFrames, duplicateFrame, duplicateFrameRange]);
 
   // Handle individual frame delete
   const handleFrameDelete = useCallback((frameIndex: number) => {

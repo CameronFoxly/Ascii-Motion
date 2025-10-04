@@ -231,6 +231,7 @@ export type HistoryActionType =
   | 'canvas_edit'      // Canvas cell modifications
   | 'add_frame'        // Add new frame
   | 'duplicate_frame'  // Duplicate existing frame
+  | 'duplicate_frame_range' // Duplicate multiple frames
   | 'delete_frame'     // Delete frame
   | 'delete_frame_range'  // Delete multiple frames
   | 'delete_all_frames'   // Delete all frames and reset
@@ -274,6 +275,20 @@ export interface DuplicateFrameHistoryAction extends HistoryAction {
     newIndex: number;
     frame: Frame;
     previousCurrentFrame: number;
+  };
+}
+
+export interface DuplicateFrameRangeHistoryAction extends HistoryAction {
+  type: 'duplicate_frame_range';
+  data: {
+    originalFrameIndices: number[];
+    insertedFrameIds: FrameId[];
+    previousFrames: Frame[];
+    newFrames: Frame[];
+    previousSelection: number[];
+    newSelection: number[];
+    previousCurrentFrame: number;
+    newCurrentFrame: number;
   };
 }
 
@@ -392,6 +407,7 @@ export type AnyHistoryAction =
   | CanvasHistoryAction
   | AddFrameHistoryAction 
   | DuplicateFrameHistoryAction
+  | DuplicateFrameRangeHistoryAction
   | DeleteFrameHistoryAction
   | DeleteFrameRangeHistoryAction
   | DeleteAllFramesHistoryAction
