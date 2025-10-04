@@ -56,8 +56,12 @@ const KEYBOARD_SHORTCUTS: ShortcutSection[] = [
     title: 'Color Management',
     shortcuts: [
       { keys: ['X'], description: 'Swap foreground/background colors' },
-      { keys: ['['], description: 'Previous palette color' },
-      { keys: [']'], description: 'Next palette color' },
+      { keys: ['['], description: 'Decrease brush size' },
+      { keys: [']'], description: 'Increase brush size' },
+      { keys: ['Shift', '['], description: 'Previous palette color' },
+      { keys: ['Shift', ']'], description: 'Next palette color' },
+      { keys: ['Cmd', '['], description: 'Previous character in active palette' },
+      { keys: ['Cmd', ']'], description: 'Next character in active palette' },
     ]
   },
   {

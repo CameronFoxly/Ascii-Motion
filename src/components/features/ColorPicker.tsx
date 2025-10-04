@@ -254,9 +254,18 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
           <div className="flex items-center gap-1">
             <div className="w-28 flex-shrink-0">
               <Select value={activePaletteId || ''} onValueChange={handlePaletteChange}>
-                <SelectTrigger className="w-full h-8 text-xs">
-                  <SelectValue placeholder="Select palette..." className="truncate" />
-                </SelectTrigger>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SelectTrigger className="w-full h-8 text-xs">
+                        <SelectValue placeholder="Select palette..." className="truncate" />
+                      </SelectTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Cycle colors with Shift + [ or ]</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               <SelectContent>
                 {customPalettes.length > 0 && (
                   <>
@@ -373,6 +382,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                                 {color.name ? `${color.name}: ${color.value}` : color.value}
                                 {activePalette?.isCustom && ' (drag to reorder)'}
                               </p>
+                              <p className="text-xs text-foreground/80 pt-1">Shift+[ / Shift+] cycle colors</p>
                             </TooltipContent>
                           </Tooltip>
                         
@@ -456,6 +466,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                                     : color.name ? `${color.name}: ${color.value}` : color.value}
                                   {!isTransparent && activePalette?.isCustom && ' (drag to reorder)'}
                                 </p>
+                                <p className="text-xs text-foreground/80 pt-1">Shift+[ / Shift+] cycle colors</p>
                               </TooltipContent>
                             </Tooltip>
                           

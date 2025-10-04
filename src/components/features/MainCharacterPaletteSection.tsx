@@ -301,6 +301,9 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
                 
                 {/* Character Grid */}
                 <div className="space-y-2 w-full" ref={paletteContainerRef}>
+                  <p className="px-1 text-[11px] leading-tight text-muted-foreground">
+                    Cycle characters quickly with Cmd/Ctrl + [ or ]
+                  </p>
                   <div className="bg-background/50 border border-border rounded p-2 min-h-[60px] max-h-[212px] overflow-auto w-full" onDragLeave={handleDragLeave}>
                     <TooltipProvider>
                       <div className="flex flex-wrap gap-1 relative max-w-full">

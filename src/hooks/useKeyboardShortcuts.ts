@@ -8,6 +8,7 @@ import { useZoomControls } from '../components/features/ZoomControls';
 import { useFrameNavigation } from './useFrameNavigation';
 import { useAnimationHistory } from './useAnimationHistory';
 import { usePaletteStore } from '../stores/paletteStore';
+import { useCharacterPaletteStore } from '../stores/characterPaletteStore';
 import { useFlipUtilities } from './useFlipUtilities';
 import { ANSI_COLORS } from '../constants/colors';
 import type { AnyHistoryAction, CanvasHistoryAction, FrameId } from '../types';
@@ -533,6 +534,41 @@ export const useKeyboardShortcuts = () => {
     }
   }, []);
 
+  const adjustBrushSize = useCallback((direction: 'decrease' | 'increase') => {
+    const { brushSize, setBrushSize } = useToolStore.getState();
+    const delta = direction === 'increase' ? 1 : -1;
+    const newSize = Math.max(1, Math.min(20, brushSize + delta));
+
+    if (newSize !== brushSize) {
+      setBrushSize(newSize);
+    }
+  }, []);
+
+  const navigateCharacterPaletteCharacters = useCallback((direction: 'previous' | 'next') => {
+    const { activePalette } = useCharacterPaletteStore.getState();
+    const { selectedChar, setSelectedChar } = useToolStore.getState();
+
+    const characters = activePalette?.characters ?? [];
+    if (characters.length === 0) {
+      return;
+    }
+
+    const total = characters.length;
+    const currentIndex = selectedChar ? characters.findIndex(char => char === selectedChar) : -1;
+
+    let targetIndex: number;
+    if (direction === 'next') {
+      targetIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % total;
+    } else {
+      targetIndex = currentIndex === -1 ? total - 1 : (currentIndex - 1 + total) % total;
+    }
+
+    const nextCharacter = characters[targetIndex];
+    if (typeof nextCharacter === 'string' && nextCharacter.length > 0) {
+      setSelectedChar(nextCharacter);
+    }
+  }, []);
+
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     // If any modal dialog is open, disable all keyboard shortcuts
     // Check for shadcn/ui dialogs that are actually open and visible
@@ -682,8 +718,37 @@ export const useKeyboardShortcuts = () => {
       }
     }
 
+    const isBracketLeft = event.code === 'BracketLeft' || event.key === '[' || event.key === '{';
+    const isBracketRight = event.code === 'BracketRight' || event.key === ']' || event.key === '}';
+
+    if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey) {
+      if (isBracketLeft) {
+        event.preventDefault();
+        navigateCharacterPaletteCharacters('previous');
+        return;
+      }
+
+      if (isBracketRight) {
+        event.preventDefault();
+        navigateCharacterPaletteCharacters('next');
+        return;
+      }
+    }
+
     // Handle flip utility hotkeys (Shift+H and Shift+V) and onion skinning (Shift+O)
     if (event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      if (isBracketLeft) {
+        event.preventDefault();
+        navigatePaletteColor('previous');
+        return;
+      }
+
+      if (isBracketRight) {
+        event.preventDefault();
+        navigatePaletteColor('next');
+        return;
+      }
+
       if (event.key === 'H' || event.key === 'h') {
         event.preventDefault();
         flipHorizontal();
@@ -704,6 +769,18 @@ export const useKeyboardShortcuts = () => {
     // Handle tool hotkeys (single key presses for tool switching)
     // Only process if no modifier keys are pressed and key is a valid tool hotkey
     if (!event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
+      if (isBracketLeft) {
+        event.preventDefault();
+        adjustBrushSize('decrease');
+        return;
+      }
+
+      if (isBracketRight) {
+        event.preventDefault();
+        adjustBrushSize('increase');
+        return;
+      }
+
       // Handle zoom hotkeys
       if (event.key === '+' || event.key === '=') {
         event.preventDefault();

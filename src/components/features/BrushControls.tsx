@@ -103,7 +103,7 @@ export const BrushControls: React.FC<BrushControlsProps> = ({ className = '' }) 
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Decrease brush size</p>
+                <p>Decrease brush size ([)</p>
               </TooltipContent>
             </Tooltip>
             <div className="flex-1 px-1">
@@ -129,7 +129,7 @@ export const BrushControls: React.FC<BrushControlsProps> = ({ className = '' }) 
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Increase brush size</p>
+                <p>Increase brush size (])</p>
               </TooltipContent>
             </Tooltip>
           </div>
