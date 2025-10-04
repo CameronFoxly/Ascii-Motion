@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -20,7 +20,19 @@ export const SetFrameDurationDialog: React.FC = () => {
   } = useTimeEffectsStore();
   
   const { setFrameDurationsWithHistory } = useTimeEffectsHistory();
-  const { frames } = useAnimationStore();
+  const { frames, selectedFrameIndices } = useAnimationStore();
+
+  const selectedIndices = useMemo(() => {
+    return Array.from(selectedFrameIndices).sort((a, b) => a - b);
+  }, [selectedFrameIndices]);
+
+  const hasMultiSelection = selectedIndices.length > 1;
+  const targetIndices = useMemo(() => {
+    if (hasMultiSelection) {
+      return selectedIndices;
+    }
+    return frames.map((_, index) => index);
+  }, [hasMultiSelection, selectedIndices, frames]);
 
   // Dialog state
   const [positionOffset, setPositionOffset] = useState({ x: 0, y: 0 });
@@ -40,9 +52,12 @@ export const SetFrameDurationDialog: React.FC = () => {
   
   // Calculate current average frame duration for initial values
   useEffect(() => {
-    if (isSetDurationDialogOpen && frames.length > 0) {
-      const totalDuration = frames.reduce((sum, frame) => sum + frame.duration, 0);
-      const averageDuration = totalDuration / frames.length;
+    if (isSetDurationDialogOpen && targetIndices.length > 0) {
+      const totalDuration = targetIndices.reduce((sum, frameIndex) => {
+        const frame = frames[frameIndex];
+        return frame ? sum + frame.duration : sum;
+      }, 0);
+      const averageDuration = totalDuration / targetIndices.length;
       const roundedMs = Math.round(averageDuration);
       const roundedFps = Math.round(msToFps(averageDuration));
       setMilliseconds(roundedMs);
@@ -50,7 +65,7 @@ export const SetFrameDurationDialog: React.FC = () => {
       setMsInputValue(roundedMs.toString());
       setFpsInputValue(roundedFps.toString());
     }
-  }, [isSetDurationDialogOpen, frames]);
+  }, [isSetDurationDialogOpen, frames, targetIndices]);
 
   // Reset position when dialog opens
   useEffect(() => {
@@ -169,9 +184,8 @@ export const SetFrameDurationDialog: React.FC = () => {
 
   // Apply changes
   const handleApply = () => {
-    const targetDuration = mode === 'ms' ? milliseconds : fpsToMs(fps);
-    setFrameDurationsWithHistory(targetDuration);
-    closeSetDurationDialog();
+  const targetDuration = mode === 'ms' ? milliseconds : fpsToMs(fps);
+  setFrameDurationsWithHistory(targetDuration, targetIndices);
   };
 
   // Calculate dialog position (lower-left corner)
@@ -221,7 +235,14 @@ export const SetFrameDurationDialog: React.FC = () => {
         
         <div className="p-6 space-y-6">
           <div className="text-sm text-muted-foreground">
-            Set the duration for all frames in the animation. This affects playback speed.
+            {hasMultiSelection ? (
+              <>
+                Set the duration for the <strong>{targetIndices.length}</strong> selected frame
+                {targetIndices.length === 1 ? '' : 's'}. This leaves unselected frames untouched.
+              </>
+            ) : (
+              <>Set the duration for all {frames.length} frames in the animation. This affects playback speed.</>
+            )}
           </div>
           
           <Tabs value={mode} onValueChange={(value) => setMode(value as FrameDurationMode)}>
@@ -274,8 +295,17 @@ export const SetFrameDurationDialog: React.FC = () => {
           </Tabs>
 
           <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded">
-            <strong>Note:</strong> This will set the same duration for all {frames.length} frames in your animation.
-            You can undo this change if needed.
+            {hasMultiSelection ? (
+              <>
+                <strong>Note:</strong> Only the {targetIndices.length} selected frame
+                {targetIndices.length === 1 ? '' : 's'} will be updated. Undo restores previous durations and the selection highlight.
+              </>
+            ) : (
+              <>
+                <strong>Note:</strong> This will set the same duration for all {frames.length} frames in your animation.
+                You can undo this change if needed.
+              </>
+            )}
           </div>
         </div>
         

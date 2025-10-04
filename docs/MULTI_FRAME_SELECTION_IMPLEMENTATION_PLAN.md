@@ -1,6 +1,6 @@
 # Multi-Frame Selection - Implementation Plan
 
-**Status**: Planning Phase  
+**Status**: Phases 1-4 Complete; Phases 5-7 In Progress  
 **Date**: October 3, 2025  
 **Feature**: Timeline Multi-Frame Selection with Batch Operations
 
@@ -921,39 +921,39 @@ reorderFrameRange: (startIndex: number, endIndex: number, targetIndex: number) =
 ## 🚀 Implementation Checklist
 
 ### Phase 1: State Management Foundation
-- [ ] Add `selectedFrameIndices` Set to `animationStore.ts`
-- [ ] Implement `selectFrameRange()` method
-- [ ] Implement `clearSelection()` method
-- [ ] Implement `isFrameSelected()` method
-- [ ] Implement `getSelectedFrameIndices()` method
-- [ ] Implement `getSelectionRange()` method
-- [ ] Update `setCurrentFrame()` to reset selection
-- [ ] Update `play()`, `pause()`, `stop()` to clear selection
+- [x] Add `selectedFrameIndices` Set to `animationStore.ts`
+- [x] Implement `selectFrameRange()` method
+- [x] Implement `clearSelection()` method
+- [x] Implement `isFrameSelected()` method
+- [x] Implement `getSelectedFrameIndices()` method
+- [x] Implement `getSelectionRange()` method
+- [x] Update `setCurrentFrame()` to reset selection
+- [x] Update `play()`, `pause()`, `stop()` to clear selection
 
 ### Phase 2: UI Component Updates
-- [ ] Update `FrameThumbnail` props (add `isActive`, modify `isSelected`)
-- [ ] Implement border state logic in `FrameThumbnail`
-- [ ] Redesign onion skin indicators (move to inner canvas preview border)
-- [ ] Update `AnimationTimeline` frame select handler (add Shift+Click)
-- [ ] Add timeline empty area click handler
-- [ ] Update drag start to handle multi-frame selection
-- [ ] Update drop handler to support range reordering
+- [x] Update `FrameThumbnail` props (add `isActive`, modify `isSelected`)
+- [x] Implement border state logic in `FrameThumbnail`
+- [x] Redesign onion skin indicators (move to inner canvas preview border)
+- [x] Update `AnimationTimeline` frame select handler (add Shift+Click)
+- [x] Add timeline empty area click handler
+- [x] Update drag start to handle multi-frame selection
+- [x] Update drop handler to support range reordering
 
 ### Phase 3: Batch Operations
-- [ ] Implement `deleteFrameRange()` in `useAnimationHistory`
-- [ ] Implement `deleteAllFramesWithReset()` in `useAnimationHistory`
-- [ ] Implement `reorderFrameRange()` in `useAnimationHistory`
-- [ ] Implement `clearAllFrames()` in `animationStore`
-- [ ] Implement `reorderFrameRange()` in `animationStore`
-- [ ] Update `FrameControls` delete button to work with selection
+- [x] Implement `deleteFrameRange()` in `useAnimationHistory`
+- [x] Implement `deleteAllFramesWithReset()` in `useAnimationHistory`
+- [x] Implement `reorderFrameRange()` in `useAnimationHistory`
+- [x] Implement `clearAllFrames()` in `animationStore`
+- [x] Implement `reorderFrameRange()` in `animationStore`
+- [x] Update `FrameControls` delete button to work with selection
 
 ### Phase 4: History Integration
-- [ ] Add new history action types to `types/index.ts`
-- [ ] Create `DeleteFrameRangeHistoryAction` interface
-- [ ] Create `DeleteAllFramesHistoryAction` interface
-- [ ] Create `ReorderFrameRangeHistoryAction` interface
-- [ ] Implement history processing in `useKeyboardShortcuts.ts`
-- [ ] Test undo/redo for all batch operations
+- [x] Add new history action types to `types/index.ts`
+- [x] Create `DeleteFrameRangeHistoryAction` interface
+- [x] Create `DeleteAllFramesHistoryAction` interface
+- [x] Create `ReorderFrameRangeHistoryAction` interface
+- [x] Implement history processing in `useKeyboardShortcuts.ts`
+- [x] Test undo/redo for all batch operations
 
 ### Phase 5: Set Duration Integration
 - [ ] Update `setFrameDurationsWithHistory()` to use selection
@@ -967,10 +967,11 @@ reorderFrameRange: (startIndex: number, endIndex: number, targetIndex: number) =
 - [ ] Update frame navigation (comma/period) to clear selection
 - [ ] Test all deselection methods
 
-### Phase 7: Keyboard Shortcuts
-- [ ] Update Ctrl+Delete to work with selection
-- [ ] Update frame navigation shortcuts
-- [ ] Document new behaviors in `KeyboardShortcutsDialog`
+### Phase 7: Manual Testing Prep
+- [x] Compile manual test checklist covering selection, duplication, deletion, reorder, and undo/redo flows
+- [x] Document expected selection states for each timeline action
+- [x] Create regression matrix for keyboard shortcuts interacting with multi-frame selection
+- [x] Schedule exploratory testing sessions with playback, import/export, and effects workflows
 
 ### Phase 8: Polish & Edge Cases
 - [ ] Test selection with timeline zoom

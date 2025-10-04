@@ -1,31 +1,45 @@
 # Animation System Implementation Guide
 
-## Enhanced Undo/Redo System (NEW - September 2025)
+## Enhanced Undo/Redo System (Updated October 2025)
 
 ### Animation Timeline Actions Now Support Undo/Redo ✅
 
 The animation system has been enhanced with comprehensive undo/redo support for all timeline actions:
 
 #### **Supported Undoable Actions:**
-- ✅ **Add Frame** - Create new frames with automatic history recording
-- ✅ **Duplicate Frame** - Copy existing frames with full undo support
-- ✅ **Delete Frame** - Remove frames with restoration capability
-- ✅ **Reorder Frames** - Drag-and-drop reordering with position tracking
-- ✅ **Update Frame Duration** - Change frame timing with history
-- ✅ **Update Frame Name** - Rename frames with undo support
+- ✅ **Add Frame** – Create new frames with automatic history recording
+- ✅ **Duplicate Frame** – Copy a single frame with full undo support
+- ✅ **Duplicate Frame Range** – Clone multi-frame selections and restore them as a group
+- ✅ **Delete Frame** – Remove individual frames with restoration capability
+- ✅ **Delete Frame Range** – Remove multi-frame selections while preserving order on undo
+- ✅ **Delete All Frames** – Reset the timeline to a single blank frame with rollback
+- ✅ **Reorder Frames** – Drag-and-drop a single frame with position tracking
+- ✅ **Reorder Frame Range** – Move contiguous selections as a locked group with selection restoration
+- ✅ **Update Frame Duration** – Change frame timing with history
+- ✅ **Update Frame Name** – Rename frames with undo support
+- ✅ **Set Frame Durations** – Apply a uniform duration to many frames in one step
+- ✅ **Navigate Frame** – Records user-triggered navigation events for undo-aware history scrubbing
 
 #### **Enhanced History Architecture:**
 
-**New History Types:**
+**Expanded History Types:**
 ```typescript
 export type HistoryActionType = 
   | 'canvas_edit'      // Canvas cell modifications
   | 'add_frame'        // Add new frame
   | 'duplicate_frame'  // Duplicate existing frame
+  | 'duplicate_frame_range' // Duplicate multiple frames
   | 'delete_frame'     // Delete frame
+  | 'delete_frame_range'  // Delete multiple frames
+  | 'delete_all_frames'   // Reset timeline to single blank frame
   | 'reorder_frames'   // Reorder frame positions
+  | 'reorder_frame_range' // Reorder multiple frames as a group
   | 'update_duration'  // Change frame duration
-  | 'update_name';     // Change frame name
+  | 'update_name'      // Change frame name
+  | 'navigate_frame'   // Navigation entry
+  | 'apply_effect'     // Canvas effect application
+  | 'apply_time_effect' // Time effect application
+  | 'set_frame_durations';  // Bulk duration update
 ```
 
 **Unified History Management:**
@@ -44,8 +58,11 @@ import { useAnimationHistory } from '../hooks/useAnimationHistory';
 const {
   addFrame,        // History-enabled frame creation
   duplicateFrame,  // History-enabled frame duplication
+  duplicateFrameRange, // History-enabled multi-frame duplication
   removeFrame,     // History-enabled frame deletion
+  deleteFrameRange, // History-enabled multi-frame deletion
   reorderFrames,   // History-enabled frame reordering
+  reorderFrameRange, // History-enabled multi-frame reordering
   updateFrameDuration, // History-enabled duration changes
   updateFrameName     // History-enabled name changes
 } = useAnimationHistory();
@@ -53,7 +70,10 @@ const {
 // Usage (automatic history recording):
 addFrame(currentFrameIndex + 1);           // Creates frame + history entry
 duplicateFrame(selectedFrameIndex);        // Duplicates frame + history entry
+duplicateFrameRange(selectedIndices);      // Duplicates selection + history entry
 updateFrameDuration(frameIndex, newDuration); // Updates duration + history entry
+deleteFrameRange(selectedIndices);         // Deletes selected frames + history entry
+reorderFrameRange(selectedIndices, targetIndex); // Moves selection + history entry
 ```
 
 **Automatic History Processing:**
@@ -61,6 +81,8 @@ updateFrameDuration(frameIndex, newDuration); // Updates duration + history entr
 - Undo/Redo operations restore full animation state
 - Frame navigation updates correctly on undo/redo
 - Canvas state syncs with frame changes during history navigation
+- Multi-frame operations capture before/after snapshots (frames, selection, current index)
+- Selection highlights are restored automatically during undo/redo for range actions
 
 #### **User Experience Benefits:**
 
@@ -69,22 +91,73 @@ updateFrameDuration(frameIndex, newDuration); // Updates duration + history entr
 3. **Professional Animation Tools** - Industry-standard undo/redo behavior
 4. **Mixed Operation Support** - Undo works across canvas and timeline actions
 5. **Granular History** - Each operation is separately undoable
+6. **Selection Preservation** - Range undo restores highlighted frames and focus
 
 #### **Technical Implementation:**
 
 **History Action Processing:**
 ```typescript
+import type { FrameId } from '../types';
+
 const processHistoryAction = (action: AnyHistoryAction, isRedo: boolean) => {
   switch (action.type) {
-    case 'add_frame':
+    case 'duplicate_frame_range': {
+      const snapshot = isRedo ? action.data.newFrames : action.data.previousFrames;
+      animationStore.replaceFrames(
+        snapshot,
+        isRedo ? action.data.newCurrentFrame : action.data.previousCurrentFrame,
+        (isRedo ? action.data.newSelection : action.data.previousSelection) ?? undefined
+      );
+      return;
+    }
+
+    case 'delete_frame_range':
       if (isRedo) {
-        animationStore.addFrame(action.data.frameIndex, action.data.canvasData);
+        animationStore.removeFrameRange(action.data.frameIndices);
       } else {
-        animationStore.removeFrame(action.data.frameIndex);
-        animationStore.setCurrentFrame(action.data.previousCurrentFrame);
+        animationStore.replaceFrames(
+          action.data.previousFrames,
+          action.data.previousCurrentFrame,
+          action.data.previousSelection ?? undefined
+        );
       }
-      break;
-    // ... other action types
+      return;
+
+    case 'reorder_frame_range': {
+      const findIndicesForIds = (ids: FrameId[]) =>
+        ids
+          .map((id) => useAnimationStore.getState().frames.findIndex((frame) => frame.id === id))
+          .filter((idx) => idx >= 0)
+          .sort((a, b) => a - b);
+
+      if (isRedo) {
+        const indices = findIndicesForIds(action.data.movedFrameIds);
+        animationStore.reorderFrameRange(indices, action.data.targetIndex);
+        const newSelection = findIndicesForIds(action.data.newSelectionFrameIds);
+        useAnimationStore.setState({ selectedFrameIndices: new Set(newSelection) });
+        useAnimationStore.getState().setCurrentFrameOnly(action.data.newCurrentFrame);
+      } else {
+        const indices = findIndicesForIds(action.data.movedFrameIds);
+        animationStore.reorderFrameRange(indices, Math.min(...action.data.frameIndices));
+        const previousSelection = findIndicesForIds(action.data.previousSelectionFrameIds);
+        useAnimationStore.setState({ selectedFrameIndices: new Set(previousSelection) });
+        useAnimationStore.getState().setCurrentFrameOnly(action.data.previousCurrentFrame);
+      }
+      return;
+    }
+
+    case 'set_frame_durations':
+      action.data.affectedFrameIndices.forEach((frameIndex, idx) => {
+        const duration = isRedo
+          ? action.data.newDuration
+          : action.data.previousDurations[idx]?.duration ?? action.data.previousDurations[0].duration;
+        animationStore.updateFrameDuration(frameIndex, duration);
+      });
+      return;
+
+    default:
+      // Canvas edits, navigation, and effect actions share the legacy handlers.
+      return;
   }
 };
 ```
@@ -109,6 +182,25 @@ const processHistoryAction = (action: AnyHistoryAction, isRedo: boolean) => {
 - Action grouping for complex operations
 
 This enhancement provides a solid foundation for professional animation workflows while maintaining the performance and reliability of the existing system.
+
+## Multi-Frame Selection & Batch Operations
+
+### Selection Model
+- Shift+Click extends the selection between the active frame and the clicked frame.
+- Selections persist across timeline actions until explicitly cleared (empty timeline click, navigation, or playback start).
+- Range selections always include the active frame, ensuring canvas sync stays aligned with the highlighted block.
+
+### Batch-Capable Timeline Actions
+- **Duplicate Range** – Inserts cloned copies immediately after the highest index in the selection, renaming copies sequentially.
+- **Delete Range** – Removes all selected frames in one history entry while recalculating the active frame safely.
+- **Reorder Range** – Drag any frame inside the highlight to move the entire block; drop indicators respect the target insertion index.
+- **Toolbar Awareness** – Timeline toolbar buttons automatically dispatch range operations when multi-select is active.
+- **Shortcut Awareness** – Ctrl/Cmd+D duplicates entire selections; Delete/Backspace removes selected ranges when more than one frame is highlighted.
+
+### Selection Preservation in History
+- Range-based history actions store both frame snapshots and selected indices so undo/redo restores the same highlight.
+- Snapshot-based replacement eliminates ID drift, preventing duplicate undo bugs during rapid edits.
+- Replacement APIs (`replaceFrames`) ensure selection and current index are restored atomically.
 
 # Original Animation System Implementation Guide
 

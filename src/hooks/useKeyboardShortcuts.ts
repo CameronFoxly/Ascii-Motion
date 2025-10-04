@@ -608,6 +608,10 @@ export const useKeyboardShortcuts = () => {
         event.preventDefault();
         clearMagicWandSelection();
       }
+      const animationStore = useAnimationStore.getState();
+      if (animationStore.selectedFrameIndices.size > 1) {
+        animationStore.clearSelection();
+      }
       return;
     }
 
