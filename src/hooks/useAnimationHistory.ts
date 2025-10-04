@@ -297,7 +297,7 @@ export const useAnimationHistory = () => {
     
     // Record in history
     pushToHistory(historyAction);
-  }, [frames, currentFrameIndex, pushToHistory, selectedFrameIndices]);
+  }, [frames, currentFrameIndex, pushToHistory]);
 
   /**
    * Delete all frames and reset to single blank frame with history recording
@@ -322,7 +322,7 @@ export const useAnimationHistory = () => {
     
     // Record in history
     pushToHistory(historyAction);
-  }, [frames, currentFrameIndex, pushToHistory]);
+  }, [frames, currentFrameIndex, pushToHistory, selectedFrameIndices]);
 
   /**
    * Reorder multiple frames as a contiguous group with history recording
@@ -358,6 +358,16 @@ export const useAnimationHistory = () => {
     newCurrentFrame = Math.max(0, Math.min(newCurrentFrame, frames.length - 1));
     
     // Create history action
+    const movedFrameIds = sortedIndices
+      .map(idx => frames[idx])
+      .filter((frame): frame is typeof frames[number] => Boolean(frame))
+      .map(frame => frame.id);
+
+    const previousSelectionFrameIds = Array.from(selectedFrameIndices)
+      .map(idx => frames[idx])
+      .filter((frame): frame is typeof frames[number] => Boolean(frame))
+      .map(frame => frame.id);
+
     const historyAction: import('../types').ReorderFrameRangeHistoryAction = {
       type: 'reorder_frame_range',
       timestamp: Date.now(),
@@ -366,7 +376,10 @@ export const useAnimationHistory = () => {
         frameIndices: sortedIndices,
         targetIndex,
         previousCurrentFrame,
-        newCurrentFrame
+        newCurrentFrame,
+        movedFrameIds,
+        previousSelectionFrameIds,
+        newSelectionFrameIds: movedFrameIds
       }
     };
     
@@ -375,7 +388,7 @@ export const useAnimationHistory = () => {
     
     // Record in history
     pushToHistory(historyAction);
-  }, [frames, currentFrameIndex, pushToHistory]);
+  }, [frames, currentFrameIndex, pushToHistory, selectedFrameIndices]);
 
   return {
     addFrame,

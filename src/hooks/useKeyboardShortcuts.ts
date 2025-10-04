@@ -10,7 +10,7 @@ import { useAnimationHistory } from './useAnimationHistory';
 import { usePaletteStore } from '../stores/paletteStore';
 import { useFlipUtilities } from './useFlipUtilities';
 import { ANSI_COLORS } from '../constants/colors';
-import type { AnyHistoryAction, CanvasHistoryAction } from '../types';
+import type { AnyHistoryAction, CanvasHistoryAction, FrameId } from '../types';
 
 /**
  * Helper function to process different types of history actions
@@ -221,31 +221,56 @@ const processHistoryAction = (
       }
       break;
 
-    case 'reorder_frame_range':
+    case 'reorder_frame_range': {
       const reorderRangeAction = action as import('../types').ReorderFrameRangeHistoryAction;
+      const {
+        frameIndices,
+        targetIndex,
+        previousCurrentFrame,
+        newCurrentFrame,
+        movedFrameIds,
+        previousSelectionFrameIds,
+        newSelectionFrameIds
+      } = reorderRangeAction.data;
+
+      const findIndicesForIds = (ids: FrameId[]) => {
+        const { frames } = useAnimationStore.getState();
+        return ids
+          .map((id) => frames.findIndex((frame) => frame.id === id))
+          .filter((idx) => idx >= 0)
+          .sort((a, b) => a - b);
+      };
+
+      const setSelectionByIds = (ids: FrameId[]) => {
+        if (ids.length === 0) {
+          useAnimationStore.setState({ selectedFrameIndices: new Set<number>() });
+          return;
+        }
+        const indices = findIndicesForIds(ids);
+        if (indices.length === 0) return;
+        useAnimationStore.setState({ selectedFrameIndices: new Set(indices) });
+      };
+
       if (isRedo) {
-        // Redo: Re-perform the reorder
-        animationStore.reorderFrameRange(
-          reorderRangeAction.data.frameIndices,
-          reorderRangeAction.data.targetIndex
-        );
-        console.log(`✅ Redo: Reordered ${reorderRangeAction.data.frameIndices.length} frames to position ${reorderRangeAction.data.targetIndex}`);
+        const currentPositions = findIndicesForIds(movedFrameIds);
+        if (currentPositions.length === movedFrameIds.length) {
+          animationStore.reorderFrameRange(currentPositions, targetIndex);
+        }
+        setSelectionByIds(newSelectionFrameIds);
+        useAnimationStore.getState().setCurrentFrameOnly(newCurrentFrame);
+        console.log(`🔁 Redo: Reordered ${movedFrameIds.length} frame(s)`);
       } else {
-        // Undo: Reverse the reorder by moving frames back to original positions
-        // Calculate where the frames ended up after the original move
-        const sortedIndices = [...reorderRangeAction.data.frameIndices].sort((a, b) => a - b);
-        const framesBefore = sortedIndices.filter(idx => idx < reorderRangeAction.data.targetIndex).length;
-        const adjustedTarget = Math.max(0, reorderRangeAction.data.targetIndex - framesBefore);
-        
-        // Create array of new positions (where frames currently are)
-        const currentPositions = sortedIndices.map((_, i) => adjustedTarget + i);
-        
-        // Move frames back to their original positions
-        animationStore.reorderFrameRange(currentPositions, sortedIndices[0]);
-        animationStore.setCurrentFrame(reorderRangeAction.data.previousCurrentFrame);
-        console.log(`✅ Undo: Restored ${reorderRangeAction.data.frameIndices.length} frames to original positions`);
+        const currentPositions = findIndicesForIds(movedFrameIds);
+        if (currentPositions.length === movedFrameIds.length) {
+          const originalTarget = Math.min(...frameIndices);
+          animationStore.reorderFrameRange(currentPositions, originalTarget);
+        }
+        setSelectionByIds(previousSelectionFrameIds);
+        useAnimationStore.getState().setCurrentFrameOnly(previousCurrentFrame);
+        console.log(`↩️ Undo: Restored ${movedFrameIds.length} frame(s) to original positions`);
       }
       break;
+    }
       
     default:
       console.warn('Unknown history action type:', (action as any).type);

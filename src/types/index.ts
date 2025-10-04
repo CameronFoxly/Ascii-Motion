@@ -350,6 +350,9 @@ export interface ReorderFrameRangeHistoryAction extends HistoryAction {
     targetIndex: number;
     previousCurrentFrame: number;
     newCurrentFrame: number;
+    movedFrameIds: FrameId[];
+    previousSelectionFrameIds: FrameId[];
+    newSelectionFrameIds: FrameId[];
   };
 }
 
