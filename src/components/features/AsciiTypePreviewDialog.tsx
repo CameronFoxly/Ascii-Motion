@@ -263,16 +263,16 @@ export function AsciiTypePreviewDialog() {
         />
         <div className="flex-1 overflow-hidden">
           <ScrollArea ref={scrollAreaRef} className="h-[calc(90vh-60px)]">
-            <div className="p-4 space-y-6">
+            <div className="p-2 space-y-3">
             {FIGLET_FONTS_BY_CATEGORY.map((category) => (
-              <div key={category.label} className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <TypeOutline className="w-4 h-4 text-muted-foreground" />
-                  <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              <div key={category.label} className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <TypeOutline className="w-3.5 h-3.5 text-muted-foreground" />
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {category.label}
                   </h3>
                 </div>
-                <div className="grid gap-3">
+                <div className="grid gap-2">
                   {category.fonts.map((fontName) => {
                     const fontPreview = fontPreviews[fontName];
                     const previewLines = fontPreview?.lines ?? null;
@@ -281,13 +281,13 @@ export function AsciiTypePreviewDialog() {
 
                     return (
                       <Card key={fontName} className="border-border/60 overflow-hidden">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-base">{fontName}</CardTitle>
-                          <CardDescription>
+                        <CardHeader className="pb-1.5 pt-2 px-3">
+                          <CardTitle className="text-sm">{fontName}</CardTitle>
+                          <CardDescription className="text-xs">
                             Horizontal: {horizontalLayout}, Vertical: {verticalLayout}
                           </CardDescription>
                         </CardHeader>
-                        <CardContent className="pt-0 overflow-hidden">
+                        <CardContent className="pt-0 px-3 pb-2 overflow-hidden">
                           {previewError && (
                             <Alert variant="destructive">
                               <AlertDescription>{previewError}</AlertDescription>
@@ -300,18 +300,18 @@ export function AsciiTypePreviewDialog() {
                             </div>
                           )}
                           {!previewError && previewLines && (
-                            <div className="mt-2 overflow-x-auto rounded bg-muted/50 p-3">
-                              <pre className="font-mono text-[11px] leading-tight whitespace-pre">
+                            <div className="mt-1.5 overflow-x-auto rounded bg-muted/50 p-2">
+                              <pre className="font-mono text-[10px] leading-tight whitespace-pre">
                                 {previewLines.join('\n')}
                               </pre>
                             </div>
                           )}
                         </CardContent>
-                        <CardFooter className="pt-2">
+                        <CardFooter className="pt-1.5 pb-2 px-3">
                           <Button
                             variant="default"
                             size="sm"
-                            className="ml-auto"
+                            className="ml-auto h-7 text-xs"
                             onClick={() => handleUseFont(fontName)}
                             disabled={!isLoaded || Boolean(previewError)}
                           >
