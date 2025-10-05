@@ -22,7 +22,6 @@ import { cn } from '../../lib/utils';
 import { Loader2, TypeOutline } from 'lucide-react';
 
 const DIALOG_WIDTH = 680;
-const DIALOG_HEIGHT = 520;
 
 interface FontPreviewState {
   lines: string[] | null;
@@ -49,7 +48,6 @@ export function AsciiTypePreviewDialog() {
 
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement | null>(null);
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const dragOriginRef = useRef({ x: 0, y: 0 });
 
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -71,9 +69,12 @@ export function AsciiTypePreviewDialog() {
 
     const width = window.innerWidth;
     const height = window.innerHeight;
+    
+    // Calculate dialog height as 90vh to match the maxHeight
+    const dialogHeight = Math.min(height * 0.9, height - 48);
 
     const offsetX = Math.max((width - DIALOG_WIDTH) / 2, 24);
-    const offsetY = Math.max((height - DIALOG_HEIGHT) / 2, 24);
+    const offsetY = Math.max((height - dialogHeight) / 2, 24);
 
     setPosition({ x: offsetX, y: offsetY });
     setHasBeenDragged(false);
@@ -179,28 +180,28 @@ export function AsciiTypePreviewDialog() {
   }, [previewDialogOpen, setPreviewDialogOpen]);
 
   useEffect(() => {
-    if (!previewDialogOpen || !dialogRef.current) {
+    if (!previewDialogOpen) {
       return;
     }
 
-    const dialogElement = dialogRef.current;
+    const handleWindowResize = () => {
+      if (!hasBeenDragged) {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        
+        // Calculate dialog height as 90vh to match the maxHeight
+        const dialogHeight = Math.min(height * 0.9, height - 48);
+        
+        const offsetX = Math.max((width - DIALOG_WIDTH) / 2, 24);
+        const offsetY = Math.max((height - dialogHeight) / 2, 24);
+        setPosition({ x: offsetX, y: offsetY });
+      }
+    };
 
-    if (!resizeObserverRef.current) {
-      resizeObserverRef.current = new ResizeObserver(() => {
-        if (!hasBeenDragged && hasCenteredRef.current) {
-          const width = window.innerWidth;
-          const height = window.innerHeight;
-          const offsetX = Math.max((width - dialogElement.offsetWidth) / 2, 24);
-          const offsetY = Math.max((height - dialogElement.offsetHeight) / 2, 24);
-          setPosition({ x: offsetX, y: offsetY });
-        }
-      });
-    }
-
-    resizeObserverRef.current.observe(dialogElement);
+    window.addEventListener('resize', handleWindowResize);
 
     return () => {
-      resizeObserverRef.current?.disconnect();
+      window.removeEventListener('resize', handleWindowResize);
     };
   }, [previewDialogOpen, hasBeenDragged]);
 
