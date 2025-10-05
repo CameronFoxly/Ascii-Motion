@@ -3,7 +3,7 @@ import type { FontMetrics } from '../utils/fontMetrics';
 import type { ColorPalette, CharacterPalette, CharacterMappingSettings } from './palette';
 
 // Export format identifiers
-export type ExportFormatId = 'png' | 'svg' | 'mp4' | 'session' | 'media' | 'text' | 'json' | 'html';
+export type ExportFormatId = 'png' | 'svg' | 'mp4' | 'session' | 'media' | 'text' | 'json' | 'html' | 'react';
 
 // Base export format interface
 export interface ExportFormat {
@@ -31,6 +31,13 @@ export interface ImageExportSettings {
   quality: number; // 1-100 JPEG quality scale (ignored for PNG and SVG)
   // SVG-specific settings (only used when format === 'svg')
   svgSettings?: SvgExportSettings;
+}
+
+export interface ReactExportSettings {
+  typescript: boolean;
+  includeControls: boolean;
+  includeBackground: boolean;
+  fileName: string;
 }
 
 export interface VideoExportSettings {
@@ -87,7 +94,14 @@ export interface CharacterPaletteExportState {
 }
 
 // Union type for all export settings
-export type ExportSettings = ImageExportSettings | VideoExportSettings | SessionExportSettings | TextExportSettings | JsonExportSettings | HtmlExportSettings;
+export type ExportSettings =
+  | ImageExportSettings
+  | VideoExportSettings
+  | SessionExportSettings
+  | TextExportSettings
+  | JsonExportSettings
+  | HtmlExportSettings
+  | ReactExportSettings;
 
 // Export data bundle - all data needed for any export
 export interface ExportDataBundle {
@@ -190,6 +204,7 @@ export interface ExportState {
   textSettings: TextExportSettings;
   jsonSettings: JsonExportSettings;
   htmlSettings: HtmlExportSettings;
+  reactSettings: ReactExportSettings;
   
   // Export history
   history: ExportHistoryEntry[];

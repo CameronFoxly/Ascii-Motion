@@ -29,6 +29,7 @@ import { SessionExportDialog } from './components/features/SessionExportDialog'
 import { TextExportDialog } from './components/features/TextExportDialog'
 import { JsonExportDialog } from './components/features/JsonExportDialog'
 import { HtmlExportDialog } from './components/features/HtmlExportDialog'
+import { ReactExportDialog } from './components/features/ReactExportDialog'
 import { JsonImportDialog } from './components/features/JsonImportDialog'
 import { SetFrameDurationDialog } from './components/features/timeEffects/SetFrameDurationDialog'
 import { AddFramesDialog } from './components/features/timeEffects/AddFramesDialog'
@@ -205,6 +206,7 @@ function App() {
           <TextExportDialog />
           <JsonExportDialog />
           <HtmlExportDialog />
+          <ReactExportDialog />
           <JsonImportDialog />
           
           {/* Time Effects Dialogs */}

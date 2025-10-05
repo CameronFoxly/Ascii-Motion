@@ -8,6 +8,7 @@ import type {
   TextExportSettings,
   JsonExportSettings,
   HtmlExportSettings,
+  ReactExportSettings,
   ExportProgress 
 } from '../types/export';
 import type { Cell } from '../types';
@@ -1137,6 +1138,550 @@ export class ExportRenderer {
       console.error('HTML export failed:', error);
       throw new Error(`HTML export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  /**
+   * Export animation as a reusable React component file (TSX/JSX)
+   */
+  async exportReactComponent(
+    data: ExportDataBundle,
+    settings: ReactExportSettings
+  ): Promise<void> {
+    this.updateProgress('Preparing React component export...', 0);
+
+    try {
+      const requestedName = settings.fileName?.trim() || 'ascii-motion-animation';
+      const sanitizedFileName = this.sanitizeReactFileName(requestedName) || 'ascii-motion-animation';
+      const componentName = this.toPascalCase(sanitizedFileName);
+
+      const fontSize = data.typography?.fontSize ?? data.fontMetrics?.fontSize ?? 16;
+      const characterSpacing = data.typography?.characterSpacing ?? 1.0;
+      const lineSpacing = data.typography?.lineSpacing ?? 1.0;
+
+      const baseCharWidth = fontSize * 0.6;
+      const baseCharHeight = fontSize;
+
+      const cellWidth = baseCharWidth * characterSpacing;
+      const cellHeight = baseCharHeight * lineSpacing;
+
+      const canvasPixelWidth = Number((cellWidth * data.canvasDimensions.width).toFixed(2));
+      const canvasPixelHeight = Number((cellHeight * data.canvasDimensions.height).toFixed(2));
+
+      this.updateProgress('Serializing animation data...', 20);
+
+      const framesPayload = data.frames.map((frame) => {
+        const cells: Array<{ x: number; y: number; char: string; color: string; bgColor?: string }> = [];
+
+        frame.data.forEach((cell, key) => {
+          if (!cell || !cell.char) {
+            return;
+          }
+
+          const [x, y] = key.split(',').map(Number);
+          const cellEntry: { x: number; y: number; char: string; color: string; bgColor?: string } = {
+            x,
+            y,
+            char: cell.char,
+            color: cell.color || '#ffffff'
+          };
+
+          if (cell.bgColor && cell.bgColor !== 'transparent') {
+            cellEntry.bgColor = cell.bgColor;
+          }
+
+          cells.push(cellEntry);
+        });
+
+        cells.sort((a, b) => (a.y - b.y) || (a.x - b.x));
+
+        return {
+          duration: Math.max(frame.duration, 16),
+          cells
+        };
+      });
+
+      const framesJson = JSON.stringify(framesPayload, null, 2);
+      const fontFamily =
+        data.fontMetrics?.fontFamily || 'SF Mono, Monaco, Inconsolata, "Roboto Mono", Consolas, "Courier New"';
+
+      this.updateProgress('Generating component code...', 60);
+
+      const componentCode = this.generateReactComponentCode({
+        componentName,
+        framesJson,
+        isTypescript: settings.typescript,
+        includeControls: settings.includeControls,
+        canvasWidth: canvasPixelWidth,
+        canvasHeight: canvasPixelHeight,
+        cellWidth,
+        cellHeight,
+        fontSize,
+        fontFamily,
+        backgroundColor: settings.includeBackground ? data.canvasBackgroundColor : null
+      });
+
+      this.updateProgress('Saving file...', 90);
+
+      const extension = settings.typescript ? 'tsx' : 'jsx';
+      const blob = new Blob([componentCode], { type: 'text/plain;charset=utf-8' });
+      saveAs(blob, `${sanitizedFileName}.${extension}`);
+
+      this.updateProgress('Export complete!', 100);
+    } catch (error) {
+      console.error('React component export failed:', error);
+      throw new Error(`React component export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  private sanitizeReactFileName(value: string): string {
+    if (!value) {
+      return '';
+    }
+
+    return value
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-zA-Z0-9\-_]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/_+/g, '_')
+      .replace(/^[-_]+|[-_]+$/g, '')
+      .toLowerCase();
+  }
+
+  private toPascalCase(value: string): string {
+    if (!value) {
+      return 'AsciiMotionAnimation';
+    }
+
+    const segments = value
+      .split(/[-_\s]+/)
+      .filter(Boolean)
+      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1));
+
+    const name = segments.length > 0 ? segments.join('') : 'AsciiMotionAnimation';
+    return /^[A-Za-z]/.test(name) ? name : `Ascii${name}`;
+  }
+
+  private generateReactComponentCode(options: {
+    componentName: string;
+    framesJson: string;
+    isTypescript: boolean;
+    includeControls: boolean;
+    canvasWidth: number;
+    canvasHeight: number;
+    cellWidth: number;
+    cellHeight: number;
+    fontSize: number;
+    fontFamily: string;
+    backgroundColor: string | null;
+  }): string {
+    const {
+      componentName,
+      framesJson,
+      isTypescript,
+      includeControls,
+      canvasWidth,
+      canvasHeight,
+      cellWidth,
+      cellHeight,
+      fontSize,
+      fontFamily,
+      backgroundColor
+    } = options;
+
+    const cellWidthLiteral = Number(cellWidth.toFixed(4));
+    const cellHeightLiteral = Number(cellHeight.toFixed(4));
+    const fontFamilyLiteral = JSON.stringify(fontFamily);
+    const backgroundLiteral = backgroundColor ? JSON.stringify(backgroundColor) : 'null';
+
+    const hooksImport = `import { useEffect, useRef, useCallback${includeControls ? ', useState' : ''} } from 'react';`;
+
+    const typeBlock = isTypescript
+      ? `type CellData = {\n  x: number;\n  y: number;\n  char: string;\n  color: string;\n  bgColor?: string;\n};\n\n` +
+        `type Frame = {\n  duration: number;\n  cells: CellData[];\n};\n\n` +
+        `type AsciiMotionComponentProps = {\n  showControls?: boolean;\n  autoPlay?: boolean;\n  onReady?: (api: {\n    play: () => void;\n    pause: () => void;\n    togglePlay: () => void;\n    restart: () => void;\n  }) => void;\n};`
+      : `/**\n * @typedef {{ x: number, y: number, char: string, color: string, bgColor?: string }} CellData\n * @typedef {{ duration: number, cells: CellData[] }} Frame\n */\n\n/**\n * @typedef {Object} AsciiMotionComponentProps\n * @property {boolean} [showControls]\n * @property {boolean} [autoPlay]\n * @property {(api: { play: () => void; pause: () => void; togglePlay: () => void; restart: () => void; }) => void} [onReady]\n */`;
+
+    const framesDeclaration = isTypescript
+      ? `const FRAMES: Frame[] = ${framesJson};`
+      : `const FRAMES = ${framesJson};`;
+
+    const canvasRefDeclaration = isTypescript
+      ? 'const canvasRef = useRef<HTMLCanvasElement | null>(null);'
+      : 'const canvasRef = useRef(null);';
+
+    const animationFrameRefDeclaration = isTypescript
+      ? 'const animationFrameRef = useRef<number | null>(null);'
+      : 'const animationFrameRef = useRef(null);';
+
+    const frameIndexRefDeclaration = isTypescript
+      ? 'const frameIndexRef = useRef<number>(0);'
+      : 'const frameIndexRef = useRef(0);';
+
+    const frameElapsedRefDeclaration = isTypescript
+      ? 'const frameElapsedRef = useRef<number>(0);'
+      : 'const frameElapsedRef = useRef(0);';
+
+    const lastTimestampRefDeclaration = isTypescript
+      ? 'const lastTimestampRef = useRef<number>(0);'
+      : 'const lastTimestampRef = useRef(0);';
+
+    const restartRefDeclaration = isTypescript
+      ? 'const restartRef = useRef<() => void>(() => {});'
+      : 'const restartRef = useRef(() => {});';
+
+    const isPlayingRefDeclaration = isTypescript
+      ? 'const isPlayingRef = useRef<boolean>(initialAutoPlay);'
+      : 'const isPlayingRef = useRef(initialAutoPlay);';
+
+    const drawFrameSignature = isTypescript ? '(index: number)' : '(index)';
+    const stepSignature = isTypescript ? '(timestamp: number)' : '(timestamp)';
+
+    const stateLines: string[] = [];
+    if (includeControls) {
+      if (isTypescript) {
+        stateLines.push('const [isPlaying, setIsPlaying] = useState<boolean>(initialAutoPlay);');
+        stateLines.push('const [activeFrame, setActiveFrame] = useState<number>(0);');
+      } else {
+        stateLines.push('const [isPlaying, setIsPlaying] = useState(initialAutoPlay);');
+        stateLines.push('const [activeFrame, setActiveFrame] = useState(0);');
+      }
+    }
+
+    const pushIndentedBlock = (target: string[], lines: string[], indent: number) => {
+      lines.forEach((line) => {
+        if (line === '') {
+          target.push('');
+        } else {
+          target.push(`${' '.repeat(indent)}${line}`);
+        }
+      });
+    };
+
+    const componentLines: string[] = [];
+    componentLines.push(`const ${componentName} = (props${isTypescript ? ': AsciiMotionComponentProps = {}' : ' = {}'}) => {`);
+    componentLines.push('  const { showControls = true, autoPlay = true, onReady } = props;');
+    if (includeControls) {
+      componentLines.push('  const controlsVisible = showControls !== false;');
+    }
+    componentLines.push('  const initialAutoPlay = autoPlay !== false;');
+    componentLines.push(`  ${canvasRefDeclaration}`);
+    componentLines.push(`  ${animationFrameRefDeclaration}`);
+    componentLines.push(`  ${frameIndexRefDeclaration}`);
+    componentLines.push(`  ${frameElapsedRefDeclaration}`);
+    componentLines.push(`  ${lastTimestampRefDeclaration}`);
+    componentLines.push(`  ${restartRefDeclaration}`);
+    componentLines.push(`  ${isPlayingRefDeclaration}`);
+
+    stateLines.forEach((line) => {
+      componentLines.push(`  ${line}`);
+    });
+
+    const updatePlayingStateLines = includeControls
+      ? [
+          `const updatePlayingState = useCallback(${isTypescript ? '(value: boolean)' : '(value)'} => {`,
+          '  isPlayingRef.current = value;',
+          '  setIsPlaying(value);',
+          '}, []);'
+        ]
+      : [
+          `const updatePlayingState = useCallback(${isTypescript ? '(value: boolean)' : '(value)'} => {`,
+          '  isPlayingRef.current = value;',
+          '}, []);'
+        ];
+
+    updatePlayingStateLines.forEach((line) => {
+      componentLines.push(`  ${line}`);
+    });
+
+    const actionBlocks = [
+      ['const play = useCallback(() => {', '  updatePlayingState(true);', '}, [updatePlayingState]);'],
+      ['const pause = useCallback(() => {', '  updatePlayingState(false);', '}, [updatePlayingState]);'],
+      ['const togglePlay = useCallback(() => {', '  updatePlayingState(!isPlayingRef.current);', '}, [updatePlayingState]);'],
+      ['const restart = useCallback(() => {', '  if (restartRef.current) {', '    restartRef.current();', '  }', '}, []);']
+    ];
+
+    actionBlocks.forEach((block) => {
+      block.forEach((line) => componentLines.push(`  ${line}`));
+    });
+
+    componentLines.push('');
+    componentLines.push('  useEffect(() => {');
+    componentLines.push('    if (isPlayingRef.current !== initialAutoPlay) {');
+    componentLines.push('      updatePlayingState(initialAutoPlay);');
+    componentLines.push('    }');
+    componentLines.push('  }, [initialAutoPlay, updatePlayingState]);');
+    componentLines.push('');
+    componentLines.push('  useEffect(() => {');
+
+    const effectLines: string[] = [
+      'const canvas = canvasRef.current;',
+      'if (!canvas) {',
+      '  return;',
+      '}',
+      '',
+      "const context = canvas.getContext('2d');",
+      'if (!context) {',
+      '  return;',
+      '}',
+      '',
+      'const devicePixelRatio = window.devicePixelRatio || 1;',
+      'canvas.width = CANVAS_WIDTH * devicePixelRatio;',
+      'canvas.height = CANVAS_HEIGHT * devicePixelRatio;',
+      "canvas.style.width = CANVAS_WIDTH + 'px';",
+      "canvas.style.height = CANVAS_HEIGHT + 'px';",
+      'context.resetTransform();',
+      'context.scale(devicePixelRatio, devicePixelRatio);',
+      "context.textAlign = 'center';",
+      "context.textBaseline = 'middle';",
+      "context.font = FONT_SIZE + 'px ' + FONT_FAMILY;",
+      'context.imageSmoothingEnabled = false;',
+      '',
+      'frameIndexRef.current = 0;',
+      'frameElapsedRef.current = 0;',
+      'lastTimestampRef.current = 0;',
+      '',
+      `const drawFrame = ${drawFrameSignature} => {`,
+      '  const frame = FRAMES[index];',
+      '',
+      '  if (BACKGROUND_COLOR) {',
+      '    context.fillStyle = BACKGROUND_COLOR;',
+      '    context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);',
+      '  } else {',
+      '    context.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);',
+      '  }',
+      '',
+      '  if (!frame) {',
+      '    return;',
+      '  }',
+      '',
+      '  for (const cell of frame.cells) {',
+      '    if (cell.bgColor) {',
+      '      context.fillStyle = cell.bgColor;',
+      '      context.fillRect(cell.x * CELL_WIDTH, cell.y * CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT);',
+      '    }',
+      '',
+      "    context.fillStyle = cell.color || '#ffffff';",
+      '    context.fillText(',
+      '      cell.char,',
+      '      cell.x * CELL_WIDTH + CELL_WIDTH / 2,',
+      '      cell.y * CELL_HEIGHT + CELL_HEIGHT / 2',
+      '    );',
+      '  }'
+    ];
+
+    if (includeControls) {
+      effectLines.push('');
+      effectLines.push('  setActiveFrame(index);');
+    }
+
+    effectLines.push('};');
+    effectLines.push('');
+    effectLines.push('drawFrame(frameIndexRef.current);');
+    effectLines.push('');
+    effectLines.push('if (FRAMES.length === 0) {');
+    effectLines.push('  restartRef.current = () => {');
+    effectLines.push('    drawFrame(0);');
+    if (includeControls) {
+      effectLines.push('    setActiveFrame(0);');
+    }
+    effectLines.push('  };');
+    effectLines.push('  return;');
+    effectLines.push('}');
+    effectLines.push('');
+    effectLines.push(`const step = ${stepSignature} => {`);
+    effectLines.push('  if (FRAMES.length === 0) {');
+    effectLines.push('    return;');
+    effectLines.push('  }');
+    effectLines.push('');
+    effectLines.push('  if (lastTimestampRef.current === 0) {');
+    effectLines.push('    lastTimestampRef.current = timestamp;');
+    effectLines.push('  }');
+    effectLines.push('');
+    effectLines.push('  const delta = timestamp - lastTimestampRef.current;');
+    effectLines.push('  lastTimestampRef.current = timestamp;');
+    effectLines.push('');
+    effectLines.push('  if (isPlayingRef.current) {');
+    effectLines.push('    frameElapsedRef.current += delta;');
+    effectLines.push('');
+    effectLines.push('    let nextIndex = frameIndexRef.current;');
+    effectLines.push('    let remaining = frameElapsedRef.current;');
+    effectLines.push('    let duration = FRAMES[nextIndex]?.duration ?? 16;');
+    effectLines.push('');
+    effectLines.push('    while (remaining >= duration && FRAMES.length > 0) {');
+    effectLines.push('      remaining -= duration;');
+    effectLines.push('      nextIndex = (nextIndex + 1) % FRAMES.length;');
+    effectLines.push('      duration = FRAMES[nextIndex]?.duration ?? duration;');
+    effectLines.push('    }');
+    effectLines.push('');
+    effectLines.push('    frameElapsedRef.current = remaining;');
+    effectLines.push('');
+    effectLines.push('    if (nextIndex !== frameIndexRef.current) {');
+    effectLines.push('      frameIndexRef.current = nextIndex;');
+    effectLines.push('      drawFrame(nextIndex);');
+    effectLines.push('    } else {');
+    effectLines.push('      drawFrame(frameIndexRef.current);');
+    effectLines.push('    }');
+    effectLines.push('  } else {');
+    effectLines.push('    drawFrame(frameIndexRef.current);');
+    effectLines.push('  }');
+    effectLines.push('');
+    effectLines.push('  animationFrameRef.current = window.requestAnimationFrame(step);');
+    effectLines.push('};');
+    effectLines.push('');
+    effectLines.push('animationFrameRef.current = window.requestAnimationFrame(step);');
+    effectLines.push('');
+    effectLines.push('restartRef.current = () => {');
+    effectLines.push('  frameIndexRef.current = 0;');
+    effectLines.push('  frameElapsedRef.current = 0;');
+    effectLines.push('  lastTimestampRef.current = 0;');
+    effectLines.push('  drawFrame(0);');
+    if (includeControls) {
+      effectLines.push('  setActiveFrame(0);');
+    }
+    effectLines.push('};');
+    effectLines.push('');
+    effectLines.push('return () => {');
+    effectLines.push('  if (animationFrameRef.current !== null) {');
+    effectLines.push('    window.cancelAnimationFrame(animationFrameRef.current);');
+    effectLines.push('    animationFrameRef.current = null;');
+    effectLines.push('  }');
+    effectLines.push('};');
+
+    pushIndentedBlock(componentLines, effectLines, 4);
+    componentLines.push('  }, []);');
+
+    componentLines.push('');
+    componentLines.push('  useEffect(() => {');
+    componentLines.push('    if (typeof onReady === "function") {');
+    componentLines.push('      onReady({');
+    componentLines.push('        play,');
+    componentLines.push('        pause,');
+    componentLines.push('        togglePlay,');
+    componentLines.push('        restart,');
+    componentLines.push('      });');
+    componentLines.push('    }');
+    componentLines.push('  }, [onReady, play, pause, togglePlay, restart]);');
+
+    if (includeControls) {
+      componentLines.push('');
+      componentLines.push('  const hasFrames = FRAMES.length > 0;');
+      componentLines.push('');
+      componentLines.push('  const handleTogglePlay = () => {');
+      componentLines.push('    if (!hasFrames) {');
+      componentLines.push('      return;');
+      componentLines.push('    }');
+      componentLines.push('    togglePlay();');
+      componentLines.push('  };');
+      componentLines.push('');
+      componentLines.push('  const handleRestart = () => {');
+      componentLines.push('    if (!hasFrames) {');
+      componentLines.push('      return;');
+      componentLines.push('    }');
+      componentLines.push('    restart();');
+      componentLines.push('    updatePlayingState(true);');
+      componentLines.push('  };');
+      componentLines.push('');
+      componentLines.push("  const playLabel = isPlaying ? 'Pause' : 'Play';");
+    }
+
+    componentLines.push('  return (');
+    componentLines.push('    <div');
+    componentLines.push('      style={{');
+    componentLines.push("        display: 'inline-flex',");
+    componentLines.push("        flexDirection: 'column',");
+    componentLines.push("        alignItems: 'center'");
+    componentLines.push('      }}');
+    componentLines.push('    >');
+    componentLines.push('      <canvas');
+    componentLines.push('        ref={canvasRef}');
+    componentLines.push('        width={CANVAS_WIDTH}');
+    componentLines.push('        height={CANVAS_HEIGHT}');
+    componentLines.push('        style={{');
+    componentLines.push("          width: CANVAS_WIDTH + 'px',");
+    componentLines.push("          height: CANVAS_HEIGHT + 'px',");
+    componentLines.push("          backgroundColor: BACKGROUND_COLOR || 'transparent',");
+    componentLines.push("          imageRendering: 'pixelated'");
+    componentLines.push('        }}');
+    componentLines.push('      />');
+
+    if (includeControls) {
+      componentLines.push('      {controlsVisible && (');
+      componentLines.push('        <div');
+      componentLines.push('          style={{');
+      componentLines.push("            marginTop: '12px',");
+      componentLines.push("            display: 'flex',");
+      componentLines.push("            alignItems: 'center',");
+      componentLines.push("            gap: '12px'");
+      componentLines.push('          }}');
+      componentLines.push('        >');
+      componentLines.push('          <button');
+      componentLines.push('            type="button"');
+      componentLines.push('            onClick={handleTogglePlay}');
+      componentLines.push('            disabled={!hasFrames}');
+      componentLines.push('            style={{');
+      componentLines.push("              padding: '6px 12px',");
+      componentLines.push("              borderRadius: '8px',");
+      componentLines.push("              border: '1px solid rgba(0, 0, 0, 0.2)',");
+      componentLines.push("              background: isPlaying ? '#f1f5f9' : '#111827',");
+      componentLines.push("              color: isPlaying ? '#111827' : '#f9fafb',");
+      componentLines.push("              cursor: hasFrames ? 'pointer' : 'not-allowed'");
+      componentLines.push('            }}');
+      componentLines.push('          >');
+      componentLines.push('            {playLabel}');
+      componentLines.push('          </button>');
+      componentLines.push('          <button');
+      componentLines.push('            type="button"');
+      componentLines.push('            onClick={handleRestart}');
+      componentLines.push('            disabled={!hasFrames}');
+      componentLines.push('            style={{');
+      componentLines.push("              padding: '6px 12px',");
+      componentLines.push("              borderRadius: '8px',");
+      componentLines.push("              border: '1px solid rgba(0, 0, 0, 0.2)',");
+      componentLines.push("              background: '#0f172a',");
+      componentLines.push("              color: '#f9fafb',");
+      componentLines.push("              cursor: hasFrames ? 'pointer' : 'not-allowed'");
+      componentLines.push('            }}');
+      componentLines.push('          >');
+      componentLines.push('            Restart');
+      componentLines.push('          </button>');
+      componentLines.push('          <span');
+      componentLines.push("            style={{ fontFamily: 'monospace', fontSize: '12px', color: '#475569' }}");
+      componentLines.push('          >');
+      componentLines.push("            {hasFrames ? 'Frame ' + (activeFrame + 1) + ' / ' + FRAMES.length : 'No frames'}");
+      componentLines.push('          </span>');
+      componentLines.push('        </div>');
+      componentLines.push('      )}');
+    }
+
+    componentLines.push('    </div>');
+    componentLines.push('  );');
+    componentLines.push('};');
+
+    const componentBlock = componentLines.join('\n');
+
+    const lines: string[] = [];
+    lines.push("'use client';");
+    lines.push('');
+    lines.push(hooksImport);
+    lines.push('');
+    lines.push(typeBlock);
+    lines.push('');
+    lines.push(framesDeclaration);
+    lines.push('');
+    lines.push(`const CANVAS_WIDTH = ${canvasWidth};`);
+    lines.push(`const CANVAS_HEIGHT = ${canvasHeight};`);
+    lines.push(`const CELL_WIDTH = ${cellWidthLiteral};`);
+    lines.push(`const CELL_HEIGHT = ${cellHeightLiteral};`);
+    lines.push(`const FONT_SIZE = ${fontSize};`);
+    lines.push(`const FONT_FAMILY = ${fontFamilyLiteral};`);
+    lines.push(`const BACKGROUND_COLOR = ${backgroundLiteral};`);
+    lines.push('');
+    lines.push(componentBlock);
+    lines.push('');
+    lines.push(`export default ${componentName};`);
+
+    return lines.join('\n') + '\n';
   }
 
   /**

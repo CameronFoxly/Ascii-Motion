@@ -10,7 +10,8 @@ import type {
   TextExportSettings,
   JsonExportSettings,
   HtmlExportSettings,
-  ExportHistoryEntry 
+  ExportHistoryEntry,
+  ReactExportSettings 
 } from '../types/export';
 
 interface ExportActions {
@@ -30,6 +31,7 @@ interface ExportActions {
   setTextSettings: (settings: Partial<TextExportSettings>) => void;
   setJsonSettings: (settings: Partial<JsonExportSettings>) => void;
   setHtmlSettings: (settings: Partial<HtmlExportSettings>) => void;
+  setReactSettings: (settings: Partial<ReactExportSettings>) => void;
   
   // History management
   addToHistory: (entry: ExportHistoryEntry) => void;
@@ -97,6 +99,13 @@ const DEFAULT_HTML_SETTINGS: HtmlExportSettings = {
   loops: 'infinite', // Loop infinitely
 };
 
+const DEFAULT_REACT_SETTINGS: ReactExportSettings = {
+  typescript: true,
+  includeControls: true,
+  includeBackground: true,
+  fileName: 'ascii-motion-animation',
+};
+
 export const useExportStore = create<ExportStoreState>((set, get) => ({
   // Initial state
   activeFormat: null,
@@ -110,6 +119,7 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
   textSettings: DEFAULT_TEXT_SETTINGS,
   jsonSettings: DEFAULT_JSON_SETTINGS,
   htmlSettings: DEFAULT_HTML_SETTINGS,
+  reactSettings: DEFAULT_REACT_SETTINGS,
   
   // UI state - updated for dropdown UX
   showExportModal: false, // Now used for format-specific dialogs
@@ -182,6 +192,12 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
       htmlSettings: { ...state.htmlSettings, ...settings }
     }));
   },
+
+  setReactSettings: (settings: Partial<ReactExportSettings>) => {
+    set((state) => ({
+      reactSettings: { ...state.reactSettings, ...settings }
+    }));
+  },
   
   addToHistory: (entry: ExportHistoryEntry) => {
     set((state) => ({
@@ -217,6 +233,8 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
         return state.jsonSettings;
       case 'html':
         return state.htmlSettings;
+      case 'react':
+        return state.reactSettings;
       default:
         return null;
     }

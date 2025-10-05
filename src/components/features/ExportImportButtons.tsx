@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 
-import { Download, Upload, FileImage, Film, FileText, ChevronDown, Globe } from 'lucide-react';
+import { Download, Upload, FileImage, Film, FileText, ChevronDown, Globe, FileCode } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
 import { useImportModal } from '../../stores/importStore';
 import type { ExportFormatId } from '../../types/export';
@@ -31,6 +31,12 @@ const EXPORT_OPTIONS = [
     name: 'HTML',
     description: 'Standalone webpage',
     icon: Globe,
+  },
+  {
+    id: 'react' as ExportFormatId,
+    name: 'React Component',
+    description: 'Drop-in canvas component',
+    icon: FileCode,
   },
   {
     id: 'json' as ExportFormatId,
