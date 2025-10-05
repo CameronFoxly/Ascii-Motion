@@ -1,12 +1,28 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.34";
-export const BUILD_DATE = "2025-10-05T15:19:39.551Z";
-export const BUILD_HASH = "286f155";
+export const VERSION = "0.1.35";
+export const BUILD_DATE = "2025-10-05T16:38:01.844Z";
+export const BUILD_HASH = "667e075";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.35",
+    "date": "2025-10-05T16:38:01.844Z",
+    "commits": [
+      "Fixed text autofocus in ascii text",
+      "TIghtened preview box spacing",
+      "Fixed preview box resizing issue",
+      "Fixed overflow in ascii text preview box",
+      "Added Ascii Text tool with Figlet fonts",
+      "Added React component export",
+      "Added first and last frame playback controls",
+      "Added hotkeys for save and open project",
+      "Added brush sizing to eraser",
+      "Updated hotkeys for switching brush size, character or colors"
+    ]
+  },
   {
     "version": "0.1.34",
     "date": "2025-10-05T15:19:39.551Z",

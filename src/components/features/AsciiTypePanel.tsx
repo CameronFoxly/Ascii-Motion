@@ -312,15 +312,17 @@ export function AsciiTypePanel() {
               </Button>
             </div>
             <Select value={selectedFont} onValueChange={handleFontSelect}>
-              <SelectTrigger id="ascii-font">
+              <SelectTrigger id="ascii-font" className="h-8 text-xs !border-muted/50">
                 <SelectValue placeholder="Choose a Figlet font" />
               </SelectTrigger>
               <SelectContent className="max-h-72">
                 {FIGLET_FONTS_BY_CATEGORY.map((category) => (
                   <SelectGroup key={category.label}>
-                    <SelectLabel>{category.label}</SelectLabel>
+                    <SelectLabel className="text-xs text-muted-foreground font-semibold px-2 py-1.5">
+                      {category.label}
+                    </SelectLabel>
                     {category.fonts.map((fontName) => (
-                      <SelectItem key={fontName} value={fontName}>
+                      <SelectItem key={fontName} value={fontName} className="text-xs">
                         {fontName}
                       </SelectItem>
                     ))}
@@ -334,7 +336,7 @@ export function AsciiTypePanel() {
             <div className="space-y-2">
               <Label htmlFor="ascii-horizontal-layout">Horizontal layout</Label>
               <Select value={horizontalLayout} onValueChange={handleHorizontalLayoutChange}>
-                <SelectTrigger id="ascii-horizontal-layout">
+                <SelectTrigger id="ascii-horizontal-layout" className="!border-muted/50">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -350,7 +352,7 @@ export function AsciiTypePanel() {
             <div className="space-y-2">
               <Label htmlFor="ascii-vertical-layout">Vertical layout</Label>
               <Select value={verticalLayout} onValueChange={handleVerticalLayoutChange}>
-                <SelectTrigger id="ascii-vertical-layout">
+                <SelectTrigger id="ascii-vertical-layout" className="!border-muted/50">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
