@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ScrollArea } from '../ui/scroll-area';
 import { Button } from '../ui/button';
 import { Alert, AlertDescription } from '../ui/alert';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { FIGLET_FONTS_BY_CATEGORY } from '../../constants/figletFonts';
 import { ALL_FIGLET_FONTS } from '../../constants/figletFonts';
 import { renderFigletText } from '../../lib/figletClient';
@@ -19,7 +20,7 @@ import { useAsciiTypeTool } from '../../hooks/useAsciiTypeTool';
 import { useAsciiTypeStore } from '../../stores/asciiTypeStore';
 import { DraggableDialogBar } from '../common/DraggableDialogBar';
 import { cn } from '../../lib/utils';
-import { Loader2, TypeOutline } from 'lucide-react';
+import { Loader2, TypeOutline, ChevronDown } from 'lucide-react';
 
 const DIALOG_WIDTH = 680;
 
@@ -53,7 +54,21 @@ export function AsciiTypePreviewDialog() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [hasBeenDragged, setHasBeenDragged] = useState(false);
   const [fontPreviews, setFontPreviews] = useState<Record<string, FontPreviewState>>({});
+  const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
   const hasCenteredRef = useRef(false);
+
+  // Toggle category open/close
+  const toggleCategory = useCallback((categoryLabel: string) => {
+    setOpenCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(categoryLabel)) {
+        next.delete(categoryLabel);
+      } else {
+        next.add(categoryLabel);
+      }
+      return next;
+    });
+  }, []);
 
   // Reset previews and center dialog whenever inputs change
   const previewKey = useMemo(
@@ -263,31 +278,47 @@ export function AsciiTypePreviewDialog() {
         />
         <div className="flex-1 overflow-hidden">
           <ScrollArea ref={scrollAreaRef} className="h-[calc(90vh-60px)]">
-            <div className="p-2 space-y-3">
-            {FIGLET_FONTS_BY_CATEGORY.map((category) => (
-              <div key={category.label} className="space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <TypeOutline className="w-3.5 h-3.5 text-muted-foreground" />
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {category.label}
-                  </h3>
-                </div>
-                <div className="grid gap-2">
-                  {category.fonts.map((fontName) => {
-                    const fontPreview = fontPreviews[fontName];
-                    const previewLines = fontPreview?.lines ?? null;
-                    const previewError = fontPreview?.error;
-                    const isLoaded = Boolean(previewLines);
+            <div className="p-2 space-y-2">
+            {FIGLET_FONTS_BY_CATEGORY.map((category) => {
+              const isOpen = openCategories.has(category.label);
+              
+              return (
+                <Collapsible 
+                  key={category.label} 
+                  open={isOpen}
+                  onOpenChange={() => toggleCategory(category.label)}
+                >
+                  <CollapsibleTrigger className="flex items-center gap-1.5 w-full hover:bg-muted/50 rounded px-2 py-1.5 transition-colors">
+                    <ChevronDown className={cn(
+                      "w-3.5 h-3.5 text-muted-foreground transition-transform",
+                      isOpen && "transform rotate-0",
+                      !isOpen && "transform -rotate-90"
+                    )} />
+                    <TypeOutline className="w-3.5 h-3.5 text-muted-foreground" />
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {category.label}
+                    </h3>
+                    <span className="ml-auto text-xs text-muted-foreground/60">
+                      {category.fonts.length} fonts
+                    </span>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="collapsible-content space-y-2 mt-2">
+                    <div className="grid gap-2 pl-6">
+                      {category.fonts.map((fontName) => {
+                        const fontPreview = fontPreviews[fontName];
+                        const previewLines = fontPreview?.lines ?? null;
+                        const previewError = fontPreview?.error;
+                        const isLoaded = Boolean(previewLines);
 
-                    return (
-                      <Card key={fontName} className="border-border/60 overflow-hidden">
-                        <CardHeader className="pb-1.5 pt-2 px-3">
-                          <CardTitle className="text-sm">{fontName}</CardTitle>
-                          <CardDescription className="text-xs">
-                            Horizontal: {horizontalLayout}, Vertical: {verticalLayout}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-0 px-3 pb-2 overflow-hidden">
+                        return (
+                          <Card key={fontName} className="border-border/60 overflow-hidden">
+                            <CardHeader className="pb-1.5 pt-2 px-3">
+                              <CardTitle className="text-sm">{fontName}</CardTitle>
+                              <CardDescription className="text-xs">
+                                Horizontal: {horizontalLayout}, Vertical: {verticalLayout}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="pt-0 px-3 pb-2 overflow-hidden">
                           {previewError && (
                             <Alert variant="destructive">
                               <AlertDescription>{previewError}</AlertDescription>
@@ -321,9 +352,11 @@ export function AsciiTypePreviewDialog() {
                       </Card>
                     );
                   })}
-                </div>
-              </div>
-            ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              );
+            })}
             </div>
           </ScrollArea>
         </div>
