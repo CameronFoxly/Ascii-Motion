@@ -56,6 +56,7 @@ export function AsciiTypePanel() {
   const setPreviewDialogOpen = useAsciiTypeStore((state) => state.setPreviewDialogOpen);
   const setPanelScrollPosition = useAsciiTypeStore((state) => state.setPanelScrollTop);
   const panelScrollTop = useAsciiTypeStore((state) => state.panelScrollTop);
+  const lastPositionUpdateTimestamp = useAsciiTypeStore((state) => state.lastPositionUpdateTimestamp);
 
   const setActiveTool = useToolStore((state) => state.setActiveTool);
   const pushCanvasHistory = useToolStore((state) => state.pushCanvasHistory);
@@ -93,12 +94,19 @@ export function AsciiTypePanel() {
     []
   );
 
-  // Auto-focus textarea when preview is placed
+  // Auto-focus textarea when preview position is updated (placement or drag end)
   useEffect(() => {
-    if (isPreviewPlaced && textareaRef.current) {
-      textareaRef.current.focus();
+    if (lastPositionUpdateTimestamp > 0 && textareaRef.current) {
+      // Use requestAnimationFrame to ensure focus happens after the click event has fully settled
+      requestAnimationFrame(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          // Also select all text for easy replacement
+          textareaRef.current.select();
+        }
+      });
     }
-  }, [isPreviewPlaced]);
+  }, [lastPositionUpdateTimestamp]);
 
   useEffect(() => {
     if (isPanelOpen) {

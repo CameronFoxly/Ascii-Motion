@@ -47,6 +47,7 @@ interface AsciiTypeStoreState {
   lastRenderKey: string | null;
   isPreviewPlaced: boolean;
   dragState: PreviewDragState | null;
+  lastPositionUpdateTimestamp: number;
 
   // Preview dialog state
   previewDialogOpen: boolean;
@@ -169,6 +170,7 @@ const DEFAULT_STATE: Omit<AsciiTypeStoreState,
   lastRenderKey: null,
   isPreviewPlaced: false,
   dragState: null,
+  lastPositionUpdateTimestamp: 0,
   previewDialogOpen: false,
   previewDialogScrollTop: 0,
 };
@@ -234,7 +236,10 @@ export const useAsciiTypeStore = create<AsciiTypeStoreState>((set, get) => ({
   },
 
   setPreviewPlaced: (placed: boolean) => {
-    set({ isPreviewPlaced: placed });
+    set({ 
+      isPreviewPlaced: placed,
+      lastPositionUpdateTimestamp: placed ? Date.now() : 0,
+    });
   },
 
   beginRender: (key: string) => {
@@ -317,7 +322,10 @@ export const useAsciiTypeStore = create<AsciiTypeStoreState>((set, get) => ({
   },
 
   endDrag: () => {
-    set({ dragState: null });
+    set({ 
+      dragState: null,
+      lastPositionUpdateTimestamp: Date.now(),
+    });
   },
 
   setPreviewDialogOpen: (open: boolean) => set({ previewDialogOpen: open }),
