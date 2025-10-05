@@ -32,29 +32,33 @@ export async function processEffect(
     let affectedCells = 0;
 
     switch (effectType) {
-      case 'levels':
+      case 'levels': {
         const result = await processLevelsEffect(cells, settings as LevelsEffectSettings);
         processedCells = result.processedCells;
         affectedCells = result.affectedCells;
         break;
+      }
         
-      case 'hue-saturation':
+      case 'hue-saturation': {
         const hsResult = await processHueSaturationEffect(cells, settings as HueSaturationEffectSettings);
         processedCells = hsResult.processedCells;
         affectedCells = hsResult.affectedCells;
         break;
+      }
         
-      case 'remap-colors':
+      case 'remap-colors': {
         const rcResult = await processRemapColorsEffect(cells, settings as RemapColorsEffectSettings);
         processedCells = rcResult.processedCells;
         affectedCells = rcResult.affectedCells;
         break;
+      }
         
-      case 'remap-characters':
+      case 'remap-characters': {
         const rchResult = await processRemapCharactersEffect(cells, settings as RemapCharactersEffectSettings);
         processedCells = rchResult.processedCells;
         affectedCells = rchResult.affectedCells;
         break;
+      }
         
       default:
         throw new Error(`Unknown effect type: ${effectType}`);

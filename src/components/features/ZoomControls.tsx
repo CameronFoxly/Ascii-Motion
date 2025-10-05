@@ -2,35 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Minus, Plus, RotateCcw } from 'lucide-react';
-import { useCanvasContext } from '../../contexts/CanvasContext';
-
-/**
- * Custom hook for zoom functionality that can be shared between UI and keyboard shortcuts
- */
-export const useZoomControls = () => {
-  const { zoom, setZoom, panOffset, setPanOffset } = useCanvasContext();
-  
-  const zoomIn = () => {
-    const newZoom = Math.min(4.0, zoom + 0.2); // 20% increments (max 400%)
-    setZoom(Math.round(newZoom * 100) / 100); // Round to 2 decimal places
-  };
-  
-  const zoomOut = () => {
-    const newZoom = Math.max(0.2, zoom - 0.2); // 20% increments (min 20%)
-    setZoom(Math.round(newZoom * 100) / 100); // Round to 2 decimal places
-  };
-  
-  const resetZoom = () => {
-    setZoom(1.0);
-  };
-  
-  const resetView = () => {
-    setZoom(1.0);
-    setPanOffset({ x: 0, y: 0 });
-  };
-  
-  return { zoom, zoomIn, zoomOut, resetZoom, resetView, panOffset };
-};
+import { useZoomControls } from '@/hooks/useZoomControls';
 
 export const ZoomControls: React.FC = () => {
   const { zoom, zoomIn, zoomOut, resetZoom, resetView, panOffset } = useZoomControls();

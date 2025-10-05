@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Tool, ToolState, Selection, LassoSelection, MagicWandSelection, TextToolState, AnyHistoryAction, CanvasHistoryAction, BrushShape, BrushSettings } from '../types';
+import type { Tool, ToolState, Selection, LassoSelection, MagicWandSelection, TextToolState, AnyHistoryAction, CanvasHistoryAction, BrushShape, BrushSettings, Cell } from '../types';
 import { DEFAULT_COLORS } from '../constants';
 import { 
   rectangularSelectionToText, 
@@ -37,16 +37,16 @@ interface ToolStoreState extends ToolState {
   };
   
   // Clipboard for copy/paste
-  clipboard: Map<string, any> | null;
+  clipboard: Map<string, Cell> | null;
   clipboardOriginalPosition: { x: number; y: number } | null;
   activeClipboardType: 'rectangle' | 'lasso' | 'magicwand' | null;
   
   // Lasso clipboard for copy/paste
-  lassoClipboard: Map<string, any> | null;
+  lassoClipboard: Map<string, Cell> | null;
   lassoClipboardOriginalPosition: { x: number; y: number } | null;
   
   // Magic wand clipboard for copy/paste
-  magicWandClipboard: Map<string, any> | null;
+  magicWandClipboard: Map<string, Cell> | null;
   magicWandClipboardOriginalPosition: { x: number; y: number } | null;
   
   // Enhanced history for undo/redo
@@ -127,28 +127,28 @@ interface ToolStoreState extends ToolState {
   setLassoSelectionFromMask: (mask: Set<string>, path?: { x: number; y: number }[]) => void;
   
   // Magic wand selection actions
-  startMagicWandSelection: (targetCell: any, selectedCells: Set<string>) => void;
+  startMagicWandSelection: (targetCell: Cell | null, selectedCells: Set<string>) => void;
   updateMagicWandSelectedCells: (selectedCells: Set<string>) => void;
   clearMagicWandSelection: () => void;
-  setMagicWandSelectionFromMask: (mask: Set<string>, targetCell?: any) => void;
+  setMagicWandSelectionFromMask: (mask: Set<string>, targetCell?: Cell | null) => void;
   
   // Clipboard actions
-  copySelection: (canvasData: Map<string, any>) => void;
-  pasteSelection: (x: number, y: number) => Map<string, any> | null;
+  copySelection: (canvasData: Map<string, Cell>) => void;
+  pasteSelection: (x: number, y: number) => Map<string, Cell> | null;
   hasClipboard: () => boolean;
   getActiveClipboardType: () => 'rectangle' | 'lasso' | 'magicwand' | null;
   getActiveClipboardOriginalPosition: () => { x: number; y: number } | null;
   getClipboardOriginalPosition: () => { x: number; y: number } | null;
   
   // Lasso clipboard actions
-  copyLassoSelection: (canvasData: Map<string, any>) => void;
-  pasteLassoSelection: (offsetX: number, offsetY: number) => Map<string, any> | null;
+  copyLassoSelection: (canvasData: Map<string, Cell>) => void;
+  pasteLassoSelection: (offsetX: number, offsetY: number) => Map<string, Cell> | null;
   hasLassoClipboard: () => boolean;
   getLassoClipboardOriginalPosition: () => { x: number; y: number } | null;
   
   // Magic wand clipboard actions
-  copyMagicWandSelection: (canvasData: Map<string, any>) => void;
-  pasteMagicWandSelection: (offsetX: number, offsetY: number) => Map<string, any> | null;
+  copyMagicWandSelection: (canvasData: Map<string, Cell>) => void;
+  pasteMagicWandSelection: (offsetX: number, offsetY: number) => Map<string, Cell> | null;
   hasMagicWandClipboard: () => boolean;
   getMagicWandClipboardOriginalPosition: () => { x: number; y: number } | null;
   
@@ -163,7 +163,7 @@ interface ToolStoreState extends ToolState {
   
   // Enhanced history actions
   pushToHistory: (action: AnyHistoryAction) => void;
-  pushCanvasHistory: (canvasData: Map<string, any>, frameIndex: number, description?: string) => void;
+  pushCanvasHistory: (canvasData: Map<string, Cell>, frameIndex: number, description?: string) => void;
   undo: () => AnyHistoryAction | undefined;
   redo: () => AnyHistoryAction | undefined;
   clearHistory: () => void;
@@ -558,11 +558,11 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   },
 
   // Magic wand selection actions
-  startMagicWandSelection: (targetCell: any, selectedCells: Set<string>) => {
+  startMagicWandSelection: (targetCell: Cell | null, selectedCells: Set<string>) => {
     set({
       magicWandSelection: {
         selectedCells: new Set(selectedCells),
-        targetCell: targetCell,
+  targetCell: targetCell,
         active: true,
         contiguous: get().magicWandContiguous
       }
@@ -589,7 +589,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     });
   },
 
-  setMagicWandSelectionFromMask: (mask: Set<string>, targetCell: any = null) => {
+  setMagicWandSelectionFromMask: (mask: Set<string>, targetCell: Cell | null = null) => {
     if (mask.size === 0) {
       set({
         magicWandSelection: {
@@ -605,7 +605,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     set((state) => ({
       magicWandSelection: {
         selectedCells: new Set(mask),
-        targetCell: targetCell ?? state.magicWandSelection.targetCell,
+  targetCell: targetCell ?? state.magicWandSelection.targetCell,
         active: true,
         contiguous: state.magicWandSelection.contiguous
       }
@@ -613,7 +613,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   },
 
   // Clipboard actions
-  copySelection: (canvasData: Map<string, any>) => {
+  copySelection: (canvasData: Map<string, Cell>) => {
     const { selection } = get();
     if (!selection.active || selection.selectedCells.size === 0) {
       return;
@@ -624,7 +624,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
       return;
     }
 
-    const copiedData = new Map<string, any>();
+  const copiedData = new Map<string, Cell>();
     selection.selectedCells.forEach((key) => {
       const cell = canvasData.get(key);
       if (!cell) {
@@ -653,7 +653,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   pasteSelection: (x: number, y: number) => {
     const { activeClipboardType, clipboard, lassoClipboard, magicWandClipboard } = get();
 
-    let sourceClipboard: Map<string, any> | null = null;
+  let sourceClipboard: Map<string, Cell> | null = null;
     switch (activeClipboardType) {
       case 'magicwand':
         sourceClipboard = magicWandClipboard ?? null;
@@ -680,7 +680,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
       return null;
     }
 
-    const pastedData = new Map<string, any>();
+  const pastedData = new Map<string, Cell>();
     
     sourceClipboard.forEach((cell, relativeKey) => {
       const [relX, relY] = relativeKey.split(',').map(Number);
@@ -721,14 +721,14 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   },
 
   // Lasso clipboard actions
-  copyLassoSelection: (canvasData: Map<string, any>) => {
+  copyLassoSelection: (canvasData: Map<string, Cell>) => {
     const { lassoSelection } = get();
     
     if (!lassoSelection.active || lassoSelection.selectedCells.size === 0) {
       return;
     }
 
-    const copiedData = new Map<string, any>();
+  const copiedData = new Map<string, Cell>();
     
     // Find bounds of the selected cells to create relative coordinates
     const cellCoords = Array.from(lassoSelection.selectedCells).map(key => {
@@ -743,8 +743,9 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     lassoSelection.selectedCells.forEach(key => {
       const [x, y] = key.split(',').map(Number);
       const relativeKey = `${x - minX},${y - minY}`;
-      if (canvasData.has(key)) {
-        copiedData.set(relativeKey, canvasData.get(key));
+      const cell = canvasData.get(key);
+      if (cell) {
+        copiedData.set(relativeKey, cell);
       }
     });
 
@@ -767,7 +768,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     const { lassoClipboard } = get();
     if (!lassoClipboard) return null;
 
-    const pastedData = new Map<string, any>();
+  const pastedData = new Map<string, Cell>();
     
     lassoClipboard.forEach((cell, relativeKey) => {
       const [relX, relY] = relativeKey.split(',').map(Number);
@@ -787,13 +788,13 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   },
 
   // Magic wand clipboard actions
-  copyMagicWandSelection: (canvasData: Map<string, any>) => {
+  copyMagicWandSelection: (canvasData: Map<string, Cell>) => {
     const { magicWandSelection } = get();
     if (!magicWandSelection.active || magicWandSelection.selectedCells.size === 0) {
       return;
     }
 
-    const copiedData = new Map<string, any>();
+  const copiedData = new Map<string, Cell>();
     
     // Find bounds of the selected cells to create relative coordinates (consistent with other clipboard types)
     const cellCoords = Array.from(magicWandSelection.selectedCells).map(key => {
@@ -836,7 +837,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
       return null;
     }
 
-    const pasteData = new Map<string, any>();
+  const pasteData = new Map<string, Cell>();
     
     // Apply offset to each cell position (now using relative coordinates like other clipboard types)
     magicWandClipboard.forEach((cell, relativeKey) => {
@@ -881,7 +882,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     });
   },
 
-  pushCanvasHistory: (canvasData: Map<string, any>, frameIndex: number, description: string = 'Canvas edit') => {
+  pushCanvasHistory: (canvasData: Map<string, Cell>, frameIndex: number, description: string = 'Canvas edit') => {
     const action: CanvasHistoryAction = {
       type: 'canvas_edit',
       timestamp: Date.now(),

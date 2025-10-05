@@ -341,7 +341,7 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
     }
 
     // Move the colors
-    let currentIndex = sourceIndex;
+    const currentIndex = sourceIndex;
     if (currentIndex < finalTargetIndex) {
       // Moving right - use moveColorRight
       for (let i = 0; i < finalTargetIndex - sourceIndex; i++) {

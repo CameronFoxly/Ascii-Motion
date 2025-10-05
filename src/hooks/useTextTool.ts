@@ -156,8 +156,8 @@ export const useTextTool = () => {
     // Can't backspace at position (0, 0)
     if (x === 0 && y === 0) return;
 
-    let targetX = x - 1;
-    let targetY = y;
+    const targetX = x - 1;
+    const targetY = y;
 
     // If at beginning of line, stop (don't wrap to previous line)
     if (x === 0) {

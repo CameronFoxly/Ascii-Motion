@@ -341,7 +341,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
     }
 
     // Move the colors
-    let currentIndex = sourceIndex;
+    const currentIndex = sourceIndex;
     if (currentIndex < finalTargetIndex) {
       // Moving right - use moveColorRight
       for (let i = 0; i < finalTargetIndex - sourceIndex; i++) {

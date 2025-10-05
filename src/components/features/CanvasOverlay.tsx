@@ -69,8 +69,8 @@ export const CanvasOverlay: React.FC = () => {
 
       cells.forEach((cellKey) => {
         const [rawX, rawY] = cellKey.split(',').map(Number);
-        let cellX = rawX + totalOffset.x;
-        let cellY = rawY + totalOffset.y;
+        const cellX = rawX + totalOffset.x;
+        const cellY = rawY + totalOffset.y;
 
         if (cellX < 0 || cellY < 0 || cellX >= width || cellY >= height) {
           return;

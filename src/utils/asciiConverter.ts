@@ -434,7 +434,7 @@ export class ASCIIConverter {
         let character: string;
         if (settings.enableCharacterMapping) {
           // Calculate additional data for advanced algorithms
-          let algorithmOptions: any = {};
+          const algorithmOptions: any = {};
           
           if (settings.mappingMethod === 'contrast' || settings.mappingMethod === 'edge-detection') {
             // Calculate neighbor values for contrast and edge detection
@@ -659,8 +659,8 @@ export class ASCIIConverter {
     // Gaussian blur approximation using box blur passes
     // Number of passes increases with blur amount for better quality
     const passes = Math.ceil(blurAmount / 2);
-    let currentData = new Uint8ClampedArray(data);
-    let tempData = new Uint8ClampedArray(data.length);
+    const currentData = new Uint8ClampedArray(data);
+    const tempData = new Uint8ClampedArray(data.length);
     
     for (let pass = 0; pass < passes; pass++) {
       // Horizontal pass

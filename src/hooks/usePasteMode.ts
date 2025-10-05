@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useToolStore } from '../stores/toolStore';
 import { useCanvasStore } from '../stores/canvasStore';
+import type { Cell } from '@/types';
 
 export interface PastePreview {
-  data: Map<string, any>;
+  data: Map<string, Cell>;
   position: { x: number; y: number };
   bounds: {
     minX: number;
@@ -46,7 +47,7 @@ export const usePasteMode = () => {
   });
 
   // Get the active clipboard data (prioritize magic wand, then lasso, then regular clipboard)
-  const getActiveClipboard = useCallback(() => {
+  const getActiveClipboard = useCallback((): Map<string, Cell> | null => {
     const priority: Array<'magicwand' | 'lasso' | 'rectangle'> = [];
     if (activeClipboardType) {
       priority.push(activeClipboardType);
@@ -86,7 +87,7 @@ export const usePasteMode = () => {
   /**
    * Calculate bounds of clipboard data
    */
-  const calculateClipboardBounds = useCallback((clipboardData: Map<string, any>) => {
+  const calculateClipboardBounds = useCallback((clipboardData: Map<string, Cell>) => {
     if (!clipboardData || clipboardData.size === 0) {
       return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
     }
@@ -215,13 +216,13 @@ export const usePasteMode = () => {
   /**
    * Commit paste at current preview position
    */
-  const commitPaste = useCallback(() => {
+  const commitPaste = useCallback((): Map<string, Cell> | null => {
     if (!pasteMode.isActive || !pasteMode.preview) {
       return null;
     }
 
     const { data, position } = pasteMode.preview;
-    const pastedData = new Map<string, any>();
+    const pastedData = new Map<string, Cell>();
 
     // Transform clipboard data to absolute positions
     data.forEach((cell, relativeKey) => {
@@ -277,7 +278,7 @@ export const usePasteMode = () => {
         case 'ArrowUp':
         case 'ArrowDown':
         case 'ArrowLeft':
-        case 'ArrowRight':
+        case 'ArrowRight': {
           event.preventDefault();
           event.stopPropagation();
           
@@ -318,6 +319,7 @@ export const usePasteMode = () => {
             };
           });
           break;
+        }
       }
     };
 

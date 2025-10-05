@@ -158,7 +158,7 @@ export const EnhancedCharacterPicker: React.FC<EnhancedCharacterPickerProps> = (
     } else if (anchorPosition === 'left-bottom') {
       // Anchor bottom-right corner of picker to the left side of trigger, with bottom alignment
       let top = triggerRect.bottom + window.scrollY - pickerHeight;
-      let right = window.innerWidth - triggerRect.left + 8; // 8px gap from trigger
+      const right = window.innerWidth - triggerRect.left + 8; // 8px gap from trigger
       
       // Ensure picker doesn't go off-screen vertically
       if (top < window.scrollY) top = window.scrollY + 8; // 8px margin from top
@@ -171,7 +171,7 @@ export const EnhancedCharacterPicker: React.FC<EnhancedCharacterPickerProps> = (
     } else if (anchorPosition === 'left-bottom-aligned') {
       // Align bottom of picker with bottom of trigger element, positioned to the left
       let top = triggerRect.bottom + window.scrollY - pickerHeight;
-      let right = window.innerWidth - triggerRect.left + 8; // 8px gap from trigger
+      const right = window.innerWidth - triggerRect.left + 8; // 8px gap from trigger
       
       // Ensure picker doesn't go off-screen vertically
       if (top < window.scrollY) top = window.scrollY + 8; // 8px margin from top

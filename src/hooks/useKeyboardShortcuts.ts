@@ -4,7 +4,7 @@ import { useToolStore } from '../stores/toolStore';
 import { useAnimationStore } from '../stores/animationStore';
 import { useCanvasContext } from '../contexts/CanvasContext';
 import { getToolForHotkey } from '../constants/hotkeys';
-import { useZoomControls } from '../components/features/ZoomControls';
+import { useZoomControls } from './useZoomControls';
 import { useFrameNavigation } from './useFrameNavigation';
 import { useAnimationHistory } from './useAnimationHistory';
 import { usePaletteStore } from '../stores/paletteStore';
@@ -14,24 +14,29 @@ import { useProjectFileActions } from './useProjectFileActions';
 import { ANSI_COLORS } from '../constants/colors';
 import type { AnyHistoryAction, CanvasHistoryAction, FrameId } from '../types';
 
+type CanvasStoreState = ReturnType<typeof useCanvasStore.getState>;
+type CanvasStoreForHistory = Pick<CanvasStoreState, 'setCanvasData'>;
+type AnimationStoreState = ReturnType<typeof useAnimationStore.getState>;
+
 /**
  * Helper function to process different types of history actions
  */
 const processHistoryAction = (
-  action: AnyHistoryAction, 
+  action: AnyHistoryAction,
   isRedo: boolean,
-  canvasStore: any,
-  animationStore: any
+  canvasStore: CanvasStoreForHistory,
+  animationStore: AnimationStoreState
 ) => {
   switch (action.type) {
-    case 'canvas_edit':
+    case 'canvas_edit': {
       const canvasAction = action as CanvasHistoryAction;
       canvasStore.setCanvasData(canvasAction.data.canvasData);
       // Set current frame to match the frame this edit was made in
       animationStore.setCurrentFrame(canvasAction.data.frameIndex);
       break;
+    }
       
-    case 'add_frame':
+    case 'add_frame': {
       if (isRedo) {
         // Redo: Re-add the frame
         animationStore.addFrame(action.data.frameIndex, action.data.canvasData);
@@ -41,8 +46,9 @@ const processHistoryAction = (
         animationStore.setCurrentFrame(action.data.previousCurrentFrame);
       }
       break;
+    }
       
-    case 'duplicate_frame':
+    case 'duplicate_frame': {
       if (isRedo) {
         // Redo: Re-duplicate the frame
         animationStore.duplicateFrame(action.data.originalIndex);
@@ -52,8 +58,9 @@ const processHistoryAction = (
         animationStore.setCurrentFrame(action.data.previousCurrentFrame);
       }
       break;
+    }
       
-    case 'delete_frame':
+    case 'delete_frame': {
       if (isRedo) {
         // Redo: Re-delete the frame
         animationStore.removeFrame(action.data.frameIndex);
@@ -72,8 +79,9 @@ const processHistoryAction = (
         animationStore.setCurrentFrame(action.data.previousCurrentFrame);
       }
       break;
+    }
       
-    case 'reorder_frames':
+    case 'reorder_frames': {
       if (isRedo) {
         // Redo: Re-perform the reorder
         animationStore.reorderFrames(action.data.fromIndex, action.data.toIndex);
@@ -83,6 +91,7 @@ const processHistoryAction = (
         animationStore.setCurrentFrame(action.data.previousCurrentFrame);
       }
       break;
+    }
       
     case 'update_duration':
       if (isRedo) {
@@ -114,7 +123,7 @@ const processHistoryAction = (
       }
       break;
       
-    case 'apply_effect':
+    case 'apply_effect': {
       const effectAction = action as import('../types').ApplyEffectHistoryAction;
       if (isRedo) {
         // Redo: Re-apply the effect
@@ -142,8 +151,9 @@ const processHistoryAction = (
         }
       }
       break;
+    }
 
-    case 'apply_time_effect':
+    case 'apply_time_effect': {
       const timeEffectAction = action as import('../types').ApplyTimeEffectHistoryAction;
       if (isRedo) {
         // Redo: Re-apply the time effect
@@ -159,8 +169,9 @@ const processHistoryAction = (
         }
       }
       break;
+    }
 
-    case 'set_frame_durations':
+    case 'set_frame_durations': {
       const durationsAction = action as import('../types').SetFrameDurationsHistoryAction;
       if (isRedo) {
         // Redo: Re-apply the new duration to all affected frames
@@ -176,8 +187,9 @@ const processHistoryAction = (
         console.log(`✅ Undo: Restored durations for ${durationsAction.data.previousDurations.length} frames`);
       }
       break;
+    }
 
-    case 'delete_frame_range':
+    case 'delete_frame_range': {
       const deleteRangeAction = action as import('../types').DeleteFrameRangeHistoryAction;
       if (isRedo) {
         // Redo: Re-delete the frames
@@ -196,6 +208,7 @@ const processHistoryAction = (
         console.log(`✅ Undo: Restored ${deleteRangeAction.data.frames.length} deleted frames`);
       }
       break;
+    }
 
     case 'duplicate_frame_range': {
       const duplicateRangeAction = action as import('../types').DuplicateFrameRangeHistoryAction;
@@ -227,7 +240,7 @@ const processHistoryAction = (
       break;
     }
 
-    case 'delete_all_frames':
+    case 'delete_all_frames': {
       const deleteAllAction = action as import('../types').DeleteAllFramesHistoryAction;
       if (isRedo) {
         // Redo: Clear all frames again
@@ -252,6 +265,7 @@ const processHistoryAction = (
         console.log(`✅ Undo: Restored ${deleteAllAction.data.frames.length} frames`);
       }
       break;
+    }
 
     case 'reorder_frame_range': {
       const reorderRangeAction = action as import('../types').ReorderFrameRangeHistoryAction;
@@ -305,7 +319,7 @@ const processHistoryAction = (
     }
       
     default:
-      console.warn('Unknown history action type:', (action as any).type);
+      console.warn('Unknown history action type:', action);
   }
 };
 
@@ -350,7 +364,6 @@ export const useKeyboardShortcuts = () => {
     copySelection, 
     copyLassoSelection,
     copyMagicWandSelection,
-    pasteSelection,
     clearSelection,
     clearLassoSelection,
     clearMagicWandSelection,
@@ -363,12 +376,6 @@ export const useKeyboardShortcuts = () => {
     pushCanvasHistory,
     activeTool,
     setActiveTool,
-    hasClipboard,
-    hasLassoClipboard,
-    hasMagicWandClipboard,
-    getClipboardOriginalPosition,
-    getLassoClipboardOriginalPosition,
-    getMagicWandClipboardOriginalPosition,
     textToolState
   } = useToolStore();
 
@@ -1010,51 +1017,55 @@ export const useKeyboardShortcuts = () => {
         break;
     }
   }, [
-    cells, 
+    cells,
     width,
     height,
-    selection, 
+    selection,
     lassoSelection,
     magicWandSelection,
-    copySelection, 
+    copySelection,
     copyLassoSelection,
     copyMagicWandSelection,
-    pasteSelection, 
     clearSelection,
     clearLassoSelection,
     clearMagicWandSelection,
     startSelection,
     updateSelection,
-    pushCanvasHistory, 
+    pushCanvasHistory,
     setCanvasData,
     undo,
     redo,
     canUndo,
     canRedo,
     handleHistoryAction,
-    startPasteMode,
     commitPaste,
     pasteMode,
-    hasClipboard,
-    hasLassoClipboard,
-    hasMagicWandClipboard,
-  getClipboardOriginalPosition,
-  getLassoClipboardOriginalPosition,
-  getMagicWandClipboardOriginalPosition,
-  startPasteFromClipboard,
+    startPasteFromClipboard,
     textToolState,
+    activeTool,
     setActiveTool,
+    swapForegroundBackground,
+    adjustBrushSize,
     toggleOnionSkin,
     currentFrameIndex,
     frames,
+    selectedFrameIndices,
     zoomIn,
     zoomOut,
     navigateNext,
     navigatePrevious,
+    navigateFirst,
+    navigateLast,
+    navigatePaletteColor,
+    navigateCharacterPaletteCharacters,
     canNavigate,
     addFrame,
     removeFrame,
     duplicateFrame,
+    duplicateFrameRange,
+    deleteFrameRange,
+    flipHorizontal,
+    flipVertical,
     showSaveProjectDialog,
     showOpenProjectDialog,
     blockBrowserShortcut

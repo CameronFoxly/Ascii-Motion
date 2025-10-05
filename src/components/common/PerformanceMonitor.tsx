@@ -137,14 +137,3 @@ export const PerformanceMonitor: React.FC = () => {
     </div>
   );
 };
-
-// Hook to conditionally render performance monitor
-export const usePerformanceMonitor = () => {
-  const [showMonitor, setShowMonitor] = useState(import.meta.env.DEV);
-  
-  return {
-    showMonitor,
-    setShowMonitor,
-    PerformanceMonitor
-  };
-};

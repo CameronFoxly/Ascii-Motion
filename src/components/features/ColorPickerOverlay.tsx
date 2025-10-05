@@ -239,7 +239,7 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     
     if (anchorPosition === 'left-slide') {
       // Slide out from the left side of the trigger, but center vertically
-      let right = window.innerWidth - triggerRect.left + 8; // 8px gap from trigger
+      const right = window.innerWidth - triggerRect.left + 8; // 8px gap from trigger
       
       return {
         top,

@@ -404,7 +404,7 @@ export class ExportRenderer {
         }
 
         // Apply cropping settings
-        let processedGrid = this.cropGrid(grid, settings);
+        const processedGrid = this.cropGrid(grid, settings);
 
         // Convert grid to text lines
         const frameTextLines = processedGrid.map(row => {
