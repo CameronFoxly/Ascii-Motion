@@ -68,6 +68,7 @@ export type Tool =
   | 'line'
   | 'text'
   | 'asciitype'
+  | 'asciibox'
   | 'brush'
   | 'gradientfill'
   | 'fliphorizontal'
