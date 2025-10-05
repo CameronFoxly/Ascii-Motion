@@ -11,6 +11,7 @@ import {
   EyedropperTool,
   TextTool,
   GradientFillTool,
+  AsciiTypeTool,
 } from '../tools';
 import { FlipHorizontalTool } from '../tools/FlipHorizontalTool';
 import { FlipVerticalTool } from '../tools/FlipVerticalTool';
@@ -45,6 +46,8 @@ export const ToolManager: React.FC = () => {
       return <TextTool />;
     case 'gradientfill':
       return <GradientFillTool />;
+    case 'asciitype':
+      return <AsciiTypeTool />;
     case 'fliphorizontal':
       return <FlipHorizontalTool />;
     case 'flipvertical':

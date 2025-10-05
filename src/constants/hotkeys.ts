@@ -31,6 +31,7 @@ export const TOOL_HOTKEYS: ToolHotkey[] = [
   { tool: 'rectangle', key: 'r', displayName: 'R', description: 'Rectangle drawing hotkey' },
   { tool: 'ellipse', key: 'o', displayName: 'O', description: 'Ellipse drawing hotkey' },
   { tool: 'text', key: 't', displayName: 'T', description: 'Text tool hotkey' },
+  { tool: 'asciitype', key: 'y', displayName: 'Y', description: 'ASCII Type tool hotkey' },
   { tool: 'gradientfill', key: 'f', displayName: 'F', description: 'Gradient fill tool hotkey' },
 ];
 

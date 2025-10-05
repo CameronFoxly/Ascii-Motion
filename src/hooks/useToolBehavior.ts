@@ -30,6 +30,8 @@ export const useToolBehavior = () => {
         return 'EyedropperTool';
       case 'text':
         return 'TextTool';
+      case 'asciitype':
+        return 'AsciiTypeTool';
       case 'fliphorizontal':
         return 'FlipHorizontalTool';
       case 'flipvertical':
@@ -61,6 +63,8 @@ export const useToolBehavior = () => {
         return 'EyedropperToolStatus';
       case 'text':
         return 'TextToolStatus';
+      case 'asciitype':
+        return 'AsciiTypeToolStatus';
       case 'fliphorizontal':
         return 'FlipHorizontalToolStatus';
       case 'flipvertical':
@@ -93,6 +97,8 @@ export const useToolBehavior = () => {
         return 'cursor-eyedropper'; // Custom eyedropper icon cursor
       case 'text':
         return 'cursor-text';
+      case 'asciitype':
+        return 'cursor-text';
       case 'fliphorizontal':
       case 'flipvertical':
         return 'cursor-pointer'; // Clickable utilities
@@ -124,6 +130,8 @@ export const useToolBehavior = () => {
         return 'Eyedropper';
       case 'text':
         return 'Text';
+      case 'asciitype':
+        return 'ASCII Type';
       case 'fliphorizontal':
         return 'Flip Horizontal';
       case 'flipvertical':
@@ -135,12 +143,12 @@ export const useToolBehavior = () => {
 
   // Check if tool requires continuous interaction (click and drag)
   const isInteractiveTool = useCallback((tool: Tool) => {
-    return ['select', 'lasso', 'magicwand', 'rectangle', 'ellipse', 'text'].includes(tool);
+    return ['select', 'lasso', 'magicwand', 'rectangle', 'ellipse', 'text', 'asciitype'].includes(tool);
   }, []);
 
   // Check if tool is a drawing tool (modifies canvas on click)
   const isDrawingTool = useCallback((tool: Tool) => {
-    return ['pencil', 'eraser', 'paintbucket', 'rectangle', 'ellipse', 'text'].includes(tool);
+    return ['pencil', 'eraser', 'paintbucket', 'rectangle', 'ellipse', 'text', 'asciitype'].includes(tool);
   }, []);
 
   return {

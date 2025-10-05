@@ -14,6 +14,7 @@ import {
   GradientFillToolStatus,
   FlipHorizontalToolStatus,
   FlipVerticalToolStatus,
+  AsciiTypeToolStatus,
 } from '../tools';
 
 /**
@@ -53,6 +54,8 @@ export const ToolStatusManager: React.FC = () => {
         return <TextToolStatus />;
       case 'gradientfill':
         return <GradientFillToolStatus />;
+      case 'asciitype':
+        return <AsciiTypeToolStatus />;
       case 'fliphorizontal':
         return <FlipHorizontalToolStatus />;
       case 'flipvertical':

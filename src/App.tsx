@@ -4,6 +4,8 @@ import { CanvasWithShortcuts } from './components/features/CanvasWithShortcuts'
 import { CanvasProvider } from './contexts/CanvasContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { ThemeToggle } from './components/common/ThemeToggle'
+import { AsciiTypePanel } from './components/features/AsciiTypePanel'
+import { AsciiTypePreviewDialog } from './components/features/AsciiTypePreviewDialog'
 import { CollapsiblePanel } from './components/common/CollapsiblePanel'
 import { PanelToggleButton } from './components/common/PanelToggleButton'
 import { PanelSeparator } from './components/common/PanelSeparator'
@@ -189,6 +191,8 @@ function App() {
                       isFullscreen={layout.isFullscreen}
                       onToggle={toggleFullscreen}
                     />
+                    <AsciiTypePanel />
+                    <AsciiTypePreviewDialog />
                   </div>
                 </div>
               </div>

@@ -12,6 +12,7 @@ import {
   updateSelectionFromMask,
   getBoundsFromMask
 } from '../utils/selectionUtils';
+import { useAsciiTypeStore } from './asciiTypeStore';
 
 interface ToolStoreState extends ToolState {
   // Rectangular selection state
@@ -297,6 +298,12 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   // Tool actions
   setActiveTool: (tool: Tool) => {
     set({ activeTool: tool });
+    const asciiStore = useAsciiTypeStore.getState();
+    if (tool === 'asciitype') {
+      asciiStore.openPanel();
+    } else {
+      asciiStore.closePanel();
+    }
     // Clear line preview when switching tools
     get().clearLinePreview();
     // Clear selections when switching tools (except select/lasso/magicwand tools)

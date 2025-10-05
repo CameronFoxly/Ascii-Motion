@@ -4,6 +4,7 @@ import { useToolStore } from '../stores/toolStore';
 import { usePreviewStore } from '../stores/previewStore';
 import { useEffectsStore } from '../stores/effectsStore';
 import { useTimeEffectsStore } from '../stores/timeEffectsStore';
+import { useAsciiTypeStore } from '../stores/asciiTypeStore';
 import { useCanvasContext } from '../contexts/CanvasContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCanvasState } from './useCanvasState';
@@ -86,6 +87,7 @@ export const useCanvasRenderer = () => {
   const { previewData, isPreviewActive } = usePreviewStore();
   const { isPreviewActive: isEffectPreviewActive } = useEffectsStore();
   const { isPreviewActive: isTimeEffectPreviewActive } = useTimeEffectsStore();
+  const { previewOrigin, previewDimensions } = useAsciiTypeStore();
   
   // Debug: Log preview state changes
   useEffect(() => {
@@ -509,6 +511,21 @@ export const useCanvasRenderer = () => {
           ctx.restore();
         }
       });
+
+      // Draw purple dotted outline for ASCII Type preview
+      if (activeTool === 'asciitype' && previewOrigin && previewDimensions) {
+        ctx.strokeStyle = '#A855F7'; // Purple color matching other tool overlays
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 4]); // Dotted pattern matching paste/selection overlays
+        
+        const outlineX = Math.round(previewOrigin.x * effectiveCellWidth + panOffset.x);
+        const outlineY = Math.round(previewOrigin.y * effectiveCellHeight + panOffset.y);
+        const outlineWidth = Math.round(previewDimensions.width * effectiveCellWidth);
+        const outlineHeight = Math.round(previewDimensions.height * effectiveCellHeight);
+        
+        ctx.strokeRect(outlineX, outlineY, outlineWidth, outlineHeight);
+        ctx.setLineDash([]); // Reset line dash
+      }
     }
 
     // Draw text cursor overlay
@@ -550,7 +567,10 @@ export const useCanvasRenderer = () => {
     isPreviewActive,
     // Effects preview state
     isEffectPreviewActive,
-    isTimeEffectPreviewActive
+    isTimeEffectPreviewActive,
+    // ASCII Type preview outline state
+    previewOrigin,
+    previewDimensions
   ]);
 
   // Throttled render function that uses requestAnimationFrame

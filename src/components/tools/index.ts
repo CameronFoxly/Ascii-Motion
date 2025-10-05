@@ -11,6 +11,7 @@ export { TextTool, TextToolStatus } from './TextTool';
 export { GradientFillTool, GradientFillToolStatus } from './GradientFillTool';
 export { FlipHorizontalTool, FlipHorizontalToolStatus } from './FlipHorizontalTool';
 export { FlipVerticalTool, FlipVerticalToolStatus } from './FlipVerticalTool';
+export { AsciiTypeTool, AsciiTypeToolStatus } from './AsciiTypeTool';
 
 // Tool Types
 export type ToolComponent = 
@@ -25,4 +26,5 @@ export type ToolComponent =
   | 'TextTool'
   | 'GradientFillTool'
   | 'FlipHorizontalTool'
-  | 'FlipVerticalTool';
+  | 'FlipVerticalTool'
+  | 'AsciiTypeTool';

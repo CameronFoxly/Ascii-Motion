@@ -67,6 +67,7 @@ export type Tool =
   | 'eyedropper'
   | 'line'
   | 'text'
+  | 'asciitype'
   | 'brush'
   | 'gradientfill'
   | 'fliphorizontal'
