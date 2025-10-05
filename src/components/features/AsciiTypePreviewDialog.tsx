@@ -19,7 +19,7 @@ import { useAsciiTypeTool } from '../../hooks/useAsciiTypeTool';
 import { useAsciiTypeStore } from '../../stores/asciiTypeStore';
 import { DraggableDialogBar } from '../common/DraggableDialogBar';
 import { cn } from '../../lib/utils';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, TypeOutline } from 'lucide-react';
 
 const DIALOG_WIDTH = 680;
 const DIALOG_HEIGHT = 520;
@@ -55,6 +55,7 @@ export function AsciiTypePreviewDialog() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [hasBeenDragged, setHasBeenDragged] = useState(false);
   const [fontPreviews, setFontPreviews] = useState<Record<string, FontPreviewState>>({});
+  const hasCenteredRef = useRef(false);
 
   // Reset previews and center dialog whenever inputs change
   const previewKey = useMemo(
@@ -64,6 +65,7 @@ export function AsciiTypePreviewDialog() {
 
   useEffect(() => {
     if (!previewDialogOpen) {
+      hasCenteredRef.current = false;
       return;
     }
 
@@ -75,7 +77,8 @@ export function AsciiTypePreviewDialog() {
 
     setPosition({ x: offsetX, y: offsetY });
     setHasBeenDragged(false);
-  }, [previewDialogOpen, previewKey]);
+    hasCenteredRef.current = true;
+  }, [previewDialogOpen]);
 
   useEffect(() => {
     if (!previewDialogOpen) {
@@ -184,7 +187,7 @@ export function AsciiTypePreviewDialog() {
 
     if (!resizeObserverRef.current) {
       resizeObserverRef.current = new ResizeObserver(() => {
-        if (!hasBeenDragged) {
+        if (!hasBeenDragged && hasCenteredRef.current) {
           const width = window.innerWidth;
           const height = window.innerHeight;
           const offsetX = Math.max((width - dialogElement.offsetWidth) / 2, 24);
@@ -242,11 +245,14 @@ export function AsciiTypePreviewDialog() {
       style={{
         top: position.y,
         left: position.x,
+        maxHeight: '90vh',
+        display: 'flex',
+        flexDirection: 'column',
       }}
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
     >
-      <div className="border border-border/50 overflow-hidden rounded-lg bg-background shadow-lg">
+      <div className="flex flex-col overflow-hidden rounded-lg border border-border/50 bg-background shadow-lg" style={{ maxHeight: '90vh' }}>
         <DraggableDialogBar
           title="Preview all Figlet fonts"
           onDrag={handleDrag}
@@ -254,12 +260,13 @@ export function AsciiTypePreviewDialog() {
           onDragEnd={handleDragEnd}
           onClose={handleClose}
         />
-        <ScrollArea ref={scrollAreaRef} className="max-h-[520px]">
-          <div className="p-4 space-y-6">
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea ref={scrollAreaRef} className="h-[calc(90vh-60px)]">
+            <div className="p-4 space-y-6">
             {FIGLET_FONTS_BY_CATEGORY.map((category) => (
               <div key={category.label} className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-muted-foreground" />
+                  <TypeOutline className="w-4 h-4 text-muted-foreground" />
                   <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                     {category.label}
                   </h3>
@@ -272,14 +279,14 @@ export function AsciiTypePreviewDialog() {
                     const isLoaded = Boolean(previewLines);
 
                     return (
-                      <Card key={fontName} className="border-border/60">
+                      <Card key={fontName} className="border-border/60 overflow-hidden">
                         <CardHeader className="pb-2">
                           <CardTitle className="text-base">{fontName}</CardTitle>
                           <CardDescription>
                             Horizontal: {horizontalLayout}, Vertical: {verticalLayout}
                           </CardDescription>
                         </CardHeader>
-                        <CardContent className="pt-0">
+                        <CardContent className="pt-0 overflow-hidden">
                           {previewError && (
                             <Alert variant="destructive">
                               <AlertDescription>{previewError}</AlertDescription>
@@ -292,9 +299,11 @@ export function AsciiTypePreviewDialog() {
                             </div>
                           )}
                           {!previewError && previewLines && (
-                            <pre className="mt-2 overflow-x-auto rounded bg-muted/50 p-3 font-mono text-[11px] leading-tight">
-                              {previewLines.join('\n')}
-                            </pre>
+                            <div className="mt-2 overflow-x-auto rounded bg-muted/50 p-3">
+                              <pre className="font-mono text-[11px] leading-tight whitespace-pre">
+                                {previewLines.join('\n')}
+                              </pre>
+                            </div>
                           )}
                         </CardContent>
                         <CardFooter className="pt-2">
@@ -314,8 +323,9 @@ export function AsciiTypePreviewDialog() {
                 </div>
               </div>
             ))}
-          </div>
-        </ScrollArea>
+            </div>
+          </ScrollArea>
+        </div>
       </div>
     </div>
   );
