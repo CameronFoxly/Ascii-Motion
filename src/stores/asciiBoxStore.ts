@@ -112,8 +112,8 @@ export const useAsciiBoxStore = create<AsciiBoxStore>((set, get) => ({
   },
   
   endDrawing: () => set({ 
-    isDrawing: false,
-    lastPoint: null 
+    isDrawing: false
+    // Keep lastPoint so we can shift+click from the end of a drag
   }),
   
   // Reset
