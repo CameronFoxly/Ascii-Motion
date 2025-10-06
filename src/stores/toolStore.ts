@@ -164,6 +164,7 @@ interface ToolStoreState extends ToolState {
   // Enhanced history actions
   pushToHistory: (action: AnyHistoryAction) => void;
   pushCanvasHistory: (canvasData: Map<string, Cell>, frameIndex: number, description?: string) => void;
+  pushCanvasResizeHistory: (previousWidth: number, previousHeight: number, newWidth: number, newHeight: number, previousCanvasData: Map<string, Cell>, frameIndex: number) => void;
   undo: () => AnyHistoryAction | undefined;
   redo: () => AnyHistoryAction | undefined;
   clearHistory: () => void;
@@ -889,6 +890,23 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
       description,
       data: {
         canvasData: new Map(canvasData),
+        frameIndex
+      }
+    };
+    get().pushToHistory(action);
+  },
+
+  pushCanvasResizeHistory: (previousWidth: number, previousHeight: number, newWidth: number, newHeight: number, previousCanvasData: Map<string, Cell>, frameIndex: number) => {
+    const action: import('../types').CanvasResizeHistoryAction = {
+      type: 'canvas_resize',
+      timestamp: Date.now(),
+      description: `Canvas resized from ${previousWidth}×${previousHeight} to ${newWidth}×${newHeight}`,
+      data: {
+        previousWidth,
+        previousHeight,
+        newWidth,
+        newHeight,
+        previousCanvasData: new Map(previousCanvasData),
         frameIndex
       }
     };

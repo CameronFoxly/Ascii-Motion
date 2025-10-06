@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { ColorPickerOverlay } from './ColorPickerOverlay';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,13 @@ import { Grid3X3, Palette, Type } from 'lucide-react';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useCanvasContext } from '@/contexts/CanvasContext';
 import { ZoomControls } from './ZoomControls';
+import { useToolStore } from '@/stores/toolStore';
+import { useAnimationStore } from '@/stores/animationStore';
+import { 
+  charactersToPixels, 
+  validatePixelInput,
+  type PixelDimensions 
+} from '@/utils/canvasSizeConversion';
 
 export const CanvasSettings: React.FC = () => {
   const { 
@@ -29,64 +36,168 @@ export const CanvasSettings: React.FC = () => {
     setFontSize
   } = useCanvasContext();
 
+  const { pushCanvasResizeHistory } = useToolStore();
+  const { currentFrameIndex } = useAnimationStore();
+
+  // Canvas size mode state ('characters' or 'pixels')
+  const [sizeMode, setSizeMode] = useState<'characters' | 'pixels'>('characters');
+
   // Local state for input values to allow editing before validation
   const [widthInput, setWidthInput] = useState(width.toString());
   const [heightInput, setHeightInput] = useState(height.toString());
 
-  // Update local state when store values change (from other sources like buttons)
-  useEffect(() => {
-    setWidthInput(width.toString());
-  }, [width]);
+  // Calculate pixel dimensions using typography settings
+  const pixelDimensions = useMemo((): PixelDimensions => {
+    return charactersToPixels(
+      { width, height },
+      { fontSize, characterSpacing, lineSpacing }
+    );
+  }, [width, height, fontSize, characterSpacing, lineSpacing]);
 
+  // Update local input state when canvas dimensions or mode changes
   useEffect(() => {
-    setHeightInput(height.toString());
-  }, [height]);
+    if (sizeMode === 'characters') {
+      setWidthInput(width.toString());
+      setHeightInput(height.toString());
+    } else {
+      setWidthInput(pixelDimensions.width.toString());
+      setHeightInput(pixelDimensions.height.toString());
+    }
+  }, [width, height, sizeMode, pixelDimensions]);
 
-  // Handlers for canvas size input validation
-  const handleWidthChange = (value: string) => {
+  // Handler for mode toggle
+  const handleModeToggle = () => {
+    const newMode = sizeMode === 'characters' ? 'pixels' : 'characters';
+    setSizeMode(newMode);
+  };
+
+  // Unified size change handler that supports both modes and history
+  const handleSizeChange = (newWidth: number, newHeight: number) => {
+    const previousWidth = width;
+    const previousHeight = height;
+    const previousCells = new Map(useCanvasStore.getState().cells);
+    
+    // Apply the resize
+    setCanvasSize(newWidth, newHeight);
+    
+    // Record in history if dimensions actually changed
+    if (previousWidth !== newWidth || previousHeight !== newHeight) {
+      pushCanvasResizeHistory(
+        previousWidth,
+        previousHeight,
+        newWidth,
+        newHeight,
+        previousCells,
+        currentFrameIndex
+      );
+    }
+  };
+
+  // Handlers for character mode
+  const handleCharacterWidthChange = (value: string) => {
     setWidthInput(value);
   };
 
-  const handleWidthBlur = () => {
+  const handleCharacterWidthBlur = () => {
     const numValue = parseInt(widthInput, 10);
     if (isNaN(numValue) || widthInput === '') {
-      // Reset to current value if invalid or empty
       setWidthInput(width.toString());
     } else {
-      // Apply constraints and update
       const constrainedValue = Math.max(4, Math.min(200, numValue));
-      setCanvasSize(constrainedValue, height);
+      handleSizeChange(constrainedValue, height);
     }
   };
 
-  const handleWidthKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.currentTarget.blur(); // Trigger blur to apply validation
-    }
-  };
-
-  const handleHeightChange = (value: string) => {
+  const handleCharacterHeightChange = (value: string) => {
     setHeightInput(value);
   };
 
-  const handleHeightBlur = () => {
+  const handleCharacterHeightBlur = () => {
     const numValue = parseInt(heightInput, 10);
     if (isNaN(numValue) || heightInput === '') {
-      // Reset to current value if invalid or empty
       setHeightInput(height.toString());
     } else {
-      // Apply constraints and update
       const constrainedValue = Math.max(4, Math.min(100, numValue));
-      setCanvasSize(width, constrainedValue);
+      handleSizeChange(width, constrainedValue);
     }
   };
 
-  const handleHeightKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  // Handlers for pixel mode
+  const handlePixelWidthChange = (value: string) => {
+    setWidthInput(value);
+  };
+
+  const handlePixelWidthBlur = () => {
+    const numValue = parseInt(widthInput, 10);
+    if (isNaN(numValue) || widthInput === '') {
+      setWidthInput(pixelDimensions.width.toString());
+    } else {
+      const validatedChars = validatePixelInput(
+        { width: numValue, height: pixelDimensions.height },
+        { fontSize, characterSpacing, lineSpacing }
+      );
+      handleSizeChange(validatedChars.width, validatedChars.height);
+    }
+  };
+
+  const handlePixelHeightChange = (value: string) => {
+    setHeightInput(value);
+  };
+
+  const handlePixelHeightBlur = () => {
+    const numValue = parseInt(heightInput, 10);
+    if (isNaN(numValue) || heightInput === '') {
+      setHeightInput(pixelDimensions.height.toString());
+    } else {
+      const validatedChars = validatePixelInput(
+        { width: pixelDimensions.width, height: numValue },
+        { fontSize, characterSpacing, lineSpacing }
+      );
+      handleSizeChange(validatedChars.width, validatedChars.height);
+    }
+  };
+
+  // Unified key down handler
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      e.currentTarget.blur(); // Trigger blur to apply validation
+      e.currentTarget.blur();
     }
   };
 
+  // +/- button handlers that work in both modes
+  const adjustWidth = (delta: number) => {
+    if (sizeMode === 'characters') {
+      const newWidth = Math.max(4, Math.min(200, width + delta));
+      handleSizeChange(newWidth, height);
+    } else {
+      // In pixel mode, adjust by one character worth of pixels
+      const baseCharWidth = fontSize * 0.6 * characterSpacing;
+      const pixelDelta = Math.round(baseCharWidth * delta);
+      const newPixelWidth = pixelDimensions.width + pixelDelta;
+      const validatedChars = validatePixelInput(
+        { width: newPixelWidth, height: pixelDimensions.height },
+        { fontSize, characterSpacing, lineSpacing }
+      );
+      handleSizeChange(validatedChars.width, validatedChars.height);
+    }
+  };
+
+  const adjustHeight = (delta: number) => {
+    if (sizeMode === 'characters') {
+      const newHeight = Math.max(4, Math.min(100, height + delta));
+      handleSizeChange(width, newHeight);
+    } else {
+      // In pixel mode, adjust by one character worth of pixels
+      const baseCharHeight = fontSize * lineSpacing;
+      const pixelDelta = Math.round(baseCharHeight * delta);
+      const newPixelHeight = pixelDimensions.height + pixelDelta;
+      const validatedChars = validatePixelInput(
+        { width: pixelDimensions.width, height: newPixelHeight },
+        { fontSize, characterSpacing, lineSpacing }
+      );
+      handleSizeChange(validatedChars.width, validatedChars.height);
+    }
+  };
 
   // Replace inline dropdown picker with modal overlay reuse
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -208,11 +319,8 @@ export const CanvasSettings: React.FC = () => {
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => {
-                  const newWidth = Math.max(4, Math.min(200, width + 1));
-                  setCanvasSize(newWidth, height);
-                }}
-                disabled={width >= 200}
+                onClick={() => adjustWidth(1)}
+                disabled={sizeMode === 'characters' ? width >= 200 : false}
                 className="h-3 w-6 p-0 text-xs leading-none"
               >
                 +
@@ -220,11 +328,8 @@ export const CanvasSettings: React.FC = () => {
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => {
-                  const newWidth = Math.max(4, Math.min(200, width - 1));
-                  setCanvasSize(newWidth, height);
-                }}
-                disabled={width <= 4}
+                onClick={() => adjustWidth(-1)}
+                disabled={sizeMode === 'characters' ? width <= 4 : false}
                 className="h-3 w-6 p-0 text-xs leading-none"
               >
                 -
@@ -233,12 +338,12 @@ export const CanvasSettings: React.FC = () => {
             <input
               type="number"
               value={widthInput}
-              onChange={(e) => handleWidthChange(e.target.value)}
-              onBlur={handleWidthBlur}
-              onKeyDown={handleWidthKeyDown}
+              onChange={(e) => sizeMode === 'characters' ? handleCharacterWidthChange(e.target.value) : handlePixelWidthChange(e.target.value)}
+              onBlur={sizeMode === 'characters' ? handleCharacterWidthBlur : handlePixelWidthBlur}
+              onKeyDown={handleKeyDown}
               className="w-12 h-7 text-xs text-center border border-border rounded bg-background text-foreground [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              min="4"
-              max="200"
+              min={sizeMode === 'characters' ? "4" : "1"}
+              max={sizeMode === 'characters' ? "200" : undefined}
             />
           </div>
 
@@ -249,22 +354,19 @@ export const CanvasSettings: React.FC = () => {
             <input
               type="number"
               value={heightInput}
-              onChange={(e) => handleHeightChange(e.target.value)}
-              onBlur={handleHeightBlur}
-              onKeyDown={handleHeightKeyDown}
+              onChange={(e) => sizeMode === 'characters' ? handleCharacterHeightChange(e.target.value) : handlePixelHeightChange(e.target.value)}
+              onBlur={sizeMode === 'characters' ? handleCharacterHeightBlur : handlePixelHeightBlur}
+              onKeyDown={handleKeyDown}
               className="w-12 h-7 text-xs text-center border border-border rounded bg-background text-foreground [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              min="4"
-              max="100"
+              min={sizeMode === 'characters' ? "4" : "1"}
+              max={sizeMode === 'characters' ? "100" : undefined}
             />
             <div className="flex flex-col">
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => {
-                  const newHeight = Math.max(4, Math.min(100, height + 1));
-                  setCanvasSize(width, newHeight);
-                }}
-                disabled={height >= 100}
+                onClick={() => adjustHeight(1)}
+                disabled={sizeMode === 'characters' ? height >= 100 : false}
                 className="h-3 w-6 p-0 text-xs leading-none"
               >
                 +
@@ -272,17 +374,34 @@ export const CanvasSettings: React.FC = () => {
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => {
-                  const newHeight = Math.max(4, Math.min(100, height - 1));
-                  setCanvasSize(width, newHeight);
-                }}
-                disabled={height <= 4}
+                onClick={() => adjustHeight(-1)}
+                disabled={sizeMode === 'characters' ? height <= 4 : false}
                 className="h-3 w-6 p-0 text-xs leading-none"
               >
                 -
               </Button>
             </div>
           </div>
+          
+          {/* Mode Toggle Button with Tooltip */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleModeToggle}
+                className="h-7 px-2 text-xs min-w-[36px]"
+              >
+                {sizeMode === 'characters' ? 'char' : 'px'}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {sizeMode === 'characters' 
+                ? 'Characters (click to switch to pixels)'
+                : 'Pixels (click to switch to characters)'
+              }
+            </TooltipContent>
+          </Tooltip>
         </div>
 
         {/* Right Section - Display, Text, and Zoom Controls */}
