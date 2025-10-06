@@ -131,7 +131,7 @@ export function AsciiBoxPanel() {
                 variant="outline"
                 size="sm"
                 onClick={handlePreviousStyle}
-                className="flex-1"
+                className="h-8 w-8 p-0"
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
@@ -144,7 +144,7 @@ export function AsciiBoxPanel() {
                 variant="outline"
                 size="sm"
                 onClick={handleNextStyle}
-                className="flex-1"
+                className="h-8 w-8 p-0"
               >
                 <ChevronRight className="w-4 h-4" />
               </Button>
@@ -193,6 +193,7 @@ export function AsciiBoxPanel() {
               <>
                 <p className="font-medium">Rectangle Mode:</p>
                 <p>Click to set start point, then click again to draw rectangle outline.</p>
+                <p className="mt-1">Characters automatically connect with neighbors.</p>
               </>
             )}
             {drawingMode === 'freedraw' && (
