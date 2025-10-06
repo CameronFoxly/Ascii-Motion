@@ -49,7 +49,7 @@ export const useAnimationPlayback = () => {
   // Animation loop function
   const animateFrame = useCallback((timestamp: number) => {
     const state = useAnimationStore.getState();
-    const { frames, currentFrameIndex, isPlaying, looping } = state;
+    const { frames, currentFrameIndex, isPlaying, looping, fpsMonitorCallback } = state;
     
     if (!isPlaying || frames.length === 0) {
       return;
@@ -68,6 +68,11 @@ export const useAnimationPlayback = () => {
     // Check if current frame duration has elapsed
     if (frameElapsed >= currentFrame.duration) {
       const nextIndex = currentFrameIndex + 1;
+      
+      // Call FPS monitor callback when frame changes
+      if (fpsMonitorCallback) {
+        fpsMonitorCallback(timestamp);
+      }
       
       if (nextIndex >= frames.length) {
         // End of animation

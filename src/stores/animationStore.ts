@@ -80,6 +80,10 @@ interface AnimationState extends Animation {
   setLooping: (looping: boolean) => void;
   setFrameRate: (fps: number) => void;
   
+  // FPS monitoring callback
+  fpsMonitorCallback?: (timestamp: number) => void;
+  setFpsMonitorCallback: (callback: ((timestamp: number) => void) | undefined) => void;
+  
   // Navigation
   nextFrame: () => void;
   previousFrame: () => void;
@@ -574,6 +578,12 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
 
   setLooping: (looping: boolean) => set({ looping }),
   setFrameRate: (frameRate: number) => set({ frameRate }),
+  
+  // FPS monitoring
+  fpsMonitorCallback: undefined,
+  setFpsMonitorCallback: (callback: ((timestamp: number) => void) | undefined) => {
+    set({ fpsMonitorCallback: callback });
+  },
   setDraggingFrame: (isDraggingFrame: boolean) => set({ isDraggingFrame }),
   setDeletingFrame: (isDeletingFrame: boolean) => set({ isDeletingFrame }),
   

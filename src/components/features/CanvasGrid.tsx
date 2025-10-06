@@ -12,6 +12,7 @@ import { ToolManager } from './ToolManager';
 import { ToolStatusManager } from './ToolStatusManager';
 import { CanvasActionButtons } from './CanvasActionButtons';
 import { CanvasOverlay } from './CanvasOverlay';
+import { PlaybackStatusBar } from './PlaybackStatusBar';
 
 interface CanvasGridProps {
   className?: string;
@@ -376,7 +377,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       
       <div className={`canvas-wrapper border rounded-lg overflow-auto flex-1 relative ${
         isPlaying 
-          ? 'border-white border-2' 
+          ? 'border-purple-400/60 border-2' 
           : isPlaybackMode 
             ? 'border-orange-500 border-2'
             : 'border-border border'
@@ -400,7 +401,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       {/* Action buttons and status info positioned outside canvas */}
       <div className="my-2 flex justify-between items-center">
         <CanvasActionButtons />
-        <ToolStatusManager />
+        {isPlaying ? <PlaybackStatusBar /> : <ToolStatusManager />}
       </div>
     </div>
   );
