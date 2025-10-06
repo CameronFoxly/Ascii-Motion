@@ -201,7 +201,7 @@ export function msToFps(ms: number): number {
  * @param max - Maximum allowed value
  * @returns Clamped value within bounds
  */
-export function clampFrameDuration(ms: number, min: number = 50, max: number = 10000): number {
+export function clampFrameDuration(ms: number, min: number = 17, max: number = 10000): number {
   return Math.max(min, Math.min(max, ms));
 }
 

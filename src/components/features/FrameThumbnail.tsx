@@ -175,10 +175,10 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
     setIsEditingDuration(false);
     const parsedDuration = parseInt(durationInput);
     
-    if (isNaN(parsedDuration) || parsedDuration < 50) {
+    if (isNaN(parsedDuration) || parsedDuration < 17) {
       // Invalid input, reset to minimum and update store
-      setDurationInput('50');
-      onDurationChange(50);
+      setDurationInput('17');
+      onDurationChange(17);
     } else if (parsedDuration > 10000) {
       // Exceeds maximum, clamp and update store
       setDurationInput('10000');
@@ -362,7 +362,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
           onClick={(e) => e.stopPropagation()}
           tabIndex={frameIndex + 1} // Sequential tab order: frame 0 = tabIndex 1, frame 1 = tabIndex 2, etc.
           className="flex-1 text-xs px-1 py-0.5 border border-border rounded w-12 bg-background"
-          min="50"
+          min="17"
           max="10000"
           step="10"
         />

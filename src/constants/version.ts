@@ -1,12 +1,20 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.37";
-export const BUILD_DATE = "2025-10-06T05:54:45.732Z";
-export const BUILD_HASH = "68b4244";
+export const VERSION = "0.1.38";
+export const BUILD_DATE = "2025-10-06T06:04:59.580Z";
+export const BUILD_HASH = "7ea39cb";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.38",
+    "date": "2025-10-06T06:04:59.580Z",
+    "commits": [
+      "Fixed some typsecript errors",
+      "Fix time effect defaults"
+    ]
+  },
   {
     "version": "0.1.37",
     "date": "2025-10-06T05:54:45.732Z",

@@ -81,7 +81,7 @@ export const WIGGLE_RANGES = {
  * Defines acceptable ranges for frame durations in milliseconds and FPS
  */
 export const FRAME_DURATION_LIMITS = {
-  MIN_MS: 50,
+  MIN_MS: 17,
   MAX_MS: 10000,
   MIN_FPS: 1,
   MAX_FPS: 60,
