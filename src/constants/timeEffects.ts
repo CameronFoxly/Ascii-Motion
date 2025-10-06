@@ -15,9 +15,9 @@ import type { WaveWarpSettings, WiggleSettings } from '../types/timeEffects';
  */
 export const DEFAULT_WAVE_WARP_SETTINGS: WaveWarpSettings = {
   axis: 'horizontal',
-  frequency: 1.0,
-  amplitude: 5,
-  speed: 100,
+  frequency: 0.6,
+  amplitude: 2,
+  speed: 10,
   phase: 0
 };
 
@@ -27,9 +27,9 @@ export const DEFAULT_WAVE_WARP_SETTINGS: WaveWarpSettings = {
  * Defines min/max/step values for all wave warp controls
  */
 export const WAVE_WARP_RANGES = {
-  FREQUENCY: { min: 0.1, max: 5.0, step: 0.1 },
-  AMPLITUDE: { min: 1, max: 20, step: 1 },
-  SPEED: { min: 10, max: 500, step: 10 },
+  FREQUENCY: { min: 0.1, max: 2.5, step: 0.1 },
+  AMPLITUDE: { min: 0, max: 10, step: 1 },
+  SPEED: { min: -200, max: 200, step: 10 },
   PHASE: { min: 0, max: 360, step: 1 }
 } as const;
 

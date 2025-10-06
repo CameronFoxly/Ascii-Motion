@@ -1,12 +1,27 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.36";
-export const BUILD_DATE = "2025-10-05T19:32:55.113Z";
-export const BUILD_HASH = "f1e32a3";
+export const VERSION = "0.1.37";
+export const BUILD_DATE = "2025-10-06T05:54:45.732Z";
+export const BUILD_HASH = "68b4244";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.37",
+    "date": "2025-10-06T05:54:45.732Z",
+    "commits": [
+      "Added brush preview to line drawing",
+      "Updated fill and gradient hotkeys",
+      "Fixed exit states for box drawing tool.",
+      "Cleaned up Ascii Box UI",
+      "Added gap filling and smoothing to free drawing ascii boxes",
+      "Fixed shift click box drawing behavior",
+      "Set up ascii box drawing system, but still needs some bug bashing",
+      "FIrst 7 steps of ascii box drawing tool",
+      "Solved some linting error debt"
+    ]
+  },
   {
     "version": "0.1.36",
     "date": "2025-10-05T19:32:55.113Z",
