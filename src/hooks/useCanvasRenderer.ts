@@ -5,6 +5,8 @@ import { usePreviewStore } from '../stores/previewStore';
 import { useEffectsStore } from '../stores/effectsStore';
 import { useTimeEffectsStore } from '../stores/timeEffectsStore';
 import { useAsciiTypeStore } from '../stores/asciiTypeStore';
+import { useAnimationStore } from '../stores/animationStore';
+import { useFrameCacheStore } from '../stores/frameCacheStore';
 import { useCanvasContext } from '../contexts/CanvasContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCanvasState } from './useCanvasState';
@@ -12,6 +14,7 @@ import { useMemoizedGrid } from './useMemoizedGrid';
 import { useDrawingTool } from './useDrawingTool';
 import { useOnionSkinRenderer } from './useOnionSkinRenderer';
 import { measureCanvasRender, finishCanvasRender } from '../utils/performance';
+import { generateFrameHash } from '../utils/frameCache';
 import { 
   setupTextRendering
 } from '../utils/canvasTextRendering';
@@ -89,6 +92,10 @@ export const useCanvasRenderer = () => {
   const { isPreviewActive: isTimeEffectPreviewActive } = useTimeEffectsStore();
   const { previewOrigin, previewDimensions } = useAsciiTypeStore();
   
+  // PHASE 2: Frame caching for playback performance
+  const { getCurrentFrame } = useAnimationStore();
+  const { getCachedFrame, setCachedFrame } = useFrameCacheStore();
+  
   // Debug: Log preview state changes
   useEffect(() => {
     console.log('[Canvas Renderer] Preview state changed:', {
@@ -159,12 +166,25 @@ export const useCanvasRenderer = () => {
 
     // PHASE 1 OPTIMIZATION: Optimized drawCell function with pixel-aligned rendering
     // Font context is set once before the render loop, so we don't repeat it here
+  // PHASE 2.75 OPTIMIZATION: Fast coordinate parser (avoids split + map overhead)
+  const parseCoords = useCallback((key: string): [number, number] => {
+    const commaIndex = key.indexOf(',');
+    return [
+      parseInt(key.substring(0, commaIndex), 10),
+      parseInt(key.substring(commaIndex + 1), 10)
+    ];
+  }, []);
+
+  // PHASE 2.5 OPTIMIZATION: Pre-calculate cell dimensions once
+  const cellWidth = Math.round(effectiveCellWidth);
+  const cellHeight = Math.round(effectiveCellHeight);
+  const halfCellWidth = Math.round(cellWidth / 2);
+  const halfCellHeight = Math.round(cellHeight / 2);
+
   const drawCell = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, cell: Cell) => {
-    // Round pixel positions to ensure crisp rendering
+    // PHASE 2.5 OPTIMIZATION: Reduce Math.round calls by pre-calculating base position
     const pixelX = Math.round(x * effectiveCellWidth + panOffset.x);
     const pixelY = Math.round(y * effectiveCellHeight + panOffset.y);
-    const cellWidth = Math.round(effectiveCellWidth);
-    const cellHeight = Math.round(effectiveCellHeight);
 
     // Draw background (only if different from canvas background)
     if (cell.bgColor && cell.bgColor !== 'transparent' && cell.bgColor !== canvasBackgroundColor) {
@@ -177,13 +197,13 @@ export const useCanvasRenderer = () => {
       ctx.fillStyle = cell.color || drawingStyles.defaultTextColor;
       // Note: font, textAlign, textBaseline already set once before render loop (line ~252)
       
-      // Center text with rounded positions for crisp rendering
-      const centerX = Math.round(pixelX + cellWidth / 2);
-      const centerY = Math.round(pixelY + cellHeight / 2);
+      // PHASE 2.5 OPTIMIZATION: Use pre-calculated half dimensions
+      const centerX = pixelX + halfCellWidth;
+      const centerY = pixelY + halfCellHeight;
       
       ctx.fillText(cell.char, centerX, centerY);
     }
-  }, [effectiveCellWidth, effectiveCellHeight, panOffset, canvasBackgroundColor, drawingStyles]);
+  }, [effectiveCellWidth, effectiveCellHeight, panOffset, canvasBackgroundColor, drawingStyles, cellWidth, cellHeight, halfCellWidth, halfCellHeight]);
 
   // Separate function to render grid background
   const drawGridBackground = useCallback((ctx: CanvasRenderingContext2D) => {
@@ -219,6 +239,45 @@ export const useCanvasRenderer = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // PHASE 2 OPTIMIZATION: Check frame cache during playback
+    if (isPlaybackMode && !isPreviewActive && !isEffectPreviewActive && !isTimeEffectPreviewActive) {
+      const currentFrame = getCurrentFrame();
+      
+      if (currentFrame && currentFrame.data) {
+        // Generate hash of current frame data
+        const frameHash = generateFrameHash(currentFrame.data);
+        
+        // Check cache
+        const cachedCanvas = getCachedFrame(
+          currentFrame.id,
+          frameHash,
+          { width: canvasConfig.canvasWidth, height: canvasConfig.canvasHeight },
+          zoom
+        );
+        
+        if (cachedCanvas) {
+          // Cache hit! Copy cached frame to display canvas (super fast)
+          // IMPORTANT: Reset transform before clearing to avoid scaling issues
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          
+          // Copy the cached canvas at the correct scale
+          // The cached canvas already has the correct high-DPI scaling applied
+          ctx.drawImage(cachedCanvas, 0, 0, canvas.width, canvas.height);
+          
+          // Restore the device pixel ratio scaling for any future operations
+          const devicePixelRatio = window.devicePixelRatio || 1;
+          ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+          
+          // Finish performance measurement
+          const totalCells = width * height;
+          finishCanvasRender(totalCells);
+          return; // Skip full render
+        }
+        // Cache miss - continue with full render and cache the result at the end
+      }
+    }
+
     // Apply only text rendering optimizations without affecting canvas size/coordinates
     setupTextRendering(ctx);
 
@@ -235,11 +294,14 @@ export const useCanvasRenderer = () => {
       ctx.fillRect(0, 0, canvasConfig.canvasWidth, canvasConfig.canvasHeight);
     }
 
-    // Render grid background layer first (behind content)
-    drawGridBackground(ctx);
+    // PHASE 2.75 OPTIMIZATION: Skip grid and onion skins during playback
+    if (!isPlaybackMode) {
+      // Render grid background layer first (behind content)
+      drawGridBackground(ctx);
 
-    // Render onion skin layers (previous and next frames)
-    renderOnionSkins();
+      // Render onion skin layers (previous and next frames)
+      renderOnionSkins();
+    }
 
     // Set font context once for the entire render batch
     ctx.font = drawingStyles.font;
@@ -258,36 +320,126 @@ export const useCanvasRenderer = () => {
     // PHASE 1 OPTIMIZATION: Draw static cells (excluding cells being moved)
     // Skip drawing original cells if time effects preview is active (preview will render all cells)
     if (!isTimeEffectPreviewActive) {
-      // Optimized: Iterate only over filled cells instead of all grid positions
+      // PHASE 2.5 OPTIMIZATION: Batch cells by background color to reduce context switches
+      const bgColorBatches = new Map<string, Array<{ x: number; y: number; cell: Cell }>>();
+      const noBgCells: Array<{ x: number; y: number; cell: Cell }> = [];
+      
+      // Group cells by background color
       cells.forEach((cell, key) => {
         if (movingCells.has(key)) {
           // Draw empty cell in original position during move
-          const [x, y] = key.split(',').map(Number);
-          drawCell(ctx, x, y, { 
+          const [x, y] = parseCoords(key);
+          noBgCells.push({ x, y, cell: { 
             char: ' ', 
             color: drawingStyles.defaultTextColor, 
             bgColor: drawingStyles.defaultBgColor 
-          });
+          }});
         } else {
-          // Cell exists and is not being moved - draw it
-          const [x, y] = key.split(',').map(Number);
-          drawCell(ctx, x, y, cell);
+          // Cell exists and is not being moved - group by bg color
+          const [x, y] = parseCoords(key);
+          
+          if (cell.bgColor && cell.bgColor !== 'transparent' && cell.bgColor !== canvasBackgroundColor) {
+            if (!bgColorBatches.has(cell.bgColor)) {
+              bgColorBatches.set(cell.bgColor, []);
+            }
+            bgColorBatches.get(cell.bgColor)!.push({ x, y, cell });
+          } else {
+            noBgCells.push({ x, y, cell });
+          }
         }
+      });
+      
+      // PHASE 2.5 OPTIMIZATION: Draw all backgrounds first, batched by color
+      bgColorBatches.forEach((batch, bgColor) => {
+        ctx.fillStyle = bgColor;
+        batch.forEach(({ x, y }) => {
+          const pixelX = Math.round(x * effectiveCellWidth + panOffset.x);
+          const pixelY = Math.round(y * effectiveCellHeight + panOffset.y);
+          ctx.fillRect(pixelX, pixelY, cellWidth, cellHeight);
+        });
+      });
+      
+      // PHASE 2.5 OPTIMIZATION: Draw all text second, batched by color
+      const textColorBatches = new Map<string, Array<{ x: number; y: number; char: string }>>();
+      
+      // Collect all cells with text
+      [...bgColorBatches.values()].flat().concat(noBgCells).forEach(({ x, y, cell }) => {
+        if (cell.char && cell.char !== ' ') {
+          const color = cell.color || drawingStyles.defaultTextColor;
+          if (!textColorBatches.has(color)) {
+            textColorBatches.set(color, []);
+          }
+          textColorBatches.get(color)!.push({ x, y, char: cell.char });
+        }
+      });
+      
+      // Draw all text batched by color
+      textColorBatches.forEach((batch, color) => {
+        ctx.fillStyle = color;
+        batch.forEach(({ x, y, char }) => {
+          const pixelX = Math.round(x * effectiveCellWidth + panOffset.x);
+          const pixelY = Math.round(y * effectiveCellHeight + panOffset.y);
+          const centerX = pixelX + halfCellWidth;
+          const centerY = pixelY + halfCellHeight;
+          ctx.fillText(char, centerX, centerY);
+        });
       });
     }
 
     // Draw moved cells at their new positions
     if (overlayState.moveState && overlayState.moveState.originalData.size > 0) {
       const totalOffset = getTotalOffset(overlayState.moveState);
+      
+      // PHASE 2.5 OPTIMIZATION: Batch moved cells by color too
+      const movedBgBatches = new Map<string, Array<{ x: number; y: number }>>();
+      const movedTextBatches = new Map<string, Array<{ x: number; y: number; char: string }>>();
+      
       overlayState.moveState.originalData.forEach((cell: Cell, key: string) => {
-        const [origX, origY] = key.split(',').map(Number);
+        const [origX, origY] = parseCoords(key);
         const newX = origX + totalOffset.x;
         const newY = origY + totalOffset.y;
         
-        // Only draw if within bounds
+        // Only process if within bounds
         if (newX >= 0 && newX < canvasConfig.width && newY >= 0 && newY < canvasConfig.height) {
-          drawCell(ctx, newX, newY, cell);
+          // Batch backgrounds
+          if (cell.bgColor && cell.bgColor !== 'transparent' && cell.bgColor !== canvasBackgroundColor) {
+            if (!movedBgBatches.has(cell.bgColor)) {
+              movedBgBatches.set(cell.bgColor, []);
+            }
+            movedBgBatches.get(cell.bgColor)!.push({ x: newX, y: newY });
+          }
+          
+          // Batch text
+          if (cell.char && cell.char !== ' ') {
+            const color = cell.color || drawingStyles.defaultTextColor;
+            if (!movedTextBatches.has(color)) {
+              movedTextBatches.set(color, []);
+            }
+            movedTextBatches.get(color)!.push({ x: newX, y: newY, char: cell.char });
+          }
         }
+      });
+      
+      // Draw batched backgrounds
+      movedBgBatches.forEach((batch, bgColor) => {
+        ctx.fillStyle = bgColor;
+        batch.forEach(({ x, y }) => {
+          const pixelX = Math.round(x * effectiveCellWidth + panOffset.x);
+          const pixelY = Math.round(y * effectiveCellHeight + panOffset.y);
+          ctx.fillRect(pixelX, pixelY, cellWidth, cellHeight);
+        });
+      });
+      
+      // Draw batched text
+      movedTextBatches.forEach((batch, color) => {
+        ctx.fillStyle = color;
+        batch.forEach(({ x, y, char }) => {
+          const pixelX = Math.round(x * effectiveCellWidth + panOffset.x);
+          const pixelY = Math.round(y * effectiveCellHeight + panOffset.y);
+          const centerX = pixelX + halfCellWidth;
+          const centerY = pixelY + halfCellHeight;
+          ctx.fillText(char, centerX, centerY);
+        });
       });
     }
 
@@ -543,6 +695,24 @@ export const useCanvasRenderer = () => {
     }
     } // End: Skip overlays during playback
 
+    // PHASE 2 OPTIMIZATION: Cache the rendered frame during playback
+    if (isPlaybackMode && !isPreviewActive && !isEffectPreviewActive && !isTimeEffectPreviewActive) {
+      const currentFrame = getCurrentFrame();
+      
+      if (currentFrame && currentFrame.data) {
+        const frameHash = generateFrameHash(currentFrame.data);
+        
+        // Cache the rendered frame for future playback loops
+        setCachedFrame(
+          currentFrame.id,
+          frameHash,
+          canvas,
+          { width: canvasConfig.canvasWidth, height: canvasConfig.canvasHeight },
+          zoom
+        );
+      }
+    }
+
     // Finish performance measurement
     const totalCells = width * height;
     finishCanvasRender(totalCells);
@@ -569,7 +739,15 @@ export const useCanvasRenderer = () => {
     isTimeEffectPreviewActive,
     // ASCII Type preview outline state
     previewOrigin,
-    previewDimensions
+    previewDimensions,
+    // PHASE 2: Frame caching dependencies
+    isPlaybackMode,
+    getCurrentFrame,
+    getCachedFrame,
+    setCachedFrame,
+    zoom,
+    width,
+    height
   ]);
 
   // Throttled render function that uses requestAnimationFrame

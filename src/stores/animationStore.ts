@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Animation, Frame, FrameId, Cell } from '../types';
 import { DEFAULT_FRAME_DURATION } from '../constants';
 import { cloneFrame, cloneFrames, generateFrameId } from '../utils/frameUtils';
+import { useFrameCacheStore } from './frameCacheStore';
 
 interface AnimationState extends Animation {
   // Drag state for frame reordering
@@ -79,6 +80,8 @@ interface AnimationState extends Animation {
   togglePlayback: () => void;
   setLooping: (looping: boolean) => void;
   setFrameRate: (fps: number) => void;
+  setAllFrameDurations: (durationMs: number) => void;
+  setTargetFps: (fps: number) => void;
   
   // FPS monitoring callback
   fpsMonitorCallback?: (timestamp: number) => void;
@@ -527,6 +530,9 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
           ...newFrames[frameIndex],
           data: new Map(data)
         };
+        
+        // PHASE 2: Invalidate cache for this frame when data changes
+        useFrameCacheStore.getState().invalidateFrame(newFrames[frameIndex].id);
       }
       return { frames: newFrames };
     });
@@ -578,6 +584,27 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
 
   setLooping: (looping: boolean) => set({ looping }),
   setFrameRate: (frameRate: number) => set({ frameRate }),
+  
+  // PERFORMANCE FIX: Bulk update all frame durations to target FPS
+  setAllFrameDurations: (durationMs: number) => {
+    set((state) => {
+      const updatedFrames = state.frames.map(frame => ({
+        ...frame,
+        duration: Math.max(17, Math.min(10000, durationMs)) // Clamp to min/max
+      }));
+      
+      return {
+        frames: updatedFrames,
+        totalDuration: updatedFrames.reduce((total, frame) => total + frame.duration, 0)
+      };
+    });
+  },
+  
+  // PERFORMANCE FIX: Set all frames to target FPS (convenience method)
+  setTargetFps: (fps: number) => {
+    const durationMs = Math.round(1000 / fps); // Convert FPS to frame duration
+    get().setAllFrameDurations(durationMs);
+  },
   
   // FPS monitoring
   fpsMonitorCallback: undefined,

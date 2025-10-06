@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Canvas, Cell } from '../types';
 import { createCellKey } from '../types';
 import { DEFAULT_CANVAS_SIZES } from '../constants';
+import { useFrameCacheStore } from './frameCacheStore';
 
 interface CanvasState extends Canvas {
   // Canvas display settings
@@ -54,6 +55,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         cells: newCells
       };
     });
+    
+    // PHASE 2: Invalidate frame cache when canvas size changes
+    useFrameCacheStore.getState().invalidateAll();
   },
 
   setCanvasBackgroundColor: (color: string) => {

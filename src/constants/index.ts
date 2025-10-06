@@ -102,6 +102,6 @@ export const MAX_LIMITS = {
   UNDO_HISTORY: 50
 } as const;
 
-export const DEFAULT_FRAME_DURATION = 100; // ms
-export const MIN_FRAME_DURATION = 17; // ms
+export const DEFAULT_FRAME_DURATION = 33; // ms (30fps - improved from 100ms/10fps)
+export const MIN_FRAME_DURATION = 17; // ms (~60fps max)
 export const MAX_FRAME_DURATION = 10000; // ms
