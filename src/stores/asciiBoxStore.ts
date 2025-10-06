@@ -106,8 +106,8 @@ export const useAsciiBoxStore = create<AsciiBoxStore>((set, get) => ({
   }),
   
   continueDrawing: (point) => {
-    const { isDrawing } = get();
-    if (!isDrawing) return;
+    // Set lastPoint for shift+click line drawing
+    // Don't check isDrawing - we want to set lastPoint on clicks too
     set({ lastPoint: point });
   },
   

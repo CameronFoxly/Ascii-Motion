@@ -5,6 +5,7 @@ import { CanvasProvider } from './contexts/CanvasContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { ThemeToggle } from './components/common/ThemeToggle'
 import { AsciiTypePanel } from './components/features/AsciiTypePanel'
+import { AsciiBoxPanel } from './components/features/AsciiBoxPanel'
 import { AsciiTypePreviewDialog } from './components/features/AsciiTypePreviewDialog'
 import { CollapsiblePanel } from './components/common/CollapsiblePanel'
 import { PanelToggleButton } from './components/common/PanelToggleButton'
@@ -192,6 +193,7 @@ function App() {
                       onToggle={toggleFullscreen}
                     />
                     <AsciiTypePanel />
+                    <AsciiBoxPanel />
                     <AsciiTypePreviewDialog />
                   </div>
                 </div>

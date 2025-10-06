@@ -26,6 +26,7 @@ import {
   MoveHorizontal,
   MoveVertical,
   TypeOutline,
+  Grid2x2,
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -66,6 +67,7 @@ const DRAWING_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; desc
   { id: 'ellipse', name: 'Ellipse', icon: <Circle className="w-3 h-3" />, description: 'Draw ellipses/circles' },
   { id: 'text', name: 'Text', icon: <Type className="w-3 h-3" />, description: 'Type text directly' },
   { id: 'asciitype', name: 'ASCII Type', icon: <TypeOutline className="w-3 h-3" />, description: 'Create Figlet ASCII text' },
+  { id: 'asciibox', name: 'ASCII Box', icon: <Grid2x2 className="w-3 h-3" />, description: 'Draw boxes and tables' },
 ];
 
 const SELECTION_TOOLS: Array<{ id: Tool; name: string; icon: React.ReactNode; description: string }> = [

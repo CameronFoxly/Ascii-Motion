@@ -3,6 +3,7 @@ import { useAsciiBoxStore } from '../stores/asciiBoxStore';
 import { useToolStore } from '../stores/toolStore';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useAnimationStore } from '../stores/animationStore';
+import { useCanvasContext } from '../contexts/CanvasContext';
 import { BOX_DRAWING_STYLES } from '../constants/boxDrawingStyles';
 import {
   generateBoxRectangle,
@@ -51,7 +52,9 @@ export const useAsciiBoxTool = () => {
     selectedColor,
     selectedBgColor,
     setActiveTool,
-    pushToHistory
+    pushToHistory,
+    setLinePreview,
+    clearLinePreview
   } = useToolStore();
   
   const {
@@ -59,11 +62,18 @@ export const useAsciiBoxTool = () => {
     setCanvasData
   } = useCanvasStore();
   
+  const { shiftKeyDown } = useCanvasContext();
+  
   const { currentFrameIndex } = useAnimationStore();
   
   // Get current style definition
   const currentStyle = BOX_DRAWING_STYLES.find(s => s.id === selectedStyleId) 
     || BOX_DRAWING_STYLES[0];
+  
+  // Debug: Log shift key state changes
+  useEffect(() => {
+    console.log('[ASCII Box] shiftKeyDown changed:', shiftKeyDown, 'lastPoint:', lastPoint, 'drawingMode:', drawingMode);
+  }, [shiftKeyDown, lastPoint, drawingMode]);
   
   // Open panel when tool becomes active
   useEffect(() => {
@@ -71,6 +81,15 @@ export const useAsciiBoxTool = () => {
       openPanel();
     }
   }, [activeTool, isPanelOpen, openPanel]);
+  
+  // Cancel preview when switching away from ASCII Box tool
+  useEffect(() => {
+    if (activeTool !== 'asciibox' && isApplying) {
+      // User switched tools while in preview mode - cancel and cleanup
+      reset();
+      closePanel();
+    }
+  }, [activeTool, isApplying, reset, closePanel]);
   
   // Regenerate preview when style changes mid-drawing
   useEffect(() => {
@@ -95,8 +114,11 @@ export const useAsciiBoxTool = () => {
   }, [selectedStyleId]); // Only trigger on style change
   
   // Handle canvas click - depends on mode
-  const handleCanvasClick = useCallback((x: number, y: number, shiftKey: boolean) => {
+  const handleCanvasClick = useCallback((x: number, y: number) => {
     if (activeTool !== 'asciibox') return;
+    
+    // Clear line preview when clicking
+    clearLinePreview();
     
     // Start applying if first interaction
     if (!isApplying) {
@@ -124,10 +146,14 @@ export const useAsciiBoxTool = () => {
         updatePreview(newPreview, newDrawn);
       }
     } else if (drawingMode === 'freedraw') {
+      console.log('[ASCII Box] Free draw mode click', { x, y, shiftKeyDown, lastPoint });
+      
       // Handle shift+click line drawing
-      if (shiftKey && lastPoint) {
+      if (shiftKeyDown && lastPoint) {
+        console.log('[ASCII Box] Shift+click detected! Drawing line from', lastPoint, 'to', { x, y });
         // Draw line from lastPoint to current point
         const lineCells = getLineCells(lastPoint, { x, y });
+        console.log('[ASCII Box] Line cells generated:', lineCells.length, 'cells');
         const newDrawnCells = new Set(drawnCells);
         const newPreview = new Map(previewData || new Map());
         
@@ -229,7 +255,9 @@ export const useAsciiBoxTool = () => {
     setRectangleStart,
     setRectangleEnd,
     updatePreview,
-    continueDrawing
+    continueDrawing,
+    shiftKeyDown,
+    clearLinePreview
   ]);
   
   // Handle mouse drag for free draw mode
@@ -321,17 +349,55 @@ export const useAsciiBoxTool = () => {
   const handleMouseDown = useCallback((x: number, y: number) => {
     if (activeTool !== 'asciibox') return;
     
+    // Don't start a new drawing session for shift+click line drawing
+    if (shiftKeyDown && lastPoint && drawingMode === 'freedraw') {
+      return;
+    }
+    
     if (drawingMode === 'freedraw' || drawingMode === 'erase') {
       startDrawing({ x, y });
     }
-  }, [activeTool, drawingMode, startDrawing]);
+  }, [activeTool, drawingMode, lastPoint, shiftKeyDown, startDrawing]);
   
   // End drawing (mouse up)
   const handleMouseUp = useCallback(() => {
     if (activeTool !== 'asciibox') return;
     
-    endDrawing();
-  }, [activeTool, endDrawing]);
+    console.log('[ASCII Box] handleMouseUp - isDrawing:', isDrawing, 'drawingMode:', drawingMode);
+    
+    // Only end drawing (which clears lastPoint) if we were actually dragging
+    // For free draw mode, we want to preserve lastPoint for shift+click line drawing
+    if (isDrawing) {
+      endDrawing();
+    }
+  }, [activeTool, isDrawing, drawingMode, endDrawing]);
+  
+  // Handle mouse hover - show line preview when shift is held
+  const handleMouseHover = useCallback((x: number, y: number) => {
+    if (activeTool !== 'asciibox') return;
+    
+    // Debug logging
+    console.log('[ASCII Box] handleMouseHover called', {
+      x, y,
+      drawingMode,
+      shiftKeyDown,
+      hasLastPoint: !!lastPoint,
+      lastPoint,
+      isDrawing
+    });
+    
+    // Only show line preview in free draw mode when shift is held and we have a last point
+    if (drawingMode === 'freedraw' && shiftKeyDown && lastPoint && !isDrawing) {
+      // Generate preview line from last position to current position
+      const lineCells = getLineCells(lastPoint, { x, y });
+      console.log('[ASCII Box] Setting line preview', { lineCells });
+      setLinePreview(lineCells);
+    } else {
+      // Clear preview when conditions not met
+      console.log('[ASCII Box] Clearing line preview - conditions not met');
+      clearLinePreview();
+    }
+  }, [activeTool, drawingMode, shiftKeyDown, lastPoint, isDrawing, setLinePreview, clearLinePreview]);
   
   // Apply preview to canvas
   const applyPreview = useCallback(() => {
@@ -385,6 +451,32 @@ export const useAsciiBoxTool = () => {
     setActiveTool('pencil');
   }, [reset, closePanel, setActiveTool]);
   
+  // Handle keyboard shortcuts (Enter to apply, Escape to cancel)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (activeTool !== 'asciibox' || !isApplying) return;
+      
+      // Prevent default browser behavior for our handled keys
+      if (event.key === 'Enter' || event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        if (event.key === 'Enter') {
+          applyPreview();
+        } else if (event.key === 'Escape') {
+          cancelPreview();
+        }
+      }
+    };
+    
+    // Use capture phase to ensure we handle the event before other handlers
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, { capture: true });
+    };
+  }, [activeTool, isApplying, applyPreview, cancelPreview]);
+  
   return {
     // State
     isPanelOpen,
@@ -396,6 +488,7 @@ export const useAsciiBoxTool = () => {
     currentStyle,
     rectangleStart,
     rectangleEnd,
+    isDrawing,
     
     // Actions
     setSelectedStyle,
@@ -405,6 +498,7 @@ export const useAsciiBoxTool = () => {
     handleEraseDrag,
     handleMouseDown,
     handleMouseUp,
+    handleMouseHover,
     applyPreview,
     cancelPreview,
     closePanel

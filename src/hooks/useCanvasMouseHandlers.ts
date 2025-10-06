@@ -12,6 +12,7 @@ import { useCanvasState } from './useCanvasState';
 import { useAnimationStore } from '../stores/animationStore';
 import { useAsciiTypeTool } from './useAsciiTypeTool';
 import { useAsciiTypeStore } from '../stores/asciiTypeStore';
+import { useAsciiBoxTool } from './useAsciiBoxTool';
 import type { Tool } from '../types';
 
 export interface MouseHandlers {
@@ -41,6 +42,7 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
   const dragAndDropHandlers = useCanvasDragAndDrop();
   const textToolHandlers = useTextTool();
   const gradientFillHandlers = useGradientFillTool();
+  const asciiBoxHandlers = useAsciiBoxTool();
   const {
     previewGrid: asciiPreviewGrid,
     previewDimensions: asciiPreviewDimensions,
@@ -224,6 +226,12 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
         gradientFillHandlers.handleCanvasClick(gradientCoords.x, gradientCoords.y);
         break;
       }
+      case 'asciibox': {
+        const boxCoords = getGridCoordinatesFromEvent(event);
+        // Only handle click on mouse down - handleMouseDown will be called from mouse move if dragging starts
+        asciiBoxHandlers.handleCanvasClick(boxCoords.x, boxCoords.y);
+        break;
+      }
       case 'asciitype': {
         if (!asciiPreviewGrid || !asciiPreviewDimensions) {
           break;
@@ -283,6 +291,7 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
     dragAndDropHandlers,
     textToolHandlers,
     gradientFillHandlers,
+    asciiBoxHandlers,
     asciiPreviewGrid,
     asciiPreviewDimensions,
     asciiIsPreviewPlaced,
@@ -336,6 +345,28 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
       case 'gradientfill': {
         const gradientCoords = getGridCoordinatesFromEvent(event);
         gradientFillHandlers.handleCanvasMouseMove(gradientCoords.x, gradientCoords.y);
+        break;
+      }
+      case 'asciibox': {
+        const boxCoords = getGridCoordinatesFromEvent(event);
+        // Handle hover for shift+click line preview
+        asciiBoxHandlers.handleMouseHover(boxCoords.x, boxCoords.y);
+        
+        // Check if we should start drawing (user moved mouse after mouse down)
+        // This differentiates between click (no move) and drag (with move)
+        if (!asciiBoxHandlers.isDrawing && event.buttons === 1) {
+          asciiBoxHandlers.handleMouseDown(boxCoords.x, boxCoords.y);
+        }
+        
+        // Handle free draw dragging
+        asciiBoxHandlers.handleCanvasDrag(boxCoords.x, boxCoords.y);
+        // Handle erase dragging
+        asciiBoxHandlers.handleEraseDrag(boxCoords.x, boxCoords.y);
+        // Handle rectangle mode (update end point while dragging)
+        if (asciiBoxHandlers.rectangleStart && !asciiBoxHandlers.rectangleEnd) {
+          // User is dragging the second point for rectangle
+          asciiBoxHandlers.handleCanvasClick(boxCoords.x, boxCoords.y);
+        }
         break;
       }
       case 'asciitype':
@@ -407,6 +438,9 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
         break;
       case 'ellipse':
         dragAndDropHandlers.handleEllipseMouseUp();
+        break;
+      case 'asciibox':
+        asciiBoxHandlers.handleMouseUp();
         break;
       case 'asciitype':
         // End drag if we're dragging

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { useToolStore } from '../../stores/toolStore';
 import { useGradientStore } from '../../stores/gradientStore';
+import { useAsciiBoxStore } from '../../stores/asciiBoxStore';
 import { useCanvasContext } from '../../contexts/CanvasContext';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -26,6 +27,11 @@ export const CanvasOverlay: React.FC = () => {
     definition: gradientDefinition,
     previewData: gradientPreview
   } = useGradientStore();
+  const {
+    isApplying: boxApplying,
+    previewData: boxPreview,
+    drawnCells: boxDrawnCells
+  } = useAsciiBoxStore();
   const { canvasBackgroundColor, width, height } = useCanvasStore();
   const { theme } = useTheme();
 
@@ -612,6 +618,53 @@ export const CanvasOverlay: React.FC = () => {
         ctx.globalAlpha = 1.0;
       }
     }
+
+    // Draw ASCII Box preview
+    if (boxApplying) {
+      // Draw purple highlight for drawn cells
+      if (boxDrawnCells.size > 0) {
+        ctx.fillStyle = 'rgba(168, 85, 247, 0.2)'; // Purple highlight
+        boxDrawnCells.forEach(cellKey => {
+          const [x, y] = cellKey.split(',').map(Number);
+          const pixelX = x * effectiveCellWidth + panOffset.x;
+          const pixelY = y * effectiveCellHeight + panOffset.y;
+          ctx.fillRect(pixelX, pixelY, effectiveCellWidth, effectiveCellHeight);
+        });
+      }
+
+      // Draw characters from preview data
+      if (boxPreview && boxPreview.size > 0) {
+        ctx.globalAlpha = 1.0;
+        
+        boxPreview.forEach((cell, key) => {
+          const [x, y] = key.split(',').map(Number);
+          const pixelX = x * effectiveCellWidth + panOffset.x;
+          const pixelY = y * effectiveCellHeight + panOffset.y;
+
+          // Draw cell background
+          if (cell.bgColor && cell.bgColor !== 'transparent') {
+            ctx.fillStyle = cell.bgColor;
+            ctx.fillRect(pixelX, pixelY, effectiveCellWidth, effectiveCellHeight);
+          }
+
+          // Draw character
+          if (cell.char && cell.char !== ' ') {
+            ctx.fillStyle = cell.color || '#000000';
+            const scaledFontSize = fontMetrics.fontSize * zoom;
+            ctx.font = `${scaledFontSize}px '${fontMetrics.fontFamily}', monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(
+              cell.char, 
+              pixelX + effectiveCellWidth / 2, 
+              pixelY + effectiveCellHeight / 2
+            );
+          }
+        });
+        
+        ctx.globalAlpha = 1.0;
+      }
+    }
     
     // Draw hover preview (for brush and other tool-specific previews)
     // Rendered last so it appears on top of all other overlays
@@ -681,7 +734,7 @@ export const CanvasOverlay: React.FC = () => {
         );
       });
     }
-  }, [selection, lassoSelection, linePreview, effectiveCellWidth, effectiveCellHeight, panOffset, moveState, getTotalOffset, canvasRef, pasteMode, activeTool, gradientApplying, gradientStart, gradientEnd, gradientDefinition, gradientPreview, hoverPreview]);
+  }, [selection, lassoSelection, linePreview, effectiveCellWidth, effectiveCellHeight, panOffset, moveState, getTotalOffset, canvasRef, pasteMode, activeTool, gradientApplying, gradientStart, gradientEnd, gradientDefinition, gradientPreview, boxApplying, boxPreview, boxDrawnCells, hoverPreview]);
 
   // Re-render overlay when dependencies change
   useEffect(() => {
