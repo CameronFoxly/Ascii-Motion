@@ -83,7 +83,7 @@ export const useCanvasRenderer = () => {
     getCell
   } = useCanvasStore();
 
-  const { activeTool, rectangleFilled, lassoSelection, magicWandSelection, textToolState, linePreview } = useToolStore();
+  const { activeTool, rectangleFilled, lassoSelection, magicWandSelection, textToolState, linePreview, isPlaybackMode } = useToolStore();
   const { previewData, isPreviewActive } = usePreviewStore();
   const { isPreviewActive: isEffectPreviewActive } = useEffectsStore();
   const { isPreviewActive: isTimeEffectPreviewActive } = useTimeEffectsStore();
@@ -157,7 +157,8 @@ export const useCanvasRenderer = () => {
     };
   }, [fontMetrics, zoom, canvasBackgroundColor, theme]);
 
-    // Optimized drawCell function with pixel-aligned rendering (but no coordinate changes)
+    // PHASE 1 OPTIMIZATION: Optimized drawCell function with pixel-aligned rendering
+    // Font context is set once before the render loop, so we don't repeat it here
   const drawCell = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, cell: Cell) => {
     // Round pixel positions to ensure crisp rendering
     const pixelX = Math.round(x * effectiveCellWidth + panOffset.x);
@@ -174,9 +175,7 @@ export const useCanvasRenderer = () => {
     // Draw character with pixel-perfect positioning
     if (cell.char && cell.char !== ' ') {
       ctx.fillStyle = cell.color || drawingStyles.defaultTextColor;
-      ctx.font = drawingStyles.font;
-      ctx.textAlign = drawingStyles.textAlign;
-      ctx.textBaseline = drawingStyles.textBaseline;
+      // Note: font, textAlign, textBaseline already set once before render loop (line ~252)
       
       // Center text with rounded positions for crisp rendering
       const centerX = Math.round(pixelX + cellWidth / 2);
@@ -256,28 +255,25 @@ export const useCanvasRenderer = () => {
       });
     }
 
-    // Draw static cells (excluding cells being moved)
+    // PHASE 1 OPTIMIZATION: Draw static cells (excluding cells being moved)
     // Skip drawing original cells if time effects preview is active (preview will render all cells)
     if (!isTimeEffectPreviewActive) {
-      for (let y = 0; y < canvasConfig.height; y++) {
-        for (let x = 0; x < canvasConfig.width; x++) {
-          const key = `${x},${y}`;
-          
-          if (movingCells.has(key)) {
-            // Draw empty cell in original position during move
-            drawCell(ctx, x, y, { 
-              char: ' ', 
-              color: drawingStyles.defaultTextColor, 
-              bgColor: drawingStyles.defaultBgColor 
-            });
-          } else {
-            const cell = getCell(x, y);
-            if (cell) {
-              drawCell(ctx, x, y, cell);
-            }
-          }
+      // Optimized: Iterate only over filled cells instead of all grid positions
+      cells.forEach((cell, key) => {
+        if (movingCells.has(key)) {
+          // Draw empty cell in original position during move
+          const [x, y] = key.split(',').map(Number);
+          drawCell(ctx, x, y, { 
+            char: ' ', 
+            color: drawingStyles.defaultTextColor, 
+            bgColor: drawingStyles.defaultBgColor 
+          });
+        } else {
+          // Cell exists and is not being moved - draw it
+          const [x, y] = key.split(',').map(Number);
+          drawCell(ctx, x, y, cell);
         }
-      }
+      });
     }
 
     // Draw moved cells at their new positions
@@ -295,9 +291,11 @@ export const useCanvasRenderer = () => {
       });
     }
 
-    // Draw selection overlay
-    if (overlayState.selectionData) {
-      if (toolState.activeTool === 'ellipse') {
+    // PHASE 1 OPTIMIZATION: Skip overlays during playback for better performance
+    if (!isPlaybackMode) {
+      // Draw selection overlay
+      if (overlayState.selectionData) {
+        if (toolState.activeTool === 'ellipse') {
         // Draw ellipse preview with highlighted cells
         const centerX = (overlayState.selectionData.startX + overlayState.selectionData.startX + overlayState.selectionData.width - 1) / 2;
         const centerY = (overlayState.selectionData.startY + overlayState.selectionData.startY + overlayState.selectionData.height - 1) / 2;
@@ -543,6 +541,7 @@ export const useCanvasRenderer = () => {
         );
       }
     }
+    } // End: Skip overlays during playback
 
     // Finish performance measurement
     const totalCells = width * height;
