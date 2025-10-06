@@ -85,14 +85,14 @@ export const useAsciiBoxTool = () => {
     }
   }, [activeTool, isPanelOpen, openPanel]);
   
-  // Cancel preview when switching away from ASCII Box tool
+  // Cancel preview and close panel when switching away from ASCII Box tool
   useEffect(() => {
-    if (activeTool !== 'asciibox' && isApplying) {
-      // User switched tools while in preview mode - cancel and cleanup
+    if (activeTool !== 'asciibox' && isPanelOpen) {
+      // User switched tools - cancel preview (if any) and close panel
       reset();
       closePanel();
     }
-  }, [activeTool, isApplying, reset, closePanel]);
+  }, [activeTool, isPanelOpen, reset, closePanel]);
   
   // Regenerate preview when style changes mid-drawing
   useEffect(() => {
