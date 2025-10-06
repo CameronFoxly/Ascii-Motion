@@ -1712,7 +1712,7 @@ This comprehensive export/import system will transform ASCII Motion from a creat
 
 ✅ **Features Implemented:**
 - **Complete Tool Coverage**: Hotkeys for all 11 tools with intuitive key assignments
-- **Professional Hotkey Mapping**: P=Pencil, E=Eraser, G=Fill, M=Selection, L=Lasso, W=Magic Wand, I=Eyedropper, R=Rectangle, O=Ellipse, T=Text, Space=Hand
+- **Professional Hotkey Mapping**: P=Pencil, E=Eraser, F=Fill, G=Gradient Fill, M=Selection, L=Lasso, W=Magic Wand, I=Eyedropper, R=Rectangle, O=Ellipse, T=Text, Space=Hand
 - **Enhanced Tooltips**: All tool buttons automatically show hotkeys in tooltips (e.g., "Draw characters (P)")
 - **Text Input Protection**: All single-key hotkeys automatically disabled during text tool typing
 - **Modifier Key Preservation**: Cmd+C, Ctrl+Z, etc. continue working; hotkeys only trigger on unmodified key presses
@@ -5297,7 +5297,7 @@ export type Tool =
 ```typescript
 export const TOOL_HOTKEYS: ToolHotkey[] = [
   // ... existing hotkeys
-  { tool: 'gradientfill', key: 'f', displayName: 'F', description: 'Gradient fill tool hotkey' },
+  { tool: 'gradientfill', key: 'g', displayName: 'G', description: 'Gradient fill tool hotkey' },
 ];
 ```
 

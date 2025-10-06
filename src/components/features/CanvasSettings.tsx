@@ -29,6 +29,65 @@ export const CanvasSettings: React.FC = () => {
     setFontSize
   } = useCanvasContext();
 
+  // Local state for input values to allow editing before validation
+  const [widthInput, setWidthInput] = useState(width.toString());
+  const [heightInput, setHeightInput] = useState(height.toString());
+
+  // Update local state when store values change (from other sources like buttons)
+  useEffect(() => {
+    setWidthInput(width.toString());
+  }, [width]);
+
+  useEffect(() => {
+    setHeightInput(height.toString());
+  }, [height]);
+
+  // Handlers for canvas size input validation
+  const handleWidthChange = (value: string) => {
+    setWidthInput(value);
+  };
+
+  const handleWidthBlur = () => {
+    const numValue = parseInt(widthInput, 10);
+    if (isNaN(numValue) || widthInput === '') {
+      // Reset to current value if invalid or empty
+      setWidthInput(width.toString());
+    } else {
+      // Apply constraints and update
+      const constrainedValue = Math.max(4, Math.min(200, numValue));
+      setCanvasSize(constrainedValue, height);
+    }
+  };
+
+  const handleWidthKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur(); // Trigger blur to apply validation
+    }
+  };
+
+  const handleHeightChange = (value: string) => {
+    setHeightInput(value);
+  };
+
+  const handleHeightBlur = () => {
+    const numValue = parseInt(heightInput, 10);
+    if (isNaN(numValue) || heightInput === '') {
+      // Reset to current value if invalid or empty
+      setHeightInput(height.toString());
+    } else {
+      // Apply constraints and update
+      const constrainedValue = Math.max(4, Math.min(100, numValue));
+      setCanvasSize(width, constrainedValue);
+    }
+  };
+
+  const handleHeightKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur(); // Trigger blur to apply validation
+    }
+  };
+
+
   // Replace inline dropdown picker with modal overlay reuse
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showTypographyPicker, setShowTypographyPicker] = useState(false);
@@ -173,14 +232,10 @@ export const CanvasSettings: React.FC = () => {
             </div>
             <input
               type="number"
-              value={width}
-              onChange={(e) => {
-                const numValue = parseInt(e.target.value, 10);
-                if (!isNaN(numValue)) {
-                  const constrainedValue = Math.max(4, Math.min(200, numValue));
-                  setCanvasSize(constrainedValue, height);
-                }
-              }}
+              value={widthInput}
+              onChange={(e) => handleWidthChange(e.target.value)}
+              onBlur={handleWidthBlur}
+              onKeyDown={handleWidthKeyDown}
               className="w-12 h-7 text-xs text-center border border-border rounded bg-background text-foreground [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               min="4"
               max="200"
@@ -193,14 +248,10 @@ export const CanvasSettings: React.FC = () => {
           <div className="flex items-center gap-1">
             <input
               type="number"
-              value={height}
-              onChange={(e) => {
-                const numValue = parseInt(e.target.value, 10);
-                if (!isNaN(numValue)) {
-                  const constrainedValue = Math.max(4, Math.min(100, numValue));
-                  setCanvasSize(width, constrainedValue);
-                }
-              }}
+              value={heightInput}
+              onChange={(e) => handleHeightChange(e.target.value)}
+              onBlur={handleHeightBlur}
+              onKeyDown={handleHeightKeyDown}
               className="w-12 h-7 text-xs text-center border border-border rounded bg-background text-foreground [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               min="4"
               max="100"

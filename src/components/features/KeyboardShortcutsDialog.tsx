@@ -24,7 +24,7 @@ const KEYBOARD_SHORTCUTS: ShortcutSection[] = [
     shortcuts: [
       { keys: ['P'], description: 'Pencil tool' },
       { keys: ['E'], description: 'Eraser tool' },
-      { keys: ['G'], description: 'Fill (Paint Bucket) tool' },
+      { keys: ['F'], description: 'Fill (Paint Bucket) tool' },
       { keys: ['M'], description: 'Rectangular Selection tool' },
       { keys: ['L'], description: 'Lasso Selection tool' },
       { keys: ['W'], description: 'Magic Wand Selection tool' },
@@ -32,7 +32,7 @@ const KEYBOARD_SHORTCUTS: ShortcutSection[] = [
       { keys: ['R'], description: 'Rectangle tool' },
       { keys: ['O'], description: 'Ellipse tool' },
       { keys: ['T'], description: 'Text tool' },
-      { keys: ['F'], description: 'Gradient Fill tool' },
+      { keys: ['G'], description: 'Gradient Fill tool' },
       { keys: ['Alt'], description: 'Temporary Eyedropper (hold while using drawing tools)' },
     ]
   },

@@ -26,19 +26,45 @@ export const CanvasSizePicker: React.FC<CanvasSizePickerProps> = ({
 
   const handleWidthChange = (value: string) => {
     setLocalWidth(value);
-    const numValue = parseInt(value, 10);
-    if (!isNaN(numValue)) {
+  };
+
+  const handleWidthBlur = () => {
+    const numValue = parseInt(localWidth, 10);
+    if (isNaN(numValue) || localWidth === '') {
+      // Reset to current value if invalid or empty
+      setLocalWidth(width.toString());
+    } else {
+      // Apply constraints and update
       const constrainedValue = Math.max(4, Math.min(200, numValue));
       onSizeChange(constrainedValue, height);
     }
   };
 
+  const handleWidthKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur(); // Trigger blur to apply validation
+    }
+  };
+
   const handleHeightChange = (value: string) => {
     setLocalHeight(value);
-    const numValue = parseInt(value, 10);
-    if (!isNaN(numValue)) {
+  };
+
+  const handleHeightBlur = () => {
+    const numValue = parseInt(localHeight, 10);
+    if (isNaN(numValue) || localHeight === '') {
+      // Reset to current value if invalid or empty
+      setLocalHeight(height.toString());
+    } else {
+      // Apply constraints and update
       const constrainedValue = Math.max(4, Math.min(100, numValue));
       onSizeChange(width, constrainedValue);
+    }
+  };
+
+  const handleHeightKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur(); // Trigger blur to apply validation
     }
   };
 
@@ -72,12 +98,8 @@ export const CanvasSizePicker: React.FC<CanvasSizePickerProps> = ({
           type="number"
           value={localWidth}
           onChange={(e) => handleWidthChange(e.target.value)}
-          onBlur={() => {
-            const numValue = parseInt(localWidth, 10);
-            if (isNaN(numValue)) {
-              setLocalWidth(width.toString());
-            }
-          }}
+          onBlur={handleWidthBlur}
+          onKeyDown={handleWidthKeyDown}
           className="w-12 h-7 px-2 text-center text-xs border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-ring"
           min="4"
           max="200"
@@ -112,12 +134,8 @@ export const CanvasSizePicker: React.FC<CanvasSizePickerProps> = ({
           type="number"
           value={localHeight}
           onChange={(e) => handleHeightChange(e.target.value)}
-          onBlur={() => {
-            const numValue = parseInt(localHeight, 10);
-            if (isNaN(numValue)) {
-              setLocalHeight(height.toString());
-            }
-          }}
+          onBlur={handleHeightBlur}
+          onKeyDown={handleHeightKeyDown}
           className="w-12 h-7 px-2 text-center text-xs border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-ring"
           min="4"
           max="100"

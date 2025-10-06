@@ -816,13 +816,14 @@ export const useCanvasRenderer = () => {
 export const TOOL_HOTKEYS: ToolHotkey[] = [
   { tool: 'pencil', key: 'p', displayName: 'P', description: 'Pencil tool hotkey' },
   { tool: 'eraser', key: 'e', displayName: 'E', description: 'Eraser tool hotkey' },
-  { tool: 'paintbucket', key: 'g', displayName: 'G', description: 'Fill tool hotkey' },
+  { tool: 'paintbucket', key: 'f', displayName: 'F', description: 'Fill tool hotkey' },
   { tool: 'select', key: 'm', displayName: 'M', description: 'Rectangular selection hotkey' },
   { tool: 'lasso', key: 'l', displayName: 'L', description: 'Lasso selection hotkey' },
   { tool: 'magicwand', key: 'w', displayName: 'W', description: 'Magic wand selection hotkey' },
   { tool: 'eyedropper', key: 'i', displayName: 'I', description: 'Eyedropper tool hotkey' },
   { tool: 'hand', key: 'h', displayName: 'H', description: 'Hand tool hotkey' },
-  { tool: 'text', key: 't', displayName: 'T', description: 'Text tool hotkey' }
+  { tool: 'text', key: 't', displayName: 'T', description: 'Text tool hotkey' },
+  { tool: 'gradientfill', key: 'g', displayName: 'G', description: 'Gradient fill tool hotkey' }
   // Add new tools here with unique hotkeys
 ];
 
@@ -1843,7 +1844,8 @@ button { background: gray; } /* Overrides all button styling */
 |------|--------|----------|
 | **Pencil** | `P` | Switch to pencil drawing tool |
 | **Eraser** | `E` | Switch to eraser tool |
-| **Fill** | `G` | Switch to paint bucket fill tool |
+| **Fill** | `F` | Switch to paint bucket fill tool |
+| **Gradient Fill** | `G` | Switch to gradient fill tool |
 | **Rectangular Selection** | `M` | Switch to rectangular selection tool |
 | **Lasso Selection** | `L` | Switch to lasso selection tool |
 | **Magic Wand** | `W` | Switch to magic wand selection tool |
