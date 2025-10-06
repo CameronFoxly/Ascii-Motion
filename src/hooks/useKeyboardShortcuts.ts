@@ -35,6 +35,22 @@ const processHistoryAction = (
       animationStore.setCurrentFrame(canvasAction.data.frameIndex);
       break;
     }
+    
+    case 'canvas_resize': {
+      const resizeAction = action as import('../types').CanvasResizeHistoryAction;
+      const canvas = useCanvasStore.getState();
+      if (isRedo) {
+        // Redo: Apply new size
+        canvas.setCanvasSize(resizeAction.data.newWidth, resizeAction.data.newHeight);
+      } else {
+        // Undo: Restore previous size and data
+        canvas.setCanvasSize(resizeAction.data.previousWidth, resizeAction.data.previousHeight);
+        canvas.setCanvasData(resizeAction.data.previousCanvasData);
+      }
+      // Set current frame to match the frame this resize was made in
+      animationStore.setCurrentFrame(resizeAction.data.frameIndex);
+      break;
+    }
       
     case 'add_frame': {
       if (isRedo) {

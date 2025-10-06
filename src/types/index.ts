@@ -238,6 +238,7 @@ export const isValidFrame = (frame: any): frame is Frame => {
 // Enhanced History System Types
 export type HistoryActionType = 
   | 'canvas_edit'      // Canvas cell modifications
+  | 'canvas_resize'    // Canvas size changes
   | 'add_frame'        // Add new frame
   | 'duplicate_frame'  // Duplicate existing frame
   | 'duplicate_frame_range' // Duplicate multiple frames
@@ -263,6 +264,18 @@ export interface CanvasHistoryAction extends HistoryAction {
   type: 'canvas_edit';
   data: {
     canvasData: Map<string, Cell>;
+    frameIndex: number;
+  };
+}
+
+export interface CanvasResizeHistoryAction extends HistoryAction {
+  type: 'canvas_resize';
+  data: {
+    previousWidth: number;
+    previousHeight: number;
+    newWidth: number;
+    newHeight: number;
+    previousCanvasData: Map<string, Cell>;
     frameIndex: number;
   };
 }
@@ -414,6 +427,7 @@ export interface SetFrameDurationsHistoryAction extends HistoryAction {
 
 export type AnyHistoryAction = 
   | CanvasHistoryAction
+  | CanvasResizeHistoryAction
   | AddFrameHistoryAction 
   | DuplicateFrameHistoryAction
   | DuplicateFrameRangeHistoryAction
