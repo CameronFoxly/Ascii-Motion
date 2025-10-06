@@ -5,13 +5,14 @@ import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
 import { useDrawingTool } from './useDrawingTool';
 import { useCanvasState } from './useCanvasState';
+import { calculateBrushCells } from '../utils/brushUtils';
 
 /**
  * Hook for handling drag and drop operations on the canvas
  * Used by drawing tools (pencil, eraser) and rectangle tool
  */
 export const useCanvasDragAndDrop = () => {
-  const { canvasRef, isDrawing, setIsDrawing, setMouseButtonDown, shiftKeyDown, cellWidth, cellHeight } = useCanvasContext();
+  const { canvasRef, isDrawing, setIsDrawing, setMouseButtonDown, shiftKeyDown, cellWidth, cellHeight, fontMetrics } = useCanvasContext();
   const { getGridCoordinates } = useCanvasDimensions();
   const { width, height, cells } = useCanvasStore();
   const { currentFrameIndex } = useAnimationStore();
@@ -23,7 +24,8 @@ export const useCanvasDragAndDrop = () => {
     pushCanvasHistory,
     pencilLastPosition,
     setLinePreview,
-    clearLinePreview
+    clearLinePreview,
+    getBrushSettings
   } = useToolStore();
   const { setSelectionMode } = useCanvasState();
   const { drawAtPosition, drawRectangle, drawEllipse, drawBrushLine, eraseBrushLine, activeTool } = useDrawingTool();
@@ -153,12 +155,45 @@ export const useCanvasDragAndDrop = () => {
     // Handle shift+click line preview for pencil tool
     if (!isDrawing && (activeTool === 'pencil' || activeTool === 'eraser') && shiftKeyDown) {
       if (pencilLastPosition) {
-        // Generate preview line from last position to current position
-        const previewPoints = getLinePoints(pencilLastPosition.x, pencilLastPosition.y, x, y);
+        // Get brush settings for current tool
+        const brushSettings = getBrushSettings(activeTool);
+        
+        // Generate base line from last position to current position using Bresenham
+        const linePoints = getLinePoints(pencilLastPosition.x, pencilLastPosition.y, x, y);
+        
+        // For each point along the line, calculate all cells affected by the brush
+        const allBrushCells = new Map<string, { x: number; y: number }>();
+        
+        linePoints.forEach(({ x: centerX, y: centerY }) => {
+          const brushCells = calculateBrushCells(
+            centerX,
+            centerY,
+            brushSettings.size,
+            brushSettings.shape,
+            fontMetrics.aspectRatio
+          );
+          
+          // Add each brush cell to the set (using Map to avoid duplicates)
+          brushCells.forEach(cell => {
+            const key = `${cell.x},${cell.y}`;
+            allBrushCells.set(key, cell);
+          });
+        });
+        
+        // Convert to array for the preview
+        const previewPoints = Array.from(allBrushCells.values());
         setLinePreview(previewPoints);
       } else {
-        // No last position yet - just highlight the current cell
-        setLinePreview([{ x, y }]);
+        // No last position yet - show brush pattern at current cell
+        const brushSettings = getBrushSettings(activeTool);
+        const brushCells = calculateBrushCells(
+          x,
+          y,
+          brushSettings.size,
+          brushSettings.shape,
+          fontMetrics.aspectRatio
+        );
+        setLinePreview(brushCells);
       }
     } else {
       // Clear preview when conditions not met
