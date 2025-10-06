@@ -30,7 +30,8 @@ export const CanvasOverlay: React.FC = () => {
   const {
     isApplying: boxApplying,
     previewData: boxPreview,
-    drawnCells: boxDrawnCells
+    drawnCells: boxDrawnCells,
+    rectanglePreview: boxRectanglePreview
   } = useAsciiBoxStore();
   const { canvasBackgroundColor, width, height } = useCanvasStore();
   const { theme } = useTheme();
@@ -666,6 +667,43 @@ export const CanvasOverlay: React.FC = () => {
       }
     }
     
+    // Draw rectangle preview (faint overlay while positioning second corner)
+    if (boxRectanglePreview && boxRectanglePreview.size > 0) {
+      // Draw purple highlight fill (same as shift+click line preview)
+      ctx.fillStyle = 'rgba(168, 85, 247, 0.2)'; // Purple highlight
+      
+      boxRectanglePreview.forEach((_cell, key) => {
+        const [x, y] = key.split(',').map(Number);
+        const pixelX = x * effectiveCellWidth + panOffset.x;
+        const pixelY = y * effectiveCellHeight + panOffset.y;
+        ctx.fillRect(pixelX, pixelY, effectiveCellWidth, effectiveCellHeight);
+      });
+      
+      // Draw faint characters
+      ctx.globalAlpha = 0.5;
+      boxRectanglePreview.forEach((cell, key) => {
+        const [x, y] = key.split(',').map(Number);
+        const pixelX = x * effectiveCellWidth + panOffset.x;
+        const pixelY = y * effectiveCellHeight + panOffset.y;
+        
+        // Draw character
+        if (cell.char && cell.char !== ' ') {
+          ctx.fillStyle = cell.color || '#ffffff';
+          const scaledFontSize = fontMetrics.fontSize * zoom;
+          ctx.font = `${scaledFontSize}px '${fontMetrics.fontFamily}', monospace`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(
+            cell.char, 
+            pixelX + effectiveCellWidth / 2, 
+            pixelY + effectiveCellHeight / 2
+          );
+        }
+      });
+      
+      ctx.globalAlpha = 1.0;
+    }
+    
     // Draw hover preview (for brush and other tool-specific previews)
     // Rendered last so it appears on top of all other overlays
     if (hoverPreview.active && hoverPreview.cells.length > 0) {
@@ -734,7 +772,7 @@ export const CanvasOverlay: React.FC = () => {
         );
       });
     }
-  }, [selection, lassoSelection, linePreview, effectiveCellWidth, effectiveCellHeight, panOffset, moveState, getTotalOffset, canvasRef, pasteMode, activeTool, gradientApplying, gradientStart, gradientEnd, gradientDefinition, gradientPreview, boxApplying, boxPreview, boxDrawnCells, hoverPreview]);
+  }, [selection, lassoSelection, linePreview, effectiveCellWidth, effectiveCellHeight, panOffset, moveState, getTotalOffset, canvasRef, pasteMode, activeTool, gradientApplying, gradientStart, gradientEnd, gradientDefinition, gradientPreview, boxApplying, boxPreview, boxDrawnCells, boxRectanglePreview, hoverPreview]);
 
   // Re-render overlay when dependencies change
   useEffect(() => {

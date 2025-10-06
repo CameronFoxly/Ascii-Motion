@@ -349,7 +349,7 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
       }
       case 'asciibox': {
         const boxCoords = getGridCoordinatesFromEvent(event);
-        // Handle hover for shift+click line preview
+        // Handle hover for shift+click line preview and rectangle preview
         asciiBoxHandlers.handleMouseHover(boxCoords.x, boxCoords.y);
         
         // Check if we should start drawing (user moved mouse after mouse down)
@@ -362,11 +362,6 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
         asciiBoxHandlers.handleCanvasDrag(boxCoords.x, boxCoords.y);
         // Handle erase dragging
         asciiBoxHandlers.handleEraseDrag(boxCoords.x, boxCoords.y);
-        // Handle rectangle mode (update end point while dragging)
-        if (asciiBoxHandlers.rectangleStart && !asciiBoxHandlers.rectangleEnd) {
-          // User is dragging the second point for rectangle
-          asciiBoxHandlers.handleCanvasClick(boxCoords.x, boxCoords.y);
-        }
         break;
       }
       case 'asciitype':

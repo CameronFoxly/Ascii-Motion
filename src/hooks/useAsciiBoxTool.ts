@@ -31,6 +31,7 @@ export const useAsciiBoxTool = () => {
     drawnCells,
     rectangleStart,
     rectangleEnd,
+    rectanglePreview,
     isDrawing,
     lastPoint,
     openPanel,
@@ -41,6 +42,8 @@ export const useAsciiBoxTool = () => {
     updatePreview,
     setRectangleStart,
     setRectangleEnd,
+    setRectanglePreview,
+    cancelRectanglePreview,
     startDrawing,
     continueDrawing,
     endDrawing,
@@ -130,12 +133,13 @@ export const useAsciiBoxTool = () => {
     
     if (drawingMode === 'rectangle') {
       if (!rectangleStart) {
+        // First click - set starting corner
         setRectangleStart({ x, y });
         setRectangleEnd(null);
+        setRectanglePreview(null);
       } else {
-        setRectangleEnd({ x, y });
-        // Generate rectangle preview
-        const { previewData: newPreview, drawnCells: newDrawn } = generateBoxRectangle(
+        // Second click - commit the rectangle and merge with existing preview
+        const { previewData: rectPreview, drawnCells: rectDrawn } = generateBoxRectangle(
           rectangleStart,
           { x, y },
           currentStyle,
@@ -143,7 +147,30 @@ export const useAsciiBoxTool = () => {
           selectedColor,
           selectedBgColor
         );
-        updatePreview(newPreview, newDrawn);
+        
+        // Merge with existing drawn cells and preview
+        const newDrawnCells = new Set([...drawnCells, ...rectDrawn]);
+        const newPreview = new Map(previewData || new Map());
+        
+        // Update all affected cells with new connections
+        newDrawnCells.forEach(key => {
+          const [cx, cy] = key.split(',').map(Number);
+          const connections = detectConnections(cx, cy, newDrawnCells, currentStyle, cells);
+          const cellChar = getBoxDrawingCharacter(connections, currentStyle);
+          
+          newPreview.set(key, {
+            char: cellChar,
+            color: selectedColor,
+            bgColor: selectedBgColor
+          });
+        });
+        
+        updatePreview(newPreview, newDrawnCells);
+        
+        // Reset for next rectangle
+        setRectangleStart(null);
+        setRectangleEnd(null);
+        setRectanglePreview(null);
       }
     } else if (drawingMode === 'freedraw') {
       console.log('[ASCII Box] Free draw mode click', { x, y, shiftKeyDown, lastPoint });
@@ -264,28 +291,43 @@ export const useAsciiBoxTool = () => {
   const handleCanvasDrag = useCallback((x: number, y: number) => {
     if (activeTool !== 'asciibox' || drawingMode !== 'freedraw' || !isDrawing) return;
     
-    // Add cell at drag position
-    const newDrawnCells = new Set(drawnCells);
-    const { char, affectedCells } = addBoxCell(
-      x, y,
-      newDrawnCells,
-      currentStyle,
-      cells,
-      selectedColor,
-      selectedBgColor
-    );
+    // Gap filling: check if we need to fill gaps between last point and current point
+    const cellsToAdd: { x: number; y: number }[] = [];
     
-    // Update preview
+    if (lastPoint && (Math.abs(x - lastPoint.x) > 1 || Math.abs(y - lastPoint.y) > 1)) {
+      // Large distance - fill the gap with a line
+      const lineCells = getLineCells(lastPoint, { x, y });
+      cellsToAdd.push(...lineCells);
+    } else {
+      // Normal drag - just add current cell
+      cellsToAdd.push({ x, y });
+    }
+    
+    // Add all cells (either just current, or a line for gap filling)
+    const newDrawnCells = new Set(drawnCells);
     const newPreview = new Map(previewData || new Map());
-    affectedCells.forEach(cellKey => {
-      const [cx, cy] = cellKey.split(',').map(Number);
-      const connections = detectConnections(cx, cy, newDrawnCells, currentStyle, cells);
-      const cellChar = getBoxDrawingCharacter(connections, currentStyle);
+    
+    cellsToAdd.forEach(point => {
+      const { char, affectedCells } = addBoxCell(
+        point.x, point.y,
+        newDrawnCells,
+        currentStyle,
+        cells,
+        selectedColor,
+        selectedBgColor
+      );
       
-      newPreview.set(cellKey, {
-        char: cellChar,
-        color: selectedColor,
-        bgColor: selectedBgColor
+      // Update preview for all affected cells
+      affectedCells.forEach(cellKey => {
+        const [cx, cy] = cellKey.split(',').map(Number);
+        const connections = detectConnections(cx, cy, newDrawnCells, currentStyle, cells);
+        const cellChar = getBoxDrawingCharacter(connections, currentStyle);
+        
+        newPreview.set(cellKey, {
+          char: cellChar,
+          color: selectedColor,
+          bgColor: selectedBgColor
+        });
       });
     });
     
@@ -295,6 +337,7 @@ export const useAsciiBoxTool = () => {
     activeTool,
     drawingMode,
     isDrawing,
+    lastPoint,
     drawnCells,
     previewData,
     cells,
@@ -309,40 +352,60 @@ export const useAsciiBoxTool = () => {
   const handleEraseDrag = useCallback((x: number, y: number) => {
     if (activeTool !== 'asciibox' || drawingMode !== 'erase' || !isDrawing) return;
     
-    const key = `${x},${y}`;
-    if (drawnCells.has(key)) {
-      const newDrawnCells = new Set(drawnCells);
-      const affectedCells = eraseBoxCell(x, y, newDrawnCells, currentStyle, cells);
-      
-      // Update preview
-      const newPreview = new Map(previewData || new Map());
-      newPreview.delete(key);
-      
-      affectedCells.forEach(cellKey => {
-        const [cx, cy] = cellKey.split(',').map(Number);
-        const connections = detectConnections(cx, cy, newDrawnCells, currentStyle, cells);
-        const cellChar = getBoxDrawingCharacter(connections, currentStyle);
-        
-        newPreview.set(cellKey, {
-          char: cellChar,
-          color: selectedColor,
-          bgColor: selectedBgColor
-        });
-      });
-      
-      updatePreview(newPreview, newDrawnCells);
+    // Gap filling: check if we need to fill gaps between last point and current point
+    const cellsToErase: { x: number; y: number }[] = [];
+    
+    if (lastPoint && (Math.abs(x - lastPoint.x) > 1 || Math.abs(y - lastPoint.y) > 1)) {
+      // Large distance - fill the gap with a line
+      const lineCells = getLineCells(lastPoint, { x, y });
+      cellsToErase.push(...lineCells);
+    } else {
+      // Normal drag - just erase current cell
+      cellsToErase.push({ x, y });
     }
+    
+    // Erase all cells (either just current, or a line for gap filling)
+    const newDrawnCells = new Set(drawnCells);
+    const newPreview = new Map(previewData || new Map());
+    
+    cellsToErase.forEach(point => {
+      const key = `${point.x},${point.y}`;
+      if (newDrawnCells.has(key)) {
+        const affectedCells = eraseBoxCell(point.x, point.y, newDrawnCells, currentStyle, cells);
+        
+        // Remove from preview
+        newPreview.delete(key);
+        
+        // Update affected neighboring cells
+        affectedCells.forEach(cellKey => {
+          const [cx, cy] = cellKey.split(',').map(Number);
+          const connections = detectConnections(cx, cy, newDrawnCells, currentStyle, cells);
+          const cellChar = getBoxDrawingCharacter(connections, currentStyle);
+          
+          newPreview.set(cellKey, {
+            char: cellChar,
+            color: selectedColor,
+            bgColor: selectedBgColor
+          });
+        });
+      }
+    });
+    
+    updatePreview(newPreview, newDrawnCells);
+    continueDrawing({ x, y });
   }, [
     activeTool,
     drawingMode,
     isDrawing,
+    lastPoint,
     drawnCells,
     previewData,
     cells,
     currentStyle,
     selectedColor,
     selectedBgColor,
-    updatePreview
+    updatePreview,
+    continueDrawing
   ]);
   
   // Start drawing (mouse down)
@@ -372,7 +435,7 @@ export const useAsciiBoxTool = () => {
     }
   }, [activeTool, isDrawing, drawingMode, endDrawing]);
   
-  // Handle mouse hover - show line preview when shift is held
+  // Handle mouse hover - show line preview when shift is held, or rectangle preview in rectangle mode
   const handleMouseHover = useCallback((x: number, y: number) => {
     if (activeTool !== 'asciibox') return;
     
@@ -383,10 +446,30 @@ export const useAsciiBoxTool = () => {
       shiftKeyDown,
       hasLastPoint: !!lastPoint,
       lastPoint,
-      isDrawing
+      isDrawing,
+      hasRectangleStart: !!rectangleStart
     });
     
-    // Only show line preview in free draw mode when shift is held and we have a last point
+    // Handle rectangle mode live preview
+    if (drawingMode === 'rectangle' && rectangleStart && !isDrawing) {
+      // Generate live preview of rectangle
+      const { previewData: rectPreview } = generateBoxRectangle(
+        rectangleStart,
+        { x, y },
+        currentStyle,
+        cells,
+        selectedColor,
+        selectedBgColor
+      );
+      setRectanglePreview(rectPreview);
+      clearLinePreview();
+      return;
+    } else if (rectanglePreview) {
+      // Clear rectangle preview if not in rectangle preview mode
+      setRectanglePreview(null);
+    }
+    
+    // Handle free draw mode shift+click line preview
     if (drawingMode === 'freedraw' && shiftKeyDown && lastPoint && !isDrawing) {
       // Generate preview line from last position to current position
       const lineCells = getLineCells(lastPoint, { x, y });
@@ -397,7 +480,22 @@ export const useAsciiBoxTool = () => {
       console.log('[ASCII Box] Clearing line preview - conditions not met');
       clearLinePreview();
     }
-  }, [activeTool, drawingMode, shiftKeyDown, lastPoint, isDrawing, setLinePreview, clearLinePreview]);
+  }, [
+    activeTool, 
+    drawingMode, 
+    shiftKeyDown, 
+    lastPoint, 
+    isDrawing, 
+    rectangleStart,
+    rectanglePreview,
+    currentStyle,
+    cells,
+    selectedColor,
+    selectedBgColor,
+    setLinePreview, 
+    clearLinePreview,
+    setRectanglePreview
+  ]);
   
   // Apply preview to canvas
   const applyPreview = useCallback(() => {
@@ -464,7 +562,13 @@ export const useAsciiBoxTool = () => {
         if (event.key === 'Enter') {
           applyPreview();
         } else if (event.key === 'Escape') {
-          cancelPreview();
+          // If in rectangle mode with a start point, cancel just the rectangle preview
+          if (drawingMode === 'rectangle' && rectangleStart) {
+            cancelRectanglePreview();
+          } else {
+            // Otherwise cancel the entire preview
+            cancelPreview();
+          }
         }
       }
     };
@@ -475,7 +579,7 @@ export const useAsciiBoxTool = () => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown, { capture: true });
     };
-  }, [activeTool, isApplying, applyPreview, cancelPreview]);
+  }, [activeTool, isApplying, drawingMode, rectangleStart, applyPreview, cancelPreview, cancelRectanglePreview]);
   
   return {
     // State
@@ -488,6 +592,7 @@ export const useAsciiBoxTool = () => {
     currentStyle,
     rectangleStart,
     rectangleEnd,
+    rectanglePreview,
     isDrawing,
     
     // Actions

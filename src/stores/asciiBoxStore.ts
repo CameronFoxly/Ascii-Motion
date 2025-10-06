@@ -20,6 +20,7 @@ interface AsciiBoxStore {
   // Rectangle drawing state (for rectangle mode)
   rectangleStart: { x: number; y: number } | null;
   rectangleEnd: { x: number; y: number } | null;
+  rectanglePreview: Map<string, Cell> | null; // Live preview of current rectangle being drawn
   
   // Free draw state (for freedraw mode)
   isDrawing: boolean;
@@ -40,6 +41,8 @@ interface AsciiBoxStore {
   // Rectangle mode
   setRectangleStart: (point: { x: number; y: number } | null) => void;
   setRectangleEnd: (point: { x: number; y: number } | null) => void;
+  setRectanglePreview: (preview: Map<string, Cell> | null) => void;
+  cancelRectanglePreview: () => void;
   
   // Free draw mode
   startDrawing: (point: { x: number; y: number }) => void;
@@ -61,6 +64,7 @@ export const useAsciiBoxStore = create<AsciiBoxStore>((set, get) => ({
   drawnCells: new Set(),
   rectangleStart: null,
   rectangleEnd: null,
+  rectanglePreview: null,
   isDrawing: false,
   lastPoint: null,
   
@@ -98,6 +102,12 @@ export const useAsciiBoxStore = create<AsciiBoxStore>((set, get) => ({
   // Rectangle mode
   setRectangleStart: (point) => set({ rectangleStart: point }),
   setRectangleEnd: (point) => set({ rectangleEnd: point }),
+  setRectanglePreview: (preview) => set({ rectanglePreview: preview }),
+  cancelRectanglePreview: () => set({ 
+    rectangleStart: null, 
+    rectangleEnd: null, 
+    rectanglePreview: null 
+  }),
   
   // Free draw mode
   startDrawing: (point) => set({ 
@@ -124,6 +134,7 @@ export const useAsciiBoxStore = create<AsciiBoxStore>((set, get) => ({
     drawnCells: new Set(),
     rectangleStart: null,
     rectangleEnd: null,
+    rectanglePreview: null,
     isDrawing: false,
     lastPoint: null
   })
