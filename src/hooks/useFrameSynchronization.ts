@@ -153,24 +153,38 @@ export const useFrameSynchronization = (
   }, [currentFrameIndex, cells, setFrameData, loadFrameToCanvas, isPlaying, isDraggingFrame, isDeletingFrame, moveStateParam, setMoveStateParam, selection.active, lassoSelection.active, magicWandSelection.active, clearSelection, clearLassoSelection, clearMagicWandSelection]);
 
   // Auto-save canvas changes to current frame (debounced)
+  // PERFORMANCE FIX: Completely skip this effect during playback by not including cells in deps
   useEffect(() => {
-    if (isLoadingFrameRef.current || isPlaying || isDraggingFrame || isDeletingFrame) return;
+    // During playback, this effect won't fire because cells is not in the dependency array
+    // This prevents expensive JSON.stringify on every frame change
+    if (isLoadingFrameRef.current || isDraggingFrame || isDeletingFrame) return;
     
-    // Check if cells actually changed to avoid unnecessary saves
-    const currentCellsString = JSON.stringify(Array.from(cells.entries()).sort());
-    const lastCellsString = JSON.stringify(Array.from(lastCellsRef.current.entries()).sort());
-    
-    if (currentCellsString !== lastCellsString) {
-      // Longer delay to prevent interference with drag operations
-      const timeoutId = setTimeout(() => {
-        if (!isLoadingFrameRef.current && !isPlaying) {
-          saveCurrentCanvasToFrame();
-        }
-      }, 150);
+    // Only run this in edit mode (when isPlaying is false)
+    if (!isPlaying) {
+      // Check if cells actually changed to avoid unnecessary saves
+      const currentCellsString = JSON.stringify(Array.from(cells.entries()).sort());
+      const lastCellsString = JSON.stringify(Array.from(lastCellsRef.current.entries()).sort());
       
-      return () => clearTimeout(timeoutId);
+      if (currentCellsString !== lastCellsString) {
+        // Longer delay to prevent interference with drag operations
+        const timeoutId = setTimeout(() => {
+          if (!isLoadingFrameRef.current && !isPlaying) {
+            saveCurrentCanvasToFrame();
+          }
+        }, 150);
+        
+        return () => clearTimeout(timeoutId);
+      }
     }
-  }, [cells, saveCurrentCanvasToFrame, isPlaying, isDraggingFrame, isDeletingFrame]);
+  }, [
+    // PERFORMANCE FIX: Only depend on cells when NOT playing
+    // During playback, cells changing won't trigger this effect
+    ...(isPlaying ? [] : [cells]),
+    saveCurrentCanvasToFrame,
+    isPlaying,
+    isDraggingFrame,
+    isDeletingFrame
+  ]);
 
   // Initialize first frame with current canvas data if empty
   useEffect(() => {

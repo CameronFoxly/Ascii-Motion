@@ -35,20 +35,22 @@ const AUTO_SCROLL_MAX_SPEED = 840; // px per second when cursor touches edge
  */
 export const AnimationTimeline: React.FC = () => {
   const { width: canvasWidth, height: canvasHeight } = useCanvasStore();
-  const {
-    frames,
-    currentFrameIndex,
-    selectedFrameIndices,
-    isPlaying,
-    looping,
-    onionSkin,
-    timelineZoom,
-    setLooping,
-    setDraggingFrame,
-    selectFrameRange,
-    clearSelection,
-    isFrameSelected
-  } = useAnimationStore();
+  
+  // PERFORMANCE OPTIMIZATION: Use selective subscriptions to prevent re-renders during playback
+  // Only subscribe to frames array when actually needed for rendering
+  const frames = useAnimationStore(state => state.frames);
+  const totalDuration = useAnimationStore(state => state.totalDuration);
+  const currentFrameIndex = useAnimationStore(state => state.currentFrameIndex);
+  const selectedFrameIndices = useAnimationStore(state => state.selectedFrameIndices);
+  const isPlaying = useAnimationStore(state => state.isPlaying);
+  const looping = useAnimationStore(state => state.looping);
+  const onionSkin = useAnimationStore(state => state.onionSkin);
+  const timelineZoom = useAnimationStore(state => state.timelineZoom);
+  const setLooping = useAnimationStore(state => state.setLooping);
+  const setDraggingFrame = useAnimationStore(state => state.setDraggingFrame);
+  const selectFrameRange = useAnimationStore(state => state.selectFrameRange);
+  const clearSelection = useAnimationStore(state => state.clearSelection);
+  const isFrameSelected = useAnimationStore(state => state.isFrameSelected);
 
   // Helper to get selected frame indices as sorted array
   const getSelectedFrames = useCallback(() => {
@@ -506,8 +508,8 @@ export const AnimationTimeline: React.FC = () => {
     updateFrameDuration(frameIndex, duration);
   }, [updateFrameDuration]);
 
-  // Calculate total animation duration
-  const totalDuration = frames.reduce((total, frame) => total + frame.duration, 0);
+  // PERFORMANCE: totalDuration now comes from store state (already calculated)
+  // No need to recalculate with frames.reduce() on every render
 
   return (
     <Card className="border-border/50">

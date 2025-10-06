@@ -759,8 +759,15 @@ export const useCanvasRenderer = () => {
   const triggerRender = useCallback(() => {
     // Mark that we need a full redraw for now (we can optimize this later)
     markFullRedraw();
-    scheduleRender();
-  }, [scheduleRender]);
+    
+    // PERFORMANCE FIX: During playback, render immediately to avoid double-RAF delay
+    // In edit mode, use scheduled rendering for batching
+    if (isPlaybackMode) {
+      renderCanvas(); // Immediate render during playback
+    } else {
+      scheduleRender(); // Scheduled render during editing
+    }
+  }, [scheduleRender, renderCanvas, isPlaybackMode]);
 
   // Re-render when dependencies change (now throttled)
   useEffect(() => {
