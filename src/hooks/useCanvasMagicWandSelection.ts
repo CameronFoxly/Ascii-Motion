@@ -310,7 +310,7 @@ export const useCanvasMagicWandSelection = () => {
     selectionGestureActiveRef.current = true;
     beginSelectionPreview(modifier);
 
-    startMagicWandSelection(targetCell, matchingCells);
+    startMagicWandSelection(targetCell || null, matchingCells);
     setSelectionMode('none');
     updateSelectionPreview(matchingCells);
     setMouseButtonDown(true);

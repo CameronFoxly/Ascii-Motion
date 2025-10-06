@@ -9,7 +9,7 @@
  * - Sticky footer with Cancel/Apply actions
  */
 
-import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
 import { Label } from '../ui/label';
@@ -34,8 +34,7 @@ export function AsciiBoxPanel() {
     setSelectedStyle,
     setDrawingMode,
     applyPreview,
-    cancelPreview,
-    closePanel
+    cancelPreview
   } = useAsciiBoxTool();
   
   const [shouldRender, setShouldRender] = useState(isPanelOpen);

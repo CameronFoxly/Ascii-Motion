@@ -428,19 +428,19 @@ export const CanvasOverlay: React.FC = () => {
         const pixelY = absoluteY * effectiveCellHeight + panOffset.y;
 
         // Draw cell background
-        if (cell.backgroundColor && cell.backgroundColor !== 'transparent') {
-          ctx.fillStyle = cell.backgroundColor;
+        if (cell.bgColor && cell.bgColor !== 'transparent') {
+          ctx.fillStyle = cell.bgColor;
           ctx.fillRect(pixelX, pixelY, effectiveCellWidth, effectiveCellHeight);
         }
 
         // Draw character
-        if (cell.character && cell.character !== ' ') {
+        if (cell.char && cell.char !== ' ') {
           ctx.fillStyle = cell.color || '#000000';
           ctx.font = `${Math.floor(effectiveCellHeight - 2)}px 'Courier New', monospace`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText(
-            cell.character, 
+            cell.char, 
             pixelX + effectiveCellWidth / 2, 
             pixelY + effectiveCellHeight / 2
           );

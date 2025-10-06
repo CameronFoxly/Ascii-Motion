@@ -84,7 +84,7 @@ export function detectConnections(
   x: number,
   y: number,
   drawnCells: Set<string>,
-  currentStyle: BoxDrawingStyle,
+  _currentStyle: BoxDrawingStyle,
   canvasData: Map<string, Cell>
 ): ConnectionState {
   const hasConnection = (nx: number, ny: number): boolean => {
@@ -165,8 +165,8 @@ export function addBoxCell(
   drawnCells: Set<string>,
   style: BoxDrawingStyle,
   canvasData: Map<string, Cell>,
-  selectedColor: string,
-  selectedBgColor: string
+  _selectedColor: string,
+  _selectedBgColor: string
 ): { char: string; affectedCells: Set<string> } {
   const key = `${x},${y}`;
   drawnCells.add(key);
@@ -204,8 +204,8 @@ export function eraseBoxCell(
   x: number,
   y: number,
   drawnCells: Set<string>,
-  style: BoxDrawingStyle,
-  canvasData: Map<string, Cell>
+  _style: BoxDrawingStyle,
+  _canvasData: Map<string, Cell>
 ): Set<string> {
   const key = `${x},${y}`;
   drawnCells.delete(key);

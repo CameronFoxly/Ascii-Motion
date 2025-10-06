@@ -27,7 +27,6 @@ export const useAsciiBoxTool = () => {
     drawingMode,
     isApplying,
     previewData,
-    originalData,
     drawnCells,
     rectangleStart,
     rectangleEnd,
@@ -139,7 +138,7 @@ export const useAsciiBoxTool = () => {
         setRectanglePreview(null);
       } else {
         // Second click - commit the rectangle and merge with existing preview
-        const { previewData: rectPreview, drawnCells: rectDrawn } = generateBoxRectangle(
+        const { drawnCells: rectDrawn } = generateBoxRectangle(
           rectangleStart,
           { x, y },
           currentStyle,
@@ -186,7 +185,7 @@ export const useAsciiBoxTool = () => {
         
         // Add all cells along the line
         lineCells.forEach(point => {
-          const { char, affectedCells } = addBoxCell(
+          const { affectedCells } = addBoxCell(
             point.x, point.y,
             newDrawnCells,
             currentStyle,
@@ -214,7 +213,7 @@ export const useAsciiBoxTool = () => {
       } else {
         // Single click - add one cell
         const newDrawnCells = new Set(drawnCells);
-        const { char, affectedCells } = addBoxCell(
+        const { affectedCells } = addBoxCell(
           x, y,
           newDrawnCells,
           currentStyle,
@@ -308,7 +307,7 @@ export const useAsciiBoxTool = () => {
     const newPreview = new Map(previewData || new Map());
     
     cellsToAdd.forEach(point => {
-      const { char, affectedCells } = addBoxCell(
+      const { affectedCells } = addBoxCell(
         point.x, point.y,
         newDrawnCells,
         currentStyle,

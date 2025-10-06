@@ -76,13 +76,13 @@ export const PastePreviewOverlay: React.FC = () => {
               width: cellWidth,
               height: cellHeight,
               color: cell.color || '#000000',
-              backgroundColor: cell.backgroundColor || 'transparent',
+              backgroundColor: cell.bgColor || 'transparent',
               fontSize: `${fontMetrics.fontSize}px`,
               fontFamily: fontMetrics.fontFamily,
               lineHeight: 1,
             }}
           >
-            {cell.character}
+            {cell.char}
           </div>
         );
       })}
