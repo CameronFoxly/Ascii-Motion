@@ -12,7 +12,6 @@ import { defaultIconProps } from './types';
 export const GradientIcon: React.FC<IconProps> = ({ 
   size = defaultIconProps.size,
   color = defaultIconProps.color,
-  strokeWidth = defaultIconProps.strokeWidth,
   className,
   ...props 
 }) => {

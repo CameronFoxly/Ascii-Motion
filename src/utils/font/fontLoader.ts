@@ -155,7 +155,7 @@ class FontLoader {
         try {
           const loadedFont = await this.loadFont(metadata.id);
           return loadedFont.font;
-        } catch (error) {
+        } catch {
           // Font loading failed, continue to next candidate
         }
       }

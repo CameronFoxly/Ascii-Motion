@@ -84,7 +84,7 @@ export const ImportPaletteDialog: React.FC<ImportPaletteDialogProps> = ({
           warnings: []
         });
       }
-    } catch (error) {
+    } catch {
       setValidationResult({
         isValid: false,
         errors: ['An unexpected error occurred during import.'],

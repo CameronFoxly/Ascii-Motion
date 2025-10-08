@@ -9,7 +9,6 @@
  * - Error handling for unsupported formats
  */
 
-// @ts-ignore - mp4box doesn't have proper TypeScript definitions
 import * as MP4Box from 'mp4box';
 
 export interface MediaFile {
@@ -344,8 +343,8 @@ export class MediaProcessor {
 
         return frameRate;
       }
-    } catch (error) {
-
+    } catch {
+      // ignore metadata parsing errors and fall back to default frame rate
     }
 
     // Fallback to common frame rate
@@ -362,8 +361,7 @@ export class MediaProcessor {
       const arrayBuffer = await originalFile.arrayBuffer();
       
       return await this.parseMP4FrameRate(arrayBuffer);
-    } catch (error) {
-
+    } catch {
       return 0;
     }
   }

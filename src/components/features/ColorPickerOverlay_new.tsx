@@ -257,11 +257,11 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
   const handleEyedropper = async () => {
     if ('EyeDropper' in window) {
       try {
-        // @ts-ignore - EyeDropper API is experimental
+        // @ts-expect-error - EyeDropper API is experimental
         const eyeDropper = new window.EyeDropper();
         const result = await eyeDropper.open();
         updateFromHex(result.sRGBHex);
-      } catch (error) {
+      } catch {
         // Eyedropper cancelled or not supported
       }
     }

@@ -586,8 +586,8 @@ export function MediaImportPanel() {
         });
       }
       
-    } catch (error) {
-
+    } catch {
+      // ignore failures when estimating default dimensions; fall back to manual configuration
     }
     
     setSelectedFile(mediaFile);
