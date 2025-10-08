@@ -98,6 +98,9 @@ export class SessionImporter {
     const paletteStore = usePaletteStore.getState();
     const characterPaletteStore = useCharacterPaletteStore.getState();
     
+    // Set importing flag to prevent auto-save during import
+    animationStore.setImportingSession(true);
+    
     // Restore canvas data
     canvasStore.setCanvasSize(sessionData.canvas.width, sessionData.canvas.height);
     canvasStore.setCanvasBackgroundColor(sessionData.canvas.canvasBackgroundColor);
@@ -147,20 +150,12 @@ export class SessionImporter {
         animationStore.setLooping(sessionData.animation.looping);
       }
       
-      // Always start at the first frame (index 0) when importing
-      // This ensures the user sees frame 1 content, not the original currentFrameIndex content
-      animationStore.setCurrentFrame(0);
+      // Clear current canvas before frame switching
+      canvasStore.clearCanvas();
       
-      // Load the first frame's data into the canvas
-      const animationState = useAnimationStore.getState();
-      const firstFrame = animationState.frames[0];
-      if (firstFrame && firstFrame.data) {
-        canvasStore.clearCanvas();
-        firstFrame.data.forEach((cell, key) => {
-          const [x, y] = key.split(',').map(Number);
-          canvasStore.setCell(x, y, cell as Cell);
-        });
-      }
+      // importSessionFrames already sets currentFrameIndex to 0, but call setCurrentFrame 
+      // explicitly to ensure frame synchronization triggers properly after import flag is cleared
+      animationStore.setCurrentFrame(0);
     }
     
     // Restore tool state
@@ -211,6 +206,17 @@ export class SessionImporter {
         typographyCallbacks.setLineSpacing(sessionData.typography.lineSpacing);
       }
     }
+    
+    // Clear importing flag after all frame operations are complete
+    // This allows useFrameSynchronization to load the first frame naturally
+    setTimeout(() => {
+      const animationStore = useAnimationStore.getState();
+      animationStore.setImportingSession(false);
+      
+      // Trigger frame loading by setting current frame again after clearing the import flag
+      // This ensures the frame content loads properly into the canvas
+      animationStore.setCurrentFrame(0);
+    }, 50);
   }
 }
 

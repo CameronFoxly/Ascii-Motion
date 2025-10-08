@@ -34,7 +34,8 @@ export const useFrameSynchronization = (
     getCurrentFrame,
     isPlaying,
     isDraggingFrame,
-    isDeletingFrame
+    isDeletingFrame,
+    isImportingSession
   } = useAnimationStore();
   
   // Get selection state and clearing functions  
@@ -53,11 +54,11 @@ export const useFrameSynchronization = (
 
   // Auto-save current canvas to current frame whenever canvas changes
   const saveCurrentCanvasToFrame = useCallback(() => {
-    if (isLoadingFrameRef.current || isPlaying || isDraggingFrame || isDeletingFrame) return; // Don't save during frame loading, playback, dragging, or deletion
+    if (isLoadingFrameRef.current || isPlaying || isDraggingFrame || isDeletingFrame || isImportingSession) return; // Don't save during frame loading, playback, dragging, deletion, or session import
     
     // Add small delay to prevent race conditions during frame reordering
     setTimeout(() => {
-      if (isLoadingFrameRef.current || isPlaying || isDraggingFrame || isDeletingFrame) return;
+      if (isLoadingFrameRef.current || isPlaying || isDraggingFrame || isDeletingFrame || isImportingSession) return;
       
       const currentCells = new Map(cells);
       setFrameData(currentFrameIndex, currentCells);
@@ -141,7 +142,7 @@ export const useFrameSynchronization = (
       }
       
       // Save current canvas (with committed moves) to the frame we're leaving
-      if (!isPlaying && !isLoadingFrameRef.current && !isDraggingFrame && !isDeletingFrame) {
+      if (!isPlaying && !isLoadingFrameRef.current && !isDraggingFrame && !isDeletingFrame && !isImportingSession) {
         setFrameData(previousFrameIndex, currentCellsToSave);
       }
       
@@ -150,11 +151,11 @@ export const useFrameSynchronization = (
       
       lastFrameIndexRef.current = currentFrameIndex;
     }
-  }, [currentFrameIndex, cells, setFrameData, loadFrameToCanvas, isPlaying, isDraggingFrame, isDeletingFrame, moveStateParam, setMoveStateParam, selection.active, lassoSelection.active, magicWandSelection.active, clearSelection, clearLassoSelection, clearMagicWandSelection]);
+  }, [currentFrameIndex, cells, setFrameData, loadFrameToCanvas, isPlaying, isDraggingFrame, isDeletingFrame, isImportingSession, moveStateParam, setMoveStateParam, selection.active, lassoSelection.active, magicWandSelection.active, clearSelection, clearLassoSelection, clearMagicWandSelection]);
 
   // Auto-save canvas changes to current frame (debounced)
   useEffect(() => {
-    if (isLoadingFrameRef.current || isPlaying || isDraggingFrame || isDeletingFrame) return;
+    if (isLoadingFrameRef.current || isPlaying || isDraggingFrame || isDeletingFrame || isImportingSession) return;
     
     // Check if cells actually changed to avoid unnecessary saves
     const currentCellsString = JSON.stringify(Array.from(cells.entries()).sort());
@@ -170,7 +171,7 @@ export const useFrameSynchronization = (
       
       return () => clearTimeout(timeoutId);
     }
-  }, [cells, saveCurrentCanvasToFrame, isPlaying, isDraggingFrame, isDeletingFrame]);
+  }, [cells, saveCurrentCanvasToFrame, isPlaying, isDraggingFrame, isDeletingFrame, isImportingSession]);
 
   // Initialize first frame with current canvas data if empty
   useEffect(() => {

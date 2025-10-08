@@ -10,6 +10,9 @@ interface AnimationState extends Animation {
   // Deletion state for frame removal
   isDeletingFrame: boolean;
   
+  // Import state for session import
+  isImportingSession: boolean;
+  
   // Timeline zoom state
   timelineZoom: number; // 0.5 to 1.0 (50% to 100%)
   
@@ -51,6 +54,9 @@ interface AnimationState extends Animation {
   
   // Deletion controls  
   setDeletingFrame: (isDeleting: boolean) => void;
+  
+  // Import controls
+  setImportingSession: (isImporting: boolean) => void;
   
   // Timeline zoom actions
   setTimelineZoom: (zoom: number) => void;
@@ -115,6 +121,7 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   looping: false,
   isDraggingFrame: false,
   isDeletingFrame: false,
+  isImportingSession: false,
   
   // Timeline zoom initial state (always reset to 100% on load)
   timelineZoom: 1.0,
@@ -586,6 +593,7 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   },
   setDraggingFrame: (isDraggingFrame: boolean) => set({ isDraggingFrame }),
   setDeletingFrame: (isDeletingFrame: boolean) => set({ isDeletingFrame }),
+  setImportingSession: (isImportingSession: boolean) => set({ isImportingSession }),
   
   // Timeline zoom control (60% to 100% range)
   setTimelineZoom: (zoom: number) => {
