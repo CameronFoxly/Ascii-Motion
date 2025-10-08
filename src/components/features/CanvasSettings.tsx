@@ -313,6 +313,26 @@ export const CanvasSettings: React.FC = () => {
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-muted-foreground">Canvas size:</span>
           
+          {/* Mode Toggle Button with Tooltip */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleModeToggle}
+                className="h-7 px-2 text-xs min-w-[36px]"
+              >
+                {sizeMode === 'characters' ? 'char' : 'px'}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {sizeMode === 'characters' 
+                ? 'Characters (click to switch to pixels)'
+                : 'Pixels (click to switch to characters)'
+              }
+            </TooltipContent>
+          </Tooltip>
+          
           {/* Width controls with controls to the left */}
           <div className="flex items-center gap-1">
             <div className="flex flex-col">
@@ -382,26 +402,6 @@ export const CanvasSettings: React.FC = () => {
               </Button>
             </div>
           </div>
-          
-          {/* Mode Toggle Button with Tooltip */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleModeToggle}
-                className="h-7 px-2 text-xs min-w-[36px]"
-              >
-                {sizeMode === 'characters' ? 'char' : 'px'}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              {sizeMode === 'characters' 
-                ? 'Characters (click to switch to pixels)'
-                : 'Pixels (click to switch to characters)'
-              }
-            </TooltipContent>
-          </Tooltip>
         </div>
 
         {/* Right Section - Display, Text, and Zoom Controls */}
