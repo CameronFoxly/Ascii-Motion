@@ -119,7 +119,8 @@
   }
 
   /* Special class to allow text selection for the ASCII logo */
-  .ascii-logo-selectable {
+  .ascii-logo-selectable,
+  .ascii-logo-selectable * {
     -webkit-user-select: text;
     -moz-user-select: text;
     user-select: text;

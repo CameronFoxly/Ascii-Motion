@@ -77,3 +77,26 @@
 .left-panel-scroll::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
+
+:root {
+  --ascii-logo-font-size: 6px;
+  --ascii-logo-line-height: 1.1;
+  --ascii-logo-scale: 1.08;
+  --ascii-logo-offset: -1px;
+}
+
+.ascii-logo {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  font-size: var(--ascii-logo-font-size);
+  line-height: var(--ascii-logo-line-height);
+  transform-origin: left bottom;
+  transform: translateY(var(--ascii-logo-offset)) scale(var(--ascii-logo-scale));
+  will-change: transform;
+}
+
+.ascii-logo span {
+  display: block;
+  line-height: inherit;
+}
