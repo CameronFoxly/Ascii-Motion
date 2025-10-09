@@ -1185,6 +1185,297 @@ export const useCanvasRenderer = () => {
 
 **Lesson Learned (Step 3)**: Always include the actual reactive data objects in dependency arrays, not just getters. This ensures hooks re-run when Zustand state changes.
 
+---
+
+## 🚨 **CRITICAL: React Hook Dependencies & ESLint Compliance**
+
+**MANDATORY: Run `npm run lint` after EVERY code change session**
+
+### **⚠️ Why This Matters**
+The `react-hooks/exhaustive-deps` ESLint rule prevents subtle bugs caused by stale closures, missing dependencies, and infinite render loops. Ignoring these warnings creates technical debt that compounds over time and leads to difficult-to-debug runtime issues.
+
+### **🎯 Golden Rules for Hook Dependencies**
+
+#### **1. Include ALL Referenced Values in Dependency Arrays**
+
+```typescript
+// ❌ WRONG: Missing dependencies
+const MyComponent = () => {
+  const { width, height, cells } = useCanvasStore();
+  const [scale, setScale] = useState(1);
+  
+  const renderCanvas = useCallback(() => {
+    // Uses width, height, cells, and scale
+    const area = width * height;
+    cells.forEach((cell) => drawCell(cell, scale));
+  }, [width, height]); // Missing 'cells' and 'scale' - BUG!
+  
+  return <button onClick={renderCanvas}>Render</button>;
+};
+
+// ✅ CORRECT: All dependencies included
+const MyComponent = () => {
+  const { width, height, cells } = useCanvasStore();
+  const [scale, setScale] = useState(1);
+  
+  const renderCanvas = useCallback(() => {
+    const area = width * height;
+    cells.forEach((cell) => drawCell(cell, scale));
+  }, [width, height, cells, scale]); // All referenced values included
+  
+  return <button onClick={renderCanvas}>Render</button>;
+};
+```
+
+#### **2. Memoize Functions Defined Inside Components**
+
+```typescript
+// ❌ WRONG: Function recreated every render, causes dependency chain issues
+const MyComponent = () => {
+  const processData = (data: string) => {
+    return data.toUpperCase();
+  };
+  
+  useEffect(() => {
+    // processData recreated every render, effect runs every render
+    const result = processData("hello");
+  }, [processData]); // Warning: processData changes every render
+};
+
+// ✅ CORRECT: Memoize the function with useCallback
+const MyComponent = () => {
+  const processData = useCallback((data: string) => {
+    return data.toUpperCase();
+  }, []); // Stable reference
+  
+  useEffect(() => {
+    const result = processData("hello");
+  }, [processData]); // processData is stable, effect runs once
+};
+```
+
+#### **3. Remove Unused Dependencies**
+
+```typescript
+// ❌ WRONG: Including values not used in the callback
+const renderCanvas = useCallback(() => {
+  ctx.fillRect(0, 0, width, height);
+}, [width, height, cells, getCell]); // 'cells' and 'getCell' not used - unnecessary
+
+// ✅ CORRECT: Only include what's actually used
+const renderCanvas = useCallback(() => {
+  ctx.fillRect(0, 0, width, height);
+}, [width, height]); // Only width and height needed
+```
+
+#### **4. Stable Setter Functions Don't Need Dependencies**
+
+```typescript
+// ❌ WRONG: Including React setState functions
+const MyComponent = () => {
+  const [count, setCount] = useState(0);
+  
+  const increment = useCallback(() => {
+    setCount(count + 1);
+  }, [count, setCount]); // setCount is stable, don't include it
+};
+
+// ✅ CORRECT: Use functional updates, omit stable setters
+const MyComponent = () => {
+  const [count, setCount] = useState(0);
+  
+  const increment = useCallback(() => {
+    setCount(prev => prev + 1); // Functional update
+  }, []); // No dependencies needed
+};
+```
+
+#### **5. Extract Cleanup Helpers to Avoid Effect Dependency Warnings**
+
+```typescript
+// ❌ WRONG: Defining cleanup logic inside effect with missing deps
+useEffect(() => {
+  const timerId = setTimeout(() => {
+    setShowPicker(false); // Referenced but not in deps
+  }, 500);
+  
+  return () => {
+    if (timerId) clearTimeout(timerId); // Cleanup references timerId
+  };
+}, []); // Missing setShowPicker dependency
+
+// ✅ CORRECT: Memoize cleanup helpers outside the effect
+const clearPickerTimeout = useCallback(() => {
+  if (colorPickerTimeoutRef.current) {
+    clearTimeout(colorPickerTimeoutRef.current);
+    colorPickerTimeoutRef.current = null;
+  }
+}, []);
+
+useEffect(() => {
+  return () => clearPickerTimeout();
+}, [clearPickerTimeout]); // Clean dependency array
+```
+
+#### **6. Don't Define Functions Inside Effects Unless Necessary**
+
+```typescript
+// ❌ WRONG: Handler defined inside effect
+useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'ArrowRight') moveRight();
+    if (e.key === 'ArrowLeft') moveLeft();
+  };
+  
+  window.addEventListener('keydown', handleKeyDown);
+  return () => window.removeEventListener('keydown', handleKeyDown);
+}, [moveRight, moveLeft]); // moveRight and moveLeft change every render
+
+// ✅ CORRECT: Memoize handler outside effect
+const handleKeyDown = useCallback((e: KeyboardEvent) => {
+  if (e.key === 'ArrowRight') moveRight();
+  if (e.key === 'ArrowLeft') moveLeft();
+}, [moveRight, moveLeft]);
+
+useEffect(() => {
+  window.addEventListener('keydown', handleKeyDown);
+  return () => window.removeEventListener('keydown', handleKeyDown);
+}, [handleKeyDown]); // Single stable dependency
+```
+
+### **🔍 Common Patterns That Cause Warnings**
+
+#### **Pattern 1: Missing Store Dependencies**
+```typescript
+// ❌ Problem: Using store getter without including the data it accesses
+const { getCell } = useCanvasStore();
+
+const render = useCallback(() => {
+  const cell = getCell(0, 0); // Reads from cells internally
+}, [getCell]); // Missing 'cells' - won't re-render when cells change
+
+// ✅ Solution: Include the reactive data
+const { getCell, cells } = useCanvasStore();
+
+const render = useCallback(() => {
+  const cell = getCell(0, 0);
+}, [getCell, cells]); // Now responds to cell changes
+```
+
+#### **Pattern 2: Handlers Defined in Effects**
+```typescript
+// ❌ Problem: Arrow functions inside effects with external deps
+useEffect(() => {
+  const moveRectSelection = () => {
+    setSelectionBounds({ ...bounds, x: bounds.x + deltaX });
+  };
+  
+  // Effect body uses moveRectSelection
+}, [bounds, deltaX]); // Lint warns about inline function
+
+// ✅ Solution: Extract and memoize
+const moveRectSelection = useCallback(() => {
+  setSelectionBounds(prev => ({ ...prev, x: prev.x + deltaX }));
+}, [deltaX]);
+
+useEffect(() => {
+  // Use the memoized handler
+  if (shouldMove) moveRectSelection();
+}, [shouldMove, moveRectSelection]);
+```
+
+#### **Pattern 3: Cleanup Timeouts and Intervals**
+```typescript
+// ❌ Problem: Timeout cleanup without stable refs
+useEffect(() => {
+  const id = setTimeout(() => doSomething(), 1000);
+  return () => clearTimeout(id); // id is scoped inside effect
+}, [doSomething]); // Cleanup can't access id properly
+
+// ✅ Solution: Use refs for cleanup or memoized helpers
+const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+const clearTimer = useCallback(() => {
+  if (timeoutRef.current) {
+    clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
+  }
+}, []);
+
+useEffect(() => {
+  timeoutRef.current = setTimeout(() => doSomething(), 1000);
+  return clearTimer;
+}, [doSomething, clearTimer]);
+```
+
+### **⚡ Workflow: Fix Lint Errors as You Go**
+
+**DO NOT accumulate lint warnings. Fix them immediately.**
+
+#### **Step-by-Step Lint Cleanup Process:**
+
+1. **After writing/editing hooks, run lint:**
+   ```bash
+   npm run lint
+   ```
+
+2. **Read each warning carefully:**
+   ```
+   React Hook useCallback has missing dependencies: 'cells' and 'scale'
+   Either include them or remove the dependency array
+   ```
+
+3. **Identify the issue:**
+   - Is the value actually used? → Add it to deps
+   - Is it not used? → Remove from callback body or deps
+   - Is it causing infinite loops? → Memoize it with useCallback/useMemo
+
+4. **Apply the fix and re-run lint:**
+   ```bash
+   npm run lint
+   ```
+
+5. **Repeat until clean:**
+   ```
+   ✨ No problems found!
+   ```
+
+### **🚫 Anti-Patterns to Avoid**
+
+```typescript
+// ❌ DON'T: Disable the lint rule
+useEffect(() => {
+  // Complex logic with many dependencies
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []); // This WILL cause bugs
+
+// ❌ DON'T: Add everything "just in case"
+useEffect(() => {
+  doSomething(value);
+}, [value, setCount, theme, width, height, cells, ...]); // Includes unused deps
+
+// ❌ DON'T: Ignore the warnings "for later"
+// Warnings compound and become harder to fix over time
+
+// ✅ DO: Fix warnings immediately as they appear
+// ✅ DO: Understand WHY each dependency is needed
+// ✅ DO: Refactor complex hooks into smaller, focused hooks
+```
+
+### **📋 Pre-Commit Checklist**
+
+Before committing ANY code with React hooks:
+- [ ] Run `npm run lint` and verify zero warnings
+- [ ] Understand each dependency in your hook arrays
+- [ ] Verify callbacks are memoized with `useCallback`
+- [ ] Verify expensive computations use `useMemo`
+- [ ] Test that effects run at the expected times
+- [ ] Check that cleanup functions properly dispose resources
+
+**Remember: A clean lint report is not optional—it's a requirement for production code.**
+
+---
+
 **🚨 CRITICAL: Tool Switching and State Management (Sept 5, 2025)**
 **MANDATORY PATTERNS for Selection Tools to Prevent State Corruption:**
 
@@ -3082,17 +3373,40 @@ const useCanvasStore = create<CanvasState>((set) => ({
 
 ## Code Quality Standards
 
-- Use ESLint + Prettier for consistent formatting
-- Prefer explicit over implicit code
-- Write self-documenting code with clear naming
-- Add JSDoc comments for complex functions
-- Use TypeScript strict mode
-- Avoid any types - use unknown or specific types
-- Prefer immutable updates over mutations
-- Use semantic commit messages
-- **Follow shadcn styling patterns** - Never override component library styling
-- **Use Tailwind CSS v3.x only** - Do not upgrade to v4+ without compatibility testing
-- **Scope custom CSS** - Avoid universal selectors that affect UI components
+### **🚨 MANDATORY: Zero-Tolerance Lint Policy**
+
+**Run `npm run lint` after EVERY coding session. Fix all warnings before committing.**
+
+**Why This Matters:**
+- Lint warnings represent real bugs waiting to happen (stale closures, missing deps, infinite loops)
+- Accumulating warnings creates compounding technical debt
+- "Fix later" warnings NEVER get fixed—they multiply
+- Clean lint = Clean code = Fewer runtime bugs
+
+**Enforcement:**
+- ✅ Lint must pass with zero warnings before code review
+- ✅ Hook dependency warnings are blocking issues, not suggestions
+- ✅ TypeScript errors are non-negotiable blockers
+- ❌ DO NOT disable lint rules to "make it work"—fix the underlying issue
+
+### **Code Quality Checklist**
+
+- ✅ **Run lint after every session**: `npm run lint` → zero warnings required
+- ✅ **Fix hook dependencies immediately**: Don't accumulate `react-hooks/exhaustive-deps` warnings
+- ✅ **Use ESLint + Prettier** for consistent formatting
+- ✅ **Prefer explicit over implicit** code
+- ✅ **Write self-documenting code** with clear naming
+- ✅ **Add JSDoc comments** for complex functions
+- ✅ **Use TypeScript strict mode**
+- ✅ **Avoid `any` types** - use `unknown` or specific types
+- ✅ **Prefer immutable updates** over mutations
+- ✅ **Use semantic commit messages**
+- ✅ **Follow shadcn styling patterns** - Never override component library styling
+- ✅ **Use Tailwind CSS v3.x only** - Do not upgrade to v4+ without compatibility testing
+- ✅ **Scope custom CSS** - Avoid universal selectors that affect UI components
+- ✅ **Memoize hooks properly** - All callbacks with `useCallback`, expensive computations with `useMemo`
+- ✅ **Include all dependencies** - Don't leave values out of dependency arrays
+- ✅ **Test your changes** - Verify functionality before marking work complete
 
 ## When Working on ASCII Motion:
 1. **Always consider performance** - App now supports large grids (200x100+) with optimized rendering
@@ -3110,6 +3424,8 @@ const useCanvasStore = create<CanvasState>((set) => ({
 **🚨 FINAL CHECKPOINT: Before considering ANY work "complete":**
 - [ ] Code implements the intended functionality
 - [ ] Tests pass and code works as expected  
+- [ ] **`npm run lint` passes with ZERO warnings**
+- [ ] **All `react-hooks/exhaustive-deps` warnings resolved**
 - [ ] Performance impact has been considered/measured
 - [ ] **COPILOT_INSTRUCTIONS.md has been updated**
 - [ ] **DEVELOPMENT.md has been updated**

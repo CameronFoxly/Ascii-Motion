@@ -1,4 +1,90 @@
-# ASCII Motion - Developm```
+# ASCII Motion - Development Guide
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
+
+### Installation
+```bash
+npm install
+```
+
+### Development Workflow
+
+#### **🔥 MANDATORY: Development Session Checklist**
+
+**Before coding:**
+- [ ] Pull latest changes: `git pull origin main`
+- [ ] Install dependencies if needed: `npm install`
+- [ ] Start dev server: `npm run dev`
+
+**During coding:**
+- [ ] Test changes in browser continuously
+- [ ] Fix TypeScript errors as they appear
+- [ ] **Run lint frequently**: `npm run lint`
+- [ ] Fix all `react-hooks/exhaustive-deps` warnings immediately
+
+**Before committing:**
+- [ ] **MANDATORY**: `npm run lint` → must pass with ZERO warnings
+- [ ] Verify functionality works as intended
+- [ ] Update documentation if architecture changed
+- [ ] Commit with semantic message
+
+#### **Common Commands**
+```bash
+# Development server with hot reload
+npm run dev
+
+# Run ESLint (REQUIRED before commits)
+npm run lint
+
+# Build for production
+npm run build
+
+# Preview production build locally
+npm run preview
+
+# Deploy to Vercel preview
+npm run deploy:preview
+
+# Deploy to production
+npm run deploy
+```
+
+#### **🚨 CRITICAL: Zero-Tolerance Lint Policy**
+```bash
+# After EVERY coding session, run:
+npm run lint
+
+# Expected output:
+# ✨ No problems found!
+
+# If warnings appear:
+# 1. Read each warning carefully
+# 2. Fix the issue (see COPILOT_INSTRUCTIONS.md for patterns)
+# 3. Re-run lint
+# 4. Repeat until clean
+```
+
+**DO NOT:**
+- ❌ Commit code with lint warnings
+- ❌ Disable lint rules to "make it work"
+- ❌ Plan to "fix lint later" (it never happens)
+- ❌ Accumulate technical debt
+
+**DO:**
+- ✅ Fix warnings immediately as they appear
+- ✅ Understand why each dependency is needed
+- ✅ Memoize callbacks with `useCallback`
+- ✅ Include all referenced values in dependency arrays
+
+---
+
+## 📁 Project Structure
+
+```
 src/
 ├── components/
 │   ├── common/         # Shared/reusable components (CellRenderer, PerformanceMonitor, ThemeToggle)
@@ -14,7 +100,9 @@ src/
 ├── utils/              # Utility functions
 ├── constants/          # App constants and configurations
 └── lib/                # Third-party library configurations
-```ting Started
+```
+
+## 🎯 Getting Started
 
 ### Prerequisites
 - Node.js 18+ 
@@ -2218,6 +2306,92 @@ These patterns are now incorporated into the codebase and should be followed for
 **Goal**: Improve maintainability, performance, and testability before adding animation features
 
 ### 🏗️ **Architectural Decisions Made**
+
+#### **React Hook Dependencies Enforcement & Lint Debt Cleanup (October 8, 2025)**
+**Decision**: Establish zero-tolerance policy for ESLint warnings and enforce immediate lint cleanup after code changes  
+**Problem**: Accumulated `react-hooks/exhaustive-deps` warnings across multiple components and hooks led to technical debt, potential stale closure bugs, and increased difficulty in identifying new issues  
+**Root Cause Analysis**:
+- Missing dependencies in `useCallback`/`useEffect` arrays caused components to use stale values
+- Functions defined inside effects without proper memoization created cascading dependency issues
+- Unused dependencies in hook arrays indicated dead code or refactoring artifacts
+- Cleanup helpers defined inside effects couldn't access stable references
+**Solution**: Comprehensive lint cleanup session with systematic review and documentation of patterns  
+**Files Affected**: 
+- Components: `CanvasGrid.tsx`, `CanvasOverlay.tsx`, `CanvasRenderer.tsx`, `CanvasSettings.tsx`, `ColorPickerOverlay.tsx`, `InteractiveGradientOverlay.tsx`, `MediaImportPanel.tsx`
+- Dialogs: `AddFramesDialog.tsx`, `SetFrameDurationDialog.tsx`, `WaveWarpDialog.tsx`, `WiggleDialog.tsx`
+- Hooks: `useAnimationHistory.ts`, `useAsciiBoxTool.ts`, `useCanvasDragAndDrop.ts`, `useCanvasMagicWandSelection.ts`, `useCanvasMouseHandlers.ts`, `useCanvasRenderer.ts`, `useCanvasSelection.ts`, `useFrameSynchronization.ts`, `useGradientFillTool.ts`
+
+**Key Patterns Fixed**:
+```typescript
+// ❌ BEFORE: Missing store dependencies
+const { getCell } = useCanvasStore();
+const render = useCallback(() => {
+  const cell = getCell(0, 0);
+}, [getCell]); // Missing 'cells' - won't re-render when cells change
+
+// ✅ AFTER: Include reactive data
+const { getCell, cells } = useCanvasStore();
+const render = useCallback(() => {
+  const cell = getCell(0, 0);
+}, [getCell, cells]); // Now responds to changes
+
+// ❌ BEFORE: Functions defined inside effects
+useEffect(() => {
+  const moveSelection = () => { /* uses external state */ };
+  // ... uses moveSelection
+}, []); // Lint warning about inline function
+
+// ✅ AFTER: Memoized handlers outside effects
+const moveSelection = useCallback(() => {
+  // Implementation
+}, [dependencies]);
+
+useEffect(() => {
+  if (shouldMove) moveSelection();
+}, [shouldMove, moveSelection]);
+
+// ❌ BEFORE: Cleanup without stable references
+useEffect(() => {
+  const id = setTimeout(() => doSomething(), 1000);
+  return () => clearTimeout(id);
+}, [doSomething]); // Cleanup can't access id properly
+
+// ✅ AFTER: Memoized cleanup helpers
+const clearTimer = useCallback(() => {
+  if (timeoutRef.current) {
+    clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
+  }
+}, []);
+
+useEffect(() => {
+  return () => clearTimer();
+}, [clearTimer]);
+```
+
+**Enforcement Measures**:
+- Added comprehensive "React Hook Dependencies & ESLint Compliance" section to `COPILOT_INSTRUCTIONS.md`
+- Updated "Code Quality Standards" to mandate `npm run lint` after every session
+- Added lint verification to pre-commit checklist
+- Documented common anti-patterns and their solutions
+- Established "fix lint errors as you go" as a core development principle
+
+**Lessons Learned**:
+- Accumulated warnings create compounding debt—fix immediately
+- Missing dependencies cause subtle runtime bugs that are hard to debug
+- Memoization (`useCallback`/`useMemo`) is not optional for complex hooks
+- Cleanup logic should use refs or memoized helpers, not inline functions
+- "Fix later" warnings never get fixed—they multiply
+
+**Testing**:
+- [x] All 20+ files updated with proper dependencies
+- [x] `npm run lint` passes with zero warnings
+- [x] No new TypeScript errors introduced
+- [x] Functionality verified across affected components
+
+**Impact**: Eliminated all `react-hooks/exhaustive-deps` warnings, prevented future stale closure bugs, established enforceable code quality baseline
+
+---
 
 #### **Arrow Key Movement for Selection Tools (September 10, 2025)**
 **Decision**: Implement keyboard-initiated move mode with seamless mouse interaction for all selection tools  
