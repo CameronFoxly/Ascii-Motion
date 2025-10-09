@@ -466,7 +466,7 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
                           <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b border-border/30">
                             Custom
                           </div>
-                          {customPalettes.map((palette: any) => (
+                          {customPalettes.map((palette) => (
                             <SelectItem key={palette.id} value={palette.id} className="text-xs">
                               <div className="flex items-center gap-2 min-w-0">
                                 <span className="truncate flex-1">{palette.name}</span>
@@ -484,7 +484,7 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
                           <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b border-border/30">
                             Presets
                           </div>
-                          {palettes.map((palette: any) => (
+                          {palettes.map((palette) => (
                             <SelectItem key={palette.id} value={palette.id} className="text-xs">
                               <div className="flex items-center gap-2 min-w-0">
                                 <span className="truncate flex-1">{palette.name}</span>

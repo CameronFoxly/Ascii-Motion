@@ -13,6 +13,7 @@ import { ToolStatusManager } from './ToolStatusManager';
 import { CanvasActionButtons } from './CanvasActionButtons';
 import { CanvasOverlay } from './CanvasOverlay';
 import { PlaybackStatusBar } from './PlaybackStatusBar';
+import type { Tool } from '../../types';
 
 interface CanvasGridProps {
   className?: string;
@@ -31,8 +32,8 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   const prevToolRef = useRef(activeTool);
   
   // Calculate effective tool (Alt key overrides with eyedropper for drawing tools, except gradientfill)
-  const drawingTools = ['pencil', 'eraser', 'paintbucket', 'rectangle', 'ellipse'] as const;
-  const shouldAllowEyedropperOverride = drawingTools.includes(activeTool as any);
+  const drawingTools: Tool[] = ['pencil', 'eraser', 'paintbucket', 'rectangle', 'ellipse'];
+  const shouldAllowEyedropperOverride = drawingTools.includes(activeTool);
   
   const effectiveTool = (altKeyDown && shouldAllowEyedropperOverride) ? 'eyedropper' : activeTool;
   

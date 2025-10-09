@@ -91,8 +91,8 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
   const [showTools, setShowTools] = React.useState(true);
 
   // Calculate effective tool (Alt key overrides with eyedropper for drawing tools)
-  const drawingTools = ['pencil', 'eraser', 'paintbucket', 'gradientfill', 'rectangle', 'ellipse'] as const;
-  const shouldAllowEyedropperOverride = drawingTools.includes(activeTool as any);
+  const drawingTools: Tool[] = ['pencil', 'eraser', 'paintbucket', 'gradientfill', 'rectangle', 'ellipse'];
+  const shouldAllowEyedropperOverride = drawingTools.includes(activeTool);
   const effectiveTool = (altKeyDown && shouldAllowEyedropperOverride) ? 'eyedropper' : activeTool;
 
   // Tools that actually have configurable options. (Removed 'eraser' and 'text' per layout bug fix.)

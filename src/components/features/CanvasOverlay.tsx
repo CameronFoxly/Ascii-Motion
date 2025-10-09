@@ -8,6 +8,8 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useCanvasState } from '../../hooks/useCanvasState';
 import { InteractiveGradientOverlay } from './InteractiveGradientOverlay';
 
+type GradientPropertyKey = 'character' | 'textColor' | 'backgroundColor';
+
 export const CanvasOverlay: React.FC = () => {
   // Create a separate canvas ref for overlay
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -512,15 +514,15 @@ export const CanvasOverlay: React.FC = () => {
         ctx.fillText('END', endPixelX, endPixelY - 18);
         
         // Draw gradient stops along the line
-        const enabledProperties = [];
+        const enabledProperties: GradientPropertyKey[] = [];
         if (gradientDefinition.character.enabled) enabledProperties.push('character');
         if (gradientDefinition.textColor.enabled) enabledProperties.push('textColor');
         if (gradientDefinition.backgroundColor.enabled) enabledProperties.push('backgroundColor');
         
         enabledProperties.forEach((property, propIndex) => {
-          const gradientProp = gradientDefinition[property as keyof typeof gradientDefinition] as any;
+          const gradientProp = gradientDefinition[property];
           if (gradientProp.stops) {
-            gradientProp.stops.forEach((stop: any) => {
+            gradientProp.stops.forEach((stop) => {
               if (stop.position >= 0 && stop.position <= 1) {
                 // Calculate position along the line
                 const lineX = startPixelX + (endPixelX - startPixelX) * stop.position;

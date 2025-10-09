@@ -9,6 +9,7 @@ import { Switch } from '../ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Globe, Download, Loader2, Palette, Type } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
+import type { HtmlExportSettings } from '../../types/export';
 import { useExportDataCollector } from '../../utils/exportDataCollector';
 import { ExportRenderer } from '../../utils/exportRenderer';
 
@@ -63,7 +64,7 @@ export const HtmlExportDialog: React.FC = () => {
     }
   };
 
-  const handleSettingChange = (key: keyof typeof htmlSettings, value: any) => {
+  const handleSettingChange = <K extends keyof HtmlExportSettings>(key: K, value: HtmlExportSettings[K]) => {
     setHtmlSettings({ [key]: value });
   };
 
@@ -133,7 +134,9 @@ export const HtmlExportDialog: React.FC = () => {
                     <Label className="text-sm">Font Family</Label>
                     <Select
                       value={htmlSettings.fontFamily}
-                      onValueChange={(value) => handleSettingChange('fontFamily', value)}
+                      onValueChange={(value) =>
+                        handleSettingChange('fontFamily', value as HtmlExportSettings['fontFamily'])
+                      }
                       disabled={isExporting}
                     >
                       <SelectTrigger>

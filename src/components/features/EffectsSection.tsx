@@ -17,6 +17,7 @@ import {
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
 import { useEffectsStore } from '../../stores/effectsStore';
 import { EFFECT_DEFINITIONS } from '../../constants/effectsDefaults';
+import type { EffectType } from '../../types/effects';
 import { 
   Wand2,
   BarChart3,
@@ -45,8 +46,8 @@ export function EffectsSection({ className = '' }: EffectsSectionProps) {
     isAnalyzing
   } = useEffectsStore();
 
-  const handleEffectClick = (effectId: string) => {
-    openEffectPanel(effectId as any);
+  const handleEffectClick = (effectId: EffectType) => {
+    openEffectPanel(effectId);
   };
 
   return (

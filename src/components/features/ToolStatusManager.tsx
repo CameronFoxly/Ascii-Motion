@@ -1,6 +1,7 @@
 import React from 'react';
 import { useToolStore } from '../../stores/toolStore';
 import { useCanvasContext } from '../../contexts/CanvasContext';
+import type { Tool } from '../../types';
 import {
   SelectionToolStatus,
   LassoToolStatus,
@@ -27,8 +28,8 @@ export const ToolStatusManager: React.FC = () => {
   const { altKeyDown } = useCanvasContext();
 
   // Calculate effective tool (Alt key overrides with eyedropper for drawing tools)
-  const drawingTools = ['pencil', 'eraser', 'paintbucket', 'gradientfill', 'rectangle', 'ellipse'] as const;
-  const shouldAllowEyedropperOverride = drawingTools.includes(activeTool as any);
+  const drawingTools: Tool[] = ['pencil', 'eraser', 'paintbucket', 'gradientfill', 'rectangle', 'ellipse'];
+  const shouldAllowEyedropperOverride = drawingTools.includes(activeTool);
   const effectiveTool = (altKeyDown && shouldAllowEyedropperOverride) ? 'eyedropper' : activeTool;
 
   // Render the appropriate tool status component with smaller text

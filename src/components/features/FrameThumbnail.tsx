@@ -19,7 +19,7 @@ interface FrameThumbnailProps {
   onDelete: () => void;
   onDurationChange: (duration: number) => void;
   isDragging?: boolean;
-  dragHandleProps?: any;
+  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
   // Onion skin props
   isOnionSkinPrevious?: boolean;
   isOnionSkinNext?: boolean;
