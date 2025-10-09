@@ -31,6 +31,12 @@ export const AddFramesDialog: React.FC = () => {
   const [frameCount, setFrameCount] = useState(1);
   const [frameCountInput, setFrameCountInput] = useState('1');
   const [duplicateCurrentFrame, setDuplicateCurrentFrame] = useState(true);
+
+  const handleApply = useCallback(() => {
+    const sourceFrame = duplicateCurrentFrame ? frames[currentFrameIndex] : null;
+    addMultipleFrames(frameCount, sourceFrame);
+    closeAddFramesDialog();
+  }, [duplicateCurrentFrame, frames, currentFrameIndex, addMultipleFrames, frameCount, closeAddFramesDialog]);
   
   // Reset position when dialog opens
   useEffect(() => {
@@ -60,7 +66,7 @@ export const AddFramesDialog: React.FC = () => {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isAddFramesDialogOpen, closeAddFramesDialog]);
+  }, [isAddFramesDialogOpen, closeAddFramesDialog, handleApply]);
 
   // Dragging handlers
   const handleDrag = useCallback((deltaX: number, deltaY: number) => {
@@ -112,12 +118,6 @@ export const AddFramesDialog: React.FC = () => {
   };
 
   // Apply changes
-  const handleApply = () => {
-    const sourceFrame = duplicateCurrentFrame ? frames[currentFrameIndex] : null;
-    addMultipleFrames(frameCount, sourceFrame);
-    closeAddFramesDialog();
-  };
-
   // Calculate dialog position (lower-left corner)
   const getDialogPosition = () => {
     const dialogWidth = 400;

@@ -77,7 +77,6 @@ export const useCanvasRenderer = () => {
   const { 
     width, 
     height, 
-    cells,
     canvasBackgroundColor,
     showGrid,
     getCell
@@ -553,10 +552,10 @@ export const useCanvasRenderer = () => {
     canvasConfig,
     toolState,
     overlayState,
-    // Keep these individual dependencies for now
-    cells, 
-    getCell, 
-    drawCell, 
+  // Keep these individual dependencies for now
+  getCell,
+  drawCell,
+  drawGridBackground,
     getTotalOffset,
     canvasRef,
     drawingStyles,
@@ -570,7 +569,20 @@ export const useCanvasRenderer = () => {
     isTimeEffectPreviewActive,
     // ASCII Type preview outline state
     previewOrigin,
-    previewDimensions
+    previewDimensions,
+    // Additional direct dependencies referenced in the callback
+    activeTool,
+    canvasBackgroundColor,
+    effectiveCellWidth,
+    effectiveCellHeight,
+    width,
+    height,
+    panOffset,
+    hoveredCell,
+    moveState,
+    pasteMode,
+    textToolState,
+    lassoSelection
   ]);
 
   // Throttled render function that uses requestAnimationFrame
@@ -600,7 +612,7 @@ export const useCanvasRenderer = () => {
     
     // Re-render after resize (immediate for resize)
     renderCanvas();
-  }, [canvasWidth, canvasHeight, renderCanvas]);
+  }, [canvasWidth, canvasHeight, renderCanvas, canvasRef]);
 
   return {
     renderCanvas,

@@ -7,7 +7,7 @@ import { GradientStopPicker } from './GradientStopPicker';
 export const InteractiveGradientOverlay: React.FC = () => {
   const overlayRef = useRef<HTMLDivElement>(null);
   const { activeTool } = useToolStore();
-  const { cellWidth, cellHeight, zoom, panOffset, altKeyDown } = useCanvasContext();
+  const { cellWidth, cellHeight, zoom, panOffset } = useCanvasContext();
   const { 
     isApplying, 
     startPoint, 
@@ -115,7 +115,7 @@ export const InteractiveGradientOverlay: React.FC = () => {
     }
 
     return null;
-  }, [startPoint, endPoint, ellipsePoint, hoverEndPoint, definition, effectiveCellWidth, effectiveCellHeight, panOffset]);
+  }, [startPoint, endPoint, ellipsePoint, definition, effectiveCellWidth, effectiveCellHeight, panOffset, displayEndPoint, stopHitRadius]);
 
   // Mouse event handlers
   const handleMouseDown = useCallback((event: React.MouseEvent) => {
@@ -155,7 +155,7 @@ export const InteractiveGradientOverlay: React.FC = () => {
         });
       }
     }
-  }, [hitTest, startDrag, altKeyDown, duplicateStop]);
+  }, [hitTest, startDrag, duplicateStop]);
   
   // Handle double-click on overlay to detect stop clicks
   const handleOverlayDoubleClick = useCallback((event: React.MouseEvent) => {

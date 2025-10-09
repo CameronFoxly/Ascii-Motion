@@ -402,6 +402,7 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
     asciiDragState,
     clampAsciiOrigin,
     updateAsciiDrag,
+    asciiBoxHandlers,
   ]);
 
   // Route mouse up to appropriate tool handler
@@ -470,6 +471,7 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
     setMouseButtonDown,
     asciiDragState,
     endAsciiDrag,
+    asciiBoxHandlers,
   ]);
 
   return {

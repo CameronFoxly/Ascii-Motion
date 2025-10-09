@@ -90,6 +90,19 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
   // Ref for hex input to auto-focus on open
   const hexInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Update color wheel position based on HSV values
+  const updateColorWheelPosition = useCallback((hsv: HSVColor) => {
+    const centerX = 80; // Half of 160px wheel
+    const centerY = 80;
+    const maxRadius = 72; // Slightly less than 80 to stay within bounds
+    const angle = (hsv.h * Math.PI) / 180;
+    const radius = (hsv.s / 100) * maxRadius;
+    // Round to mitigate sub-pixel oscillation that can cause jitter when React recalculates layout
+    const x = +(centerX + radius * Math.cos(angle)).toFixed(2);
+    const y = +(centerY + radius * Math.sin(angle)).toFixed(2);
+    setColorWheelPosition({ x, y });
+  }, []);
+
   // Initialize color values when dialog opens or initial color changes
   useEffect(() => {
     if (isOpen) {
@@ -133,7 +146,7 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     } else {
       setHasInitialized(false);
     }
-  }, [isOpen, initialColor]);
+  }, [isOpen, initialColor, updateColorWheelPosition]);
 
   // Update preview color in store
   useEffect(() => {
@@ -376,18 +389,6 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
   }, [hsvValues, isTransparentColor, hasInitialized, isOpen, onColorChange]);
 
   // Update color wheel position based on HSV values
-  const updateColorWheelPosition = useCallback((hsv: HSVColor) => {
-    const centerX = 80; // Half of 160px wheel
-    const centerY = 80;
-    const maxRadius = 72; // Slightly less than 80 to stay within bounds
-    const angle = (hsv.h * Math.PI) / 180;
-    const radius = (hsv.s / 100) * maxRadius;
-    // Round to mitigate sub-pixel oscillation that can cause jitter when React recalculates layout
-    const x = +(centerX + radius * Math.cos(angle)).toFixed(2);
-    const y = +(centerY + radius * Math.sin(angle)).toFixed(2);
-    setColorWheelPosition({ x, y });
-  }, []);
-
   // Color update handlers
   const updateFromHex = useCallback((hex: string) => {
     const normalizedHex = normalizeHexColor(hex);
@@ -519,30 +520,30 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
   };
 
   // Color wheel interaction with drag support
-  const handleColorWheelInteraction = (event: React.MouseEvent<HTMLDivElement> | MouseEvent) => {
+  const handleColorWheelInteraction = useCallback((event: React.MouseEvent<HTMLDivElement> | MouseEvent) => {
     if (!colorWheelRef.current) return;
-    if (isTransparentColor) {
-      setIsTransparentColor(false);
-    }
-    
+
     const rect = colorWheelRef.current.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
     const x = (event.clientX - rect.left) - centerX;
     const y = (event.clientY - rect.top) - centerY;
-    
+
     const distance = Math.sqrt(x * x + y * y);
     const maxDistance = Math.min(centerX, centerY) - 10;
-    
+
     // Always calculate the angle for hue
     let angle = Math.atan2(y, x);
-    angle = (angle * 180 / Math.PI + 360) % 360; // Convert to 0-360 degrees
-    
+    angle = (angle * 180) / Math.PI;
+    if (angle < 0) {
+      angle += 360;
+    }
+
     // Calculate saturation based on distance, but clamp to maximum when outside
     let saturation: number;
     let displayX: number;
     let displayY: number;
-    
+
     if (distance <= maxDistance) {
       // Inside circle - normal behavior
       saturation = (distance / maxDistance) * 100;
@@ -551,21 +552,23 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     } else {
       // Outside circle - snap to edge with full saturation
       saturation = 100;
-      
+
       // Calculate position on the edge of the circle
-      const edgeX = Math.cos(angle * Math.PI / 180) * maxDistance;
-      const edgeY = Math.sin(angle * Math.PI / 180) * maxDistance;
+      const edgeX = Math.cos((angle * Math.PI) / 180) * maxDistance;
+      const edgeY = Math.sin((angle * Math.PI) / 180) * maxDistance;
       displayX = centerX + edgeX;
       displayY = centerY + edgeY;
     }
-    
-    const newHsv = { ...hsvValues, h: angle, s: saturation };
-    setHsvValues(newHsv);
-    updateFromHsv(newHsv);
-    
+
+    setHsvValues((prev) => {
+      const newHsv = { ...prev, h: angle, s: saturation };
+      updateFromHsv(newHsv);
+      return newHsv;
+    });
+
     // Update position for visual feedback
     setColorWheelPosition({ x: displayX, y: displayY });
-  };
+  }, [updateFromHsv]);
 
   const handleColorWheelMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
     setIsDragging(true);
@@ -591,7 +594,7 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging]);
+  }, [isDragging, handleColorWheelInteraction]);
 
   // Eyedropper functionality
   const handleEyedropper = async () => {

@@ -113,7 +113,7 @@ export const useAsciiBoxTool = () => {
     });
     
     updatePreview(newPreview, drawnCells);
-  }, [selectedStyleId]); // Only trigger on style change
+  }, [selectedStyleId, drawnCells, cells, currentStyle, selectedColor, selectedBgColor, updatePreview, isApplying]);
   
   // Handle canvas click - depends on mode
   const handleCanvasClick = useCallback((x: number, y: number) => {
@@ -278,6 +278,7 @@ export const useAsciiBoxTool = () => {
     startApplying,
     setRectangleStart,
     setRectangleEnd,
+    setRectanglePreview,
     updatePreview,
     continueDrawing,
     shiftKeyDown,

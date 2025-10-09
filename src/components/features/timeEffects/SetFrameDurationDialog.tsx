@@ -50,6 +50,12 @@ export const SetFrameDurationDialog: React.FC = () => {
   const [msInputValue, setMsInputValue] = useState('100');
   const [fpsInputValue, setFpsInputValue] = useState('10');
   
+  const handleApply = useCallback(() => {
+    const targetDuration = mode === 'ms' ? milliseconds : fpsToMs(fps);
+    setFrameDurationsWithHistory(targetDuration, targetIndices);
+    closeSetDurationDialog();
+  }, [mode, milliseconds, fps, setFrameDurationsWithHistory, targetIndices, closeSetDurationDialog]);
+  
   // Calculate current average frame duration for initial values
   useEffect(() => {
     if (isSetDurationDialogOpen && targetIndices.length > 0) {
@@ -91,7 +97,7 @@ export const SetFrameDurationDialog: React.FC = () => {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isSetDurationDialogOpen, closeSetDurationDialog]);
+  }, [isSetDurationDialogOpen, closeSetDurationDialog, handleApply]);
 
   // Sync display values when mode changes (not input values - those stay as user typed)
   useEffect(() => {
@@ -183,10 +189,7 @@ export const SetFrameDurationDialog: React.FC = () => {
   };
 
   // Apply changes
-  const handleApply = () => {
-  const targetDuration = mode === 'ms' ? milliseconds : fpsToMs(fps);
-  setFrameDurationsWithHistory(targetDuration, targetIndices);
-  };
+  
 
   // Calculate dialog position (lower-left corner)
   const getDialogPosition = () => {

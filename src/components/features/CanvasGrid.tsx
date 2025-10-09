@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { useToolStore } from '../../stores/toolStore';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useAnimationStore } from '../../stores/animationStore';
@@ -72,20 +72,8 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     clearMagicWandSelection 
   } = useToolStore();
 
-  // Handle arrow key movement for selections
-  const handleArrowKeyMovement = (arrowOffset: { x: number; y: number }) => {
-    // Determine which selection is active and handle accordingly
-    if (activeTool === 'select' && selection.active) {
-      handleRectangularSelectionArrowMovement(arrowOffset);
-    } else if (activeTool === 'lasso' && lassoSelection.active) {
-      handleLassoSelectionArrowMovement(arrowOffset);
-    } else if (activeTool === 'magicwand' && magicWandSelection.active) {
-      handleMagicWandSelectionArrowMovement(arrowOffset);
-    }
-  };
-
   // Handle arrow movement for rectangular selection
-  const handleRectangularSelectionArrowMovement = (arrowOffset: { x: number; y: number }) => {
+  const handleRectangularSelectionArrowMovement = useCallback((arrowOffset: { x: number; y: number }) => {
     if (!selection.active) return;
 
     // Ensure we're not blocked by justCommittedMove state
@@ -128,10 +116,10 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       });
       setSelectionMode('moving');
     }
-  };
+  }, [selection, moveState, setJustCommittedMove, setMoveState, setSelectionMode]);
 
   // Handle arrow movement for lasso selection
-  const handleLassoSelectionArrowMovement = (arrowOffset: { x: number; y: number }) => {
+  const handleLassoSelectionArrowMovement = useCallback((arrowOffset: { x: number; y: number }) => {
     if (!lassoSelection.active) return;
 
     // Ensure we're not blocked by justCommittedMove state
@@ -178,10 +166,10 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       });
       setSelectionMode('moving');
     }
-  };
+  }, [lassoSelection, moveState, setJustCommittedMove, setMoveState, setSelectionMode]);
 
   // Handle arrow movement for magic wand selection
-  const handleMagicWandSelectionArrowMovement = (arrowOffset: { x: number; y: number }) => {
+  const handleMagicWandSelectionArrowMovement = useCallback((arrowOffset: { x: number; y: number }) => {
     if (!magicWandSelection.active) return;
 
     // Ensure we're not blocked by justCommittedMove state
@@ -228,10 +216,20 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       });
       setSelectionMode('moving');
     }
-  };
+  }, [magicWandSelection, moveState, setJustCommittedMove, setMoveState, setSelectionMode]);
 
   // Handle keyboard events for Escape and Shift keys
   useEffect(() => {
+    const handleArrowKeyMovement = (arrowOffset: { x: number; y: number }) => {
+      if (activeTool === 'select' && selection.active) {
+        handleRectangularSelectionArrowMovement(arrowOffset);
+      } else if (activeTool === 'lasso' && lassoSelection.active) {
+        handleLassoSelectionArrowMovement(arrowOffset);
+      } else if (activeTool === 'magicwand' && magicWandSelection.active) {
+        handleMagicWandSelectionArrowMovement(arrowOffset);
+      }
+    };
+
     const handleKeyDown = (event: KeyboardEvent) => {
       // Handle Shift key for aspect ratio locking
       if (event.key === 'Shift') {
@@ -339,12 +337,16 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     selection.active,
     lassoSelection.active, 
     magicWandSelection.active,
-    handleArrowKeyMovement,
     clearSelection,
     clearLassoSelection,
     clearMagicWandSelection,
     textToolState.isTyping,
-    shouldAllowEyedropperOverride
+    shouldAllowEyedropperOverride,
+    setShiftKeyDown,
+    setAltKeyDown,
+    handleRectangularSelectionArrowMovement,
+    handleLassoSelectionArrowMovement,
+    handleMagicWandSelectionArrowMovement
   ]);
 
   // Reset selection mode when tool changes

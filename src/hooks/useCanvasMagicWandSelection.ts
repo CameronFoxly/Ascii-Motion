@@ -355,11 +355,10 @@ export const useCanvasMagicWandSelection = () => {
       });
     }
   }, [
-    mouseButtonDown, 
-    magicWandSelection, 
-    getGridCoordinatesFromEvent, 
-    selectionMode, 
-    moveState, 
+    mouseButtonDown,
+    getGridCoordinatesFromEvent,
+    selectionMode,
+    moveState,
     setMoveState
   ]);
 

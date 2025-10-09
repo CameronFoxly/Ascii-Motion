@@ -295,9 +295,17 @@ export const useCanvasSelection = () => {
       updateSelectionPreview(x, y);
     }
   }, [
-    getGridCoordinatesFromEvent, selectionMode, moveState, setMoveState, 
-    selection, updateSelection, mouseButtonDown, pendingSelectionStart, setPendingSelectionStart,
-    updateSelectionPreview
+    getGridCoordinatesFromEvent,
+    selectionMode,
+    moveState,
+    setMoveState,
+    selection,
+    updateSelection,
+    mouseButtonDown,
+    pendingSelectionStart,
+    setPendingSelectionStart,
+    updateSelectionPreview,
+    setSelectionMode
   ]);
 
   // Handle selection tool mouse up

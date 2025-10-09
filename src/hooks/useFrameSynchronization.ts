@@ -64,7 +64,7 @@ export const useFrameSynchronization = (
       setFrameData(currentFrameIndex, currentCells);
       lastCellsRef.current = currentCells;
     }, 50);
-  }, [cells, currentFrameIndex, setFrameData, isPlaying, isDraggingFrame, isDeletingFrame]);
+  }, [cells, currentFrameIndex, setFrameData, isPlaying, isDraggingFrame, isDeletingFrame, isImportingSession]);
 
   // Load frame data into canvas when frame changes
   const loadFrameToCanvas = useCallback((frameIndex: number) => {
@@ -151,7 +151,7 @@ export const useFrameSynchronization = (
       
       lastFrameIndexRef.current = currentFrameIndex;
     }
-  }, [currentFrameIndex, cells, setFrameData, loadFrameToCanvas, isPlaying, isDraggingFrame, isDeletingFrame, isImportingSession, moveStateParam, setMoveStateParam, selection.active, lassoSelection.active, magicWandSelection.active, clearSelection, clearLassoSelection, clearMagicWandSelection]);
+  }, [currentFrameIndex, cells, setFrameData, loadFrameToCanvas, isPlaying, isDraggingFrame, isDeletingFrame, isImportingSession, moveStateParam, setMoveStateParam, selection.active, lassoSelection.active, magicWandSelection.active, clearSelection, clearLassoSelection, clearMagicWandSelection, width, height, setCanvasData]);
 
   // Auto-save canvas changes to current frame (debounced)
   useEffect(() => {
@@ -179,7 +179,7 @@ export const useFrameSynchronization = (
     if (currentFrame && currentFrame.data.size === 0 && cells.size > 0) {
       setFrameData(currentFrameIndex, new Map(cells));
     }
-  }, []); // Only run once on mount
+  }, [getCurrentFrame, cells, currentFrameIndex, setFrameData]);
 
   return {
     saveCurrentCanvasToFrame,

@@ -351,7 +351,7 @@ export const useAnimationHistory = () => {
     
     // Record in history
     pushToHistory(historyAction);
-  }, [frames, currentFrameIndex, pushToHistory]);
+  }, [frames, currentFrameIndex, pushToHistory, selectedFrameIndices]);
 
   /**
    * Delete all frames and reset to single blank frame with history recording
@@ -376,7 +376,7 @@ export const useAnimationHistory = () => {
     
     // Record in history
     pushToHistory(historyAction);
-  }, [frames, currentFrameIndex, pushToHistory, selectedFrameIndices]);
+  }, [frames, currentFrameIndex, pushToHistory]);
 
   /**
    * Reorder multiple frames as a contiguous group with history recording

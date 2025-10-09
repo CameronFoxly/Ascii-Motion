@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { ColorPickerOverlay } from './ColorPickerOverlay';
 import { Button } from '@/components/ui/button';
@@ -211,6 +211,22 @@ export const CanvasSettings: React.FC = () => {
   const colorPickerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typographyPickerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const clearColorPickerTimeout = useCallback(() => {
+    const timeout = colorPickerTimeoutRef.current;
+    if (timeout) {
+      clearTimeout(timeout);
+      colorPickerTimeoutRef.current = null;
+    }
+  }, []);
+
+  const clearTypographyPickerTimeout = useCallback(() => {
+    const timeout = typographyPickerTimeoutRef.current;
+    if (timeout) {
+      clearTimeout(timeout);
+      typographyPickerTimeoutRef.current = null;
+    }
+  }, []);
+
   // Calculate dropdown position
   const calculatePosition = (buttonRef: HTMLDivElement | null) => {
     if (!buttonRef) return { top: 0, left: 0, width: 200 };
@@ -225,6 +241,36 @@ export const CanvasSettings: React.FC = () => {
 
   // Sync tempColor with actual background color
   // (Removed tempColor sync effect)
+
+  // Animated show/hide functions for color picker
+  const showColorPickerAnimated = useCallback(() => {
+    setShowColorPicker(true);
+  }, []);
+
+  const closeColorPicker = useCallback(() => {
+    setShowColorPicker(false);
+  }, []);
+
+  // Animated show/hide functions for typography picker
+  const showTypographyPickerAnimated = useCallback(() => {
+    if (typographyPickerTimeoutRef.current) {
+      clearTimeout(typographyPickerTimeoutRef.current);
+    }
+    setShowTypographyPicker(true);
+    setTypographyPickerAnimationClass('dropdown-enter');
+  }, []);
+
+  const closeTypographyPicker = useCallback(() => {
+    if (!showTypographyPicker) {
+      return;
+    }
+    setTypographyPickerAnimationClass('dropdown-exit');
+    typographyPickerTimeoutRef.current = setTimeout(() => {
+      setShowTypographyPicker(false);
+      setTypographyPickerAnimationClass('');
+    }, 100); // Match faster exit animation duration
+  }, [showTypographyPicker]);
+
 
   // Close typography picker when clicking outside (color picker overlay handles its own dialog focus trapping)
   useEffect(() => {
@@ -247,7 +293,7 @@ export const CanvasSettings: React.FC = () => {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [showTypographyPicker]);
+  }, [showTypographyPicker, closeTypographyPicker]);
 
   // Reset dropdown states when layout might be changing (e.g., window resize)
   useEffect(() => {
@@ -258,47 +304,15 @@ export const CanvasSettings: React.FC = () => {
 
     window.addEventListener('resize', handleLayoutChange);
     return () => window.removeEventListener('resize', handleLayoutChange);
-  }, []);
+  }, [closeColorPicker, closeTypographyPicker]);
 
   // Clean up timeouts on unmount
   useEffect(() => {
     return () => {
-      if (colorPickerTimeoutRef.current) {
-        clearTimeout(colorPickerTimeoutRef.current);
-      }
-      if (typographyPickerTimeoutRef.current) {
-        clearTimeout(typographyPickerTimeoutRef.current);
-      }
+      clearColorPickerTimeout();
+      clearTypographyPickerTimeout();
     };
-  }, []);
-
-  // Animated show/hide functions for color picker
-  const showColorPickerAnimated = () => {
-    setShowColorPicker(true);
-  };
-
-  const closeColorPicker = () => {
-    setShowColorPicker(false);
-  };
-
-  // Animated show/hide functions for typography picker
-  const showTypographyPickerAnimated = () => {
-    if (typographyPickerTimeoutRef.current) {
-      clearTimeout(typographyPickerTimeoutRef.current);
-    }
-    setShowTypographyPicker(true);
-    setTypographyPickerAnimationClass('dropdown-enter');
-  };
-
-  const closeTypographyPicker = () => {
-    if (!showTypographyPicker) return;
-    
-    setTypographyPickerAnimationClass('dropdown-exit');
-    typographyPickerTimeoutRef.current = setTimeout(() => {
-      setShowTypographyPicker(false);
-      setTypographyPickerAnimationClass('');
-    }, 100); // Match faster exit animation duration
-  };
+  }, [clearColorPickerTimeout, clearTypographyPickerTimeout]);
 
   const handleColorChange = (color: string) => {
     setCanvasBackgroundColor(color);

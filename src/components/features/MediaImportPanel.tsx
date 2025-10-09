@@ -114,9 +114,6 @@ export function MediaImportPanel() {
   const canvasHeight = useCanvasStore(state => state.height);
   const setCanvasData = useCanvasStore(state => state.setCanvasData);
   const clearCanvas = useCanvasStore(state => state.clearCanvas);
-  const addFrame = useAnimationStore(state => state.addFrame);
-  const setCurrentFrame = useAnimationStore(state => state.setCurrentFrame);
-  const updateFrameDuration = useAnimationStore(state => state.updateFrameDuration);
   const importFramesOverwrite = useAnimationStore(state => state.importFramesOverwrite);
   const importFramesAppend = useAnimationStore(state => state.importFramesAppend);
   const currentFrameIndex = useAnimationStore(state => state.currentFrameIndex);
@@ -136,14 +133,18 @@ export function MediaImportPanel() {
     positionSectionOpen 
   } = uiState;
   
-  const setImportMode = (mode: 'overwrite' | 'append') => 
+  const setImportMode = useCallback((mode: 'overwrite' | 'append') => {
     updateUIState({ importMode: mode });
-  const setLivePreviewEnabled = (enabled: boolean) => 
+  }, [updateUIState]);
+  const setLivePreviewEnabled = useCallback((enabled: boolean) => {
     updateUIState({ livePreviewEnabled: enabled });
-  const setPreviewSectionOpen = (open: boolean) => 
+  }, [updateUIState]);
+  const setPreviewSectionOpen = useCallback((open: boolean) => {
     updateUIState({ previewSectionOpen: open });
-  const setPositionSectionOpen = (open: boolean) => 
+  }, [updateUIState]);
+  const setPositionSectionOpen = useCallback((open: boolean) => {
     updateUIState({ positionSectionOpen: open });
+  }, [updateUIState]);
   
   // Preview state management
   const [isPreviewActive, setIsPreviewActive] = useState(false);
@@ -498,7 +499,9 @@ export function MediaImportPanel() {
     customPalettes,
     setCanvasData,
     positionCellsOnCanvas,
-    startPreview
+    startPreview,
+    createConversionSettings,
+    setPreviewData
   ]);
 
   // End preview when live preview is disabled or component unmounts
@@ -615,7 +618,7 @@ export function MediaImportPanel() {
     setSelectedFile(mediaFile);
     setError(null);
     // Live preview enabled by default will trigger auto-processing
-  }, [setSelectedFile, setError, canvasWidth, canvasHeight, updateSettings, setOriginalImageAspectRatio]);
+  }, [setSelectedFile, setError, canvasWidth, canvasHeight, updateSettings, setOriginalImageAspectRatio, hasSessionSettings]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -703,7 +706,22 @@ export function MediaImportPanel() {
     } finally {
       setIsImporting(false);
     }
-  }, [previewFrames, settings, clearCanvas, setCanvasData, addFrame, setCurrentFrame, updateFrameDuration, closeModal, setError, positionCellsOnCanvas, importMode, importFramesOverwrite, importFramesAppend, currentFrameIndex, endPreview]);
+  }, [
+    previewFrames,
+    settings,
+    clearCanvas,
+    setCanvasData,
+    closeModal,
+    setError,
+    positionCellsOnCanvas,
+    importMode,
+    importFramesOverwrite,
+    importFramesAppend,
+    currentFrameIndex,
+    endPreview,
+    createConversionSettings,
+    setLivePreviewEnabled
+  ]);
 
   // Get file icon based on type
   const getFileIcon = (mediaFile: MediaFile) => {

@@ -49,6 +49,21 @@ export const WiggleDialog: React.FC = () => {
     startFrame: 0,
     endFrame: 0
   });
+
+  const handleApply = useCallback(async () => {
+    updateFrameRange(localFrameRange);
+    const success = await applyWiggleWithHistory();
+    if (success) {
+      closeWiggleDialog();
+    }
+  }, [updateFrameRange, localFrameRange, applyWiggleWithHistory, closeWiggleDialog]);
+
+  const handleCancel = useCallback(() => {
+    if (isPreviewActive) {
+      stopPreview();
+    }
+    closeWiggleDialog();
+  }, [isPreviewActive, stopPreview, closeWiggleDialog]);
   
   // Reset position and settings when dialog opens
   useEffect(() => {
@@ -104,7 +119,7 @@ export const WiggleDialog: React.FC = () => {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isWiggleDialogOpen]);
+  }, [isWiggleDialogOpen, handleCancel, handleApply]);
 
   // Dragging handlers
   const handleDrag = useCallback((deltaX: number, deltaY: number) => {
@@ -150,22 +165,7 @@ export const WiggleDialog: React.FC = () => {
   };
 
   // Apply changes
-  const handleApply = async () => {
-    // Update the frame range in store before applying
-    updateFrameRange(localFrameRange);
-    const success = await applyWiggleWithHistory();
-    if (success) {
-      closeWiggleDialog();
-    }
-  };
-
   // Cancel and close
-  const handleCancel = () => {
-    if (isPreviewActive) {
-      stopPreview();
-    }
-    closeWiggleDialog();
-  };
 
   // Generate new random seed
   const generateNewSeed = () => {

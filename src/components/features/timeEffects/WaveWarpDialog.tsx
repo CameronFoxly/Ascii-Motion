@@ -48,6 +48,21 @@ export const WaveWarpDialog: React.FC = () => {
     startFrame: 0,
     endFrame: 0
   });
+
+  const handleApply = useCallback(async () => {
+    updateFrameRange(localFrameRange);
+    const success = await applyWaveWarpWithHistory();
+    if (success) {
+      closeWaveWarpDialog();
+    }
+  }, [updateFrameRange, localFrameRange, applyWaveWarpWithHistory, closeWaveWarpDialog]);
+
+  const handleCancel = useCallback(() => {
+    if (isPreviewActive) {
+      stopPreview();
+    }
+    closeWaveWarpDialog();
+  }, [isPreviewActive, stopPreview, closeWaveWarpDialog]);
   
   // Reset position and settings when dialog opens
   useEffect(() => {
@@ -103,7 +118,7 @@ export const WaveWarpDialog: React.FC = () => {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isWaveWarpDialogOpen]);
+  }, [isWaveWarpDialogOpen, handleCancel, handleApply]);
 
   // Dragging handlers
   const handleDrag = useCallback((deltaX: number, deltaY: number) => {
@@ -149,22 +164,7 @@ export const WaveWarpDialog: React.FC = () => {
   };
 
   // Apply changes
-  const handleApply = async () => {
-    // Update the frame range in store before applying
-    updateFrameRange(localFrameRange);
-    const success = await applyWaveWarpWithHistory();
-    if (success) {
-      closeWaveWarpDialog();
-    }
-  };
-
   // Cancel and close
-  const handleCancel = () => {
-    if (isPreviewActive) {
-      stopPreview();
-    }
-    closeWaveWarpDialog();
-  };
 
   // Calculate dialog position (lower-left corner)
   const getDialogPosition = () => {

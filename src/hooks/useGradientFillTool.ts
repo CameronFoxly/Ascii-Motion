@@ -211,6 +211,8 @@ export const useGradientFillTool = () => {
     previewData,
     canvasWidth,
     canvasHeight,
+  cellWidth,
+  cellHeight,
     setApplying, 
     setPoints,
     setHoverEndPoint,
@@ -232,7 +234,7 @@ export const useGradientFillTool = () => {
       // For now, we'll regenerate preview if definition changes
       // TODO: Add drag detection for start/end point adjustment
     }
-  }, [activeTool, isApplying, startPoint, endPoint, ellipsePoint, setHoverEndPoint, generatePreview]);
+  }, [activeTool, isApplying, startPoint, endPoint, setHoverEndPoint, generatePreview]);
 
   // Cancel gradient (Escape key)
   const cancelGradient = useCallback(() => {

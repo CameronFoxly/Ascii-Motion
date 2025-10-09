@@ -199,7 +199,7 @@ export const useCanvasDragAndDrop = () => {
       // Clear preview when conditions not met
       clearLinePreview();
     }
-  }, [getGridCoordinatesFromEvent, isDrawing, activeTool, shiftKeyDown, pencilLastPosition, handleDrawing, drawBrushLine, eraseBrushLine, getLinePoints, setLinePreview, clearLinePreview]);
+  }, [getGridCoordinatesFromEvent, isDrawing, activeTool, shiftKeyDown, pencilLastPosition, handleDrawing, drawBrushLine, eraseBrushLine, getLinePoints, setLinePreview, clearLinePreview, getBrushSettings, fontMetrics.aspectRatio]);
 
   // Handle rectangle tool mouse down
   const handleRectangleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {

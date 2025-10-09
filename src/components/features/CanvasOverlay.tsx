@@ -774,7 +774,37 @@ export const CanvasOverlay: React.FC = () => {
         );
       });
     }
-  }, [selection, lassoSelection, linePreview, effectiveCellWidth, effectiveCellHeight, panOffset, moveState, getTotalOffset, canvasRef, pasteMode, activeTool, gradientApplying, gradientStart, gradientEnd, gradientDefinition, gradientPreview, boxApplying, boxPreview, boxDrawnCells, boxRectanglePreview, hoverPreview]);
+  }, [
+    selection,
+    lassoSelection,
+    magicWandSelection,
+    selectionPreview,
+    linePreview,
+    effectiveCellWidth,
+    effectiveCellHeight,
+    panOffset,
+    moveState,
+    getTotalOffset,
+    canvasRef,
+    pasteMode,
+    activeTool,
+    gradientApplying,
+    gradientStart,
+    gradientEnd,
+    gradientDefinition,
+    gradientPreview,
+    boxApplying,
+    boxPreview,
+    boxDrawnCells,
+    boxRectanglePreview,
+    hoverPreview,
+    canvasBackgroundColor,
+    fontMetrics,
+    width,
+    height,
+    theme,
+    zoom
+  ]);
 
   // Re-render overlay when dependencies change
   useEffect(() => {

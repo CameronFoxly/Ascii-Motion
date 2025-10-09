@@ -107,7 +107,7 @@ export const CanvasRenderer: React.FC = () => {
         }
       });
     }
-  }, [width, height, getCell, drawCell, canvasWidth, canvasHeight, moveState, getTotalOffset, canvasBackgroundColor, showGrid]);
+  }, [width, height, getCell, drawCell, canvasWidth, canvasHeight, moveState, getTotalOffset, canvasBackgroundColor, canvasRef]);
 
   // Re-render when dependencies change
   useEffect(() => {
@@ -125,7 +125,7 @@ export const CanvasRenderer: React.FC = () => {
     
     // Re-render after resize
     renderGrid();
-  }, [canvasWidth, canvasHeight, renderGrid]);
+  }, [canvasWidth, canvasHeight, renderGrid, canvasRef]);
 
   return null; // This component only handles rendering logic, no UI
 };
