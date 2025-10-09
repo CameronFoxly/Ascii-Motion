@@ -3,6 +3,7 @@ import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
 import type { 
   Cell,
+  Frame,
   AddFrameHistoryAction, 
   DuplicateFrameHistoryAction, 
   DeleteFrameHistoryAction, 
@@ -281,7 +282,7 @@ export const useAnimationHistory = () => {
   /**
    * Add multiple frames with history recording
    */
-  const addMultipleFrames = useCallback((count: number, sourceFrame?: any) => {
+  const addMultipleFrames = useCallback((count: number, sourceFrame?: Frame | null) => {
     if (count <= 0) return;
     
     // For now, add frames one by one using the existing single-frame method

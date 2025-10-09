@@ -24,6 +24,7 @@ import {
   applyWiggleToFrame, 
   calculateAccumulatedTime 
 } from '../utils/timeEffectsProcessing';
+import type { Cell } from '../types';
 
 interface TimeEffectsState {
   // ==========================================
@@ -258,7 +259,7 @@ export const useTimeEffectsStore = create<TimeEffectsState>((set, get) => ({
       const accumulatedTime = calculateAccumulatedTime(frames, currentFrameIndex);
       
       // Apply effect based on type
-      let previewData: Map<string, any> | null = null;
+  let previewData: Map<string, Cell> | null = null;
       
       console.log('[TimeEffects Store] Applying effect:', state.previewEffect, 'to frame', currentFrameIndex);
       console.log('[TimeEffects Store] Frame data size:', currentFrameData.size, 'accumulated time:', accumulatedTime);

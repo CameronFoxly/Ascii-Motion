@@ -1,4 +1,4 @@
-// eslint-disable-next-line react-refresh/only-export-components
+/* eslint-disable react-refresh/only-export-components */
 export { CanvasProvider } from './CanvasContext/CanvasProvider';
 export { useCanvasContext } from './CanvasContext/useCanvasContext';
 export { useCanvasDimensions } from './CanvasContext/useCanvasDimensions';
@@ -9,3 +9,4 @@ export type {
 	CanvasActions,
 	SelectionPreviewState,
 } from './CanvasContext/context';
+/* eslint-enable react-refresh/only-export-components */

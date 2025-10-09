@@ -56,10 +56,23 @@ export interface ConversionSettings {
 /**
  * Mapping algorithm interface for extensibility
  */
+export interface MappingAlgorithmOptions {
+  neighborValues?: number[];
+  gradientMagnitude?: number;
+  sobelX?: number;
+  sobelY?: number;
+}
+
 export interface MappingAlgorithm {
   name: string;
   description: string;
-  mapPixelToCharacter: (r: number, g: number, b: number, characters: string[], options?: any) => string;
+  mapPixelToCharacter: (
+    r: number,
+    g: number,
+    b: number,
+    characters: string[],
+    options?: MappingAlgorithmOptions
+  ) => string;
 }
 
 /**
@@ -98,7 +111,13 @@ export const luminanceAlgorithm: MappingAlgorithm = {
 export const contrastAlgorithm: MappingAlgorithm = {
   name: 'contrast',
   description: 'Maps characters based on local contrast detection',
-  mapPixelToCharacter: (r: number, g: number, b: number, characters: string[], options?: { neighborValues?: number[] }) => {
+  mapPixelToCharacter: (
+    r: number,
+    g: number,
+    b: number,
+    characters: string[],
+    options?: MappingAlgorithmOptions
+  ) => {
     const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     
     // If neighbor values are provided, calculate local contrast
@@ -141,11 +160,13 @@ export const contrastAlgorithm: MappingAlgorithm = {
 export const edgeDetectionAlgorithm: MappingAlgorithm = {
   name: 'edge-detection',
   description: 'Maps characters based on edge detection for line art',
-  mapPixelToCharacter: (r: number, g: number, b: number, characters: string[], options?: { 
-    gradientMagnitude?: number,
-    sobelX?: number,
-    sobelY?: number 
-  }) => {
+  mapPixelToCharacter: (
+    r: number,
+    g: number,
+    b: number,
+    characters: string[],
+    options?: MappingAlgorithmOptions
+  ) => {
     const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     
     // If Sobel gradient values are provided, calculate proper edge strength
@@ -434,7 +455,7 @@ export class ASCIIConverter {
         let character: string;
         if (settings.enableCharacterMapping) {
           // Calculate additional data for advanced algorithms
-          const algorithmOptions: any = {};
+          const algorithmOptions: MappingAlgorithmOptions = {};
           
           if (settings.mappingMethod === 'contrast' || settings.mappingMethod === 'edge-detection') {
             // Calculate neighbor values for contrast and edge detection
@@ -858,7 +879,7 @@ export class ASCIIConverter {
     characterPalette: CharacterPalette,
     mappingMethod: CharacterMappingSettings['mappingMethod'],
     invertDensity: boolean,
-    options?: any
+    options?: MappingAlgorithmOptions
   ): string {
     const algorithm = MAPPING_ALGORITHMS[mappingMethod];
     if (!algorithm) {
