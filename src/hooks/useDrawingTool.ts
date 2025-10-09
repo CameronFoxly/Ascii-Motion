@@ -134,7 +134,7 @@ export const useDrawingTool = () => {
     applyBrushLine('eraser', x0, y0, x1, y1);
   }, [applyBrushLine]);
 
-  const drawAtPosition = useCallback((x: number, y: number, isShiftClick = false, _isFirstStroke = false, toolOverride?: string) => {
+  const drawAtPosition = useCallback((x: number, y: number, isShiftClick = false, toolOverride?: string) => {
     const toolToUse = toolOverride || activeTool;
     switch (toolToUse) {
       case 'pencil': {

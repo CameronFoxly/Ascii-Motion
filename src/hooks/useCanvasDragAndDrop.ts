@@ -105,8 +105,8 @@ export const useCanvasDragAndDrop = () => {
   }, [getGridCoordinates, width, height, canvasRef]);
 
   // Handle drawing operations
-  const handleDrawing = useCallback((x: number, y: number, isShiftClick = false, isFirstStroke = false, toolOverride?: string) => {
-    drawAtPosition(x, y, isShiftClick, isFirstStroke, toolOverride);
+  const handleDrawing = useCallback((x: number, y: number, isShiftClick = false, toolOverride?: string) => {
+    drawAtPosition(x, y, isShiftClick, toolOverride);
   }, [drawAtPosition]);
 
   // Handle drawing tool mouse down
@@ -121,7 +121,7 @@ export const useCanvasDragAndDrop = () => {
     
     // Always treat mouse down as first stroke - this prevents connecting separate clicks
     // The gap-filling logic in mouse move will handle continuous drawing smoothness
-    drawAtPosition(x, y, isShiftClick, true, toolOverride);
+  drawAtPosition(x, y, isShiftClick, toolOverride);
   }, [getGridCoordinatesFromEvent, cells, pushCanvasHistory, currentFrameIndex, setMouseButtonDown, setIsDrawing, drawAtPosition, shiftKeyDown]);
 
   // Handle drawing tool mouse move
@@ -148,7 +148,7 @@ export const useCanvasDragAndDrop = () => {
         setPencilLastPosition({ x, y });
       } else {
         // Normal drag drawing - use regular drawing function
-        handleDrawing(x, y, false, false); // Continuous stroke, not first
+  handleDrawing(x, y, false); // Continuous stroke
       }
     }
     

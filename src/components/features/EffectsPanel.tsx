@@ -45,11 +45,7 @@ const parseTailwindDuration = (token: string): number | null => {
   return match ? Number(match[1]) : null;
 };
 
-interface EffectsPanelProps {
-  // No props needed - uses store state
-}
-
-export function EffectsPanel({}: EffectsPanelProps) {
+export function EffectsPanel() {
   const { 
     isOpen, 
     activeEffect, 
