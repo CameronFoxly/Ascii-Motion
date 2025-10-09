@@ -12,6 +12,8 @@ import type {
   ExportProgress 
 } from '../types/export';
 import type { Cell } from '../types';
+import type { TypographySettings } from './canvasSizeConversion';
+import type { FontMetrics } from './fontMetrics';
 import { setupTextRendering } from './canvasTextRendering';
 import { calculateAdaptiveGridColor } from './gridColor';
 import { 
@@ -21,6 +23,48 @@ import {
   convertTextToPath,
   minifySvg
 } from './svgExportUtils';
+
+interface JsonExportFrameColors {
+  foreground?: Record<string, string> | string;
+  background?: Record<string, string> | string;
+}
+
+interface JsonExportFrameEntry {
+  title: string;
+  duration: number;
+  content: string[] | string;
+  contentString?: string;
+  colors?: JsonExportFrameColors;
+}
+
+interface JsonExportMetadata {
+  exportedAt: string;
+  exportVersion: string;
+  appVersion: string;
+  description: string;
+  title: string;
+  frameCount: number;
+  canvasSize: {
+    width: number;
+    height: number;
+  };
+}
+
+interface JsonExportStructure {
+  metadata?: JsonExportMetadata;
+  canvas: {
+    width: number;
+    height: number;
+    backgroundColor: string;
+  };
+  typography: TypographySettings;
+  animation: {
+    frameRate: number;
+    looping: boolean;
+    currentFrame: number;
+  };
+  frames: JsonExportFrameEntry[];
+}
 
 /**
  * High-quality export renderer for ASCII Motion
@@ -114,7 +158,7 @@ export class ExportRenderer {
         try {
           const loadedFont = await fontLoader.loadFont(fontId, { cache: true, timeout: 10000 });
           font = loadedFont.font;
-        } catch (error: any) {
+        } catch {
           // Font loading failed, will fall back to pixel tracing
           font = undefined;
         }
@@ -458,7 +502,7 @@ export class ExportRenderer {
       this.updateProgress('Serializing project data...', 30);
 
       // Create frames with text content and separate color data
-      const frames: any[] = [];
+      const frames: JsonExportFrameEntry[] = [];
 
       data.frames.forEach((frame, index) => {
         this.updateProgress(`Processing frame ${index + 1}...`, 30 + (index / data.frames.length) * 40);
@@ -505,42 +549,45 @@ export class ExportRenderer {
 
         const contentLines = [...lines];
         const joinedContent = contentLines.join('\n');
+        const content = settings.humanReadable ? contentLines : joinedContent;
 
-        // Create frame object
-        const frameData: any = {
+        const frameEntry: JsonExportFrameEntry = {
           title: `Frame ${index}`,
           duration: frame.duration,
-          content: settings.humanReadable ? contentLines : joinedContent
+          content
         };
 
         if (settings.humanReadable) {
-          frameData.contentString = joinedContent;
+          frameEntry.contentString = joinedContent;
         }
 
-        // Add color data if present
-        if (Object.keys(foregroundColors).length > 0 || Object.keys(backgroundColors).length > 0) {
-          frameData.colors = {};
-          
-          if (Object.keys(foregroundColors).length > 0) {
-            frameData.colors.foreground = settings.humanReadable
-              ? JSON.stringify(foregroundColors)
-              : foregroundColors;
-          }
-          
-          if (Object.keys(backgroundColors).length > 0) {
-            frameData.colors.background = settings.humanReadable
-              ? JSON.stringify(backgroundColors)
-              : backgroundColors;
-          }
+        const colorEntries: JsonExportFrameColors = {};
+        let hasColorData = false;
+
+        if (Object.keys(foregroundColors).length > 0) {
+          colorEntries.foreground = settings.humanReadable
+            ? JSON.stringify(foregroundColors)
+            : foregroundColors;
+          hasColorData = true;
         }
 
-        frames.push(frameData);
+        if (Object.keys(backgroundColors).length > 0) {
+          colorEntries.background = settings.humanReadable
+            ? JSON.stringify(backgroundColors)
+            : backgroundColors;
+          hasColorData = true;
+        }
+
+        if (hasColorData) {
+          frameEntry.colors = colorEntries;
+        }
+
+        frames.push(frameEntry);
       });
 
       // Create the final JSON structure
-      const jsonData: any = {
-        ...(settings.includeMetadata && {
-          metadata: {
+      const metadata: JsonExportMetadata | undefined = settings.includeMetadata
+        ? {
             exportedAt: new Date().toISOString(),
             exportVersion: '1.0.0',
             appVersion: data.metadata.version,
@@ -552,26 +599,25 @@ export class ExportRenderer {
               height: data.canvasDimensions.height
             }
           }
-        }),
+        : undefined;
 
+      const jsonData: JsonExportStructure = {
+        ...(metadata ? { metadata } : {}),
         canvas: {
           width: data.canvasDimensions.width,
           height: data.canvasDimensions.height,
           backgroundColor: data.canvasBackgroundColor
         },
-
         typography: {
           fontSize: data.typography.fontSize,
           characterSpacing: data.typography.characterSpacing,
           lineSpacing: data.typography.lineSpacing
         },
-
         animation: {
           frameRate: data.frameRate,
           looping: data.looping,
           currentFrame: data.currentFrameIndex
         },
-
         frames
       };
 
@@ -1734,8 +1780,8 @@ export class ExportRenderer {
     gridWidth: number,
     gridHeight: number,
     sizeMultiplier: number,
-    fontMetrics: any,
-    typography: any
+    fontMetrics: FontMetrics,
+    typography: TypographySettings
   ): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; scale: number } {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -1746,9 +1792,9 @@ export class ExportRenderer {
 
     // Calculate cell dimensions using actual typography settings
     // Use typography.fontSize instead of fontMetrics.fontSize for accurate sizing
-    const actualFontSize = typography?.fontSize || fontMetrics?.fontSize || 16;
-    const characterSpacing = typography?.characterSpacing || 1.0;
-    const lineSpacing = typography?.lineSpacing || 1.0;
+    const actualFontSize = typography.fontSize || fontMetrics.fontSize || 16;
+    const characterSpacing = typography.characterSpacing || 1.0;
+    const lineSpacing = typography.lineSpacing || 1.0;
     
     // Calculate base character dimensions from actual font size
     const baseCharWidth = actualFontSize * 0.6; // Standard monospace aspect ratio
@@ -1789,10 +1835,10 @@ export class ExportRenderer {
     options: {
       backgroundColor: string;
       showGrid: boolean;
-      fontMetrics: any;
-      typography: any;
+      fontMetrics: FontMetrics;
+      typography: TypographySettings;
       sizeMultiplier: number;
-      theme: string;
+      theme: 'light' | 'dark';
       scale?: number;
     }
   ): Promise<void> {
@@ -1802,9 +1848,9 @@ export class ExportRenderer {
     const { backgroundColor, showGrid, fontMetrics, typography, sizeMultiplier, theme } = options;
     
     // Calculate cell dimensions using actual typography settings
-    const actualFontSize = typography?.fontSize || fontMetrics?.fontSize || 16;
-    const characterSpacing = typography?.characterSpacing || 1.0;
-    const lineSpacing = typography?.lineSpacing || 1.0;
+    const actualFontSize = typography.fontSize || fontMetrics.fontSize || 16;
+    const characterSpacing = typography.characterSpacing || 1.0;
+    const lineSpacing = typography.lineSpacing || 1.0;
     
     // Calculate character dimensions with spacing
     const baseCharWidth = actualFontSize * 0.6; // Standard monospace aspect ratio
@@ -1824,7 +1870,7 @@ export class ExportRenderer {
     
     // Setup font for text rendering using actual typography settings
     const exportFontSize = actualFontSize * sizeMultiplier;
-    const fontFamily = fontMetrics?.fontFamily || 'SF Mono, Monaco, Inconsolata, "Roboto Mono", Consolas, "Courier New"';
+  const fontFamily = fontMetrics.fontFamily || 'SF Mono, Monaco, Inconsolata, "Roboto Mono", Consolas, "Courier New"';
     ctx.font = `${exportFontSize}px '${fontFamily}', monospace`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -1846,9 +1892,9 @@ export class ExportRenderer {
     cellWidth: number,
     cellHeight: number,
     backgroundColor: string,
-    theme: string
+    theme: 'light' | 'dark'
   ): void {
-    const gridColor = calculateAdaptiveGridColor(backgroundColor, theme as 'light' | 'dark');
+    const gridColor = calculateAdaptiveGridColor(backgroundColor, theme);
     ctx.strokeStyle = gridColor;
     ctx.lineWidth = 1;
     

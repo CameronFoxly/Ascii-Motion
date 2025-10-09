@@ -2,6 +2,41 @@ import { useCanvasStore } from '../stores/canvasStore';
 import { useAnimationStore } from '../stores/animationStore';
 import type { Cell } from '../types';
 import { DEFAULT_FRAME_DURATION } from '../constants';
+import type { TypographySettings } from './canvasSizeConversion';
+
+type JsonFrameContent = string | string[];
+
+type JsonFrameColorsValue = Record<string, string> | string | undefined;
+
+interface JsonFrameColors {
+  foreground?: Record<string, string> | string;
+  background?: Record<string, string> | string;
+}
+
+interface JsonImportFrame {
+  title: string;
+  duration: number;
+  content?: JsonFrameContent;
+  contentString?: string;
+  colors?: JsonFrameColors;
+}
+
+interface JsonImportAnimation {
+  frameRate?: number;
+  looping?: boolean;
+  currentFrame?: number;
+}
+
+interface JsonImportData {
+  canvas: {
+    width: number;
+    height: number;
+    backgroundColor?: string;
+  };
+  typography?: TypographySettings;
+  frames: JsonImportFrame[];
+  animation?: JsonImportAnimation;
+}
 
 /**
  * JSON Import Utility
@@ -26,7 +61,7 @@ export class JsonImporter {
       reader.onload = (event) => {
         try {
           const content = event.target?.result as string;
-          const jsonData = JSON.parse(content);
+          const jsonData = JSON.parse(content) as unknown;
           
           // Validate JSON data structure
           if (!JsonImporter.validateJsonData(jsonData)) {
@@ -53,44 +88,78 @@ export class JsonImporter {
     /**
    * Validate JSON data structure for the new text-based format
    */
-  private static validateJsonData(data: any): boolean {
+  private static validateJsonData(data: unknown): data is JsonImportData {
     try {
-      // Check top-level structure
-      if (typeof data !== 'object' || data === null) return false;
-      if (!data.canvas || typeof data.canvas !== 'object') return false;
-      if (!data.frames || !Array.isArray(data.frames)) return false;
-      
-      // Validate canvas settings
-      if (typeof data.canvas.width !== 'number' || typeof data.canvas.height !== 'number') return false;
-      
-      // Validate typography (optional)
-      if (data.typography) {
-        if (typeof data.typography.fontSize !== 'number') return false;
-        if (typeof data.typography.characterSpacing !== 'number') return false;
-        if (typeof data.typography.lineSpacing !== 'number') return false;
+      if (typeof data !== 'object' || data === null) {
+        return false;
       }
-      
-      // Validate frames
-      for (const frame of data.frames) {
-        if (typeof frame !== 'object' || frame === null) return false;
-        if (typeof frame.title !== 'string') return false;
-        if (typeof frame.duration !== 'number') return false;
 
-        const contentField = frame.content ?? frame.contentString;
+      const candidate = data as Partial<JsonImportData> & Record<string, unknown>;
+      const { canvas, frames, typography } = candidate;
+
+      if (!canvas || typeof canvas !== 'object') {
+        return false;
+      }
+
+      const canvasSettings = canvas as JsonImportData['canvas'];
+      if (typeof canvasSettings.width !== 'number' || typeof canvasSettings.height !== 'number') {
+        return false;
+      }
+
+      if (!Array.isArray(frames)) {
+        return false;
+      }
+
+      if (typography) {
+        const typographySettings = typography as TypographySettings;
+        if (typeof typographySettings.fontSize !== 'number') return false;
+        if (typeof typographySettings.characterSpacing !== 'number') return false;
+        if (typeof typographySettings.lineSpacing !== 'number') return false;
+      }
+
+      for (const frame of frames) {
+        if (typeof frame !== 'object' || frame === null) {
+          return false;
+        }
+
+        const frameCandidate = frame as Partial<JsonImportFrame>;
+
+        if (typeof frameCandidate.title !== 'string') return false;
+        if (typeof frameCandidate.duration !== 'number') return false;
+
+        const contentField = frameCandidate.content ?? frameCandidate.contentString;
         const isStringContent = typeof contentField === 'string';
         const isArrayContent = Array.isArray(contentField) && contentField.every((line: unknown) => typeof line === 'string');
-        if (!isStringContent && !isArrayContent) return false;
-        
-        // Validate colors (optional)
-        if (frame.colors) {
-          if (typeof frame.colors !== 'object') return false;
 
-          const { foreground, background } = frame.colors;
-          if (foreground && typeof foreground !== 'object' && typeof foreground !== 'string') return false;
-          if (background && typeof background !== 'object' && typeof background !== 'string') return false;
+        if (!isStringContent && !isArrayContent) {
+          return false;
+        }
+
+        if (frameCandidate.colors !== undefined) {
+          if (typeof frameCandidate.colors !== 'object' || frameCandidate.colors === null) {
+            return false;
+          }
+
+          const { foreground, background } = frameCandidate.colors as JsonFrameColors;
+
+          if (
+            foreground !== undefined &&
+            typeof foreground !== 'string' &&
+            (typeof foreground !== 'object' || foreground === null)
+          ) {
+            return false;
+          }
+
+          if (
+            background !== undefined &&
+            typeof background !== 'string' &&
+            (typeof background !== 'object' || background === null)
+          ) {
+            return false;
+          }
         }
       }
-      
+
       return true;
     } catch {
       return false;
@@ -101,7 +170,7 @@ export class JsonImporter {
    * Restore JSON data to application stores for text-based format
    */
   private static restoreJsonData(
-    jsonData: any, 
+    jsonData: JsonImportData, 
     typographyCallbacks?: {
       setFontSize: (size: number) => void;
       setCharacterSpacing: (spacing: number) => void;
@@ -136,7 +205,7 @@ export class JsonImporter {
     // Process frames from text content
     if (jsonData.frames && jsonData.frames.length > 0) {
       // Convert text-based frames to internal format
-      const importedFrames = jsonData.frames.map((frameData: any, index: number) => {
+      const importedFrames = jsonData.frames.map((frameData, index) => {
         // Parse the text content into cells
         const contentField = frameData.content ?? frameData.contentString;
         const lines: string[] = Array.isArray(contentField)
@@ -145,7 +214,7 @@ export class JsonImporter {
             ? contentField.split('\n')
             : [];
 
-        const parseColorMap = (input: unknown): Record<string, string> => {
+        const parseColorMap = (input: JsonFrameColorsValue): Record<string, string> => {
           if (!input) return {};
           if (typeof input === 'string') {
             try {
@@ -163,8 +232,8 @@ export class JsonImporter {
           return {};
         };
 
-        const foregroundMap = parseColorMap(frameData.colors?.foreground);
-        const backgroundMap = parseColorMap(frameData.colors?.background);
+  const foregroundMap = parseColorMap(frameData.colors?.foreground);
+  const backgroundMap = parseColorMap(frameData.colors?.background);
 
         const frameMap = new Map<string, Cell>();
         

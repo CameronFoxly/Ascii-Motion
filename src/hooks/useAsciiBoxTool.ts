@@ -102,7 +102,7 @@ export const useAsciiBoxTool = () => {
     
     drawnCells.forEach(key => {
       const [x, y] = key.split(',').map(Number);
-      const connections = detectConnections(x, y, drawnCells, currentStyle, cells);
+  const connections = detectConnections(x, y, drawnCells, cells);
       const char = getBoxDrawingCharacter(connections, currentStyle);
       
       newPreview.set(key, {
@@ -154,7 +154,7 @@ export const useAsciiBoxTool = () => {
         // Update all affected cells with new connections
         newDrawnCells.forEach(key => {
           const [cx, cy] = key.split(',').map(Number);
-          const connections = detectConnections(cx, cy, newDrawnCells, currentStyle, cells);
+          const connections = detectConnections(cx, cy, newDrawnCells, cells);
           const cellChar = getBoxDrawingCharacter(connections, currentStyle);
           
           newPreview.set(key, {
@@ -185,19 +185,18 @@ export const useAsciiBoxTool = () => {
         
         // Add all cells along the line
         lineCells.forEach(point => {
-          const { affectedCells } = addBoxCell(
-            point.x, point.y,
-            newDrawnCells,
-            currentStyle,
-            cells,
-            selectedColor,
-            selectedBgColor
-          );
+            const { affectedCells } = addBoxCell(
+              point.x,
+              point.y,
+              newDrawnCells,
+              currentStyle,
+              cells
+            );
           
           // Update preview for all affected cells
           affectedCells.forEach(cellKey => {
             const [cx, cy] = cellKey.split(',').map(Number);
-            const connections = detectConnections(cx, cy, newDrawnCells, currentStyle, cells);
+            const connections = detectConnections(cx, cy, newDrawnCells, cells);
             const cellChar = getBoxDrawingCharacter(connections, currentStyle);
             
             newPreview.set(cellKey, {
@@ -213,20 +212,19 @@ export const useAsciiBoxTool = () => {
       } else {
         // Single click - add one cell
         const newDrawnCells = new Set(drawnCells);
-        const { affectedCells } = addBoxCell(
-          x, y,
-          newDrawnCells,
-          currentStyle,
-          cells,
-          selectedColor,
-          selectedBgColor
-        );
+          const { affectedCells } = addBoxCell(
+            x,
+            y,
+            newDrawnCells,
+            currentStyle,
+            cells
+          );
         
         // Update preview with new and affected cells
         const newPreview = new Map(previewData || new Map());
         affectedCells.forEach(cellKey => {
           const [cx, cy] = cellKey.split(',').map(Number);
-          const connections = detectConnections(cx, cy, newDrawnCells, currentStyle, cells);
+          const connections = detectConnections(cx, cy, newDrawnCells, cells);
           const cellChar = getBoxDrawingCharacter(connections, currentStyle);
           
           newPreview.set(cellKey, {
@@ -244,7 +242,7 @@ export const useAsciiBoxTool = () => {
       const key = `${x},${y}`;
       if (drawnCells.has(key)) {
         const newDrawnCells = new Set(drawnCells);
-        const affectedCells = eraseBoxCell(x, y, newDrawnCells, currentStyle, cells);
+  const affectedCells = eraseBoxCell(x, y, newDrawnCells);
         
         // Update preview - remove erased cell and update neighbors
         const newPreview = new Map(previewData || new Map());
@@ -252,7 +250,7 @@ export const useAsciiBoxTool = () => {
         
         affectedCells.forEach(cellKey => {
           const [cx, cy] = cellKey.split(',').map(Number);
-          const connections = detectConnections(cx, cy, newDrawnCells, currentStyle, cells);
+          const connections = detectConnections(cx, cy, newDrawnCells, cells);
           const cellChar = getBoxDrawingCharacter(connections, currentStyle);
           
           newPreview.set(cellKey, {
@@ -307,19 +305,18 @@ export const useAsciiBoxTool = () => {
     const newPreview = new Map(previewData || new Map());
     
     cellsToAdd.forEach(point => {
-      const { affectedCells } = addBoxCell(
-        point.x, point.y,
-        newDrawnCells,
-        currentStyle,
-        cells,
-        selectedColor,
-        selectedBgColor
-      );
+        const { affectedCells } = addBoxCell(
+          point.x,
+          point.y,
+          newDrawnCells,
+          currentStyle,
+          cells
+        );
       
       // Update preview for all affected cells
       affectedCells.forEach(cellKey => {
         const [cx, cy] = cellKey.split(',').map(Number);
-        const connections = detectConnections(cx, cy, newDrawnCells, currentStyle, cells);
+  const connections = detectConnections(cx, cy, newDrawnCells, cells);
         const cellChar = getBoxDrawingCharacter(connections, currentStyle);
         
         newPreview.set(cellKey, {
@@ -370,7 +367,7 @@ export const useAsciiBoxTool = () => {
     cellsToErase.forEach(point => {
       const key = `${point.x},${point.y}`;
       if (newDrawnCells.has(key)) {
-        const affectedCells = eraseBoxCell(point.x, point.y, newDrawnCells, currentStyle, cells);
+  const affectedCells = eraseBoxCell(point.x, point.y, newDrawnCells);
         
         // Remove from preview
         newPreview.delete(key);
@@ -378,7 +375,7 @@ export const useAsciiBoxTool = () => {
         // Update affected neighboring cells
         affectedCells.forEach(cellKey => {
           const [cx, cy] = cellKey.split(',').map(Number);
-          const connections = detectConnections(cx, cy, newDrawnCells, currentStyle, cells);
+          const connections = detectConnections(cx, cy, newDrawnCells, cells);
           const cellChar = getBoxDrawingCharacter(connections, currentStyle);
           
           newPreview.set(cellKey, {

@@ -6,13 +6,14 @@
  */
 
 import type { Cell, Frame } from '../types';
-import type { 
-  EffectType, 
-  LevelsEffectSettings, 
+import type {
+  EffectType,
+  LevelsEffectSettings,
   HueSaturationEffectSettings,
   RemapColorsEffectSettings,
   RemapCharactersEffectSettings,
-  EffectProcessingResult 
+  EffectProcessingResult,
+  ColorRange,
 } from '../types/effects';
 
 /**
@@ -21,9 +22,7 @@ import type {
 export async function processEffect(
   effectType: EffectType,
   cells: Map<string, Cell>,
-  settings: LevelsEffectSettings | HueSaturationEffectSettings | RemapColorsEffectSettings | RemapCharactersEffectSettings,
-  _canvasWidth: number,
-  _canvasHeight: number
+  settings: LevelsEffectSettings | HueSaturationEffectSettings | RemapColorsEffectSettings | RemapCharactersEffectSettings
 ): Promise<EffectProcessingResult> {
   const startTime = performance.now();
   
@@ -94,8 +93,6 @@ export async function processEffectOnFrames(
   effectType: EffectType,
   frames: Frame[],
   settings: LevelsEffectSettings | HueSaturationEffectSettings | RemapColorsEffectSettings | RemapCharactersEffectSettings,
-  canvasWidth: number,
-  canvasHeight: number,
   onProgress?: (frameIndex: number, totalFrames: number) => void
 ): Promise<{ processedFrames: Frame[], totalAffectedCells: number, processingTime: number, errors: string[] }> {
   const startTime = performance.now();
@@ -108,7 +105,7 @@ export async function processEffectOnFrames(
     onProgress?.(i, frames.length);
 
     try {
-      const result = await processEffect(effectType, frame.data, settings, canvasWidth, canvasHeight);
+  const result = await processEffect(effectType, frame.data, settings);
       
       if (result.success && result.processedCells) {
         processedFrames.push({
@@ -322,13 +319,13 @@ async function processRemapCharactersEffect(
 /**
  * Check if a color should be processed based on color range settings
  */
-function shouldProcessColor(color: string, colorRange: any): boolean {
+function shouldProcessColor(color: string, colorRange: ColorRange | undefined): boolean {
   if (!colorRange || colorRange.type === 'all') {
     return true;
   }
   
-  if (colorRange.type === 'custom' && colorRange.customColors) {
-    return colorRange.customColors.includes(color);
+  if (colorRange.type === 'custom') {
+    return (colorRange.customColors ?? []).includes(color);
   }
   
   // For 'text' and 'background' types, we'd need context about which colors are text vs background

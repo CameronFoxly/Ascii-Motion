@@ -84,7 +84,6 @@ export function detectConnections(
   x: number,
   y: number,
   drawnCells: Set<string>,
-  _currentStyle: BoxDrawingStyle,
   canvasData: Map<string, Cell>
 ): ConnectionState {
   const hasConnection = (nx: number, ny: number): boolean => {
@@ -142,7 +141,7 @@ export function generateBoxRectangle(
   // Second pass - calculate characters based on all drawn cells
   drawnCells.forEach(key => {
     const [x, y] = key.split(',').map(Number);
-    const connections = detectConnections(x, y, drawnCells, style, canvasData);
+  const connections = detectConnections(x, y, drawnCells, canvasData);
     const char = getBoxDrawingCharacter(connections, style);
     
     previewData.set(key, {
@@ -164,9 +163,7 @@ export function addBoxCell(
   y: number,
   drawnCells: Set<string>,
   style: BoxDrawingStyle,
-  canvasData: Map<string, Cell>,
-  _selectedColor: string,
-  _selectedBgColor: string
+  canvasData: Map<string, Cell>
 ): { char: string; affectedCells: Set<string> } {
   const key = `${x},${y}`;
   drawnCells.add(key);
@@ -190,7 +187,7 @@ export function addBoxCell(
   });
   
   // Calculate character for this cell
-  const connections = detectConnections(x, y, drawnCells, style, canvasData);
+  const connections = detectConnections(x, y, drawnCells, canvasData);
   const char = getBoxDrawingCharacter(connections, style);
   
   return { char, affectedCells };
@@ -203,9 +200,7 @@ export function addBoxCell(
 export function eraseBoxCell(
   x: number,
   y: number,
-  drawnCells: Set<string>,
-  _style: BoxDrawingStyle,
-  _canvasData: Map<string, Cell>
+  drawnCells: Set<string>
 ): Set<string> {
   const key = `${x},${y}`;
   drawnCells.delete(key);

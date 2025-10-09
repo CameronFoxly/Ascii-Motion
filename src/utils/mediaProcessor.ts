@@ -10,6 +10,9 @@
  */
 
 import * as MP4Box from 'mp4box';
+import type { MP4File, MP4Info } from 'mp4box';
+
+type Mp4ArrayBuffer = ArrayBuffer & { fileStart?: number };
 
 export interface MediaFile {
   file: File;
@@ -371,10 +374,10 @@ export class MediaProcessor {
    */
   private parseMP4FrameRate(arrayBuffer: ArrayBuffer): Promise<number> {
     return new Promise((resolve) => {
-      const mp4boxFile = (MP4Box as any).createFile();
+      const mp4boxFile: MP4File = MP4Box.createFile();
       
       // Set up event handlers
-      mp4boxFile.onReady = (info: any) => {
+  mp4boxFile.onReady = (info: MP4Info) => {
 
         
         // Look for video tracks
@@ -423,7 +426,7 @@ export class MediaProcessor {
       };
       
       // Convert ArrayBuffer to the format MP4Box expects
-      const buffer = arrayBuffer as any;
+  const buffer = arrayBuffer as Mp4ArrayBuffer;
       buffer.fileStart = 0;
       
       // Append data and flush

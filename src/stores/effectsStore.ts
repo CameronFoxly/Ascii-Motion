@@ -411,10 +411,8 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
       // Process effect on current canvas data (await the async function)
       const result = await processEffect(
         state.previewEffect,
-        currentCells, 
-        effectSettings,
-        canvasStore.width,
-        canvasStore.height
+        currentCells,
+        effectSettings
       );
       
       // Update preview store with processed cells if successful
@@ -468,10 +466,7 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
       if (state.applyToTimeline) {
         // Apply to entire timeline
         const { useAnimationStore } = await import('./animationStore');
-        const { useCanvasStore } = await import('./canvasStore');
-        
         const animationStore = useAnimationStore.getState();
-        const canvasStore = useCanvasStore.getState();
         
         console.log(`Applying ${effect} effect to ${animationStore.frames.length} frames...`);
         
@@ -479,8 +474,6 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
           effect,
           animationStore.frames,
           settings,
-          canvasStore.width,
-          canvasStore.height,
           (frameIndex, totalFrames) => {
             console.log(`Processing frame ${frameIndex + 1}/${totalFrames}`);
           }
@@ -518,9 +511,7 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
         const result = await processEffect(
           effect,
           canvasStore.cells,
-          settings,
-          canvasStore.width,
-          canvasStore.height
+          settings
         );
 
         if (result.success && result.processedCells) {

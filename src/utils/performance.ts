@@ -237,9 +237,17 @@ export const clearPerformanceHistory = () => {
   performanceMonitor.clear();
 };
 
+type PerformanceHelperBindings = {
+  monitor: PerformanceMonitor;
+  logStats: () => void;
+  testGrid: (width: number, height: number) => ReturnType<typeof testLargeGridPerformance>;
+  clear: () => void;
+};
+
 // Development helper to enable performance logging in console
 if (import.meta.env.DEV) {
-  (window as any).asciiMotionPerf = {
+  const globalWindow = window as typeof window & { asciiMotionPerf?: PerformanceHelperBindings };
+  globalWindow.asciiMotionPerf = {
     monitor: performanceMonitor,
     logStats: logPerformanceStats,
     testGrid: testLargeGridPerformance,

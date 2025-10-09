@@ -29,6 +29,14 @@
  * 5. Overlays (selection, cursor, etc.)
  */
 
+type ExtendedCanvasRenderingContext2D = CanvasRenderingContext2D & {
+  textRendering?: 'auto' | 'optimizeSpeed' | 'optimizeLegibility' | 'geometricPrecision';
+  fontKerning?: CanvasFontKerning;
+  mozImageSmoothingEnabled?: boolean;
+  webkitImageSmoothingEnabled?: boolean;
+  msImageSmoothingEnabled?: boolean;
+};
+
 /**
  * Setup optimal text rendering settings for a canvas context
  * 
@@ -45,26 +53,27 @@ export const setupTextRendering = (ctx: CanvasRenderingContext2D): void => {
   ctx.textAlign = 'left';
   
   // Enable font optimization for smooth text
-  if ('textRendering' in ctx) {
-    (ctx as any).textRendering = 'optimizeLegibility';
+  const extendedCtx = ctx as ExtendedCanvasRenderingContext2D;
+  if ('textRendering' in extendedCtx) {
+    extendedCtx.textRendering = 'optimizeLegibility';
   }
   
   // Set better text rendering where available
-  if ('fontKerning' in ctx) {
-    (ctx as any).fontKerning = 'normal';
+  if ('fontKerning' in extendedCtx) {
+    extendedCtx.fontKerning = 'normal';
   }
   
   // Enable high-quality smoothing across browsers
-  if ('mozImageSmoothingEnabled' in ctx) {
-    (ctx as any).mozImageSmoothingEnabled = true;
+  if ('mozImageSmoothingEnabled' in extendedCtx) {
+    extendedCtx.mozImageSmoothingEnabled = true;
   }
   
-  if ('webkitImageSmoothingEnabled' in ctx) {
-    (ctx as any).webkitImageSmoothingEnabled = true;
+  if ('webkitImageSmoothingEnabled' in extendedCtx) {
+    extendedCtx.webkitImageSmoothingEnabled = true;
   }
   
-  if ('msImageSmoothingEnabled' in ctx) {
-    (ctx as any).msImageSmoothingEnabled = true;
+  if ('msImageSmoothingEnabled' in extendedCtx) {
+    extendedCtx.msImageSmoothingEnabled = true;
   }
 };
 

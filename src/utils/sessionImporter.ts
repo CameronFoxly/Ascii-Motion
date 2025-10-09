@@ -3,8 +3,67 @@ import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
 import { usePaletteStore } from '../stores/paletteStore';
 import { useCharacterPaletteStore } from '../stores/characterPaletteStore';
-import type { Cell } from '../types';
+import type { Cell, Tool } from '../types';
 import { DEFAULT_FRAME_DURATION } from '../constants';
+import type { TypographySettings } from './canvasSizeConversion';
+import type { ColorPalette, CharacterPalette, CharacterMappingSettings } from '../types/palette';
+import { isColorPalette, isCharacterPalette } from '../types/palette';
+
+type SessionFrameCells = Record<string, Cell>;
+
+interface SessionFrameData {
+  id: string;
+  name?: string;
+  duration?: number;
+  data?: SessionFrameCells;
+  thumbnail?: string;
+}
+
+interface SessionCanvasData {
+  width: number;
+  height: number;
+  canvasBackgroundColor: string;
+  showGrid?: boolean;
+}
+
+interface SessionAnimationData {
+  frames: SessionFrameData[];
+  currentFrameIndex: number;
+  frameRate?: number;
+  looping?: boolean;
+}
+
+interface SessionToolsData {
+  activeTool: Tool;
+  selectedColor: string;
+  selectedBgColor?: string;
+  selectedCharacter?: string;
+  rectangleFilled?: boolean;
+}
+
+interface SessionPalettesData {
+  activePaletteId: string;
+  customPalettes: ColorPalette[];
+  recentColors: string[];
+}
+
+interface SessionCharacterPalettesData {
+  activePaletteId: string;
+  customPalettes: CharacterPalette[];
+  mappingMethod: CharacterMappingSettings['mappingMethod'];
+  invertDensity: boolean;
+  characterSpacing: number;
+}
+
+interface SessionImportData {
+  version: string;
+  canvas: SessionCanvasData;
+  animation: SessionAnimationData;
+  tools: SessionToolsData;
+  typography?: TypographySettings;
+  palettes?: SessionPalettesData;
+  characterPalettes?: SessionCharacterPalettesData;
+}
 
 /**
  * Session Import Utility
@@ -29,7 +88,7 @@ export class SessionImporter {
       reader.onload = (event) => {
         try {
           const content = event.target?.result as string;
-          const sessionData = JSON.parse(content);
+          const sessionData = JSON.parse(content) as unknown;
           
           // Validate session data structure
           if (!SessionImporter.validateSessionData(sessionData)) {
@@ -56,25 +115,89 @@ export class SessionImporter {
   /**
    * Validate session data structure
    */
-  private static validateSessionData(data: any): boolean {
+  private static validateSessionData(data: unknown): data is SessionImportData {
     try {
-      // Check required top-level properties
-      if (!data || typeof data !== 'object') return false;
-      if (!data.version) return false;
-      if (!data.canvas || typeof data.canvas !== 'object') return false;
-      if (!data.animation || typeof data.animation !== 'object') return false;
-      if (!data.tools || typeof data.tools !== 'object') return false;
-      
-      // Check canvas properties
-      if (typeof data.canvas.width !== 'number' || typeof data.canvas.height !== 'number') return false;
-      
-      // Check animation properties
-      if (!Array.isArray(data.animation.frames)) return false;
-      if (typeof data.animation.currentFrameIndex !== 'number') return false;
-      
-      // Check tools properties
-      if (!data.tools.activeTool || !data.tools.selectedColor) return false;
-      
+      if (typeof data !== 'object' || data === null) {
+        return false;
+      }
+
+      const candidate = data as Partial<SessionImportData> & Record<string, unknown>;
+
+      if (typeof candidate.version !== 'string') {
+        return false;
+      }
+
+      const canvas = candidate.canvas;
+      if (!canvas || typeof canvas !== 'object') {
+        return false;
+      }
+      const canvasData = canvas as SessionCanvasData;
+      if (typeof canvasData.width !== 'number' || typeof canvasData.height !== 'number') return false;
+      if (typeof canvasData.canvasBackgroundColor !== 'string') return false;
+      if (canvasData.showGrid !== undefined && typeof canvasData.showGrid !== 'boolean') return false;
+
+      const animation = candidate.animation;
+      if (!animation || typeof animation !== 'object') {
+        return false;
+      }
+      const animationData = animation as SessionAnimationData;
+      if (!Array.isArray(animationData.frames)) return false;
+      if (typeof animationData.currentFrameIndex !== 'number') return false;
+      if (animationData.frameRate !== undefined && typeof animationData.frameRate !== 'number') return false;
+      if (animationData.looping !== undefined && typeof animationData.looping !== 'boolean') return false;
+
+      for (const frame of animationData.frames) {
+        if (typeof frame !== 'object' || frame === null) {
+          return false;
+        }
+
+        const frameCandidate = frame as SessionFrameData & Record<string, unknown>;
+        if (typeof frameCandidate.id !== 'string') return false;
+        if (frameCandidate.name !== undefined && typeof frameCandidate.name !== 'string') return false;
+        if (frameCandidate.duration !== undefined && typeof frameCandidate.duration !== 'number') return false;
+        if (frameCandidate.thumbnail !== undefined && typeof frameCandidate.thumbnail !== 'string') return false;
+        if (frameCandidate.data !== undefined && (typeof frameCandidate.data !== 'object' || frameCandidate.data === null)) {
+          return false;
+        }
+      }
+
+      const tools = candidate.tools;
+      if (!tools || typeof tools !== 'object') {
+        return false;
+      }
+      const toolsData = tools as SessionToolsData & Record<string, unknown>;
+      if (typeof toolsData.activeTool !== 'string') return false;
+      if (typeof toolsData.selectedColor !== 'string') return false;
+      if (toolsData.selectedBgColor !== undefined && typeof toolsData.selectedBgColor !== 'string') return false;
+      if (toolsData.selectedCharacter !== undefined && typeof toolsData.selectedCharacter !== 'string') return false;
+      if (toolsData.rectangleFilled !== undefined && typeof toolsData.rectangleFilled !== 'boolean') return false;
+
+      if (candidate.typography) {
+        const typography = candidate.typography as TypographySettings;
+        if (typeof typography.fontSize !== 'number') return false;
+        if (typeof typography.characterSpacing !== 'number') return false;
+        if (typeof typography.lineSpacing !== 'number') return false;
+      }
+
+      if (candidate.palettes) {
+        const palettes = candidate.palettes as SessionPalettesData & Record<string, unknown>;
+        if (typeof palettes.activePaletteId !== 'string') return false;
+        if (!Array.isArray(palettes.customPalettes)) return false;
+        if (!palettes.customPalettes.every(isColorPalette)) return false;
+        if (!Array.isArray(palettes.recentColors)) return false;
+        if (!palettes.recentColors.every(color => typeof color === 'string')) return false;
+      }
+
+      if (candidate.characterPalettes) {
+        const characterPalettes = candidate.characterPalettes as SessionCharacterPalettesData & Record<string, unknown>;
+        if (typeof characterPalettes.activePaletteId !== 'string') return false;
+        if (!Array.isArray(characterPalettes.customPalettes)) return false;
+        if (!characterPalettes.customPalettes.every(isCharacterPalette)) return false;
+        if (typeof characterPalettes.mappingMethod !== 'string') return false;
+        if (typeof characterPalettes.invertDensity !== 'boolean') return false;
+        if (typeof characterPalettes.characterSpacing !== 'number') return false;
+      }
+
       return true;
     } catch {
       return false;
@@ -85,7 +208,7 @@ export class SessionImporter {
    * Restore session data to application stores
    */
   private static restoreSessionData(
-    sessionData: any, 
+    sessionData: SessionImportData, 
     typographyCallbacks?: {
       setFontSize: (size: number) => void;
       setCharacterSpacing: (spacing: number) => void;
@@ -117,13 +240,13 @@ export class SessionImporter {
     // Restore animation frames
     if (sessionData.animation.frames && sessionData.animation.frames.length > 0) {
       // Convert session frame data preserving ALL original properties
-      const importedFrames = sessionData.animation.frames.map((frameData: any) => {
+      const importedFrames = sessionData.animation.frames.map((frameData) => {
         // Convert frame data object back to Map
         const frameMap = new Map<string, Cell>();
-        if (frameData.data && typeof frameData.data === 'object') {
+        if (frameData.data) {
           Object.entries(frameData.data).forEach(([key, cellData]) => {
-            if (cellData && typeof cellData === 'object') {
-              frameMap.set(key, cellData as Cell);
+            if (cellData) {
+              frameMap.set(key, cellData);
             }
           });
         }
@@ -132,7 +255,7 @@ export class SessionImporter {
         return {
           id: frameData.id, // Preserve original frame ID
           name: frameData.name || 'Untitled Frame', // Preserve original name
-          duration: frameData.duration || DEFAULT_FRAME_DURATION,
+          duration: frameData.duration ?? DEFAULT_FRAME_DURATION,
           data: frameMap,
           thumbnail: frameData.thumbnail // Preserve thumbnail if exists
         };
@@ -178,7 +301,7 @@ export class SessionImporter {
     // Restore palette data
     if (sessionData.palettes) {
       paletteStore.loadSessionPalettes({
-        customPalettes: Array.isArray(sessionData.palettes.customPalettes) ? sessionData.palettes.customPalettes : [],
+        customPalettes: sessionData.palettes.customPalettes,
         activePaletteId: sessionData.palettes.activePaletteId,
         recentColors: sessionData.palettes.recentColors
       });
@@ -186,7 +309,7 @@ export class SessionImporter {
 
     if (sessionData.characterPalettes) {
       characterPaletteStore.loadSessionCharacterPalettes({
-        customPalettes: Array.isArray(sessionData.characterPalettes.customPalettes) ? sessionData.characterPalettes.customPalettes : [],
+        customPalettes: sessionData.characterPalettes.customPalettes,
         activePaletteId: sessionData.characterPalettes.activePaletteId,
         mappingMethod: sessionData.characterPalettes.mappingMethod,
         invertDensity: sessionData.characterPalettes.invertDensity,

@@ -3,6 +3,13 @@
 import type { CharacterPaletteExportFormat } from '../types/palette';
 import { isValidCharacter } from '../types/palette';
 
+type CharacterPaletteDraft = {
+  name?: unknown;
+  characters?: unknown;
+  category?: unknown;
+  [key: string]: unknown;
+};
+
 export interface CharacterValidationResult {
   isValid: boolean;
   errors: string[];
@@ -21,10 +28,10 @@ export const validateCharacterPaletteJSON = (jsonString: string): CharacterValid
   };
 
   // Parse JSON
-  let parsedData: any;
+  let parsedData: unknown;
   try {
     parsedData = JSON.parse(jsonString);
-  } catch (error) {
+  } catch {
     result.errors.push('Invalid JSON format. Please check the file syntax.');
     return result;
   }
@@ -35,16 +42,18 @@ export const validateCharacterPaletteJSON = (jsonString: string): CharacterValid
     return result;
   }
 
+  const draft = parsedData as CharacterPaletteDraft;
+
   // Validate required fields
-  if (typeof parsedData.name !== 'string') {
+  if (typeof draft.name !== 'string') {
     result.errors.push('Character palette must have a "name" field of type string.');
   }
 
-  if (!Array.isArray(parsedData.characters)) {
+  if (!Array.isArray(draft.characters)) {
     result.errors.push('Character palette must have a "characters" field of type array.');
   }
 
-  if (typeof parsedData.category !== 'string') {
+  if (typeof draft.category !== 'string') {
     result.errors.push('Character palette must have a "category" field of type string.');
   }
 
@@ -54,7 +63,7 @@ export const validateCharacterPaletteJSON = (jsonString: string): CharacterValid
   }
 
   // Validate characters array
-  const characters = parsedData.characters as any[];
+  const characters = draft.characters as unknown[];
   if (characters.length === 0) {
     result.errors.push('Character palette must contain at least one character.');
   }
@@ -65,7 +74,7 @@ export const validateCharacterPaletteJSON = (jsonString: string): CharacterValid
   const characterCounts: Record<string, number> = {};
 
   characters.forEach((char, index) => {
-    if (!isValidCharacter(char)) {
+    if (typeof char !== 'string' || !isValidCharacter(char)) {
       invalidCharacters.push(`Position ${index}: "${char}"`);
     } else {
       characterCounts[char] = (characterCounts[char] || 0) + 1;
@@ -83,9 +92,9 @@ export const validateCharacterPaletteJSON = (jsonString: string): CharacterValid
 
   // Validate category
   const validCategories = ['ascii', 'unicode', 'blocks', 'custom'];
-  if (!validCategories.includes(parsedData.category)) {
+  if (!validCategories.includes(draft.category as string)) {
     result.errors.push(
-      `Invalid category "${parsedData.category}". Must be one of: ${validCategories.join(', ')}`
+      `Invalid category "${String(draft.category)}". Must be one of: ${validCategories.join(', ')}`
     );
   }
 
@@ -104,14 +113,14 @@ export const validateCharacterPaletteJSON = (jsonString: string): CharacterValid
   }
 
   // Warning for empty name
-  if (parsedData.name.trim().length === 0) {
+  if (draft.name?.toString().trim().length === 0) {
     result.errors.push('Character palette name cannot be empty.');
   }
 
   // If no errors, it's valid
   if (result.errors.length === 0) {
     result.isValid = true;
-    result.data = parsedData as CharacterPaletteExportFormat;
+    result.data = draft as CharacterPaletteExportFormat;
   }
 
   return result;

@@ -21,10 +21,10 @@ export const validatePaletteJSON = (jsonString: string): ValidationResult => {
   };
 
   // Parse JSON
-  let parsedData: any;
+  let parsedData: unknown;
   try {
     parsedData = JSON.parse(jsonString);
-  } catch (error) {
+  } catch {
     result.errors.push('Invalid JSON format. Please check the file syntax.');
     return result;
   }
@@ -35,12 +35,14 @@ export const validatePaletteJSON = (jsonString: string): ValidationResult => {
     return result;
   }
 
+  const draft = parsedData as Record<string, unknown>;
+
   // Validate required fields
-  if (typeof parsedData.name !== 'string') {
+  if (typeof draft.name !== 'string') {
     result.errors.push('Palette must have a "name" field of type string.');
   }
 
-  if (!Array.isArray(parsedData.colors)) {
+  if (!Array.isArray(draft.colors)) {
     result.errors.push('Palette must have a "colors" field of type array.');
   }
 
@@ -50,7 +52,7 @@ export const validatePaletteJSON = (jsonString: string): ValidationResult => {
   }
 
   // Validate palette name
-  const name = parsedData.name.trim();
+  const name = (draft.name as string).trim();
   if (name.length === 0) {
     result.errors.push('Palette name cannot be empty.');
   } else if (name.length > 100) {
@@ -58,7 +60,7 @@ export const validatePaletteJSON = (jsonString: string): ValidationResult => {
   }
 
   // Validate colors array
-  const colors = parsedData.colors;
+  const colors = draft.colors as unknown[];
   if (colors.length === 0) {
     result.errors.push('Palette must contain at least one color.');
   } else if (colors.length > 256) {
@@ -71,7 +73,7 @@ export const validatePaletteJSON = (jsonString: string): ValidationResult => {
   const duplicateColors: string[] = [];
   const seenColors = new Set<string>();
 
-  colors.forEach((color: any, index: number) => {
+  colors.forEach((color, index: number) => {
     if (typeof color !== 'string') {
       invalidColors.push(`Color at index ${index} is not a string.`);
       return;
@@ -122,7 +124,7 @@ export const validatePaletteJSON = (jsonString: string): ValidationResult => {
 /**
  * Validate palette export format object
  */
-export const validatePaletteObject = (data: any): ValidationResult => {
+export const validatePaletteObject = (data: unknown): ValidationResult => {
   const result: ValidationResult = {
     isValid: false,
     errors: [],
@@ -196,6 +198,11 @@ export const SUPPORTED_PALETTE_EXTENSIONS = ['.json', '.palette', '.pal'] as con
  * Check if filename has supported extension
  */
 export const hasSupportedExtension = (filename: string): boolean => {
-  const extension = filename.toLowerCase().slice(filename.lastIndexOf('.'));
-  return SUPPORTED_PALETTE_EXTENSIONS.includes(extension as any);
+  const dotIndex = filename.lastIndexOf('.');
+  if (dotIndex === -1) {
+    return false;
+  }
+
+  const extension = filename.toLowerCase().slice(dotIndex) as typeof SUPPORTED_PALETTE_EXTENSIONS[number];
+  return SUPPORTED_PALETTE_EXTENSIONS.includes(extension);
 };
