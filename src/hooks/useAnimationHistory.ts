@@ -50,7 +50,7 @@ export const useAnimationHistory = () => {
       data: {
         frameIndex: insertIndex,
         frame: {
-          id: `frame-${Date.now()}-${Math.random()}` as any,
+          id: `frame-${Date.now()}-${Math.random()}` as import('../types').FrameId,
           name: `Frame ${insertIndex + 1}`,
           duration: 1000, // Default duration
           data: new Map(blankCanvasData),

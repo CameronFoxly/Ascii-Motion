@@ -57,35 +57,43 @@ export const isValidHexColor = (color: string): boolean => {
   return /^#[0-9A-Fa-f]{6}$/.test(color);
 };
 
-export const isPaletteColor = (obj: any): obj is PaletteColor => {
-  return (
-    typeof obj === 'object' &&
-    typeof obj.id === 'string' &&
-    typeof obj.value === 'string' &&
-    isValidHexColor(obj.value) &&
-    (obj.name === undefined || typeof obj.name === 'string')
-  );
+export const isPaletteColor = (obj: unknown): obj is PaletteColor => {
+  if (typeof obj !== 'object' || obj === null) {
+    return false;
+  }
+
+  const candidate = obj as Partial<PaletteColor>;
+  const hasValidName = candidate.name === undefined || typeof candidate.name === 'string';
+
+  return typeof candidate.id === 'string'
+    && typeof candidate.value === 'string'
+    && isValidHexColor(candidate.value)
+    && hasValidName;
 };
 
-export const isColorPalette = (obj: any): obj is ColorPalette => {
-  return (
-    typeof obj === 'object' &&
-    typeof obj.id === 'string' &&
-    typeof obj.name === 'string' &&
-    Array.isArray(obj.colors) &&
-    obj.colors.every(isPaletteColor) &&
-    typeof obj.isPreset === 'boolean' &&
-    typeof obj.isCustom === 'boolean'
-  );
+export const isColorPalette = (obj: unknown): obj is ColorPalette => {
+  if (typeof obj !== 'object' || obj === null) {
+    return false;
+  }
+
+  const candidate = obj as Partial<ColorPalette> & { colors?: unknown };
+  return typeof candidate.id === 'string'
+    && typeof candidate.name === 'string'
+    && Array.isArray(candidate.colors)
+    && candidate.colors.every(isPaletteColor)
+    && typeof candidate.isPreset === 'boolean'
+    && typeof candidate.isCustom === 'boolean';
 };
 
-export const isPaletteExportFormat = (obj: any): obj is PaletteExportFormat => {
-  return (
-    typeof obj === 'object' &&
-    typeof obj.name === 'string' &&
-    Array.isArray(obj.colors) &&
-    obj.colors.every((color: any) => typeof color === 'string' && isValidHexColor(color))
-  );
+export const isPaletteExportFormat = (obj: unknown): obj is PaletteExportFormat => {
+  if (typeof obj !== 'object' || obj === null) {
+    return false;
+  }
+
+  const candidate = obj as Partial<PaletteExportFormat> & { colors?: unknown };
+  return typeof candidate.name === 'string'
+    && Array.isArray(candidate.colors)
+    && candidate.colors.every((color): color is string => typeof color === 'string' && isValidHexColor(color));
 };
 
 // Character Palette System Types (similar to color palettes but for ASCII characters)
@@ -127,27 +135,31 @@ export const isValidCharacter = (char: string): boolean => {
   return typeof char === 'string' && char.length === 1;
 };
 
-export const isCharacterPalette = (obj: any): obj is CharacterPalette => {
-  return (
-    typeof obj === 'object' &&
-    typeof obj.id === 'string' &&
-    typeof obj.name === 'string' &&
-    Array.isArray(obj.characters) &&
-    obj.characters.every(isValidCharacter) &&
-    typeof obj.isPreset === 'boolean' &&
-    typeof obj.isCustom === 'boolean' &&
-    ['ascii', 'unicode', 'blocks', 'custom'].includes(obj.category)
-  );
+export const isCharacterPalette = (obj: unknown): obj is CharacterPalette => {
+  if (typeof obj !== 'object' || obj === null) {
+    return false;
+  }
+
+  const candidate = obj as Partial<CharacterPalette> & { characters?: unknown };
+  return typeof candidate.id === 'string'
+    && typeof candidate.name === 'string'
+    && Array.isArray(candidate.characters)
+    && candidate.characters.every(isValidCharacter)
+    && typeof candidate.isPreset === 'boolean'
+    && typeof candidate.isCustom === 'boolean'
+    && ['ascii', 'unicode', 'blocks', 'custom'].includes(candidate.category as CharacterPalette['category']);
 };
 
-export const isCharacterPaletteExportFormat = (obj: any): obj is CharacterPaletteExportFormat => {
-  return (
-    typeof obj === 'object' &&
-    typeof obj.name === 'string' &&
-    Array.isArray(obj.characters) &&
-    obj.characters.every(isValidCharacter) &&
-    ['ascii', 'unicode', 'blocks', 'custom'].includes(obj.category)
-  );
+export const isCharacterPaletteExportFormat = (obj: unknown): obj is CharacterPaletteExportFormat => {
+  if (typeof obj !== 'object' || obj === null) {
+    return false;
+  }
+
+  const candidate = obj as Partial<CharacterPaletteExportFormat> & { characters?: unknown };
+  return typeof candidate.name === 'string'
+    && Array.isArray(candidate.characters)
+    && candidate.characters.every(isValidCharacter)
+    && ['ascii', 'unicode', 'blocks', 'custom'].includes(candidate.category ?? '');
 };
 
 // Utility functions for ID generation

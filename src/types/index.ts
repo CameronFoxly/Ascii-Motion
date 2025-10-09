@@ -220,19 +220,27 @@ export const parseCellKey = (key: string): { x: number; y: number } => {
 };
 
 // Type guards
-export const isValidCell = (cell: any): cell is Cell => {
-  return typeof cell === 'object' && 
-         typeof cell.char === 'string' && 
-         typeof cell.color === 'string' && 
-         typeof cell.bgColor === 'string';
+export const isValidCell = (cell: unknown): cell is Cell => {
+  if (typeof cell !== 'object' || cell === null) {
+    return false;
+  }
+
+  const candidate = cell as Partial<Cell>;
+  return typeof candidate.char === 'string'
+    && typeof candidate.color === 'string'
+    && typeof candidate.bgColor === 'string';
 };
 
-export const isValidFrame = (frame: any): frame is Frame => {
-  return typeof frame === 'object' &&
-         typeof frame.id === 'string' &&
-         typeof frame.name === 'string' &&
-         typeof frame.duration === 'number' &&
-         frame.data instanceof Map;
+export const isValidFrame = (frame: unknown): frame is Frame => {
+  if (typeof frame !== 'object' || frame === null) {
+    return false;
+  }
+
+  const candidate = frame as Partial<Frame> & { data?: unknown };
+  return typeof candidate.id === 'string'
+    && typeof candidate.name === 'string'
+    && typeof candidate.duration === 'number'
+    && candidate.data instanceof Map;
 };
 
 // Enhanced History System Types
@@ -397,7 +405,7 @@ export interface ApplyEffectHistoryAction extends HistoryAction {
   type: 'apply_effect';
   data: {
     effectType: import('./effects').EffectType;
-    effectSettings: any; // Settings object for the effect
+    effectSettings: import('./effects').EffectSettings; // Settings object for the effect
     applyToTimeline: boolean;
     affectedFrameIndices: number[];
     previousCanvasData?: Map<string, Cell>; // For single canvas effects

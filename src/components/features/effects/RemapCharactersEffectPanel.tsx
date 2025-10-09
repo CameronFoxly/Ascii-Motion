@@ -12,11 +12,12 @@ import { useEffectsStore } from '../../../stores/effectsStore';
 import { useCanvasStore } from '../../../stores/canvasStore';
 import { EnhancedCharacterPicker } from '../EnhancedCharacterPicker';
 import { RotateCcw, Eye, EyeOff, MoveRight, RotateCcwSquare } from 'lucide-react';
+import type { CanvasAnalysis } from '../../../types/effects';
 
 // Character utility functions
-const sortCharactersByFrequency = (characters: string[], canvasAnalysis: any): string[] => {
-  const charFrequency = canvasAnalysis?.charactersByFrequency || [];
-  const frequencyMap = charFrequency.reduce((map: Record<string, number>, { char, count }: { char: string, count: number }) => {
+const sortCharactersByFrequency = (characters: string[], canvasAnalysis: CanvasAnalysis | null): string[] => {
+  const charFrequency = canvasAnalysis?.charactersByFrequency ?? [];
+  const frequencyMap = charFrequency.reduce((map: Record<string, number>, { char, count }) => {
     map[char] = count;
     return map;
   }, {});

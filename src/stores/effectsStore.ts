@@ -28,6 +28,7 @@ import {
 import { useCanvasStore } from './canvasStore';
 import { usePreviewStore } from './previewStore';
 import { processEffect } from '../utils/effectsProcessing';
+import type { Cell } from '../types';
 
 export interface EffectsState {
   // UI State
@@ -86,7 +87,7 @@ export interface EffectsState {
 }
 
 // Canvas hash generation for cache invalidation
-const generateCanvasHash = (cells: Map<string, any>, frameCount: number): string => {
+const generateCanvasHash = (cells: Map<string, Cell>, frameCount: number): string => {
   // Simple hash based on cell count, first few cells, and frame count
   const cellCount = cells.size;
   const firstCells = Array.from(cells.entries()).slice(0, 10);

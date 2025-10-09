@@ -71,6 +71,25 @@ import { BackgroundColorMappingSection } from './BackgroundColorMappingSection';
 import { PreprocessingSection } from './PreprocessingSection';
 import type { MediaFile } from '../../utils/mediaProcessor';
 import type { Cell } from '../../types';
+import type { ColorPalette } from '../../types/palette';
+import type { ImportSettings } from '../../stores/importStore';
+
+type CropAlignmentOption = {
+  mode: ImportSettings['cropMode'];
+  tooltip: string;
+};
+
+const alignmentOptions: CropAlignmentOption[] = [
+  { mode: 'top-left', tooltip: 'Top Left' },
+  { mode: 'top', tooltip: 'Top Center' },
+  { mode: 'top-right', tooltip: 'Top Right' },
+  { mode: 'left', tooltip: 'Center Left' },
+  { mode: 'center', tooltip: 'Center' },
+  { mode: 'right', tooltip: 'Center Right' },
+  { mode: 'bottom-left', tooltip: 'Bottom Left' },
+  { mode: 'bottom', tooltip: 'Bottom Center' },
+  { mode: 'bottom-right', tooltip: 'Bottom Right' }
+];
 
 export function MediaImportPanel() {
   const { isOpen, closeModal } = useImportModal();
@@ -186,7 +205,7 @@ export function MediaImportPanel() {
   }, [isPreviewActive, clearPreview, setPreviewActive]);
 
   // Position cells on canvas based on alignment settings
-  const positionCellsOnCanvas = useCallback((cells: Map<string, any>, imageWidth: number, imageHeight: number) => {
+  const positionCellsOnCanvas = useCallback((cells: Map<string, Cell>, imageWidth: number, imageHeight: number) => {
 
     
     // Calculate offset based on alignment
@@ -257,21 +276,18 @@ export function MediaImportPanel() {
     
 
     
-    const positionedCells = new Map();
+    const positionedCells = new Map<string, Cell>();
     cells.forEach((cell, originalKey) => {
       // Parse original coordinates from the key (format: "x,y")
       const [origX, origY] = originalKey.split(',').map(Number);
       
-      const newCell = {
-        ...cell,
-        x: origX + offsetX,
-        y: origY + offsetY
-      };
+      const newX = origX + offsetX;
+      const newY = origY + offsetY;
       
       // Only add cell if it's within canvas bounds
-      if (newCell.x >= 0 && newCell.x < canvasWidth && newCell.y >= 0 && newCell.y < canvasHeight) {
-        const newKey = `${newCell.x},${newCell.y}`;
-        positionedCells.set(newKey, newCell);
+      if (newX >= 0 && newX < canvasWidth && newY >= 0 && newY < canvasHeight) {
+        const newKey = `${newX},${newY}`;
+        positionedCells.set(newKey, { ...cell });
       }
     });
     
@@ -286,12 +302,18 @@ export function MediaImportPanel() {
   
   // Create conversion settings helper function
   const createConversionSettings = useCallback(() => {
-    const allPalettes = [...palettes, ...customPalettes];
-    const textColorPalette = settings.enableTextColorMapping && settings.textColorPaletteId 
-      ? allPalettes.find((p: any) => p.id === settings.textColorPaletteId)?.colors.map((c: any) => c.value) || []
+    const allPalettes: ColorPalette[] = [...palettes, ...customPalettes];
+    const resolvePaletteColors = (paletteId: string | null): string[] => {
+      if (!paletteId) return [];
+      const palette = allPalettes.find((candidate) => candidate.id === paletteId);
+      return palette ? palette.colors.map((color) => color.value) : [];
+    };
+
+    const textColorPalette = settings.enableTextColorMapping
+      ? resolvePaletteColors(settings.textColorPaletteId)
       : [];
-    const backgroundColorPalette = settings.enableBackgroundColorMapping && settings.backgroundColorPaletteId 
-      ? allPalettes.find((p: any) => p.id === settings.backgroundColorPaletteId)?.colors.map((c: any) => c.value) || []
+    const backgroundColorPalette = settings.enableBackgroundColorMapping
+      ? resolvePaletteColors(settings.backgroundColorPaletteId)
       : [];
 
     return {
@@ -1079,17 +1101,7 @@ export function MediaImportPanel() {
                         <Label className="text-xs font-medium">Alignment</Label>
                         <TooltipProvider>
                           <div className="grid grid-cols-3 gap-[3px]">
-                            {[
-                              { mode: 'top-left', tooltip: 'Top Left' },
-                              { mode: 'top', tooltip: 'Top Center' },
-                              { mode: 'top-right', tooltip: 'Top Right' },
-                              { mode: 'left', tooltip: 'Center Left' },
-                              { mode: 'center', tooltip: 'Center' },
-                              { mode: 'right', tooltip: 'Center Right' },
-                              { mode: 'bottom-left', tooltip: 'Bottom Left' },
-                              { mode: 'bottom', tooltip: 'Bottom Center' },
-                              { mode: 'bottom-right', tooltip: 'Bottom Right' }
-                            ].map(({ mode, tooltip }) => {
+                            {alignmentOptions.map(({ mode, tooltip }) => {
                               const isActive = settings.cropMode === mode;
                               return (
                                 <Tooltip key={mode}>
@@ -1097,7 +1109,7 @@ export function MediaImportPanel() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => updateSettings({ cropMode: mode as any })}
+                                      onClick={() => updateSettings({ cropMode: mode })}
                                       className={`h-6 w-6 p-0 transition-colors ${
                                         isActive 
                                           ? 'bg-purple-500 text-white hover:bg-purple-600' 
