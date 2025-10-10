@@ -273,10 +273,7 @@ export const useTimeEffectsStore = create<TimeEffectsState>((set, get) => ({
       
       // Update preview on canvas
       if (previewData) {
-        console.log('[TimeEffects Store] Setting preview data:', previewData.size, 'cells');
         previewStore.setPreviewData(previewData);
-      } else {
-        console.log('[TimeEffects Store] No preview data generated');
       }
     } catch (error) {
       console.error('Failed to update preview:', error);
