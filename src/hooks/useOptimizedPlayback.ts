@@ -40,13 +40,10 @@ export const useOptimizedPlayback = () => {
         showGrid: true, // Can be made configurable
       };
       
-      console.log('🎬 Initialized optimized playback with settings:', settings);
       return settings;
       
     } catch (error) {
-      console.warn('⚠️ Failed to get React context settings, using defaults:', error);
-      
-      // Fallback to safe defaults
+      // Fallback to safe defaults if context is unavailable
       return {
         effectiveCellWidth: 18,
         effectiveCellHeight: 18,
@@ -64,13 +61,7 @@ export const useOptimizedPlayback = () => {
    * Bypasses all React component subscriptions and uses direct canvas rendering
    */
   const startOptimizedPlayback = useCallback(() => {
-    if (frames.length === 0) {
-      console.warn('⚠️ Cannot start optimized playback: no frames available');
-      return;
-    }
-    
-    if (!canvasRef?.current) {
-      console.warn('⚠️ Cannot start optimized playback: canvas ref not available');
+    if (frames.length === 0 || !canvasRef?.current) {
       return;
     }
 
@@ -80,11 +71,6 @@ export const useOptimizedPlayback = () => {
     
     // Initialize playback-only store with snapshot of current frames
     playbackOnlyStore.start(frames, canvasRef as React.RefObject<HTMLCanvasElement>);
-    
-    console.log('🚀 Starting optimized playback for', frames.length, 'frames');
-    frames.forEach((frame, i) => {
-      console.log(`Frame ${i}: "${frame.name}" - ${frame.data.size} cells`);
-    });
     
     // Need to set the tool playback mode so UI shows as playing
     const { setPlaybackMode } = useToolStore.getState();
@@ -111,7 +97,6 @@ export const useOptimizedPlayback = () => {
       
       const currentFrame = frames[currentIndex];
       if (!currentFrame) {
-        console.warn('⚠️ Frame missing during playback, stopping');
         stopOptimizedPlayback();
         return;
       }
@@ -135,11 +120,12 @@ export const useOptimizedPlayback = () => {
         
         lastFrameTime = timestamp;
         
-        // Optional: Log FPS for debugging
-        if (currentIndex === 0) { // Log once per loop
-          const fps = Math.round(1000 / elapsed);
-          console.log(`🎬 Optimized playback FPS: ${fps}`);
+        // Call FPS monitor callback for performance tracking
+        const { fpsMonitorCallback } = useAnimationStore.getState();
+        if (fpsMonitorCallback) {
+          fpsMonitorCallback(timestamp);
         }
+
       }
       
       // Continue animation loop
@@ -175,14 +161,11 @@ export const useOptimizedPlayback = () => {
     
     // Sync final frame index back to main store (single state update)
     if (finalState.isActive) {
-      console.log('🛑 Syncing final frame', finalState.currentFrameIndex, 'back to main store');
       useAnimationStore.getState().goToFrame(finalState.currentFrameIndex);
     }
     
     // Clear render settings
     renderSettingsRef.current = null;
-    
-    console.log('✅ Optimized playback stopped');
   }, []);
 
   /**

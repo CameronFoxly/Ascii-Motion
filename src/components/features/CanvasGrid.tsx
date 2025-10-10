@@ -233,7 +233,6 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Handle Shift key for aspect ratio locking
       if (event.key === 'Shift') {
-        console.log('[CanvasGrid] Shift key DOWN');
         setShiftKeyDown(true);
       }
       

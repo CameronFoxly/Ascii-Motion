@@ -95,17 +95,13 @@ export const renderFrameDirectly = (
     theme: string;
   }
 ) => {
-  console.log('🎨 renderFrameDirectly called for frame:', frame.name, 'cells:', frame.data.size);
-  
   const canvas = canvasRef.current;
   if (!canvas) {
-    console.warn('⚠️ Direct canvas rendering failed: canvas ref is null');
     return;
   }
   
   const ctx = canvas.getContext('2d');
   if (!ctx) {
-    console.warn('⚠️ Direct canvas rendering failed: could not get 2D context');
     return;
   }
   
@@ -186,6 +182,4 @@ export const renderFrameDirectly = (
     }
   });
   
-  // Optional: Log performance for debugging
-  console.log(`🎬 Direct rendered frame with ${frame.data.size} cells`);
 };

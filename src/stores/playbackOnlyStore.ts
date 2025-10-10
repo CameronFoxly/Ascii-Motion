@@ -40,8 +40,6 @@ export const playbackOnlyStore = {
       startTime: performance.now(),
       lastFrameTime: performance.now(),
     };
-    
-    console.log('🎬 Playback-only mode started with', frames.length, 'frames');
   },
 
   /**
@@ -64,7 +62,6 @@ export const playbackOnlyStore = {
    * Stop playback-only mode and return to normal React rendering
    */
   stop: () => {
-    console.log('🛑 Playback-only mode stopped at frame', playbackState.currentFrameIndex);
     playbackState.isActive = false;
   },
 

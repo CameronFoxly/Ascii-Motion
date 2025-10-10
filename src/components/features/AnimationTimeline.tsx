@@ -18,13 +18,12 @@ import {
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger 
 } from '../ui/dropdown-menu';
-import { Menu, Clock, Plus, Zap, Gauge, CheckCircle } from 'lucide-react';
+import { Menu, Clock, Plus, Zap } from 'lucide-react';
 import { MAX_LIMITS } from '../../constants';
 
 const AUTO_SCROLL_EDGE_RATIO = 0.1; // 10% edge band for auto-scrolling
@@ -70,9 +69,6 @@ export const AnimationTimeline: React.FC = () => {
   } = useAnimationHistory();
 
   const {
-    startPlayback,
-    pausePlayback,
-    stopPlayback,
     canPlay
   } = useAnimationPlayback();
 
@@ -89,14 +85,10 @@ export const AnimationTimeline: React.FC = () => {
     navigateLast
   } = useFrameNavigation();
 
-  // Optimized playback mode state
-  const [useOptimizedMode, setUseOptimizedMode] = useState(false);
+  // Optimized playback is now the default - track when it's active
   const [isOptimizedPlaybackActive, setIsOptimizedPlaybackActive] = useState(false);
   
-  // Debug log for optimized mode state
-  useEffect(() => {
-    console.log('🔧 Optimized mode state changed:', { useOptimizedMode, isOptimizedPlaybackActive });
-  }, [useOptimizedMode, isOptimizedPlaybackActive]);
+
 
   // Drag and drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -246,36 +238,21 @@ export const AnimationTimeline: React.FC = () => {
     }
   }, [draggedIndex, dragOverIndex, frames.length]);
 
-  // Playback wrapper functions that choose between normal and optimized modes
+  // Start playback (using optimized rendering by default)
   const handleStartPlayback = useCallback(() => {
-    console.log('🎬 handleStartPlayback called - useOptimizedMode:', useOptimizedMode);
-    if (useOptimizedMode) {
-      console.log('🚀 Starting optimized playback...');
-      setIsOptimizedPlaybackActive(true);
-      startOptimizedPlayback();
-    } else {
-      console.log('🎵 Starting normal playback...');
-      startPlayback();
-    }
-  }, [useOptimizedMode, startOptimizedPlayback, startPlayback]);
+    setIsOptimizedPlaybackActive(true);
+    startOptimizedPlayback();
+  }, [startOptimizedPlayback]);
 
   const handlePausePlayback = useCallback(() => {
-    if (isOptimizedPlaybackActive) {
-      setIsOptimizedPlaybackActive(false);
-      stopOptimizedPlayback();
-    } else {
-      pausePlayback();
-    }
-  }, [isOptimizedPlaybackActive, stopOptimizedPlayback, pausePlayback]);
+    setIsOptimizedPlaybackActive(false);
+    stopOptimizedPlayback();
+  }, [stopOptimizedPlayback]);
 
   const handleStopPlayback = useCallback(() => {
-    if (isOptimizedPlaybackActive) {
-      setIsOptimizedPlaybackActive(false);
-      stopOptimizedPlayback();
-    } else {
-      stopPlayback();
-    }
-  }, [isOptimizedPlaybackActive, stopOptimizedPlayback, stopPlayback]);
+    setIsOptimizedPlaybackActive(false);
+    stopOptimizedPlayback();
+  }, [stopOptimizedPlayback]);
 
   // Handle keyboard shortcuts for playback (moved from useAnimationPlayback to support optimized playback)
   useEffect(() => {
@@ -289,27 +266,18 @@ export const AnimationTimeline: React.FC = () => {
       switch (event.key) {
         case ' ': // Spacebar for play/pause
           event.preventDefault();
-          console.log('⌨️ Spacebar pressed - handling playback toggle');
-          if (isPlaying || isOptimizedPlaybackActive) {
-            // Currently playing - pause/stop
-            if (isOptimizedPlaybackActive) {
-              handlePausePlayback();
-            } else {
-              pausePlayback();
-            }
+          if (isOptimizedPlaybackActive) {
+            // Currently playing - pause
+            handlePausePlayback();
           } else {
-            // Not playing - start playback (with optimized mode if enabled)
+            // Not playing - start optimized playback
             handleStartPlayback();
           }
           break;
         case 'Escape': // Escape to stop
           event.preventDefault();
-          if (isPlaying || isOptimizedPlaybackActive) {
-            if (isOptimizedPlaybackActive) {
-              handleStopPlayback();
-            } else {
-              stopPlayback();
-            }
+          if (isOptimizedPlaybackActive) {
+            handleStopPlayback();
           }
           break;
       }
@@ -320,7 +288,7 @@ export const AnimationTimeline: React.FC = () => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isPlaying, isOptimizedPlaybackActive, handleStartPlayback, handlePausePlayback, handleStopPlayback, pausePlayback, stopPlayback]);
+  }, [isOptimizedPlaybackActive, handleStartPlayback, handlePausePlayback, handleStopPlayback]);
 
   // Handle drag start
   const handleDragStart = useCallback((event: React.DragEvent, index: number) => {
@@ -606,11 +574,7 @@ export const AnimationTimeline: React.FC = () => {
       <CardHeader className="py-2 px-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <AnimationControlsMenu 
-              useOptimizedMode={useOptimizedMode}
-              onToggleOptimizedMode={setUseOptimizedMode}
-              isOptimizedPlaybackActive={isOptimizedPlaybackActive}
-            />
+            <AnimationControlsMenu />
             <CardTitle className="text-sm font-medium">Animation Timeline</CardTitle>
           </div>
           <div className="text-xs text-muted-foreground">
@@ -634,7 +598,7 @@ export const AnimationTimeline: React.FC = () => {
 
           {/* Playback Controls - Center */}
           <PlaybackControls
-            isPlaying={isPlaying || isOptimizedPlaybackActive}
+            isPlaying={isOptimizedPlaybackActive}
             canPlay={canPlay}
             currentFrame={currentFrameIndex}
             totalFrames={frames.length}
@@ -647,7 +611,6 @@ export const AnimationTimeline: React.FC = () => {
             onLast={navigateLast}
             onToggleLoop={() => setLooping(!looping)}
             isLooping={looping}
-            isOptimizedPlaybackActive={isOptimizedPlaybackActive}
           />
 
           {/* Onion Skin Controls - Right Side */}
@@ -719,17 +682,7 @@ export const AnimationTimeline: React.FC = () => {
  * 
  * Provides hamburger menu with time-based effects and animation controls
  */
-interface AnimationControlsMenuProps {
-  useOptimizedMode: boolean;
-  onToggleOptimizedMode: (value: boolean) => void;
-  isOptimizedPlaybackActive: boolean;
-}
-
-const AnimationControlsMenu: React.FC<AnimationControlsMenuProps> = ({
-  useOptimizedMode,
-  onToggleOptimizedMode,
-  isOptimizedPlaybackActive
-}) => {
+const AnimationControlsMenu: React.FC = () => {
   const { 
     openSetDurationDialog,
     openAddFramesDialog,
@@ -772,24 +725,6 @@ const AnimationControlsMenu: React.FC<AnimationControlsMenuProps> = ({
             <Plus className="mr-2 h-4 w-4" />
             <span>Add multiple frames</span>
           </DropdownMenuItem>
-          
-          <DropdownMenuItem 
-            onClick={() => {
-              console.log('🔄 Toggling optimized mode from', useOptimizedMode, 'to', !useOptimizedMode);
-              onToggleOptimizedMode(!useOptimizedMode);
-            }}
-            disabled={isOptimizedPlaybackActive}
-          >
-            <Gauge className="mr-2 h-4 w-4" />
-            <span>
-              {useOptimizedMode ? 'Disable' : 'Enable'} optimized playback
-            </span>
-            {useOptimizedMode && (
-              <CheckCircle className="ml-auto h-4 w-4 text-green-500" />
-            )}
-          </DropdownMenuItem>
-          
-          <DropdownMenuSeparator />
           
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>

@@ -88,15 +88,7 @@ export const useCanvasRenderer = () => {
   const { isPreviewActive: isTimeEffectPreviewActive } = useTimeEffectsStore();
   const { previewOrigin, previewDimensions } = useAsciiTypeStore();
   
-  // Debug: Log preview state changes
-  useEffect(() => {
-    console.log('[Canvas Renderer] Preview state changed:', {
-      isPreviewActive,
-      previewDataSize: previewData.size,
-      isEffectPreviewActive,  
-      isTimeEffectPreviewActive
-    });
-  }, [isPreviewActive, previewData, isEffectPreviewActive, isTimeEffectPreviewActive]);
+
   const { getEllipsePoints } = useDrawingTool();
 
   // Use onion skin renderer for frame overlays
