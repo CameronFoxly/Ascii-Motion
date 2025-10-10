@@ -29,6 +29,9 @@ This directory contains comprehensive documentation for the ASCII Motion project
 - [`PERFORMANCE_OPTIMIZATION_PHASE1.md`](./PERFORMANCE_OPTIMIZATION_PHASE1.md) - Phase 1 performance improvements  
 - [`CANVAS_RENDERING_IMPROVEMENTS.md`](./CANVAS_RENDERING_IMPROVEMENTS.md) - Canvas rendering optimizations
 
+### **Debugging & Troubleshooting**
+- [`FRAME_SYNCHRONIZATION_DEBUGGING_GUIDE.md`](./FRAME_SYNCHRONIZATION_DEBUGGING_GUIDE.md) - **NEW** Systematic debugging methodology for complex React state synchronization issues
+
 ### **Feature Guides**
 - [`BRUSH_TOOL_USER_GUIDE.md`](./BRUSH_TOOL_USER_GUIDE.md) - Brush system with hover preview user guide
 - [`BRUSH_HOVER_PREVIEW_PLAN.md`](./BRUSH_HOVER_PREVIEW_PLAN.md) - Brush hover preview implementation architecture

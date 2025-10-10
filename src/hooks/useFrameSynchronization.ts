@@ -51,6 +51,7 @@ export const useFrameSynchronization = (
   const lastFrameIndexRef = useRef<number>(currentFrameIndex);
   const lastCellsRef = useRef<Map<string, Cell>>(new Map());
   const isLoadingFrameRef = useRef<boolean>(false);
+  const frameWasEmptyOnLoadRef = useRef<boolean>(false);
 
   // Auto-save current canvas to current frame whenever canvas changes
   const saveCurrentCanvasToFrame = useCallback(() => {
@@ -71,11 +72,18 @@ export const useFrameSynchronization = (
     isLoadingFrameRef.current = true;
     
     const frameData = getFrameData(frameIndex);
-    if (frameData) {
+    
+    if (frameData && frameData.size > 0) {
       setCanvasData(frameData);
+      // Update the reference to prevent false auto-save triggers
+      lastCellsRef.current = new Map(frameData);
+      frameWasEmptyOnLoadRef.current = false;
     } else {
       // If frame has no data, clear canvas
       setCanvasData(new Map());
+      // Update the reference to reflect the empty canvas
+      lastCellsRef.current = new Map();
+      frameWasEmptyOnLoadRef.current = true;
     }
     
     // Small delay to ensure canvas update completes
@@ -89,7 +97,8 @@ export const useFrameSynchronization = (
     const previousFrameIndex = lastFrameIndexRef.current;
     
     if (currentFrameIndex !== previousFrameIndex) {
-      let currentCellsToSave = new Map(cells);
+        // CRITICAL: Use the last known cells state, not current cells which may have already been updated
+      let currentCellsToSave = new Map(lastCellsRef.current);
       
       // Commit any pending move operations to the original frame before clearing state
       if (moveStateParam && setMoveStateParam) {
@@ -143,7 +152,19 @@ export const useFrameSynchronization = (
       
       // Save current canvas (with committed moves) to the frame we're leaving
       if (!isPlaying && !isLoadingFrameRef.current && !isDraggingFrame && !isDeletingFrame && !isImportingSession) {
-        setFrameData(previousFrameIndex, currentCellsToSave);
+        // Only save if the canvas content has actually changed from what was last loaded
+        const lastLoadedCells = lastCellsRef.current;
+        const cellsChanged = JSON.stringify(Array.from(currentCellsToSave.entries()).sort()) !== 
+                           JSON.stringify(Array.from(lastLoadedCells.entries()).sort());
+        
+        // Don't save to frames that were empty when loaded unless user actually added content
+        const previousFrameData = getFrameData(previousFrameIndex);
+        const previousFrameWasEmpty = !previousFrameData || previousFrameData.size === 0;
+        const userAddedContentToEmptyFrame = previousFrameWasEmpty && currentCellsToSave.size > 0;
+        
+        if (cellsChanged && (!previousFrameWasEmpty || userAddedContentToEmptyFrame)) {
+          setFrameData(previousFrameIndex, currentCellsToSave);
+        }
       }
       
       // Load the new frame's data
@@ -151,20 +172,21 @@ export const useFrameSynchronization = (
       
       lastFrameIndexRef.current = currentFrameIndex;
     }
-  }, [currentFrameIndex, cells, setFrameData, loadFrameToCanvas, isPlaying, isDraggingFrame, isDeletingFrame, isImportingSession, moveStateParam, setMoveStateParam, selection.active, lassoSelection.active, magicWandSelection.active, clearSelection, clearLassoSelection, clearMagicWandSelection, width, height, setCanvasData]);
+  }, [currentFrameIndex, setFrameData, getFrameData, loadFrameToCanvas, isPlaying, isDraggingFrame, isDeletingFrame, isImportingSession, moveStateParam, setMoveStateParam, selection.active, lassoSelection.active, magicWandSelection.active, clearSelection, clearLassoSelection, clearMagicWandSelection, width, height, setCanvasData]);
 
   // Auto-save canvas changes to current frame (debounced)
   useEffect(() => {
     if (isLoadingFrameRef.current || isPlaying || isDraggingFrame || isDeletingFrame || isImportingSession) return;
     
-    // Check if cells actually changed to avoid unnecessary saves
+    // Check if cells actually changed from the last known state to avoid unnecessary saves
     const currentCellsString = JSON.stringify(Array.from(cells.entries()).sort());
     const lastCellsString = JSON.stringify(Array.from(lastCellsRef.current.entries()).sort());
     
     if (currentCellsString !== lastCellsString) {
-      // Longer delay to prevent interference with drag operations
+      // Only save if the canvas content doesn't match the current frame's stored content
+      // This prevents saving when the canvas is loaded with frame data
       const timeoutId = setTimeout(() => {
-        if (!isLoadingFrameRef.current && !isPlaying) {
+        if (!isLoadingFrameRef.current && !isPlaying && !isDraggingFrame && !isDeletingFrame && !isImportingSession) {
           saveCurrentCanvasToFrame();
         }
       }, 150);
@@ -173,10 +195,14 @@ export const useFrameSynchronization = (
     }
   }, [cells, saveCurrentCanvasToFrame, isPlaying, isDraggingFrame, isDeletingFrame, isImportingSession]);
 
-  // Initialize first frame with current canvas data if empty
+  // Initialize first frame with current canvas data if empty (only on app startup)
+  // CRITICAL: This useEffect was previously contaminating ALL empty frames when switching
+  // See docs/FRAME_SYNCHRONIZATION_DEBUGGING_GUIDE.md for detailed analysis and prevention patterns
   useEffect(() => {
     const currentFrame = getCurrentFrame();
-    if (currentFrame && currentFrame.data.size === 0 && cells.size > 0) {
+    // Only initialize if we're on frame 0 AND it's empty AND canvas has content
+    // This prevents contaminating empty frames when switching between frames
+    if (currentFrameIndex === 0 && currentFrame && currentFrame.data.size === 0 && cells.size > 0 && !isLoadingFrameRef.current) {
       setFrameData(currentFrameIndex, new Map(cells));
     }
   }, [getCurrentFrame, cells, currentFrameIndex, setFrameData]);

@@ -334,10 +334,22 @@ export class SessionImporter {
     // This allows useFrameSynchronization to load the first frame naturally
     setTimeout(() => {
       const animationStore = useAnimationStore.getState();
+      const canvasStore = useCanvasStore.getState();
+      
       animationStore.setImportingSession(false);
       
-      // Trigger frame loading by setting current frame again after clearing the import flag
-      // This ensures the frame content loads properly into the canvas
+      // Force load the frame data into canvas, even if we're already on frame 0
+      // This handles the case where user is already on frame 1 during import
+      const firstFrame = animationStore.frames[0];
+      if (firstFrame && firstFrame.data) {
+        canvasStore.clearCanvas();
+        firstFrame.data.forEach((cell, key) => {
+          const [x, y] = key.split(',').map(Number);
+          canvasStore.setCell(x, y, cell);
+        });
+      }
+      
+      // Also trigger setCurrentFrame to ensure the frame synchronization system is in sync
       animationStore.setCurrentFrame(0);
     }, 50);
   }

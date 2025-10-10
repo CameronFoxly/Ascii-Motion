@@ -1,12 +1,62 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.39";
-export const BUILD_DATE = "2025-10-08T20:11:36.606Z";
-export const BUILD_HASH = "cff28c9";
+export const VERSION = "0.1.41";
+export const BUILD_DATE = "2025-10-10T23:47:40.981Z";
+export const BUILD_HASH = "2374d5d";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.41",
+    "date": "2025-10-10T23:47:40.981Z",
+    "commits": [
+      "Updated docs on playback optimization",
+      "More console logs!",
+      "Cleaned up old console logs",
+      "Fixed the more frames playback bottleneck issue",
+      "Set up optimized playback",
+      "Added animation playback optimization plan",
+      "Updated copilot instructions to include lint error prevention [facepalm]",
+      "Remaining lint errors around hooks warnings",
+      "Cleared out the rest of the ANY errors",
+      "More lint errors, regretting all my life choices.",
+      "A bunch of Any lint errors",
+      "Moar lint errors...",
+      "FIxed more lint error debt",
+      "Removed duplicat color picker component",
+      "Easy win lint errors resolved.",
+      "Fixed logo layout in header",
+      "Fixed bug when user was not on frame one while opening session file",
+      "Change canvas size layout",
+      "Update canvas size controls to allow for pixel editing"
+    ]
+  },
+  {
+    "version": "0.1.40",
+    "date": "2025-10-10T19:52:28.502Z",
+    "commits": [
+      "Updated docs on playback optimization",
+      "More console logs!",
+      "Cleaned up old console logs",
+      "Fixed the more frames playback bottleneck issue",
+      "Set up optimized playback",
+      "Added animation playback optimization plan",
+      "Updated copilot instructions to include lint error prevention [facepalm]",
+      "Remaining lint errors around hooks warnings",
+      "Cleared out the rest of the ANY errors",
+      "More lint errors, regretting all my life choices.",
+      "A bunch of Any lint errors",
+      "Moar lint errors...",
+      "FIxed more lint error debt",
+      "Removed duplicat color picker component",
+      "Easy win lint errors resolved.",
+      "Fixed logo layout in header",
+      "Fixed bug when user was not on frame one while opening session file",
+      "Change canvas size layout",
+      "Update canvas size controls to allow for pixel editing"
+    ]
+  },
   {
     "version": "0.1.39",
     "date": "2025-10-08T20:11:36.606Z",

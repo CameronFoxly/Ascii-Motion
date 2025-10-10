@@ -10,6 +10,17 @@ The animation system now includes **optimized playback** that maintains 60 FPS r
 - Consistent performance regardless of animation complexity
 - Seamless user experience with all existing functionality preserved
 
+### 🐛 Frame Synchronization Bug Resolution
+**October 2025**: Resolved critical frame preview contamination bug where empty frames displayed content from previously selected frames. This systematic debugging effort revealed important patterns for React state synchronization.
+
+**Key Learnings:**
+- useEffect scope creep can cause unintended state updates in complex applications
+- Systematic debug logging across data flow layers is essential for multi-layer state issues
+- Empty states often reveal systematic issues that aren't apparent in normal use cases
+- Timing-based race conditions require explicit guards and context awareness
+
+**📋 For detailed debugging methodology and prevention patterns, see:** [`FRAME_SYNCHRONIZATION_DEBUGGING_GUIDE.md`](./FRAME_SYNCHRONIZATION_DEBUGGING_GUIDE.md)
+
 ---
 
 ## Enhanced Undo/Redo System (Updated October 2025)

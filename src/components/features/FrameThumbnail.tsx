@@ -92,8 +92,18 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
     }
   }, [frame.duration, isEditingDuration]);
 
+  // Create a stable serialized representation of frame data for memoization
+  const frameDataKey = `${frame.id}-${frame.data.size}-${[...frame.data.keys()].sort().join(',')}`;
+  
   // Generate pixel-based thumbnail canvas
   const thumbnailCanvas = useMemo(() => {
+    
+    // Create a completely independent copy of the frame data at render time
+    const frameDataCopy = new Map();
+    for (const [key, cell] of frame.data.entries()) {
+      frameDataCopy.set(key, { ...cell }); // Deep copy each cell
+    }
+    
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
@@ -115,7 +125,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
     ctx.fillRect(0, 0, thumbnailWidth, thumbnailHeight);
 
     // If frame is empty, show a subtle grid pattern
-    if (frame.data.size === 0) {
+    if (frameDataCopy.size === 0) {
       ctx.strokeStyle = '#333333';
       ctx.lineWidth = 0.5;
       const gridSpacing = 8;
@@ -140,7 +150,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
     }
 
     // Render each cell as a colored rectangle
-    for (const [key, cell] of frame.data) {
+    for (const [key, cell] of frameDataCopy) {
       const coords = key.split(',').map(Number);
       const x = coords[0];
       const y = coords[1];
@@ -158,7 +168,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
     }
 
     return canvas.toDataURL();
-  }, [frame.data, canvasWidth, canvasHeight, canvasBackgroundColor, scaledThumbnailWidth, scaledThumbnailHeight]);
+  }, [frameDataKey, canvasWidth, canvasHeight, canvasBackgroundColor, scaledThumbnailWidth, scaledThumbnailHeight]);
 
   // Handle duration input change (allow free typing)
   const handleDurationInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
