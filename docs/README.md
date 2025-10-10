@@ -24,8 +24,9 @@ This directory contains comprehensive documentation for the ASCII Motion project
 - [`SVG_TEXT_TO_OUTLINES_IMPLEMENTATION_SUMMARY.md`](./SVG_TEXT_TO_OUTLINES_IMPLEMENTATION_SUMMARY.md) - Implementation summary and testing guide
 
 ### **Performance & Optimization**
-- [`PERFORMANCE_OPTIMIZATION.md`](./PERFORMANCE_OPTIMIZATION.md) - Performance optimization strategies
-- [`PERFORMANCE_OPTIMIZATION_PHASE1.md`](./PERFORMANCE_OPTIMIZATION_PHASE1.md) - Phase 1 performance improvements
+- [`PERFORMANCE_OPTIMIZATION.md`](./PERFORMANCE_OPTIMIZATION.md) - Complete performance guide: canvas rendering + animation playback optimizations
+- [`ANIMATION_PLAYBACK_OPTIMIZATION.md`](./ANIMATION_PLAYBACK_OPTIMIZATION.md) - **NEW** Animation playback optimization (445% FPS improvement)
+- [`PERFORMANCE_OPTIMIZATION_PHASE1.md`](./PERFORMANCE_OPTIMIZATION_PHASE1.md) - Phase 1 performance improvements  
 - [`CANVAS_RENDERING_IMPROVEMENTS.md`](./CANVAS_RENDERING_IMPROVEMENTS.md) - Canvas rendering optimizations
 
 ### **Feature Guides**
