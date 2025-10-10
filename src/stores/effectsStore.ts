@@ -468,14 +468,12 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
         const { useAnimationStore } = await import('./animationStore');
         const animationStore = useAnimationStore.getState();
         
-        console.log(`Applying ${effect} effect to ${animationStore.frames.length} frames...`);
-        
         const result = await processEffectOnFrames(
           effect,
           animationStore.frames,
           settings,
-          (frameIndex, totalFrames) => {
-            console.log(`Processing frame ${frameIndex + 1}/${totalFrames}`);
+          () => {
+            // Progress tracking could be added here if needed
           }
         );
 
@@ -499,14 +497,10 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
           canvasStore.setCanvasData(currentFrame.data);
         }
 
-        console.log(`✅ Applied ${effect} to timeline: ${result.totalAffectedCells} cells modified in ${result.processingTime.toFixed(2)}ms`);
-        
       } else {
         // Apply to current canvas only
         const { useCanvasStore } = await import('./canvasStore');
         const canvasStore = useCanvasStore.getState();
-        
-        console.log(`Applying ${effect} effect to current canvas...`);
         
         const result = await processEffect(
           effect,
@@ -518,8 +512,6 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
           // Update canvas store with processed cells
           const { setCanvasData } = canvasStore;
           setCanvasData(result.processedCells);
-          
-          console.log(`✅ Applied ${effect} to canvas: ${result.affectedCells} cells modified in ${result.processingTime.toFixed(2)}ms`);
         } else {
           throw new Error(result.error || 'Effect processing failed');
         }

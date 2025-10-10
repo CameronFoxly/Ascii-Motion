@@ -104,7 +104,6 @@ export const useEffectsHistory = () => {
       if (success) {
         // Push to history stack only if effect was successfully applied
         pushToHistory(historyAction);
-        console.log(`✅ Effect applied and added to history: ${historyAction.description}`);
       } else {
         console.error(`❌ Effect application failed, not adding to history`);
       }

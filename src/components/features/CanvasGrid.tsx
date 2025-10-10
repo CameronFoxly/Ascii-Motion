@@ -309,7 +309,6 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
     const handleKeyUp = (event: KeyboardEvent) => {
       // Handle Shift key release
       if (event.key === 'Shift') {
-        console.log('[CanvasGrid] Shift key UP');
         setShiftKeyDown(false);
         // Clear line preview when shift is released
         const { clearLinePreview } = useToolStore.getState();

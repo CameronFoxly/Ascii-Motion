@@ -207,7 +207,6 @@ export const useTimeEffectsStore = create<TimeEffectsState>((set, get) => ({
   // ==========================================
   
   startPreview: (effectType) => {
-    console.log('[TimeEffects Store] startPreview called with:', effectType);
     set({ 
       isPreviewActive: true, 
       previewEffect: effectType 
@@ -218,7 +217,6 @@ export const useTimeEffectsStore = create<TimeEffectsState>((set, get) => ({
   },
   
   stopPreview: () => {
-    console.log('[TimeEffects Store] stopPreview called');
     // Clear preview from canvas via previewStore
     try {
       usePreviewStore.getState().clearPreview();
@@ -232,13 +230,7 @@ export const useTimeEffectsStore = create<TimeEffectsState>((set, get) => ({
   updatePreview: () => {
     const state = get();
     
-    console.log('[TimeEffects Store] updatePreview called, state:', {
-      isPreviewActive: state.isPreviewActive,
-      previewEffect: state.previewEffect
-    });
-    
     if (!state.isPreviewActive || !state.previewEffect) {
-      console.log('[TimeEffects Store] Preview not active or no effect type');
       return;
     }
     
@@ -259,10 +251,7 @@ export const useTimeEffectsStore = create<TimeEffectsState>((set, get) => ({
       const accumulatedTime = calculateAccumulatedTime(frames, currentFrameIndex);
       
       // Apply effect based on type
-  let previewData: Map<string, Cell> | null = null;
-      
-      console.log('[TimeEffects Store] Applying effect:', state.previewEffect, 'to frame', currentFrameIndex);
-      console.log('[TimeEffects Store] Frame data size:', currentFrameData.size, 'accumulated time:', accumulatedTime);
+      let previewData: Map<string, Cell> | null = null;
       
       if (state.previewEffect === 'wave-warp') {
         previewData = applyWaveWarpToFrame(
@@ -272,7 +261,6 @@ export const useTimeEffectsStore = create<TimeEffectsState>((set, get) => ({
           state.waveWarpSettings,
           accumulatedTime
         );
-        console.log('[TimeEffects Store] Wave warp result:', previewData?.size || 0, 'cells');
       } else if (state.previewEffect === 'wiggle') {
         previewData = applyWiggleToFrame(
           currentFrameData,

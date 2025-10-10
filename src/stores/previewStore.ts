@@ -26,8 +26,6 @@ export const usePreviewStore = create<PreviewState>((set) => ({
   },
   
   clearPreview: () => {
-    console.log('[Preview Store] clearPreview called');
-    console.trace();
     set({
       previewData: new Map(),
       isPreviewActive: false
