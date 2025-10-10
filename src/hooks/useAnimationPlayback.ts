@@ -138,35 +138,7 @@ export const useAnimationPlayback = () => {
     }
   }, [isPlaying, startPlayback, pausePlayback]);
 
-  // Handle keyboard shortcuts for playback
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Don't handle if user is typing in an input/textarea
-      const target = event.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true') {
-        return;
-      }
-
-      switch (event.key) {
-        case ' ': // Spacebar for play/pause
-          event.preventDefault();
-          toggleAnimationPlayback();
-          break;
-        case 'Escape': // Escape to stop
-          event.preventDefault();
-          if (isPlaying) {
-            stopPlayback();
-          }
-          break;
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [toggleAnimationPlayback, isPlaying, stopPlayback]);
+  // Note: Keyboard shortcuts moved to AnimationTimeline component to support optimized playback
 
   // Cleanup on unmount
   useEffect(() => {

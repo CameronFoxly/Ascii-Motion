@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAnimationStore } from '../../stores/animationStore';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useAnimationPlayback } from '../../hooks/useAnimationPlayback';
+import { useOptimizedPlayback } from '../../hooks/useOptimizedPlayback';
 import { useFrameNavigation } from '../../hooks/useFrameNavigation';
 import { useAnimationHistory } from '../../hooks/useAnimationHistory';
 import { useTimeEffectsStore } from '../../stores/timeEffectsStore';
@@ -17,12 +18,13 @@ import {
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
+  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger 
 } from '../ui/dropdown-menu';
-import { Menu, Clock, Plus, Zap } from 'lucide-react';
+import { Menu, Clock, Plus, Zap, Gauge, CheckCircle } from 'lucide-react';
 import { MAX_LIMITS } from '../../constants';
 
 const AUTO_SCROLL_EDGE_RATIO = 0.1; // 10% edge band for auto-scrolling
@@ -75,12 +77,26 @@ export const AnimationTimeline: React.FC = () => {
   } = useAnimationPlayback();
 
   const {
+    startOptimizedPlayback,
+    stopOptimizedPlayback
+  } = useOptimizedPlayback();
+
+  const {
     navigateToFrame,
     navigateNext,
     navigatePrevious,
     navigateFirst,
     navigateLast
   } = useFrameNavigation();
+
+  // Optimized playback mode state
+  const [useOptimizedMode, setUseOptimizedMode] = useState(false);
+  const [isOptimizedPlaybackActive, setIsOptimizedPlaybackActive] = useState(false);
+  
+  // Debug log for optimized mode state
+  useEffect(() => {
+    console.log('🔧 Optimized mode state changed:', { useOptimizedMode, isOptimizedPlaybackActive });
+  }, [useOptimizedMode, isOptimizedPlaybackActive]);
 
   // Drag and drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -229,6 +245,82 @@ export const AnimationTimeline: React.FC = () => {
       setDragOverIndex(clampedIndex);
     }
   }, [draggedIndex, dragOverIndex, frames.length]);
+
+  // Playback wrapper functions that choose between normal and optimized modes
+  const handleStartPlayback = useCallback(() => {
+    console.log('🎬 handleStartPlayback called - useOptimizedMode:', useOptimizedMode);
+    if (useOptimizedMode) {
+      console.log('🚀 Starting optimized playback...');
+      setIsOptimizedPlaybackActive(true);
+      startOptimizedPlayback();
+    } else {
+      console.log('🎵 Starting normal playback...');
+      startPlayback();
+    }
+  }, [useOptimizedMode, startOptimizedPlayback, startPlayback]);
+
+  const handlePausePlayback = useCallback(() => {
+    if (isOptimizedPlaybackActive) {
+      setIsOptimizedPlaybackActive(false);
+      stopOptimizedPlayback();
+    } else {
+      pausePlayback();
+    }
+  }, [isOptimizedPlaybackActive, stopOptimizedPlayback, pausePlayback]);
+
+  const handleStopPlayback = useCallback(() => {
+    if (isOptimizedPlaybackActive) {
+      setIsOptimizedPlaybackActive(false);
+      stopOptimizedPlayback();
+    } else {
+      stopPlayback();
+    }
+  }, [isOptimizedPlaybackActive, stopOptimizedPlayback, stopPlayback]);
+
+  // Handle keyboard shortcuts for playback (moved from useAnimationPlayback to support optimized playback)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't handle if user is typing in an input/textarea
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true') {
+        return;
+      }
+
+      switch (event.key) {
+        case ' ': // Spacebar for play/pause
+          event.preventDefault();
+          console.log('⌨️ Spacebar pressed - handling playback toggle');
+          if (isPlaying || isOptimizedPlaybackActive) {
+            // Currently playing - pause/stop
+            if (isOptimizedPlaybackActive) {
+              handlePausePlayback();
+            } else {
+              pausePlayback();
+            }
+          } else {
+            // Not playing - start playback (with optimized mode if enabled)
+            handleStartPlayback();
+          }
+          break;
+        case 'Escape': // Escape to stop
+          event.preventDefault();
+          if (isPlaying || isOptimizedPlaybackActive) {
+            if (isOptimizedPlaybackActive) {
+              handleStopPlayback();
+            } else {
+              stopPlayback();
+            }
+          }
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isPlaying, isOptimizedPlaybackActive, handleStartPlayback, handlePausePlayback, handleStopPlayback, pausePlayback, stopPlayback]);
 
   // Handle drag start
   const handleDragStart = useCallback((event: React.DragEvent, index: number) => {
@@ -514,7 +606,11 @@ export const AnimationTimeline: React.FC = () => {
       <CardHeader className="py-2 px-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <AnimationControlsMenu />
+            <AnimationControlsMenu 
+              useOptimizedMode={useOptimizedMode}
+              onToggleOptimizedMode={setUseOptimizedMode}
+              isOptimizedPlaybackActive={isOptimizedPlaybackActive}
+            />
             <CardTitle className="text-sm font-medium">Animation Timeline</CardTitle>
           </div>
           <div className="text-xs text-muted-foreground">
@@ -538,19 +634,20 @@ export const AnimationTimeline: React.FC = () => {
 
           {/* Playback Controls - Center */}
           <PlaybackControls
-            isPlaying={isPlaying}
+            isPlaying={isPlaying || isOptimizedPlaybackActive}
             canPlay={canPlay}
             currentFrame={currentFrameIndex}
             totalFrames={frames.length}
-            onPlay={startPlayback}
-            onPause={pausePlayback}
-            onStop={stopPlayback}
+            onPlay={handleStartPlayback}
+            onPause={handlePausePlayback}
+            onStop={handleStopPlayback}
             onPrevious={navigatePrevious}
             onNext={navigateNext}
             onFirst={navigateFirst}
             onLast={navigateLast}
             onToggleLoop={() => setLooping(!looping)}
             isLooping={looping}
+            isOptimizedPlaybackActive={isOptimizedPlaybackActive}
           />
 
           {/* Onion Skin Controls - Right Side */}
@@ -622,7 +719,17 @@ export const AnimationTimeline: React.FC = () => {
  * 
  * Provides hamburger menu with time-based effects and animation controls
  */
-const AnimationControlsMenu: React.FC = () => {
+interface AnimationControlsMenuProps {
+  useOptimizedMode: boolean;
+  onToggleOptimizedMode: (value: boolean) => void;
+  isOptimizedPlaybackActive: boolean;
+}
+
+const AnimationControlsMenu: React.FC<AnimationControlsMenuProps> = ({
+  useOptimizedMode,
+  onToggleOptimizedMode,
+  isOptimizedPlaybackActive
+}) => {
   const { 
     openSetDurationDialog,
     openAddFramesDialog,
@@ -665,6 +772,24 @@ const AnimationControlsMenu: React.FC = () => {
             <Plus className="mr-2 h-4 w-4" />
             <span>Add multiple frames</span>
           </DropdownMenuItem>
+          
+          <DropdownMenuItem 
+            onClick={() => {
+              console.log('🔄 Toggling optimized mode from', useOptimizedMode, 'to', !useOptimizedMode);
+              onToggleOptimizedMode(!useOptimizedMode);
+            }}
+            disabled={isOptimizedPlaybackActive}
+          >
+            <Gauge className="mr-2 h-4 w-4" />
+            <span>
+              {useOptimizedMode ? 'Disable' : 'Enable'} optimized playback
+            </span>
+            {useOptimizedMode && (
+              <CheckCircle className="ml-auto h-4 w-4 text-green-500" />
+            )}
+          </DropdownMenuItem>
+          
+          <DropdownMenuSeparator />
           
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>

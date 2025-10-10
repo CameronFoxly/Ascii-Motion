@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { Play, Pause, Square, SkipBack, SkipForward, StepBack, StepForward, RotateCcw } from 'lucide-react';
+import { Play, Pause, Square, SkipBack, SkipForward, StepBack, StepForward, RotateCcw, Zap } from 'lucide-react';
 
 interface PlaybackControlsProps {
   isPlaying: boolean;
@@ -18,6 +18,7 @@ interface PlaybackControlsProps {
   onLast: () => void;
   onToggleLoop: () => void;
   isLooping: boolean;
+  isOptimizedPlaybackActive?: boolean;
 }
 
 /**
@@ -37,7 +38,8 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
   onFirst,
   onLast,
   onToggleLoop,
-  isLooping
+  isLooping,
+  isOptimizedPlaybackActive = false
 }) => {
   const FIGURE_SPACE = '\u2007';
   const formatFrameNumber = (value: number) => value.toString().padStart(3, FIGURE_SPACE);
@@ -161,6 +163,24 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
             {frameLabel}
           </Badge>
         </div>
+
+        {/* Optimized playback indicator */}
+        {isOptimizedPlaybackActive && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge 
+                variant="default" 
+                className="flex items-center gap-1 text-xs bg-blue-500/10 text-blue-600 border-blue-500/20"
+              >
+                <Zap className="h-3 w-3" />
+                <span>Optimized</span>
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Optimized playback mode active</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
 
         {/* Loop toggle */}
         <Tooltip>
