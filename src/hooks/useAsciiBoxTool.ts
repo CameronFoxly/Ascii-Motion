@@ -73,9 +73,7 @@ export const useAsciiBoxTool = () => {
     || BOX_DRAWING_STYLES[0];
   
   // Debug: Log shift key state changes
-  useEffect(() => {
-    console.log('[ASCII Box] shiftKeyDown changed:', shiftKeyDown, 'lastPoint:', lastPoint, 'drawingMode:', drawingMode);
-  }, [shiftKeyDown, lastPoint, drawingMode]);
+  // Track shift key state for line drawing mode
   
   // Open panel when tool becomes active
   useEffect(() => {
@@ -172,14 +170,12 @@ export const useAsciiBoxTool = () => {
         setRectanglePreview(null);
       }
     } else if (drawingMode === 'freedraw') {
-      console.log('[ASCII Box] Free draw mode click', { x, y, shiftKeyDown, lastPoint });
+      // Handle free draw mode click
       
       // Handle shift+click line drawing
       if (shiftKeyDown && lastPoint) {
-        console.log('[ASCII Box] Shift+click detected! Drawing line from', lastPoint, 'to', { x, y });
         // Draw line from lastPoint to current point
         const lineCells = getLineCells(lastPoint, { x, y });
-        console.log('[ASCII Box] Line cells generated:', lineCells.length, 'cells');
         const newDrawnCells = new Set(drawnCells);
         const newPreview = new Map(previewData || new Map());
         
@@ -423,7 +419,7 @@ export const useAsciiBoxTool = () => {
   const handleMouseUp = useCallback(() => {
     if (activeTool !== 'asciibox') return;
     
-    console.log('[ASCII Box] handleMouseUp - isDrawing:', isDrawing, 'drawingMode:', drawingMode);
+    // Handle mouse up for drawing completion
     
     // Only end drawing (which clears lastPoint) if we were actually dragging
     // For free draw mode, we want to preserve lastPoint for shift+click line drawing
@@ -436,16 +432,7 @@ export const useAsciiBoxTool = () => {
   const handleMouseHover = useCallback((x: number, y: number) => {
     if (activeTool !== 'asciibox') return;
     
-    // Debug logging
-    console.log('[ASCII Box] handleMouseHover called', {
-      x, y,
-      drawingMode,
-      shiftKeyDown,
-      hasLastPoint: !!lastPoint,
-      lastPoint,
-      isDrawing,
-      hasRectangleStart: !!rectangleStart
-    });
+    // Handle mouse hover for preview updates
     
     // Handle rectangle mode live preview
     if (drawingMode === 'rectangle' && rectangleStart && !isDrawing) {
@@ -470,11 +457,10 @@ export const useAsciiBoxTool = () => {
     if (drawingMode === 'freedraw' && shiftKeyDown && lastPoint && !isDrawing) {
       // Generate preview line from last position to current position
       const lineCells = getLineCells(lastPoint, { x, y });
-      console.log('[ASCII Box] Setting line preview', { lineCells });
+      // Set line preview for shift+click drawing
       setLinePreview(lineCells);
     } else {
       // Clear preview when conditions not met
-      console.log('[ASCII Box] Clearing line preview - conditions not met');
       clearLinePreview();
     }
   }, [

@@ -13,6 +13,7 @@ import { ToolStatusManager } from './ToolStatusManager';
 import { CanvasActionButtons } from './CanvasActionButtons';
 import { CanvasOverlay } from './CanvasOverlay';
 import { PlaybackStatusBar } from './PlaybackStatusBar';
+import { PlaybackCanvas } from './PlaybackCanvas';
 import type { Tool } from '../../types';
 
 interface CanvasGridProps {
@@ -394,11 +395,13 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
           onMouseLeave={handleMouseLeave}
           onContextMenu={handleContextMenu}
           style={{
-            display: 'block'
+            display: isPlaybackMode ? 'none' : 'block'
             // Width and height are set by canvas resize logic in useCanvasRenderer
           }}
         />
         <CanvasOverlay />
+        {/* Playback canvas - lightweight cached rendering during playback */}
+        <PlaybackCanvas />
       </div>
       
       {/* Action buttons and status info positioned outside canvas */}

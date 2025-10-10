@@ -82,7 +82,7 @@ export const useCanvasRenderer = () => {
     getCell
   } = useCanvasStore();
 
-  const { activeTool, rectangleFilled, lassoSelection, magicWandSelection, textToolState, linePreview } = useToolStore();
+  const { activeTool, rectangleFilled, lassoSelection, magicWandSelection, textToolState, linePreview, isPlaybackMode } = useToolStore();
   const { previewData, isPreviewActive } = usePreviewStore();
   const { isPreviewActive: isEffectPreviewActive } = useEffectsStore();
   const { isPreviewActive: isTimeEffectPreviewActive } = useTimeEffectsStore();
@@ -145,6 +145,8 @@ export const useCanvasRenderer = () => {
     const scaledFontSize = fontMetrics.fontSize * zoom;
     const scaledFontString = `${scaledFontSize}px '${fontMetrics.fontFamily}', monospace`;
     
+    // Font configuration complete
+    
     return {
       font: scaledFontString,
       gridLineColor: calculateAdaptiveGridColor(canvasBackgroundColor, theme),
@@ -170,18 +172,18 @@ export const useCanvasRenderer = () => {
       ctx.fillRect(pixelX, pixelY, cellWidth, cellHeight);
     }
 
-    // Draw character with pixel-perfect positioning
-    if (cell.char && cell.char !== ' ') {
-      ctx.fillStyle = cell.color || drawingStyles.defaultTextColor;
-      ctx.font = drawingStyles.font;
-      ctx.textAlign = drawingStyles.textAlign;
-      ctx.textBaseline = drawingStyles.textBaseline;
-      
-      // Center text with rounded positions for crisp rendering
-      const centerX = Math.round(pixelX + cellWidth / 2);
-      const centerY = Math.round(pixelY + cellHeight / 2);
-      
-      ctx.fillText(cell.char, centerX, centerY);
+      // Draw character with pixel-perfect positioning
+      if (cell.char && cell.char !== ' ') {
+        ctx.fillStyle = cell.color || drawingStyles.defaultTextColor;
+        ctx.font = drawingStyles.font;
+        ctx.textAlign = drawingStyles.textAlign;
+        ctx.textBaseline = drawingStyles.textBaseline;
+        
+        // Font verification complete
+        
+        // Center text with rounded positions for crisp rendering
+        const centerX = Math.round(pixelX + cellWidth / 2);
+        const centerY = Math.round(pixelY + cellHeight / 2);      ctx.fillText(cell.char, centerX, centerY);
     }
   }, [effectiveCellWidth, effectiveCellHeight, panOffset, canvasBackgroundColor, drawingStyles]);
 
@@ -215,6 +217,9 @@ export const useCanvasRenderer = () => {
   const renderCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // Skip rendering during playback mode - PlaybackCanvas handles display
+    if (isPlaybackMode) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -582,7 +587,8 @@ export const useCanvasRenderer = () => {
     moveState,
     pasteMode,
     textToolState,
-    lassoSelection
+    lassoSelection,
+    isPlaybackMode
   ]);
 
   // Throttled render function that uses requestAnimationFrame

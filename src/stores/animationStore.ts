@@ -138,18 +138,28 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   addFrame: (atIndex?: number, canvasData?: Map<string, Cell>, duration?: number) => {
     set((state) => {
       const newFrame = createEmptyFrame();
+      const insertIndex = atIndex !== undefined ? atIndex : state.frames.length;
       
       // If canvas data provided, use it, otherwise use empty frame
       if (canvasData) {
         newFrame.data = new Map(canvasData);
+        console.log(`🎬 Creating frame with canvas data:`, {
+          frameId: newFrame.id,
+          dataSize: canvasData.size,
+          insertIndex
+        });
+      } else {
+        console.log(`🎬 Creating empty frame:`, {
+          frameId: newFrame.id,
+          dataSize: 0,
+          insertIndex
+        });
       }
       
       // If duration provided, use it instead of default
       if (duration !== undefined) {
         newFrame.duration = duration;
       }
-      
-      const insertIndex = atIndex !== undefined ? atIndex : state.frames.length;
       const newFrames = [...state.frames];
       newFrames.splice(insertIndex, 0, newFrame);
       
@@ -527,6 +537,11 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
 
   // Frame data management
   setFrameData: (frameIndex: number, data: Map<string, Cell>) => {
+    console.log(`💾 Setting frame ${frameIndex} data:`, {
+      dataSize: data.size,
+      firstFewCells: Array.from(data.entries()).slice(0, 3)
+    });
+    
     set((state) => {
       const newFrames = [...state.frames];
       if (newFrames[frameIndex]) {

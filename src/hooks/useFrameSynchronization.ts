@@ -31,7 +31,6 @@ export const useFrameSynchronization = (
     currentFrameIndex, 
     setFrameData, 
     getFrameData, 
-    getCurrentFrame,
     isPlaying,
     isDraggingFrame,
     isDeletingFrame,
@@ -71,6 +70,12 @@ export const useFrameSynchronization = (
     isLoadingFrameRef.current = true;
     
     const frameData = getFrameData(frameIndex);
+    console.log(`📁 Loading frame ${frameIndex} to canvas:`, {
+      hasData: !!frameData,
+      dataSize: frameData?.size || 0,
+      firstFewCells: frameData ? Array.from(frameData.entries()).slice(0, 3) : []
+    });
+    
     if (frameData) {
       setCanvasData(frameData);
     } else {
@@ -146,8 +151,10 @@ export const useFrameSynchronization = (
         setFrameData(previousFrameIndex, currentCellsToSave);
       }
       
-      // Load the new frame's data
-      loadFrameToCanvas(currentFrameIndex);
+      // Load the new frame's data - SKIP during playback to avoid interfering with cached bitmap rendering
+      if (!isPlaying && !isLoadingFrameRef.current && !isDraggingFrame && !isDeletingFrame && !isImportingSession) {
+        loadFrameToCanvas(currentFrameIndex);
+      }
       
       lastFrameIndexRef.current = currentFrameIndex;
     }
@@ -173,13 +180,17 @@ export const useFrameSynchronization = (
     }
   }, [cells, saveCurrentCanvasToFrame, isPlaying, isDraggingFrame, isDeletingFrame, isImportingSession]);
 
-  // Initialize first frame with current canvas data if empty
-  useEffect(() => {
-    const currentFrame = getCurrentFrame();
-    if (currentFrame && currentFrame.data.size === 0 && cells.size > 0) {
-      setFrameData(currentFrameIndex, new Map(cells));
-    }
-  }, [getCurrentFrame, cells, currentFrameIndex, setFrameData]);
+  // DISABLED: Auto-initialization was causing frame content bleeding
+  // The logic was copying canvas content when switching TO a frame, but the canvas
+  // content belongs to the previous frame, not the current one.
+  // Frame initialization should happen explicitly when the user draws, not automatically.
+  // 
+  // useEffect(() => {
+  //   const currentFrame = getCurrentFrame();
+  //   if (currentFrame && currentFrame.data.size === 0 && cells.size > 0) {
+  //     setFrameData(currentFrameIndex, new Map(cells));
+  //   }
+  // }, [getCurrentFrame, cells, currentFrameIndex, setFrameData]);
 
   return {
     saveCurrentCanvasToFrame,
