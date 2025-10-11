@@ -449,6 +449,11 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
           // For basic drawing tools, we need to manually stop drawing since they don't have explicit mouse up handlers
           setIsDrawing(false);
           setMouseButtonDown(false);
+          // Finalize brush stroke (if a canvas_edit was initiated at mousedown)
+          if (['pencil','eraser','paintbucket','eyedropper'].includes(activeTool)) {
+            const { finalizeCanvasHistory } = useToolStore.getState();
+            finalizeCanvasHistory(new Map(useCanvasStore.getState().cells));
+          }
           
           // Reset pencil position only for non-pencil tools to prevent unwanted connecting lines
           // Pencil position will be managed separately to support shift+click line drawing

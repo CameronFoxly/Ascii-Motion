@@ -16,7 +16,7 @@ import { useAnimationStore } from '../stores/animationStore';
  * - Clipboard paste support with overwrite behavior
  */
 export const useTextTool = () => {
-  const { textToolState, startTyping, stopTyping, setCursorPosition, setCursorVisible, setTextBuffer, commitWord, pushCanvasHistory } = useToolStore();
+  const { textToolState, startTyping, stopTyping, setCursorPosition, setCursorVisible, setTextBuffer, commitWord, pushCanvasHistory, finalizeCanvasHistory } = useToolStore();
   const { width, height, setCell, getCell, cells } = useCanvasStore();
   const { currentFrameIndex } = useAnimationStore();
   const { selectedColor, selectedBgColor } = useToolStore();
@@ -76,10 +76,14 @@ export const useTextTool = () => {
   // Commit current word to undo stack
   const commitCurrentWord = useCallback(() => {
     if (textToolState.textBuffer.length > 0) {
-      pushCanvasHistory(cells, currentFrameIndex);
+      // Push previous snapshot
+      pushCanvasHistory(cells, currentFrameIndex, 'Text input');
+      // Commit word (mutates cells)
       commitWord();
+      // Capture forward snapshot
+      finalizeCanvasHistory(new Map(useCanvasStore.getState().cells));
     }
-  }, [textToolState.textBuffer.length, pushCanvasHistory, commitWord, cells, currentFrameIndex]);
+  }, [textToolState.textBuffer.length, pushCanvasHistory, commitWord, cells, currentFrameIndex, finalizeCanvasHistory]);
 
   // Move cursor with boundary constraints
   const moveCursor = useCallback((deltaX: number, deltaY: number) => {
@@ -228,7 +232,8 @@ export const useTextTool = () => {
       }
 
       // Commit paste as single undo operation
-      pushCanvasHistory(cells, currentFrameIndex);
+  pushCanvasHistory(cells, currentFrameIndex, 'Paste text');
+  finalizeCanvasHistory(new Map(useCanvasStore.getState().cells));
 
     } catch (error) {
       console.error('Failed to read clipboard:', error);
@@ -276,7 +281,7 @@ export const useTextTool = () => {
         handleBackspace();
         break;
       case 'Escape':
-        commitCurrentWord();
+  commitCurrentWord();
         stopTyping();
         break;
       default:

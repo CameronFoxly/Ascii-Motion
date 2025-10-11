@@ -35,9 +35,24 @@ export const CanvasActionButtons: React.FC = () => {
     switch (action.type) {
       case 'canvas_edit': {
         const canvasAction = action as CanvasHistoryAction;
-        setCanvasData(canvasAction.data.canvasData);
-        // Set current frame to match the frame this edit was made in
-        animationStore.setCurrentFrame(canvasAction.data.frameIndex);
+        // Determine correct snapshot based on undo/redo direction
+        const targetData = isRedo
+          ? (canvasAction.data.newCanvasData ?? canvasAction.data.previousCanvasData)
+          : canvasAction.data.previousCanvasData;
+        if (isRedo && !canvasAction.data.newCanvasData && process.env.NODE_ENV !== 'production') {
+          console.warn('[history] Redo encountered legacy canvas_edit entry without newCanvasData; using previousCanvasData fallback');
+        }
+
+        // Update frame store first to avoid auto-save races
+        animationStore.setFrameData(canvasAction.data.frameIndex, targetData);
+
+        // Switch to frame if needed
+        if (animationStore.currentFrameIndex !== canvasAction.data.frameIndex) {
+          animationStore.setCurrentFrame(canvasAction.data.frameIndex);
+        }
+
+        // Reflect on visible canvas
+        setCanvasData(targetData);
         break;
       }
       
@@ -58,24 +73,41 @@ export const CanvasActionButtons: React.FC = () => {
         
       case 'add_frame': {
         if (isRedo) {
-          // Redo: Re-add the frame
-          animationStore.addFrame(action.data.frameIndex, action.data.canvasData);
+          // Redo: Re-add the frame with full properties
+          const frame = action.data.frame;
+          animationStore.addFrame(action.data.frameIndex, frame.data, frame.duration);
+          animationStore.updateFrameName(action.data.frameIndex, frame.name);
+          // Canvas will sync automatically since addFrame sets current frame
         } else {
           // Undo: Remove the frame that was added
           animationStore.removeFrame(action.data.frameIndex);
           animationStore.setCurrentFrame(action.data.previousCurrentFrame);
+          // After removing frame and switching to previous frame, 
+          // sync canvas with the frame we switched to
+          const currentFrame = animationStore.frames[action.data.previousCurrentFrame];
+          if (currentFrame) {
+            setCanvasData(currentFrame.data);
+          }
         }
         break;
       }
         
       case 'duplicate_frame': {
         if (isRedo) {
-          // Redo: Re-duplicate the frame
-          animationStore.duplicateFrame(action.data.originalIndex);
+          // Redo: Re-add the duplicated frame using the stored frame data
+          const frame = action.data.frame;
+          animationStore.addFrame(action.data.newIndex, frame.data, frame.duration);
+          animationStore.updateFrameName(action.data.newIndex, frame.name);
+          // Canvas will sync automatically since addFrame sets current frame
         } else {
           // Undo: Remove the duplicated frame
           animationStore.removeFrame(action.data.newIndex);
           animationStore.setCurrentFrame(action.data.previousCurrentFrame);
+          // Sync canvas with the frame we switched to
+          const currentFrame = animationStore.frames[action.data.previousCurrentFrame];
+          if (currentFrame) {
+            setCanvasData(currentFrame.data);
+          }
         }
         break;
       }
@@ -84,19 +116,26 @@ export const CanvasActionButtons: React.FC = () => {
         if (isRedo) {
           // Redo: Re-delete the frame
           animationStore.removeFrame(action.data.frameIndex);
+          // After deletion, sync canvas with the new current frame
+          const newCurrentIndex = Math.min(action.data.frameIndex, animationStore.frames.length - 1);
+          const currentFrame = animationStore.frames[newCurrentIndex];
+          if (currentFrame) {
+            setCanvasData(currentFrame.data);
+          }
         } else {
           // Undo: Re-add the deleted frame
           const deletedFrame = action.data.frame;
           
           // Add frame at the correct position
-          animationStore.addFrame(action.data.frameIndex, deletedFrame.data);
+          animationStore.addFrame(action.data.frameIndex, deletedFrame.data, deletedFrame.duration);
           
           // Update the frame properties to match the deleted frame
           animationStore.updateFrameName(action.data.frameIndex, deletedFrame.name);
-          animationStore.updateFrameDuration(action.data.frameIndex, deletedFrame.duration);
           
           // Restore previous current frame
           animationStore.setCurrentFrame(action.data.previousCurrentFrame);
+          // Sync canvas with the restored frame
+          setCanvasData(deletedFrame.data);
         }
         break;
       }
@@ -109,6 +148,11 @@ export const CanvasActionButtons: React.FC = () => {
           // Undo: Reverse the reorder
           animationStore.reorderFrames(action.data.toIndex, action.data.fromIndex);
           animationStore.setCurrentFrame(action.data.previousCurrentFrame);
+        }
+        // Sync canvas after reorder to ensure we're showing the right frame
+        const currentFrame = animationStore.frames[animationStore.currentFrameIndex];
+        if (currentFrame) {
+          setCanvasData(currentFrame.data);
         }
         break;
       }
@@ -273,7 +317,17 @@ export const CanvasActionButtons: React.FC = () => {
     if (canUndo()) {
       const undoAction = undo();
       if (undoAction) {
-        processHistoryAction(undoAction, false);
+        // Set flag to prevent auto-save during history processing
+        useToolStore.setState({ isProcessingHistory: true });
+        
+        try {
+          processHistoryAction(undoAction, false);
+        } finally {
+          // Clear flag after a small delay to ensure all effects have settled
+          setTimeout(() => {
+            useToolStore.setState({ isProcessingHistory: false });
+          }, 200);
+        }
       }
     }
   };
@@ -282,7 +336,17 @@ export const CanvasActionButtons: React.FC = () => {
     if (canRedo()) {
       const redoAction = redo();
       if (redoAction) {
-        processHistoryAction(redoAction, true);
+        // Set flag to prevent auto-save during history processing
+        useToolStore.setState({ isProcessingHistory: true });
+        
+        try {
+          processHistoryAction(redoAction, true);
+        } finally {
+          // Clear flag after a small delay to ensure all effects have settled
+          setTimeout(() => {
+            useToolStore.setState({ isProcessingHistory: false });
+          }, 200);
+        }
       }
     }
   };

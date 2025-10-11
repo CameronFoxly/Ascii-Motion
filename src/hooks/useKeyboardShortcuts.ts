@@ -30,9 +30,28 @@ const processHistoryAction = (
   switch (action.type) {
     case 'canvas_edit': {
       const canvasAction = action as CanvasHistoryAction;
-      canvasStore.setCanvasData(canvasAction.data.canvasData);
-      // Set current frame to match the frame this edit was made in
-      animationStore.setCurrentFrame(canvasAction.data.frameIndex);
+      // Determine which snapshot to apply
+      // Undo -> previousCanvasData (state before edit)
+      // Redo -> newCanvasData (state after edit) if available, else fallback to previousCanvasData (legacy entries)
+      const targetData = isRedo
+        ? (canvasAction.data.newCanvasData ?? canvasAction.data.previousCanvasData)
+        : canvasAction.data.previousCanvasData;
+      if (isRedo && !canvasAction.data.newCanvasData) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[history] Redo encountered legacy canvas_edit entry without newCanvasData; using previousCanvasData fallback');
+        }
+      }
+
+      // Update frame data FIRST to avoid auto-save race conditions
+      animationStore.setFrameData(canvasAction.data.frameIndex, targetData);
+
+      // Ensure we're on the correct frame
+      if (animationStore.currentFrameIndex !== canvasAction.data.frameIndex) {
+        animationStore.setCurrentFrame(canvasAction.data.frameIndex);
+      }
+
+      // Apply to visible canvas
+      canvasStore.setCanvasData(targetData);
       break;
     }
     
@@ -54,24 +73,41 @@ const processHistoryAction = (
       
     case 'add_frame': {
       if (isRedo) {
-        // Redo: Re-add the frame
-        animationStore.addFrame(action.data.frameIndex, action.data.canvasData);
+        // Redo: Re-add the frame with full properties
+        const frame = action.data.frame;
+        animationStore.addFrame(action.data.frameIndex, frame.data, frame.duration);
+        animationStore.updateFrameName(action.data.frameIndex, frame.name);
+        // Canvas will sync automatically since addFrame sets current frame
       } else {
         // Undo: Remove the frame that was added
         animationStore.removeFrame(action.data.frameIndex);
         animationStore.setCurrentFrame(action.data.previousCurrentFrame);
+        // After removing frame and switching to previous frame, 
+        // sync canvas with the frame we switched to
+        const currentFrame = animationStore.frames[action.data.previousCurrentFrame];
+        if (currentFrame) {
+          canvasStore.setCanvasData(currentFrame.data);
+        }
       }
       break;
     }
       
     case 'duplicate_frame': {
       if (isRedo) {
-        // Redo: Re-duplicate the frame
-        animationStore.duplicateFrame(action.data.originalIndex);
+        // Redo: Re-add the duplicated frame using the stored frame data
+        const frame = action.data.frame;
+        animationStore.addFrame(action.data.newIndex, frame.data, frame.duration);
+        animationStore.updateFrameName(action.data.newIndex, frame.name);
+        // Canvas will sync automatically since addFrame sets current frame
       } else {
         // Undo: Remove the duplicated frame
         animationStore.removeFrame(action.data.newIndex);
         animationStore.setCurrentFrame(action.data.previousCurrentFrame);
+        // Sync canvas with the frame we switched to
+        const currentFrame = animationStore.frames[action.data.previousCurrentFrame];
+        if (currentFrame) {
+          canvasStore.setCanvasData(currentFrame.data);
+        }
       }
       break;
     }
@@ -80,19 +116,26 @@ const processHistoryAction = (
       if (isRedo) {
         // Redo: Re-delete the frame
         animationStore.removeFrame(action.data.frameIndex);
+        // After deletion, sync canvas with the new current frame
+        const newCurrentIndex = Math.min(action.data.frameIndex, animationStore.frames.length - 1);
+        const currentFrame = animationStore.frames[newCurrentIndex];
+        if (currentFrame) {
+          canvasStore.setCanvasData(currentFrame.data);
+        }
       } else {
         // Undo: Re-add the deleted frame
         const deletedFrame = action.data.frame;
         
         // Add frame at the correct position
-        animationStore.addFrame(action.data.frameIndex, deletedFrame.data);
+        animationStore.addFrame(action.data.frameIndex, deletedFrame.data, deletedFrame.duration);
         
         // Update the frame properties to match the deleted frame
         animationStore.updateFrameName(action.data.frameIndex, deletedFrame.name);
-        animationStore.updateFrameDuration(action.data.frameIndex, deletedFrame.duration);
         
         // Restore previous current frame
         animationStore.setCurrentFrame(action.data.previousCurrentFrame);
+        // Sync canvas with the restored frame
+        canvasStore.setCanvasData(deletedFrame.data);
       }
       break;
     }
@@ -105,6 +148,11 @@ const processHistoryAction = (
         // Undo: Reverse the reorder
         animationStore.reorderFrames(action.data.toIndex, action.data.fromIndex);
         animationStore.setCurrentFrame(action.data.previousCurrentFrame);
+      }
+      // Sync canvas after reorder to ensure we're showing the right frame
+      const currentFrame = animationStore.frames[animationStore.currentFrameIndex];
+      if (currentFrame) {
+        canvasStore.setCanvasData(currentFrame.data);
       }
       break;
     }
@@ -759,14 +807,16 @@ export const useKeyboardShortcuts = () => {
         event.preventDefault();
         
         // Save current state for undo
-        pushCanvasHistory(new Map(cells), currentFrameIndex, 'Delete magic wand selection');
+  const { pushCanvasHistory, finalizeCanvasHistory } = useToolStore.getState();
+  pushCanvasHistory(new Map(cells), currentFrameIndex, 'Delete magic wand selection');
         
         // Clear all selected cells
         const newCells = new Map(cells);
         magicWandSelection.selectedCells.forEach(cellKey => {
           newCells.delete(cellKey);
         });
-        setCanvasData(newCells);
+  setCanvasData(newCells);
+  finalizeCanvasHistory(new Map(newCells));
         
         // Clear the selection after deleting content
         clearMagicWandSelection();
@@ -777,14 +827,16 @@ export const useKeyboardShortcuts = () => {
         event.preventDefault();
         
         // Save current state for undo
-        pushCanvasHistory(new Map(cells), currentFrameIndex, 'Delete lasso selection');
+  const { pushCanvasHistory: pushCanvasHistory2, finalizeCanvasHistory: finalizeCanvasHistory2 } = useToolStore.getState();
+  pushCanvasHistory2(new Map(cells), currentFrameIndex, 'Delete lasso selection');
         
         // Clear all selected cells
         const newCells = new Map(cells);
         lassoSelection.selectedCells.forEach(cellKey => {
           newCells.delete(cellKey);
         });
-        setCanvasData(newCells);
+  setCanvasData(newCells);
+  finalizeCanvasHistory2(new Map(newCells));
         
         // Clear the selection after deleting content
         clearLassoSelection();
@@ -795,7 +847,8 @@ export const useKeyboardShortcuts = () => {
         event.preventDefault();
         
         // Save current state for undo
-        pushCanvasHistory(new Map(cells), currentFrameIndex, 'Delete rectangular selection');
+  const { pushCanvasHistory: pushCanvasHistory3, finalizeCanvasHistory: finalizeCanvasHistory3 } = useToolStore.getState();
+  pushCanvasHistory3(new Map(cells), currentFrameIndex, 'Delete rectangular selection');
         
         // Clear all cells in rectangular selection
         const newCells = new Map(cells);
@@ -811,7 +864,8 @@ export const useKeyboardShortcuts = () => {
             newCells.delete(cellKey);
           }
         }
-        setCanvasData(newCells);
+  setCanvasData(newCells);
+  finalizeCanvasHistory3(new Map(newCells));
         
         // Clear the selection after deleting content
         clearSelection();
@@ -1039,6 +1093,7 @@ export const useKeyboardShortcuts = () => {
           const pastedData = commitPaste();
           if (pastedData) {
             // Save current state for undo
+            const { pushCanvasHistory, finalizeCanvasHistory } = useToolStore.getState();
             pushCanvasHistory(new Map(cells), currentFrameIndex, 'Paste lasso selection');
             
             // Merge pasted data with current canvas
@@ -1048,6 +1103,7 @@ export const useKeyboardShortcuts = () => {
             });
             
             setCanvasData(newCells);
+            finalizeCanvasHistory(new Map(newCells));
           }
         } else {
           startPasteFromClipboard();
@@ -1062,7 +1118,16 @@ export const useKeyboardShortcuts = () => {
             event.preventDefault();
             const redoAction = redo();
             if (redoAction) {
-              handleHistoryAction(redoAction, true);
+              // Set flag to prevent auto-save during history processing
+              useToolStore.setState({ isProcessingHistory: true });
+              try {
+                handleHistoryAction(redoAction, true);
+              } finally {
+                // Clear flag after a small delay to ensure all effects have settled
+                setTimeout(() => {
+                  useToolStore.setState({ isProcessingHistory: false });
+                }, 200);
+              }
             }
           }
         } else {
@@ -1071,7 +1136,16 @@ export const useKeyboardShortcuts = () => {
             event.preventDefault();
             const undoAction = undo();
             if (undoAction) {
-              handleHistoryAction(undoAction, false);
+              // Set flag to prevent auto-save during history processing
+              useToolStore.setState({ isProcessingHistory: true });
+              try {
+                handleHistoryAction(undoAction, false);
+              } finally {
+                // Clear flag after a small delay to ensure all effects have settled
+                setTimeout(() => {
+                  useToolStore.setState({ isProcessingHistory: false });
+                }, 200);
+              }
             }
           }
         }
@@ -1170,12 +1244,14 @@ export const useKeyboardShortcuts = () => {
       if (pasteMode.isActive) {
         const pastedData = commitPaste();
         if (pastedData) {
+          const { pushCanvasHistory, finalizeCanvasHistory } = useToolStore.getState();
           pushCanvasHistory(new Map(cells), currentFrameIndex, 'Paste selection');
           const newCells = new Map(cells);
           pastedData.forEach((cell, key) => {
             newCells.set(key, cell);
           });
           setCanvasData(newCells);
+          finalizeCanvasHistory(new Map(newCells));
         }
       } else {
         startPasteFromClipboard();

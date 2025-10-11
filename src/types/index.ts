@@ -272,7 +272,10 @@ export interface HistoryAction {
 export interface CanvasHistoryAction extends HistoryAction {
   type: 'canvas_edit';
   data: {
-    canvasData: Map<string, Cell>;
+    // Previous canvas state BEFORE the edit (used for undo)
+    previousCanvasData: Map<string, Cell>;
+    // New canvas state AFTER the edit (used for redo). May be undefined for legacy entries
+    newCanvasData?: Map<string, Cell>;
     frameIndex: number;
   };
 }

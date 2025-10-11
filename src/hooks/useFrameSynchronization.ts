@@ -45,7 +45,8 @@ export const useFrameSynchronization = (
     magicWandSelection,
     clearSelection,
     clearLassoSelection,
-    clearMagicWandSelection
+    clearMagicWandSelection,
+    isProcessingHistory
   } = useToolStore();
   
   const lastFrameIndexRef = useRef<number>(currentFrameIndex);
@@ -55,17 +56,17 @@ export const useFrameSynchronization = (
 
   // Auto-save current canvas to current frame whenever canvas changes
   const saveCurrentCanvasToFrame = useCallback(() => {
-    if (isLoadingFrameRef.current || isPlaying || isDraggingFrame || isDeletingFrame || isImportingSession) return; // Don't save during frame loading, playback, dragging, deletion, or session import
+    if (isLoadingFrameRef.current || isPlaying || isDraggingFrame || isDeletingFrame || isImportingSession || isProcessingHistory) return; // Don't save during frame loading, playback, dragging, deletion, session import, or undo/redo
     
     // Add small delay to prevent race conditions during frame reordering
     setTimeout(() => {
-      if (isLoadingFrameRef.current || isPlaying || isDraggingFrame || isDeletingFrame || isImportingSession) return;
+      if (isLoadingFrameRef.current || isPlaying || isDraggingFrame || isDeletingFrame || isImportingSession || isProcessingHistory) return;
       
       const currentCells = new Map(cells);
       setFrameData(currentFrameIndex, currentCells);
       lastCellsRef.current = currentCells;
     }, 50);
-  }, [cells, currentFrameIndex, setFrameData, isPlaying, isDraggingFrame, isDeletingFrame, isImportingSession]);
+  }, [cells, currentFrameIndex, setFrameData, isPlaying, isDraggingFrame, isDeletingFrame, isImportingSession, isProcessingHistory]);
 
   // Load frame data into canvas when frame changes
   const loadFrameToCanvas = useCallback((frameIndex: number) => {
@@ -151,7 +152,7 @@ export const useFrameSynchronization = (
       }
       
       // Save current canvas (with committed moves) to the frame we're leaving
-      if (!isPlaying && !isLoadingFrameRef.current && !isDraggingFrame && !isDeletingFrame && !isImportingSession) {
+      if (!isPlaying && !isLoadingFrameRef.current && !isDraggingFrame && !isDeletingFrame && !isImportingSession && !isProcessingHistory) {
         // Only save if the canvas content has actually changed from what was last loaded
         const lastLoadedCells = lastCellsRef.current;
         const cellsChanged = JSON.stringify(Array.from(currentCellsToSave.entries()).sort()) !== 
@@ -172,11 +173,11 @@ export const useFrameSynchronization = (
       
       lastFrameIndexRef.current = currentFrameIndex;
     }
-  }, [currentFrameIndex, setFrameData, getFrameData, loadFrameToCanvas, isPlaying, isDraggingFrame, isDeletingFrame, isImportingSession, moveStateParam, setMoveStateParam, selection.active, lassoSelection.active, magicWandSelection.active, clearSelection, clearLassoSelection, clearMagicWandSelection, width, height, setCanvasData]);
+  }, [currentFrameIndex, setFrameData, getFrameData, loadFrameToCanvas, isPlaying, isDraggingFrame, isDeletingFrame, isImportingSession, isProcessingHistory, moveStateParam, setMoveStateParam, selection.active, lassoSelection.active, magicWandSelection.active, clearSelection, clearLassoSelection, clearMagicWandSelection, width, height, setCanvasData]);
 
   // Auto-save canvas changes to current frame (debounced)
   useEffect(() => {
-    if (isLoadingFrameRef.current || isPlaying || isDraggingFrame || isDeletingFrame || isImportingSession) return;
+    if (isLoadingFrameRef.current || isPlaying || isDraggingFrame || isDeletingFrame || isImportingSession || isProcessingHistory) return;
     
     // Check if cells actually changed from the last known state to avoid unnecessary saves
     const currentCellsString = JSON.stringify(Array.from(cells.entries()).sort());
@@ -186,14 +187,14 @@ export const useFrameSynchronization = (
       // Only save if the canvas content doesn't match the current frame's stored content
       // This prevents saving when the canvas is loaded with frame data
       const timeoutId = setTimeout(() => {
-        if (!isLoadingFrameRef.current && !isPlaying && !isDraggingFrame && !isDeletingFrame && !isImportingSession) {
+        if (!isLoadingFrameRef.current && !isPlaying && !isDraggingFrame && !isDeletingFrame && !isImportingSession && !isProcessingHistory) {
           saveCurrentCanvasToFrame();
         }
       }, 150);
       
       return () => clearTimeout(timeoutId);
     }
-  }, [cells, saveCurrentCanvasToFrame, isPlaying, isDraggingFrame, isDeletingFrame, isImportingSession]);
+  }, [cells, saveCurrentCanvasToFrame, isPlaying, isDraggingFrame, isDeletingFrame, isImportingSession, isProcessingHistory]);
 
   // Initialize first frame with current canvas data if empty (only on app startup)
   // CRITICAL: This useEffect was previously contaminating ALL empty frames when switching

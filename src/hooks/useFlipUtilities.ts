@@ -25,6 +25,7 @@ export const useFlipUtilities = () => {
   const { moveState, setMoveState } = useCanvasContext();
   const { 
     pushCanvasHistory, 
+    finalizeCanvasHistory,
     selection, 
     lassoSelection, 
     magicWandSelection,
@@ -65,6 +66,7 @@ export const useFlipUtilities = () => {
     } else {
       const flippedData = applyHorizontalFlip(cells, bounds, selectedCells || undefined);
       setCanvasData(flippedData);
+      finalizeCanvasHistory(new Map(flippedData));
     }
 
     if (hasMagicSelection && transformedCells) {
@@ -125,6 +127,7 @@ export const useFlipUtilities = () => {
     } else {
       const flippedData = applyVerticalFlip(cells, bounds, selectedCells || undefined);
       setCanvasData(flippedData);
+      finalizeCanvasHistory(new Map(flippedData));
     }
 
     if (hasMagicSelection && transformedCells) {

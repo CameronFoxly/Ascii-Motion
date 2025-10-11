@@ -53,6 +53,7 @@ interface ToolStoreState extends ToolState {
   historyStack: AnyHistoryAction[];
   historyPosition: number; // Current position in history stack (-1 = no history)
   maxHistorySize: number;
+  isProcessingHistory: boolean; // Flag to prevent auto-save during undo/redo
   
   // Animation playback state
   isPlaybackMode: boolean;
@@ -164,6 +165,7 @@ interface ToolStoreState extends ToolState {
   // Enhanced history actions
   pushToHistory: (action: AnyHistoryAction) => void;
   pushCanvasHistory: (canvasData: Map<string, Cell>, frameIndex: number, description?: string) => void;
+  finalizeCanvasHistory: (newCanvasData: Map<string, Cell>) => void;
   pushCanvasResizeHistory: (previousWidth: number, previousHeight: number, newWidth: number, newHeight: number, previousCanvasData: Map<string, Cell>, frameIndex: number) => void;
   undo: () => AnyHistoryAction | undefined;
   redo: () => AnyHistoryAction | undefined;
@@ -295,6 +297,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   historyStack: [],
   historyPosition: -1,
   maxHistorySize: 50,
+  isProcessingHistory: false,
 
   // Tool actions
   setActiveTool: (tool: Tool) => {
@@ -889,11 +892,27 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
       timestamp: Date.now(),
       description,
       data: {
-        canvasData: new Map(canvasData),
+        previousCanvasData: new Map(canvasData),
         frameIndex
       }
     };
     get().pushToHistory(action);
+  },
+
+  // Finalize the most recent canvas_edit history action by attaching the post-edit canvas state
+  finalizeCanvasHistory: (newCanvasData: Map<string, Cell>) => {
+    set((state) => {
+      const { historyStack, historyPosition } = state;
+      if (historyPosition < 0) return {} as any;
+      const action = historyStack[historyPosition];
+      if (action && action.type === 'canvas_edit') {
+        const canvasAction = action as CanvasHistoryAction;
+        if (!canvasAction.data.newCanvasData) {
+          canvasAction.data.newCanvasData = new Map(newCanvasData);
+        }
+      }
+      return { historyStack: [...historyStack] } as any;
+    });
   },
 
   pushCanvasResizeHistory: (previousWidth: number, previousHeight: number, newWidth: number, newHeight: number, previousCanvasData: Map<string, Cell>, frameIndex: number) => {

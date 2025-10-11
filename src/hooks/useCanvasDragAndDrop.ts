@@ -22,6 +22,7 @@ export const useCanvasDragAndDrop = () => {
     updateSelection,
     clearSelection,
     pushCanvasHistory,
+    finalizeCanvasHistory,
     pencilLastPosition,
     setLinePreview,
     clearLinePreview,
@@ -115,7 +116,7 @@ export const useCanvasDragAndDrop = () => {
     const isShiftClick = shiftKeyDown;
     
     // Save current state for undo
-    pushCanvasHistory(new Map(cells), currentFrameIndex);
+  pushCanvasHistory(new Map(cells), currentFrameIndex, 'Brush stroke');
     setMouseButtonDown(true);
     setIsDrawing(true);
     
@@ -206,7 +207,7 @@ export const useCanvasDragAndDrop = () => {
     const { x, y } = getGridCoordinatesFromEvent(event);
     
     // Save current state for undo
-    pushCanvasHistory(new Map(cells), currentFrameIndex);
+  pushCanvasHistory(new Map(cells), currentFrameIndex, 'Rectangle');
     
     // Start selection for rectangle bounds
     startSelection(x, y);
@@ -236,6 +237,8 @@ export const useCanvasDragAndDrop = () => {
     }
     setIsDrawing(false);
     setMouseButtonDown(false);
+    // Finalize rectangle edit
+    finalizeCanvasHistory(new Map(useCanvasStore.getState().cells));
   }, [selection, drawRectangle, clearSelection, setSelectionMode, setIsDrawing, setMouseButtonDown]);
 
   // Handle ellipse tool mouse down (same as rectangle)
@@ -243,7 +246,7 @@ export const useCanvasDragAndDrop = () => {
     const { x, y } = getGridCoordinatesFromEvent(event);
     
     // Save current state for undo
-    pushCanvasHistory(new Map(cells), currentFrameIndex);
+  pushCanvasHistory(new Map(cells), currentFrameIndex, 'Ellipse');
     
     // Start selection for ellipse bounds
     startSelection(x, y);
@@ -273,6 +276,8 @@ export const useCanvasDragAndDrop = () => {
     }
     setIsDrawing(false);
     setMouseButtonDown(false);
+    // Finalize ellipse edit
+    finalizeCanvasHistory(new Map(useCanvasStore.getState().cells));
   }, [selection, drawEllipse, clearSelection, setSelectionMode, setIsDrawing, setMouseButtonDown]);
 
   return {
