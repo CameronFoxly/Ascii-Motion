@@ -260,7 +260,8 @@ export type HistoryActionType =
   | 'navigate_frame'   // Navigate to different frame
   | 'apply_effect'     // Apply effect to canvas or timeline
   | 'apply_time_effect'     // Apply time-based effect (wave warp, wiggle)
-  | 'set_frame_durations';  // Bulk set frame durations
+  | 'set_frame_durations'   // Bulk set frame durations
+  | 'import_media';         // Import image/video to canvas
 
 export interface HistoryAction {
   type: HistoryActionType;
@@ -433,6 +434,23 @@ export interface SetFrameDurationsHistoryAction extends HistoryAction {
   };
 }
 
+export interface ImportMediaHistoryAction extends HistoryAction {
+  type: 'import_media';
+  data: {
+    mode: 'single' | 'overwrite' | 'append';
+    // For single image import
+    previousCanvasData?: Map<string, Cell>;
+    previousFrameIndex?: number;
+    newCanvasData?: Map<string, Cell>;
+    // For multi-frame import
+    previousFrames?: Frame[];
+    previousCurrentFrame?: number;
+    newFrames?: Frame[];
+    newCurrentFrame?: number;
+    importedFrameCount: number;
+  };
+}
+
 export type AnyHistoryAction = 
   | CanvasHistoryAction
   | CanvasResizeHistoryAction
@@ -449,4 +467,5 @@ export type AnyHistoryAction =
   | NavigateFrameHistoryAction
   | ApplyEffectHistoryAction
   | ApplyTimeEffectHistoryAction
-  | SetFrameDurationsHistoryAction;
+  | SetFrameDurationsHistoryAction
+  | ImportMediaHistoryAction;

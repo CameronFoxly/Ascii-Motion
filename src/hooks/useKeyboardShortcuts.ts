@@ -333,6 +333,51 @@ const processHistoryAction = (
       }
       break;
     }
+
+    case 'import_media': {
+      const importAction = action as import('../types').ImportMediaHistoryAction;
+      
+      if (importAction.data.mode === 'single') {
+        // Single image import - restore canvas data
+        if (isRedo) {
+          if (importAction.data.newCanvasData) {
+            canvasStore.setCanvasData(importAction.data.newCanvasData);
+            if (importAction.data.previousFrameIndex !== undefined) {
+              animationStore.setCurrentFrame(importAction.data.previousFrameIndex);
+            }
+            console.log(`✅ Redo: Imported media to canvas`);
+          }
+        } else {
+          if (importAction.data.previousCanvasData) {
+            canvasStore.setCanvasData(importAction.data.previousCanvasData);
+            if (importAction.data.previousFrameIndex !== undefined) {
+              animationStore.setCurrentFrame(importAction.data.previousFrameIndex);
+            }
+            console.log(`✅ Undo: Restored canvas before media import`);
+          }
+        }
+      } else {
+        // Multi-frame import (overwrite or append)
+        if (isRedo) {
+          if (importAction.data.newFrames) {
+            animationStore.replaceFrames(
+              importAction.data.newFrames,
+              importAction.data.newCurrentFrame || 0
+            );
+            console.log(`✅ Redo: Imported ${importAction.data.importedFrameCount} frame(s)`);
+          }
+        } else {
+          if (importAction.data.previousFrames) {
+            animationStore.replaceFrames(
+              importAction.data.previousFrames,
+              importAction.data.previousCurrentFrame || 0
+            );
+            console.log(`✅ Undo: Restored ${importAction.data.previousFrames.length} frame(s) before import`);
+          }
+        }
+      }
+      break;
+    }
       
     default:
       console.warn('Unknown history action type:', action);

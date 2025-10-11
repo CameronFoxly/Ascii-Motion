@@ -59,6 +59,7 @@ import {
 } from '../../stores/importStore';
 import { mediaProcessor, SUPPORTED_IMAGE_FORMATS, SUPPORTED_VIDEO_FORMATS } from '../../utils/mediaProcessor';
 import { asciiConverter } from '../../utils/asciiConverter';
+import { cloneFrames } from '../../utils/frameUtils';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useAnimationStore } from '../../stores/animationStore';
 import { usePreviewStore } from '../../stores/previewStore';
@@ -70,7 +71,7 @@ import { TextColorMappingSection } from './TextColorMappingSection';
 import { BackgroundColorMappingSection } from './BackgroundColorMappingSection';
 import { PreprocessingSection } from './PreprocessingSection';
 import type { MediaFile } from '../../utils/mediaProcessor';
-import type { Cell } from '../../types';
+import type { Cell, ImportMediaHistoryAction } from '../../types';
 import type { ColorPalette } from '../../types/palette';
 import type { ImportSettings } from '../../stores/importStore';
 
@@ -108,12 +109,15 @@ export function MediaImportPanel() {
   
   // Tool store integration for default colors
   const selectedColor = useToolStore(state => state.selectedColor);
+  const pushToHistory = useToolStore(state => state.pushToHistory);
   
   // Canvas and animation stores
   const canvasWidth = useCanvasStore(state => state.width);
   const canvasHeight = useCanvasStore(state => state.height);
+  const cells = useCanvasStore(state => state.cells);
   const setCanvasData = useCanvasStore(state => state.setCanvasData);
   const clearCanvas = useCanvasStore(state => state.clearCanvas);
+  const frames = useAnimationStore(state => state.frames);
   const importFramesOverwrite = useAnimationStore(state => state.importFramesOverwrite);
   const importFramesAppend = useAnimationStore(state => state.importFramesAppend);
   const currentFrameIndex = useAnimationStore(state => state.currentFrameIndex);
@@ -660,13 +664,36 @@ export function MediaImportPanel() {
 
       if (previewFrames.length === 1) {
         // Single image - always replace current frame
+        // Save current state for undo
+        const previousCanvasData = new Map(cells);
+        
         const result = asciiConverter.convertFrame(previewFrames[0], conversionSettings);
         const positionedCells = positionCellsOnCanvas(result.cells, settings.characterWidth, settings.characterHeight);
+        
         clearCanvas();
         setCanvasData(positionedCells);
+        
+        // Record history
+        const historyAction: ImportMediaHistoryAction = {
+          type: 'import_media',
+          timestamp: Date.now(),
+          description: `Import ${selectedFile?.name || 'image'}`,
+          data: {
+            mode: 'single',
+            previousCanvasData,
+            previousFrameIndex: currentFrameIndex,
+            newCanvasData: positionedCells,
+            importedFrameCount: 1
+          }
+        };
+        pushToHistory(historyAction);
+        
         setLivePreviewEnabled(false);
       } else {
         // Multiple frames - use import mode
+        // Save current state for undo
+        const previousFrames = cloneFrames(frames);
+        const previousCurrentFrame = currentFrameIndex;
         
         // Convert all frames first
         const frameData: Array<{ data: Map<string, Cell>, duration: number }> = [];
@@ -696,6 +723,26 @@ export function MediaImportPanel() {
           // Canvas will be updated by the animation store when it changes current frame
         }
         
+        // Get new frames state after import
+        const newFrames = cloneFrames(useAnimationStore.getState().frames);
+        const newCurrentFrame = useAnimationStore.getState().currentFrameIndex;
+        
+        // Record history
+        const historyAction: ImportMediaHistoryAction = {
+          type: 'import_media',
+          timestamp: Date.now(),
+          description: `Import ${previewFrames.length} frames from ${selectedFile?.name || 'video'}`,
+          data: {
+            mode: importMode,
+            previousFrames,
+            previousCurrentFrame,
+            newFrames,
+            newCurrentFrame,
+            importedFrameCount: previewFrames.length
+          }
+        };
+        pushToHistory(historyAction);
+        
         setLivePreviewEnabled(false);
       }
       
@@ -709,6 +756,8 @@ export function MediaImportPanel() {
   }, [
     previewFrames,
     settings,
+    cells,
+    frames,
     clearCanvas,
     setCanvasData,
     closeModal,
@@ -720,7 +769,9 @@ export function MediaImportPanel() {
     currentFrameIndex,
     endPreview,
     createConversionSettings,
-    setLivePreviewEnabled
+    setLivePreviewEnabled,
+    pushToHistory,
+    selectedFile
   ]);
 
   // Get file icon based on type
