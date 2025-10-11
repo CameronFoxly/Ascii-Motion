@@ -263,14 +263,21 @@ export const AnimationTimeline: React.FC = () => {
         return;
       }
 
+      // Block spacebar if text tool actively typing
+      const toolStore = require('@/stores/toolStore'); // dynamic to avoid import cycles
+      const { activeTool, textToolState } = toolStore.useToolStore.getState();
+      const isTypingInTextTool = activeTool === 'text' && textToolState.isTyping;
+
       switch (event.key) {
         case ' ': // Spacebar for play/pause
+          if (isTypingInTextTool) {
+            // Let space insert space character; don't hijack
+            return;
+          }
           event.preventDefault();
           if (isOptimizedPlaybackActive) {
-            // Currently playing - pause
             handlePausePlayback();
           } else {
-            // Not playing - start optimized playback
             handleStartPlayback();
           }
           break;
