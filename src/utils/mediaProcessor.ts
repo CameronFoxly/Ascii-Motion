@@ -306,7 +306,9 @@ export class MediaProcessor {
 
     
     for (let i = 0; i < maxFrames; i++) {
-      const timestamp = i / estimatedFrameRate;
+      // Use small offset for first frame to avoid blank frame issue
+      // Setting currentTime to exactly 0 may not trigger proper frame decoding
+      const timestamp = i === 0 ? 0.001 : i / estimatedFrameRate;
       
       // Stop if we exceed video duration
       if (timestamp >= video.duration) break;
@@ -322,8 +324,8 @@ export class MediaProcessor {
         };
       });
       
-      // Small delay to ensure frame is ready
-      await new Promise(resolve => setTimeout(resolve, 10));
+      // Small delay to ensure frame is ready (longer for first frame)
+      await new Promise(resolve => setTimeout(resolve, i === 0 ? 100 : 10));
       
       // Process current frame
       const processedFrame = this.processVideoFrameToCanvas(video, options, timestamp, i, frameDuration);

@@ -370,29 +370,32 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
   return (
     <>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CollapsibleTrigger asChild>
-          <Button 
-            variant="ghost" 
-            className="w-full h-auto text-xs justify-between py-1 px-1 my-1"
-          >
-            <div className="flex items-center gap-2">
-              <Type className="w-4 h-4" />
-              <span>Text Color Mapping</span>
-              <Checkbox
-                id="enable-text-color-mapping"
-                checked={enableTextColorMapping}
-                onCheckedChange={handleToggleEnabled}
-                className="ml-2"
-                onClick={(e) => e.stopPropagation()}
+        <div className="flex items-center justify-between gap-2">
+          <CollapsibleTrigger asChild>
+            <Button 
+              variant="ghost" 
+              className="flex-1 h-auto text-xs justify-between py-1 px-1 my-1"
+            >
+              <div className="flex items-center gap-2">
+                <Type className="w-4 h-4" />
+                <span>Text Color Mapping</span>
+              </div>
+              <ChevronDown 
+                className={`h-3 w-3 transition-transform duration-200 ${
+                  isOpen ? 'rotate-180' : ''
+                }`}
               />
-            </div>
-            <ChevronDown 
-              className={`h-3 w-3 transition-transform duration-200 ${
-                isOpen ? 'rotate-180' : ''
-              }`}
-            />
-          </Button>
-        </CollapsibleTrigger>
+            </Button>
+          </CollapsibleTrigger>
+          
+          {/* Checkbox outside collapsible trigger to avoid nested button error */}
+          <Checkbox
+            id="enable-text-color-mapping"
+            checked={enableTextColorMapping}
+            onCheckedChange={handleToggleEnabled}
+            className="flex-shrink-0"
+          />
+        </div>
         
         <CollapsibleContent className="collapsible-content space-y-3 mt-2">
           <div className="w-full">

@@ -267,22 +267,15 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
   return (
     <>
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <CollapsibleTrigger asChild>
           <Button 
             variant="ghost" 
-            className="w-full h-auto text-xs justify-between py-1 px-1 my-1"
+            className="flex-1 h-auto text-xs justify-between py-1 px-1 my-1"
           >
             <div className="flex items-center gap-2">
               <Type className="w-4 h-4 text-muted-foreground" />
               <span>Character Mapping</span>
-              <Checkbox
-                id="enable-character-mapping"
-                checked={enableCharacterMapping}
-                onCheckedChange={handleToggleEnabled}
-                className="ml-2"
-                onClick={(e) => e.stopPropagation()}
-              />
             </div>
             <ChevronDown 
               className={`h-3 w-3 transition-transform duration-200 ${
@@ -291,6 +284,14 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
             />
           </Button>
         </CollapsibleTrigger>
+        
+        {/* Checkbox outside collapsible trigger to avoid nested button error */}
+        <Checkbox
+          id="enable-character-mapping"
+          checked={enableCharacterMapping}
+          onCheckedChange={handleToggleEnabled}
+          className="flex-shrink-0"
+        />
       </div>
       
       <CollapsibleContent className="collapsible-content space-y-3 mt-2">
