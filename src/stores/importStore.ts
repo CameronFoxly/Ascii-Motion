@@ -109,6 +109,11 @@ export interface ImportSettings {
   frameExtraction: 'all' | 'keyframes' | 'interval';
   frameInterval: number;    // Seconds between frames (for interval mode)
   maxFrames: number;        // Maximum frames to import
+  
+  // Transparency settings (color keying)
+  enableColorAsAlpha: boolean;
+  colorAsAlphaKey: string;      // Hex color to treat as transparent
+  colorAsAlphaTolerance: number; // 0-255 RGB distance tolerance
 }
 
 // Default UI state
@@ -168,7 +173,12 @@ const DEFAULT_IMPORT_SETTINGS: ImportSettings = {
   // Video settings
   frameExtraction: 'interval',
   frameInterval: 0.1, // 10 FPS
-  maxFrames: 100
+  maxFrames: 100,
+  
+  // Transparency settings
+  enableColorAsAlpha: false,
+  colorAsAlphaKey: '#000000', // Default to black
+  colorAsAlphaTolerance: 10 // Small default tolerance
 };
 
 export const useImportStore = create<ImportState>((set, get) => ({

@@ -332,6 +332,22 @@ export class ColorMatcher {
   }
 
   /**
+   * Check if a color matches a key color within tolerance
+   * Used for color keying/alpha transparency
+   * @param r Red component of color to check
+   * @param g Green component of color to check
+   * @param b Blue component of color to check
+   * @param keyColor Hex color to match against
+   * @param tolerance RGB distance tolerance (0-255, default 0 for exact match)
+   * @returns true if color matches within tolerance
+   */
+  static matchesColorKey(r: number, g: number, b: number, keyColor: string, tolerance: number = 0): boolean {
+    const { r: kr, g: kg, b: kb } = this.hexToRgb(keyColor);
+    const distance = this.calculateColorDistance(r, g, b, kr, kg, kb);
+    return distance <= tolerance;
+  }
+
+  /**
    * Simple dithering algorithm for color mapping
    * @deprecated Use ditherColorNoise, ditherColorBayer2x2, or ditherColorBayer4x4 instead
    */

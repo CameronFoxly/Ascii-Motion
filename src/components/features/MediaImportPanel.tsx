@@ -9,7 +9,7 @@
  * - Processing progress display
  */
 
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -69,11 +69,61 @@ import { useToolStore } from '../../stores/toolStore';
 import { CharacterMappingSection } from './CharacterMappingSection';
 import { TextColorMappingSection } from './TextColorMappingSection';
 import { BackgroundColorMappingSection } from './BackgroundColorMappingSection';
+import { TransparencySection } from './TransparencySection';
 import { PreprocessingSection } from './PreprocessingSection';
 import type { MediaFile } from '../../utils/mediaProcessor';
 import type { Cell, ImportMediaHistoryAction } from '../../types';
 import type { ColorPalette } from '../../types/palette';
 import type { ImportSettings } from '../../stores/importStore';
+import { ColorMatcher } from '../../utils/asciiConverter';
+
+/**
+ * Apply color keying to filter out cells matching the alpha key color
+ * Returns a new Map with transparent cells removed
+ */
+function applyColorKey(
+  cells: Map<string, Cell>,
+  enableColorAsAlpha: boolean,
+  colorAsAlphaKey: string,
+  colorAsAlphaTolerance: number
+): Map<string, Cell> {
+  if (!enableColorAsAlpha) {
+    return cells;
+  }
+
+  const filteredCells = new Map<string, Cell>();
+  
+  cells.forEach((cell, key) => {
+    // Check both background and text color against the alpha key
+    const bgMatches = cell.bgColor !== 'transparent' && 
+      ColorMatcher.matchesColorKey(
+        ...hexToRgb(cell.bgColor),
+        colorAsAlphaKey,
+        colorAsAlphaTolerance
+      );
+    
+    const textMatches = ColorMatcher.matchesColorKey(
+      ...hexToRgb(cell.color),
+      colorAsAlphaKey,
+      colorAsAlphaTolerance
+    );
+    
+    // Remove cell if either color matches the alpha key
+    if (!bgMatches && !textMatches) {
+      filteredCells.set(key, cell);
+    }
+  });
+  
+  return filteredCells;
+}
+
+/**
+ * Helper to convert hex color to RGB tuple
+ */
+function hexToRgb(hex: string): [number, number, number] {
+  const rgb = ColorMatcher.hexToRgb(hex);
+  return [rgb.r, rgb.g, rgb.b];
+}
 
 type CropAlignmentOption = {
   mode: ImportSettings['cropMode'];
@@ -152,6 +202,10 @@ export function MediaImportPanel() {
   
   // Preview state management
   const [isPreviewActive, setIsPreviewActive] = useState(false);
+  
+  // Eyedropper mode for alpha key color sampling
+  const [isEyedropperMode, setIsEyedropperMode] = useState(false);
+  const eyedropperCanvasRef = useRef<HTMLCanvasElement>(null);
   
   // Local state for width/height inputs to allow temporary empty values
   const [widthInputValue, setWidthInputValue] = useState<string>(String(settings.characterWidth));
@@ -235,6 +289,74 @@ export function MediaImportPanel() {
       handleHeightChange(numValue);
     }
   }, [heightInputValue, settings.characterHeight, handleHeightChange]);
+
+  // Eyedropper mode handlers
+  const handleEyedropperClick = useCallback(() => {
+    setIsEyedropperMode(true);
+  }, []);
+  
+  const handleCanvasClick = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isEyedropperMode || previewFrames.length === 0) return;
+    
+    // Sample color from the preview frame at click position
+    const canvas = event.currentTarget;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    // Scale click position to canvas coordinates
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const canvasX = Math.floor(x * scaleX);
+    const canvasY = Math.floor(y * scaleY);
+    
+    // Get the pixel from the current preview frame
+    const frame = previewFrames[frameIndex];
+    if (frame && frame.imageData) {
+      const index = (canvasY * frame.imageData.width + canvasX) * 4;
+      const r = frame.imageData.data[index];
+      const g = frame.imageData.data[index + 1];
+      const b = frame.imageData.data[index + 2];
+      
+      const hexColor = ColorMatcher.rgbToHex(r, g, b);
+      updateSettings({ colorAsAlphaKey: hexColor });
+      setLivePreviewEnabled(true); // Trigger preview update
+    }
+    
+    setIsEyedropperMode(false);
+  }, [isEyedropperMode, previewFrames, frameIndex, updateSettings, setLivePreviewEnabled]);
+
+  // Draw preview image to eyedropper canvas when eyedropper mode is active
+  useEffect(() => {
+    if (isEyedropperMode && eyedropperCanvasRef.current && previewFrames.length > 0) {
+      const canvas = eyedropperCanvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const frame = previewFrames[frameIndex];
+      
+      // Set canvas size to match frame
+      canvas.width = frame.imageData.width;
+      canvas.height = frame.imageData.height;
+      
+      // Draw the image data
+      ctx.putImageData(frame.imageData, 0, 0);
+    }
+  }, [isEyedropperMode, previewFrames, frameIndex]);
+
+  // Handle ESC key to exit eyedropper mode
+  useEffect(() => {
+    if (!isEyedropperMode) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsEyedropperMode(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isEyedropperMode]);
 
   // Preview management functions
   const startPreview = useCallback(() => {
@@ -499,8 +621,16 @@ export function MediaImportPanel() {
 
         const result = asciiConverter.convertFrame(previewFrames[frameIndex], conversionSettings);
         
+        // Apply color keying to remove transparent cells
+        const filteredCells = applyColorKey(
+          result.cells,
+          settings.enableColorAsAlpha,
+          settings.colorAsAlphaKey,
+          settings.colorAsAlphaTolerance
+        );
+        
         // Show preview on canvas overlay (positioned based on alignment)
-        const positionedCells = positionCellsOnCanvas(result.cells, settings.characterWidth, settings.characterHeight);
+        const positionedCells = positionCellsOnCanvas(filteredCells, settings.characterWidth, settings.characterHeight);
         setPreviewData(positionedCells);
       } catch (err) {
         console.error('Live preview error:', err);
@@ -544,6 +674,10 @@ export function MediaImportPanel() {
     settings.enableBackgroundColorMapping,
     settings.backgroundColorPaletteId,
     settings.backgroundColorMappingMode,
+    // Transparency settings
+    settings.enableColorAsAlpha,
+    settings.colorAsAlphaKey,
+    settings.colorAsAlphaTolerance,
     selectedColor,
     palettes,
     customPalettes,
@@ -714,9 +848,22 @@ export function MediaImportPanel() {
         const previousCanvasData = new Map(cells);
         
         const result = asciiConverter.convertFrame(previewFrames[0], conversionSettings);
-        const positionedCells = positionCellsOnCanvas(result.cells, settings.characterWidth, settings.characterHeight);
         
-        clearCanvas();
+        // Apply color keying to remove transparent cells
+        const filteredCells = applyColorKey(
+          result.cells,
+          settings.enableColorAsAlpha,
+          settings.colorAsAlphaKey,
+          settings.colorAsAlphaTolerance
+        );
+        
+        const positionedCells = positionCellsOnCanvas(filteredCells, settings.characterWidth, settings.characterHeight);
+        
+        // For color keying, don't clear canvas - composite on top
+        // For normal import, clear first
+        if (!settings.enableColorAsAlpha) {
+          clearCanvas();
+        }
         setCanvasData(positionedCells);
         
         // Record history
@@ -745,7 +892,16 @@ export function MediaImportPanel() {
         const frameData: Array<{ data: Map<string, Cell>, duration: number }> = [];
         for (let i = 0; i < previewFrames.length; i++) {
           const result = asciiConverter.convertFrame(previewFrames[i], conversionSettings);
-          const positionedCells = positionCellsOnCanvas(result.cells, settings.characterWidth, settings.characterHeight);
+          
+          // Apply color keying to remove transparent cells
+          const filteredCells = applyColorKey(
+            result.cells,
+            settings.enableColorAsAlpha,
+            settings.colorAsAlphaKey,
+            settings.colorAsAlphaTolerance
+          );
+          
+          const positionedCells = positionCellsOnCanvas(filteredCells, settings.characterWidth, settings.characterHeight);
           const frameDuration = previewFrames[i].frameDuration || 100; // Default duration if not available
           
           frameData.push({
@@ -1093,6 +1249,26 @@ export function MediaImportPanel() {
                         )}
                       </div>
                     )}
+                    
+                    {/* Eyedropper Canvas - shows source image for color sampling */}
+                    {isEyedropperMode && previewFrames.length > 0 && (
+                      <div className="p-2 bg-primary/10 border-2 border-primary rounded-lg">
+                        <div className="text-xs text-center mb-2 font-medium text-primary">
+                          Click on the image to sample a color
+                        </div>
+                        <div className="relative flex items-center justify-center bg-black/50 rounded overflow-hidden">
+                          <canvas
+                            ref={eyedropperCanvasRef}
+                            onClick={handleCanvasClick}
+                            className="max-w-full h-auto cursor-crosshair"
+                            style={{ imageRendering: 'pixelated' }}
+                          />
+                        </div>
+                        <div className="text-xs text-center mt-2 text-muted-foreground">
+                          Press ESC or click outside to cancel
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CollapsibleContent>
               </Collapsible>
@@ -1388,6 +1564,13 @@ export function MediaImportPanel() {
               {/* Background Color Mapping Section */}
               <PanelSeparator marginX="3" />
               <BackgroundColorMappingSection onSettingsChange={() => setLivePreviewEnabled(true)} />
+              
+              {/* Transparency Section */}
+              <PanelSeparator marginX="3" />
+              <TransparencySection 
+                onSettingsChange={() => setLivePreviewEnabled(true)} 
+                onEyedropperClick={handleEyedropperClick}
+              />
               
               <PanelSeparator marginX="3" />
               
