@@ -111,8 +111,8 @@ export const DEFAULT_SCATTER_SETTINGS: ScatterEffectSettings = {
   // Pattern type
   scatterType: 'noise',
   
-  // Random seed for deterministic results
-  seed: Date.now()
+  // Random seed for deterministic results (0-9999)
+  seed: Math.floor(Math.random() * 10000)
 };
 
 // Canvas analysis settings

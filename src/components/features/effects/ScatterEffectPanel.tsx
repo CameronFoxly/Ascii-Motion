@@ -111,18 +111,22 @@ export function ScatterEffectPanel() {
     });
   }, [updateScatterSettings]);
 
-  // Handle seed input change
+  // Handle seed input change (limit to 4 digits: 0-9999)
   const handleSeedChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value, 10);
-    if (!isNaN(value)) {
+    if (!isNaN(value) && value >= 0 && value <= 9999) {
       updateScatterSettings({ seed: value });
     }
   }, [updateScatterSettings]);
 
-  // Generate new random seed
+  // Generate new random seed (4 digits: 0-9999)
   const handleRandomizeSeed = useCallback(() => {
-    updateScatterSettings({ seed: Date.now() });
+    const randomSeed = Math.floor(Math.random() * 10000);
+    updateScatterSettings({ seed: randomSeed });
   }, [updateScatterSettings]);
+
+  // Check if current scatter type uses random seed
+  const usesSeed = scatterSettings.scatterType === 'noise' || scatterSettings.scatterType === 'gaussian';
 
   return (
     <div className="space-y-4">
@@ -207,43 +211,47 @@ export function ScatterEffectPanel() {
           </Select>
         </div>
 
-        {/* Seed Input */}
-        <div className="space-y-2">
-          <Label htmlFor="scatter-seed" className="text-xs">
-            Random Seed
-          </Label>
-          <div className="flex gap-2">
-            <Input
-              id="scatter-seed"
-              type="number"
-              value={scatterSettings.seed}
-              onChange={handleSeedChange}
-              className="flex-1"
-            />
-            <Button
-              onClick={handleRandomizeSeed}
-              variant="outline"
-              size="sm"
-              className="h-9 px-3"
-              title="Generate new random seed"
-            >
-              <Shuffle className="w-4 h-4" />
-            </Button>
+        {/* Seed Input (only for Noise and Gaussian patterns) */}
+        {usesSeed && (
+          <div className="space-y-2">
+            <Label htmlFor="scatter-seed" className="text-xs">
+              Random Seed
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="scatter-seed"
+                type="number"
+                min={0}
+                max={9999}
+                value={scatterSettings.seed}
+                onChange={handleSeedChange}
+                className="flex-1"
+              />
+              <Button
+                onClick={handleRandomizeSeed}
+                variant="outline"
+                size="sm"
+                className="h-9 px-3"
+                title="Generate new random seed"
+              >
+                <Shuffle className="w-4 h-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Seed value (0-9999) produces consistent scatter patterns
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Same seed produces the same scatter pattern for consistent results
-          </p>
-        </div>
+        )}
       </div>
 
       {/* Pattern Descriptions */}
       <div className="bg-muted/50 rounded p-3 text-xs space-y-2">
         <div className="font-medium">Pattern Types:</div>
         <div className="text-muted-foreground space-y-1">
-          <div><strong>Noise:</strong> Smooth, random displacement with coherent patterns</div>
-          <div><strong>Bayer 2×2:</strong> Ordered dithering pattern with 4-point grid</div>
-          <div><strong>Bayer 4×4:</strong> Detailed ordered pattern with 16-point grid</div>
-          <div><strong>Gaussian:</strong> Natural bell-curve distribution for organic scatter</div>
+          <div><strong>Noise:</strong> Smooth, random displacement (uses seed)</div>
+          <div><strong>Bayer 2×2:</strong> Ordered dithering with 4-point grid (position-based)</div>
+          <div><strong>Bayer 4×4:</strong> Detailed ordered pattern with 16-point grid (position-based)</div>
+          <div><strong>Gaussian:</strong> Natural bell-curve distribution (uses seed)</div>
         </div>
       </div>
     </div>
