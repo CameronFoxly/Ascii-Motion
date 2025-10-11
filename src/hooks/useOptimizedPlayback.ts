@@ -11,14 +11,6 @@ import { renderFrameDirectly, type DirectRenderSettings } from '../utils/directC
  * Optimized playback hook that bypasses React component re-renders
  * Uses direct canvas rendering and isolated playback state for maximum performance
  */
-// Bridge object allowing non-React modules (e.g., global hotkeys) to control optimized playback
-export const optimizedPlaybackControl: {
-  start?: () => void;
-  stop?: (options?: { preserveFrameIndex?: boolean; frameIndex?: number }) => void;
-  toggle?: () => void;
-  isActive?: () => boolean;
-} = {};
-
 export const useOptimizedPlayback = () => {
   const animationRef = useRef<number | undefined>(undefined);
   const renderSettingsRef = useRef<DirectRenderSettings | null>(null);
@@ -213,12 +205,6 @@ export const useOptimizedPlayback = () => {
       stopOptimizedPlayback();
     };
   }, [stopOptimizedPlayback]);
-
-  // Register bridge control references (always latest closures)
-  optimizedPlaybackControl.start = startOptimizedPlayback;
-  optimizedPlaybackControl.stop = stopOptimizedPlayback;
-  optimizedPlaybackControl.toggle = toggleOptimizedPlayback;
-  optimizedPlaybackControl.isActive = isOptimizedPlaybackActive;
 
   return {
     startOptimizedPlayback,

@@ -767,7 +767,7 @@ export const useKeyboardShortcuts = () => {
         }
       } else {
         // Block tool hotkeys and other single-key shortcuts that conflict with typing
-        // This includes letters (b, p, e, etc.), numbers, space, etc.
+        // This includes letters (b, p, e, etc.), numbers, AND spacebar for text input
         return;
       }
     }
@@ -778,16 +778,10 @@ export const useKeyboardShortcuts = () => {
       return; // Let the text tool handle all other keys
     }
 
-    // Global spacebar play/pause using optimized playback bridge
+    // Spacebar playback toggle - let it pass through to AnimationTimeline component
+    // Don't preventDefault here, let the timeline handler deal with it
     if (!isModifierPressed && (event.key === ' ' || event.key === 'Space')) {
-      event.preventDefault();
-      const { optimizedPlaybackControl } = require('../hooks/useOptimizedPlayback');
-      if (optimizedPlaybackControl?.isActive?.()) {
-        // Stop optimized playback preserving current frame
-        optimizedPlaybackControl.stop?.({ preserveFrameIndex: true });
-      } else {
-        optimizedPlaybackControl.start?.();
-      }
+      // Just return without preventing default - let the event bubble to AnimationTimeline
       return;
     }
 

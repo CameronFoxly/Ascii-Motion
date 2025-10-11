@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAnimationStore } from '../../stores/animationStore';
 import { useCanvasStore } from '../../stores/canvasStore';
+import { useToolStore } from '../../stores/toolStore';
 import { useAnimationPlayback } from '../../hooks/useAnimationPlayback';
 import { useOptimizedPlayback } from '../../hooks/useOptimizedPlayback';
 import { useFrameNavigation } from '../../hooks/useFrameNavigation';
@@ -264,8 +265,7 @@ export const AnimationTimeline: React.FC = () => {
       }
 
       // Block spacebar if text tool actively typing
-      const toolStore = require('@/stores/toolStore'); // dynamic to avoid import cycles
-      const { activeTool, textToolState } = toolStore.useToolStore.getState();
+  const { activeTool, textToolState } = useToolStore.getState();
       const isTypingInTextTool = activeTool === 'text' && textToolState.isTyping;
 
       switch (event.key) {
