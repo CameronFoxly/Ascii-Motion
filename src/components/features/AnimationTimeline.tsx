@@ -269,12 +269,13 @@ export const AnimationTimeline: React.FC = () => {
       const isTypingInTextTool = activeTool === 'text' && textToolState.isTyping;
 
       switch (event.key) {
-        case ' ': // Spacebar for play/pause
-          if (isTypingInTextTool) {
-            // Let space insert space character; don't hijack
-            return;
-          }
-          event.preventDefault();
+        case ' ': // Spacebar for play/pause (primary modern value)
+        case 'Space': // Some browsers/environments (legacy) provide 'Space'
+          // Ensure we don't hijack typing in text tool
+          if (isTypingInTextTool) return;
+          // Also guard against focused inputs (already filtered above) & allow default when modifier pressed
+          if (event.metaKey || event.ctrlKey || event.altKey) return;
+          event.preventDefault(); // Prevent page scroll
           if (isOptimizedPlaybackActive) {
             handlePausePlayback();
           } else {

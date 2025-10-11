@@ -11,6 +11,14 @@ import { renderFrameDirectly, type DirectRenderSettings } from '../utils/directC
  * Optimized playback hook that bypasses React component re-renders
  * Uses direct canvas rendering and isolated playback state for maximum performance
  */
+// Bridge object allowing non-React modules (e.g., global hotkeys) to control optimized playback
+export const optimizedPlaybackControl: {
+  start?: () => void;
+  stop?: (options?: { preserveFrameIndex?: boolean; frameIndex?: number }) => void;
+  toggle?: () => void;
+  isActive?: () => boolean;
+} = {};
+
 export const useOptimizedPlayback = () => {
   const animationRef = useRef<number | undefined>(undefined);
   const renderSettingsRef = useRef<DirectRenderSettings | null>(null);
@@ -89,7 +97,7 @@ export const useOptimizedPlayback = () => {
     let currentIndex = 0;
     let lastFrameTime = performance.now();
     
-    const playbackLoop = (timestamp: number) => {
+  const playbackLoop = (timestamp: number) => {
       // Check if playback is still active
       if (!playbackOnlyStore.isActive()) {
         return;
@@ -105,27 +113,37 @@ export const useOptimizedPlayback = () => {
       
       // Check if current frame duration has elapsed
       if (elapsed >= currentFrame.duration) {
-        // Move to next frame (with looping)
-        currentIndex = (currentIndex + 1) % frames.length;
-        
-        // Update playback-only state (no React re-renders!)
-        playbackOnlyStore.goToFrame(currentIndex);
-        
-        // Direct canvas rendering (bypasses React pipeline!)
-        renderFrameDirectly(
-          frames[currentIndex],
-          canvasRef as React.RefObject<HTMLCanvasElement>,
-          renderSettingsRef.current!
-        );
-        
-        lastFrameTime = timestamp;
-        
-        // Call FPS monitor callback for performance tracking
-        const { fpsMonitorCallback } = useAnimationStore.getState();
-        if (fpsMonitorCallback) {
-          fpsMonitorCallback(timestamp);
+        const atLastFrame = currentIndex === frames.length - 1;
+        if (atLastFrame) {
+          const { looping, fpsMonitorCallback } = useAnimationStore.getState();
+          if (looping) {
+            currentIndex = 0; // wrap to first frame
+            playbackOnlyStore.goToFrame(currentIndex);
+            renderFrameDirectly(
+              frames[currentIndex],
+              canvasRef as React.RefObject<HTMLCanvasElement>,
+              renderSettingsRef.current!
+            );
+            lastFrameTime = timestamp;
+            if (fpsMonitorCallback) fpsMonitorCallback(timestamp);
+          } else {
+            // Non-looping: stop playback after last frame duration elapses, preserving last frame
+            if (fpsMonitorCallback) fpsMonitorCallback(timestamp);
+            stopOptimizedPlayback({ preserveFrameIndex: true, frameIndex: currentIndex });
+            return; // Exit without scheduling next frame
+          }
+        } else {
+          currentIndex += 1;
+          playbackOnlyStore.goToFrame(currentIndex);
+          renderFrameDirectly(
+            frames[currentIndex],
+            canvasRef as React.RefObject<HTMLCanvasElement>,
+            renderSettingsRef.current!
+          );
+          lastFrameTime = timestamp;
+          const { fpsMonitorCallback } = useAnimationStore.getState();
+          if (fpsMonitorCallback) fpsMonitorCallback(timestamp);
         }
-
       }
       
       // Continue animation loop
@@ -141,30 +159,33 @@ export const useOptimizedPlayback = () => {
    * Stop optimized playback and return to normal React rendering
    * Syncs the final frame state back to the main animation store
    */
-  const stopOptimizedPlayback = useCallback(() => {
+  const stopOptimizedPlayback = useCallback((options?: { preserveFrameIndex?: boolean; frameIndex?: number }) => {
+    const preserve = options?.preserveFrameIndex;
+    const overrideIndex = options?.frameIndex;
+
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
       animationRef.current = undefined;
     }
-    
-    // Get final state from playback-only store
+
     const finalState = playbackOnlyStore.getState();
-    
-    // Stop playback-only mode
+    const finalIndex = overrideIndex !== undefined ? overrideIndex : finalState.currentFrameIndex;
+
     playbackOnlyStore.stop();
-    
-    // Stop normal playback mode and restore UI state
+
     const { setPlaybackMode } = useToolStore.getState();
-    const { stop } = useAnimationStore.getState();
     setPlaybackMode(false);
-    stop();
-    
-    // Sync final frame index back to main store (single state update)
-    if (finalState.isActive) {
-      useAnimationStore.getState().goToFrame(finalState.currentFrameIndex);
+
+    if (preserve) {
+      // Use pause semantics to avoid resetting to frame 0
+      const { pause } = useAnimationStore.getState();
+      pause();
+      useAnimationStore.getState().goToFrame(finalIndex);
+    } else {
+      const { stop } = useAnimationStore.getState();
+      stop();
     }
-    
-    // Clear render settings
+
     renderSettingsRef.current = null;
   }, []);
 
@@ -192,6 +213,12 @@ export const useOptimizedPlayback = () => {
       stopOptimizedPlayback();
     };
   }, [stopOptimizedPlayback]);
+
+  // Register bridge control references (always latest closures)
+  optimizedPlaybackControl.start = startOptimizedPlayback;
+  optimizedPlaybackControl.stop = stopOptimizedPlayback;
+  optimizedPlaybackControl.toggle = toggleOptimizedPlayback;
+  optimizedPlaybackControl.isActive = isOptimizedPlaybackActive;
 
   return {
     startOptimizedPlayback,

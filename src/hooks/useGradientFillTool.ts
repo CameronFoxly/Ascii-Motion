@@ -145,8 +145,11 @@ export const useGradientFillTool = () => {
         timestamp: Date.now(),
         description: `Apply ${definition.type} gradient fill (${previewData.size} cells)`,
         data: {
-          canvasData: originalCells,
-          frameIndex: currentFrameIndex
+            // Previous canvas state BEFORE applying gradient (undo target)
+            previousCanvasData: originalCells,
+            // New canvas state AFTER applying gradient (redo target)
+            newCanvasData: newCells,
+            frameIndex: currentFrameIndex
         }
       };
       

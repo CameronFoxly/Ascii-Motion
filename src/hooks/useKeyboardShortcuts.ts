@@ -778,6 +778,19 @@ export const useKeyboardShortcuts = () => {
       return; // Let the text tool handle all other keys
     }
 
+    // Global spacebar play/pause using optimized playback bridge
+    if (!isModifierPressed && (event.key === ' ' || event.key === 'Space')) {
+      event.preventDefault();
+      const { optimizedPlaybackControl } = require('../hooks/useOptimizedPlayback');
+      if (optimizedPlaybackControl?.isActive?.()) {
+        // Stop optimized playback preserving current frame
+        optimizedPlaybackControl.stop?.({ preserveFrameIndex: true });
+      } else {
+        optimizedPlaybackControl.start?.();
+      }
+      return;
+    }
+
     // Handle Escape key (without modifier)
     if (event.key === 'Escape') {
       // Let CanvasGrid handle Escape when selection tool is active (for move commits)

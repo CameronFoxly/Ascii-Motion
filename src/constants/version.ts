@@ -1,12 +1,37 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.41";
-export const BUILD_DATE = "2025-10-10T23:47:40.981Z";
-export const BUILD_HASH = "2374d5d";
+export const VERSION = "0.1.43";
+export const BUILD_DATE = "2025-10-11T08:16:32.498Z";
+export const BUILD_HASH = "28d6ba1";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.43",
+    "date": "2025-10-11T08:16:32.498Z",
+    "commits": [
+      "Initial version"
+    ]
+  },
+  {
+    "version": "0.1.42",
+    "date": "2025-10-11T08:14:09.351Z",
+    "commits": [
+      "Fixed hotkey issues with typing tool",
+      "Fixed up Undo Bugs",
+      "Fied undo buttons.",
+      "Added transparency to the video import feature",
+      "Added dithering to import panel, and fixed some bugs there",
+      "Fixed import undo history adding",
+      "Fixed import MP4box error",
+      "Fixed first frame bug on imports.",
+      "Final tweaks for scatter",
+      "Fine tune scatter effect controls",
+      "Set up the scatter effect",
+      "Fixed bug - importing session and new frames conflict between thumbnail and actual data"
+    ]
+  },
   {
     "version": "0.1.41",
     "date": "2025-10-10T23:47:40.981Z",

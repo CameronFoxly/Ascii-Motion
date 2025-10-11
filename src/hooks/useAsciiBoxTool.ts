@@ -493,7 +493,10 @@ export const useAsciiBoxTool = () => {
       timestamp: Date.now(),
       description: `ASCII Box Drawing (${drawingMode} mode, ${currentStyle.name})`,
       data: {
-        canvasData: originalCells,
+        // Store the state before the edit for undo
+        previousCanvasData: originalCells,
+        // Store the state after the edit for redo
+        newCanvasData: newCells,
         frameIndex: currentFrameIndex
       }
     };
