@@ -14,8 +14,7 @@ export const useAnimationPlayback = () => {
     currentFrameIndex,
     isPlaying,
     play,
-    pause,
-    stop
+    pause
   } = useAnimationStore();
   
   const { setPlaybackMode } = useToolStore();
@@ -99,10 +98,9 @@ export const useAnimationPlayback = () => {
     }
   }, []); // Remove dependencies to avoid stale closures
 
-  // Start animation playback
   const startPlayback = useCallback(() => {
     if (frames.length === 0) return;
-    
+
     setPlaybackMode(true);
     play();
     startTimeRef.current = undefined;
@@ -117,17 +115,6 @@ export const useAnimationPlayback = () => {
       cancelAnimationFrame(animationRef.current);
     }
   }, [pause]);
-
-  // Stop animation playback
-  const stopPlayback = useCallback(() => {
-    stop();
-    setPlaybackMode(false);
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-    }
-    startTimeRef.current = undefined;
-    frameStartTimeRef.current = undefined;
-  }, [stop, setPlaybackMode]);
 
   // Toggle playback
   const toggleAnimationPlayback = useCallback(() => {
@@ -163,7 +150,6 @@ export const useAnimationPlayback = () => {
   return {
     startPlayback,
     pausePlayback,
-    stopPlayback,
     togglePlayback: toggleAnimationPlayback,
     isPlaying,
     canPlay: frames.length > 0,

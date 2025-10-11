@@ -3433,8 +3433,17 @@ const useCanvasStore = create<CanvasState>((set) => ({
 
 **If any checkbox above is unchecked, your work is not finished!**
 
-## Current Architecture Status (Enhanced October 4, 2025):
-🚨 **LATEST**: Timeline Jump Controls & Hotkeys (Oct 4, 2025)
+## Current Architecture Status (Enhanced October 11, 2025):
+🚨 **LATEST**: Optimized Playback UI Sync (Oct 11, 2025)
+
+**Optimized Playback UI Sync (Oct 11, 2025):**
+- ✅ **Playback Store Subscriptions**: `playbackOnlyStore` now exposes `subscribe`/`getSnapshot`, letting UI surfaces observe playback progress without waking React state or sacrificing 60 FPS loops.
+- ✅ **`usePlaybackOnlySnapshot` Hook**: Wrapper around `useSyncExternalStore` that streams `{ isActive, currentFrameIndex }` to components with zero additional Zustand subscribers.
+- ✅ **Resume-from-Current Frame**: Optimized playback starts from the animation store’s active frame and pauses/stops back onto the frame it ends on, keeping the canvas, history, and selection aligned.
+- ✅ **Timeline & Controls Feedback**: `AnimationTimeline` drives frame highlights and the control-bar badge from the playback snapshot, restoring live frame outlines and readouts while staying subscription-light.
+- ✅ **Streamlined Controls**: Playback UI now relies on a single Play/Pause toggle— the dedicated stop button and related handlers were removed to keep the surface minimal while preserving pause-on-current-frame behavior.
+
+🚨 **PREVIOUS**: Timeline Jump Controls & Hotkeys (Oct 4, 2025)
 
 **Timeline Jump Controls & Hotkeys (Oct 4, 2025):**
 - ✅ **First/Last Frame Buttons**: `PlaybackControls` and the floating `PlaybackOverlay` now include chevron jump buttons flanking the existing skip controls, matching shadcn sizing, tooltips, and disabled states.

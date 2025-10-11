@@ -31,13 +31,15 @@ playbackOnlyStore.goToFrame(newFrame) + directCanvasRenderer
 1. **`/src/stores/playbackOnlyStore.ts`** - Isolated state management
 2. **`/src/utils/directCanvasRenderer.ts`** - Direct canvas operations  
 3. **`/src/hooks/useOptimizedPlayback.ts`** - requestAnimationFrame loop
-4. **`/src/components/features/AnimationTimeline.tsx`** - Integration point
+4. **`/src/hooks/usePlaybackOnlySnapshot.ts`** - `useSyncExternalStore` bridge for UI feedback
+5. **`/src/components/features/AnimationTimeline.tsx`** - Integration point
 
 ### Key Features
 - ✅ Maintains 60 FPS regardless of frame count
 - ✅ Preserves all UI functionality (shortcuts, monitoring, etc.)
 - ✅ FPS monitoring integration
 - ✅ Seamless user experience (no behavior changes)
+- ✅ Timeline highlights & frame counters track optimized playback in real time without re-render storms
 
 ## Performance Benchmarks
 
@@ -54,8 +56,9 @@ Optimized playback is now the default - no code changes needed:
 
 ```typescript
 // This automatically uses optimized playback
-const { startPlayback, stopPlayback } = useAnimationPlayback();
+const { startPlayback, pausePlayback } = useAnimationPlayback();
 startPlayback(); // → 60 FPS regardless of frame count
+// Use pausePlayback() to halt on the current frame when needed
 ```
 
 ### Manual Optimization Control
@@ -71,6 +74,20 @@ startOptimizedPlayback({
   onFpsUpdate: (fps) => console.log(`Current FPS: ${fps}`),
   targetFps: 60
 });
+```
+
+### UI Feedback Without Re-Renders
+Subscribe to playback progress without touching Zustand selectors:
+
+```typescript
+import { useAnimationStore } from '../stores/animationStore';
+import { usePlaybackOnlySnapshot } from '../hooks/usePlaybackOnlySnapshot';
+
+const { currentFrameIndex: timelineFrame } = useAnimationStore();
+const { isActive, currentFrameIndex: playbackFrame } = usePlaybackOnlySnapshot();
+
+// Drive timeline highlights or HUD readouts directly from optimized playback state
+const displayFrame = isActive ? playbackFrame : timelineFrame;
 ```
 
 ## Technical Details

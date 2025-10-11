@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { Play, Pause, Square, SkipBack, SkipForward, StepBack, StepForward, RotateCcw } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, StepBack, StepForward, RotateCcw } from 'lucide-react';
 
 interface PlaybackControlsProps {
   isPlaying: boolean;
@@ -11,7 +11,6 @@ interface PlaybackControlsProps {
   totalFrames: number;
   onPlay: () => void;
   onPause: () => void;
-  onStop: () => void;
   onPrevious: () => void;
   onNext: () => void;
   onFirst: () => void;
@@ -31,7 +30,6 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
   totalFrames,
   onPlay,
   onPause,
-  onStop,
   onPrevious,
   onNext,
   onFirst,
@@ -98,22 +96,6 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
           <TooltipContent>
             {isPlaying ? 'Pause (Space)' : 'Play (Space)'}
           </TooltipContent>
-        </Tooltip>
-
-        {/* Stop */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onStop}
-              disabled={!isPlaying}
-              className="h-8 w-8 p-0"
-            >
-              <Square className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Stop (Esc)</TooltipContent>
         </Tooltip>
 
         {/* Next frame */}

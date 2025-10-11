@@ -10,7 +10,7 @@
 - **Build**: Latest `main` branch with production Vite build (`npx vite build`).
 - **Browser**: Chromium-based (Chrome 129+) and Firefox 129+.
 - **Project Setup**: Load a sample project with ≥6 frames of mixed durations (create via duplicate + edits if needed).
-- **Reset Conditions**: Before each scenario, ensure playback is stopped and the canvas reflects the active frame.
+- **Reset Conditions**: Before each scenario, ensure playback is paused (not running) and the canvas reflects the active frame.
 
 ## ✅ Core Scenario Matrix
 | ID | Scenario | Steps | Expected Result |
@@ -30,7 +30,7 @@
 | T-13 | Escape clears selection | Create multi selection, press **Escape** | Timeline selection collapses to active frame while canvas selections clear |
 | T-14 | Canvas interaction clears selection | Select frames 2-5, click canvas, draw a stroke | Timeline selection resets to active frame before drawing begins |
 | T-15 | Navigation clears selection | Multi-select frames, press `,` or `.` | Moves one frame and selection reduces to the new active frame only |
-| T-16 | Playback clears selection | Multi-select frames, press **Play** then **Stop** | Selection resets to the frame where playback stopped |
+| T-16 | Playback clears selection | Multi-select frames, press **Play** then **Pause** | Selection resets to the frame where playback pauses |
 | T-17 | Import/Export sanity | After multi operations, export JSON, re-import | Imported session retains frame order/durations and has single selection |
 
 ## 🔁 Regression Walkthroughs

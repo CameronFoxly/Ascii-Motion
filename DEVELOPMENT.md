@@ -92,9 +92,10 @@ src/
 │   ├── tools/          # Tool-specific components (SelectionTool, DrawingTool, LassoTool, TextTool, RectangleTool, EllipseTool, PaintBucketTool, EyedropperTool)
 │   └── ui/             # Shadcn UI components
 ├── stores/             # Zustand state management
-│   ├── canvasStore.ts  # Canvas data and operations
-│   ├── animationStore.ts # Animation timeline and frames
-│   └── toolStore.ts    # Active tools and settings
+│   ├── canvasStore.ts        # Canvas data and operations
+│   ├── animationStore.ts     # Animation timeline and frames
+│   ├── playbackOnlyStore.ts  # Optimized playback runtime (no React subscribers)
+│   └── toolStore.ts          # Active tools and settings
 ├── types/              # TypeScript type definitions
 ├── hooks/              # Custom React hooks
 ├── utils/              # Utility functions
@@ -247,8 +248,10 @@ src/
 │   └── toolStore.ts    # Active tools and settings
 ├── types/              # TypeScript type definitions
 ├── hooks/              # Custom React hooks
-│   ├── useCanvasRenderer.ts    # Optimized canvas rendering with batching
-│   ├── useOptimizedRender.ts   # Performance-optimized render scheduling
+│   ├── useCanvasRenderer.ts        # Optimized canvas rendering with batching
+│   ├── useOptimizedRender.ts       # Performance-optimized render scheduling
+│   ├── useOptimizedPlayback.ts     # High-FPS playback loop with direct canvas rendering
+│   ├── usePlaybackOnlySnapshot.ts  # Lightweight subscription to playback-only store
 │   └── ...
 ├── utils/              # Utility functions
 │   ├── performance.ts          # Performance monitoring and metrics
@@ -268,6 +271,11 @@ src/
 - **Shadcn/ui** - UI components
 - **Zustand** - State management
 - **Lucide React** - Icons
+
+### Optimized Playback Integration (Updated October 11, 2025)
+- Use `useOptimizedPlayback` to start/stop high-FPS playback without waking the broader React tree. The hook now resumes from the animation store’s active frame and preserves the frame you pause/stop on.
+- UI elements that need live playback feedback (timeline cards, frame counters, overlays) should subscribe via `usePlaybackOnlySnapshot`, which wraps the new `playbackOnlyStore.subscribe` API with `useSyncExternalStore` for zero-overhead updates.
+- Avoid re-introducing Zustand selectors on `currentFrameIndex` for playback visuals—`playbackOnlyStore` is the dedicated source of truth during optimized playback sessions.
 
 ### **🚨 IMPORTANT: Tailwind CSS Version Lock**
 **This project requires Tailwind CSS v3.x**. Do NOT upgrade to v4+ without extensive testing as it breaks shadcn/ui compatibility.
@@ -864,7 +872,7 @@ if (!isLoadingFrameRef.current && !isPlaying && !isDraggingFrame) {
 **Timeline Features:**
 - Frame thumbnails with real-time updates
 - Duration controls with deferred validation
-- Playback controls (play/pause/stop/loop)
+- Playback controls (play/pause/loop)
 - Frame operations (add/duplicate/delete)
 
 #### 4. Frame Thumbnails (`src/components/features/FrameThumbnail.tsx`)

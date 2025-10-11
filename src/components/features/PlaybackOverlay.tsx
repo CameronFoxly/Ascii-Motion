@@ -24,7 +24,6 @@ export const PlaybackOverlay: React.FC<PlaybackOverlayProps> = ({ isVisible }) =
   const {
     startPlayback,
     pausePlayback,
-    stopPlayback,
     canPlay
   } = useAnimationPlayback();
 
@@ -53,7 +52,6 @@ export const PlaybackOverlay: React.FC<PlaybackOverlayProps> = ({ isVisible }) =
         totalFrames={frames.length}
         onPlay={startPlayback}
         onPause={pausePlayback}
-        onStop={stopPlayback}
         onPrevious={navigatePrevious}
         onNext={navigateNext}
         onFirst={navigateFirst}

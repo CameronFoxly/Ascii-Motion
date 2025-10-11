@@ -4,6 +4,7 @@ import { useCanvasStore } from '../../stores/canvasStore';
 import { useToolStore } from '../../stores/toolStore';
 import { useAnimationPlayback } from '../../hooks/useAnimationPlayback';
 import { useOptimizedPlayback } from '../../hooks/useOptimizedPlayback';
+import { usePlaybackOnlySnapshot } from '../../hooks/usePlaybackOnlySnapshot';
 import { useFrameNavigation } from '../../hooks/useFrameNavigation';
 import { useAnimationHistory } from '../../hooks/useAnimationHistory';
 import { useTimeEffectsStore } from '../../stores/timeEffectsStore';
@@ -78,6 +79,10 @@ export const AnimationTimeline: React.FC = () => {
     stopOptimizedPlayback
   } = useOptimizedPlayback();
 
+  const playbackSnapshot = usePlaybackOnlySnapshot();
+  const playbackFrameIndex = playbackSnapshot.currentFrameIndex;
+  const isPlaybackActive = playbackSnapshot.isActive;
+
   const {
     navigateToFrame,
     navigateNext,
@@ -85,9 +90,7 @@ export const AnimationTimeline: React.FC = () => {
     navigateFirst,
     navigateLast
   } = useFrameNavigation();
-
-  // Optimized playback is now the default - track when it's active
-  const [isOptimizedPlaybackActive, setIsOptimizedPlaybackActive] = useState(false);
+  const displayFrameIndex = isPlaybackActive ? playbackFrameIndex : currentFrameIndex;
   
 
 
@@ -241,19 +244,16 @@ export const AnimationTimeline: React.FC = () => {
 
   // Start playback (using optimized rendering by default)
   const handleStartPlayback = useCallback(() => {
-    setIsOptimizedPlaybackActive(true);
-    startOptimizedPlayback();
-  }, [startOptimizedPlayback]);
+    if (!isPlaybackActive) {
+      startOptimizedPlayback();
+    }
+  }, [isPlaybackActive, startOptimizedPlayback]);
 
   const handlePausePlayback = useCallback(() => {
-    setIsOptimizedPlaybackActive(false);
-    stopOptimizedPlayback();
-  }, [stopOptimizedPlayback]);
-
-  const handleStopPlayback = useCallback(() => {
-    setIsOptimizedPlaybackActive(false);
-    stopOptimizedPlayback();
-  }, [stopOptimizedPlayback]);
+    if (isPlaybackActive) {
+      stopOptimizedPlayback({ preserveFrameIndex: true });
+    }
+  }, [isPlaybackActive, stopOptimizedPlayback]);
 
   // Handle keyboard shortcuts for playback (moved from useAnimationPlayback to support optimized playback)
   useEffect(() => {
@@ -276,7 +276,7 @@ export const AnimationTimeline: React.FC = () => {
           // Also guard against focused inputs (already filtered above) & allow default when modifier pressed
           if (event.metaKey || event.ctrlKey || event.altKey) return;
           event.preventDefault(); // Prevent page scroll
-          if (isOptimizedPlaybackActive) {
+          if (isPlaybackActive) {
             handlePausePlayback();
           } else {
             handleStartPlayback();
@@ -284,9 +284,6 @@ export const AnimationTimeline: React.FC = () => {
           break;
         case 'Escape': // Escape to stop
           event.preventDefault();
-          if (isOptimizedPlaybackActive) {
-            handleStopPlayback();
-          }
           break;
       }
     };
@@ -296,7 +293,7 @@ export const AnimationTimeline: React.FC = () => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOptimizedPlaybackActive, handleStartPlayback, handlePausePlayback, handleStopPlayback]);
+  }, [isPlaybackActive, handleStartPlayback, handlePausePlayback]);
 
   // Handle drag start
   const handleDragStart = useCallback((event: React.DragEvent, index: number) => {
@@ -606,13 +603,12 @@ export const AnimationTimeline: React.FC = () => {
 
           {/* Playback Controls - Center */}
           <PlaybackControls
-            isPlaying={isOptimizedPlaybackActive}
+            isPlaying={isPlaybackActive}
             canPlay={canPlay}
-            currentFrame={currentFrameIndex}
+            currentFrame={displayFrameIndex}
             totalFrames={frames.length}
             onPlay={handleStartPlayback}
             onPause={handlePausePlayback}
-            onStop={handleStopPlayback}
             onPrevious={navigatePrevious}
             onNext={navigateNext}
             onFirst={navigateFirst}
@@ -653,7 +649,7 @@ export const AnimationTimeline: React.FC = () => {
                   <FrameThumbnail
                     frame={frame}
                     frameIndex={index}
-                    isActive={index === currentFrameIndex}
+                    isActive={index === displayFrameIndex}
                     isSelected={isFrameSelected(index)}
                     canvasWidth={canvasWidth}
                     canvasHeight={canvasHeight}

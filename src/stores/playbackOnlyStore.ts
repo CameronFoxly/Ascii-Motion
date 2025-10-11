@@ -13,6 +13,8 @@ interface PlaybackOnlyStateInterface {
   lastFrameTime: number;
 }
 
+type PlaybackSubscriber = () => void;
+
 // Private playback state - no React subscriptions or Zustand overhead
 let playbackState: PlaybackOnlyStateInterface = {
   isActive: false,
@@ -23,6 +25,18 @@ let playbackState: PlaybackOnlyStateInterface = {
   lastFrameTime: 0,
 };
 
+const subscribers = new Set<PlaybackSubscriber>();
+
+const emit = () => {
+  subscribers.forEach((listener) => {
+    try {
+      listener();
+    } catch {
+      // Intentionally swallow subscriber errors to preserve playback loop
+    }
+  });
+};
+
 /**
  * Playback-only store for direct canvas rendering during animation
  * Bypasses all React component re-renders and Zustand state subscriptions
@@ -31,15 +45,19 @@ export const playbackOnlyStore = {
   /**
    * Initialize playback-only mode with current frames and canvas reference
    */
-  start: (frames: Frame[], canvasRef: React.RefObject<HTMLCanvasElement>) => {
+  start: (frames: Frame[], canvasRef: React.RefObject<HTMLCanvasElement>, initialIndex = 0) => {
+    const clampedIndex = Math.max(0, Math.min(initialIndex, frames.length - 1));
+
     playbackState = {
       isActive: true,
-      currentFrameIndex: 0,
+      currentFrameIndex: clampedIndex,
       frames: [...frames], // Snapshot current frames to avoid stale references
       canvasRef,
       startTime: performance.now(),
       lastFrameTime: performance.now(),
     };
+
+    emit();
   },
 
   /**
@@ -51,8 +69,13 @@ export const playbackOnlyStore = {
       return;
     }
     
-    playbackState.currentFrameIndex = index;
-    playbackState.lastFrameTime = performance.now();
+    playbackState = {
+      ...playbackState,
+      currentFrameIndex: index,
+      lastFrameTime: performance.now(),
+    };
+
+    emit();
     
     // Direct canvas rendering happens in directCanvasRenderer.ts
     // This is called from the optimized playback loop
@@ -62,7 +85,15 @@ export const playbackOnlyStore = {
    * Stop playback-only mode and return to normal React rendering
    */
   stop: () => {
-    playbackState.isActive = false;
+    if (!playbackState.isActive) {
+      return;
+    }
+
+    playbackState = {
+      ...playbackState,
+      isActive: false,
+    };
+    emit();
   },
 
   /**
@@ -100,7 +131,21 @@ export const playbackOnlyStore = {
    * Update timing information for performance tracking
    */
   updateTiming: (timestamp: number) => {
-    playbackState.lastFrameTime = timestamp;
+    playbackState = {
+      ...playbackState,
+      lastFrameTime: timestamp,
+    };
+  },
+
+  subscribe: (listener: PlaybackSubscriber) => {
+    subscribers.add(listener);
+    return () => {
+      subscribers.delete(listener);
+    };
+  },
+
+  getSnapshot: (): Readonly<PlaybackOnlyStateInterface> => {
+    return playbackState;
   },
 };
 

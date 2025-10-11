@@ -60,17 +60,58 @@ export const useOptimizedPlayback = () => {
    * Start optimized playback mode
    * Bypasses all React component subscriptions and uses direct canvas rendering
    */
+  /**
+   * Stop optimized playback and return to normal React rendering
+   * Syncs the final frame state back to the main animation store
+   */
+  const stopOptimizedPlayback = useCallback((options?: { preserveFrameIndex?: boolean; frameIndex?: number }) => {
+    const preserve = options?.preserveFrameIndex ?? true;
+    const overrideIndex = options?.frameIndex;
+
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = undefined;
+    }
+
+    const finalState = playbackOnlyStore.getState();
+    const finalIndex = overrideIndex !== undefined ? overrideIndex : finalState.currentFrameIndex;
+
+    playbackOnlyStore.stop();
+
+    const { setPlaybackMode } = useToolStore.getState();
+    setPlaybackMode(false);
+
+    if (preserve) {
+      // Use pause semantics to avoid resetting to frame 0
+      const { pause } = useAnimationStore.getState();
+      pause();
+      useAnimationStore.getState().goToFrame(finalIndex);
+    } else {
+      const { stop } = useAnimationStore.getState();
+      stop();
+    }
+
+    renderSettingsRef.current = null;
+  }, []);
+
   const startOptimizedPlayback = useCallback(() => {
     if (frames.length === 0 || !canvasRef?.current) {
       return;
     }
+
+    const { currentFrameIndex } = useAnimationStore.getState();
+    const startingIndex = Math.max(0, Math.min(currentFrameIndex, frames.length - 1));
 
     // Initialize render settings from current context
     const renderSettings = initializeRenderSettings();
     renderSettingsRef.current = renderSettings;
     
     // Initialize playback-only store with snapshot of current frames
-    playbackOnlyStore.start(frames, canvasRef as React.RefObject<HTMLCanvasElement>);
+    playbackOnlyStore.start(
+      frames,
+      canvasRef as React.RefObject<HTMLCanvasElement>,
+      startingIndex
+    );
     
     // Need to set the tool playback mode so UI shows as playing
     const { setPlaybackMode } = useToolStore.getState();
@@ -80,16 +121,16 @@ export const useOptimizedPlayback = () => {
     
     // Render the initial frame immediately
     renderFrameDirectly(
-      frames[0],
+      frames[startingIndex],
       canvasRef as React.RefObject<HTMLCanvasElement>,
       renderSettingsRef.current!
     );
     
     // Direct playback loop - no React component updates!
-    let currentIndex = 0;
+    let currentIndex = startingIndex;
     let lastFrameTime = performance.now();
     
-  const playbackLoop = (timestamp: number) => {
+    const playbackLoop = (timestamp: number) => {
       // Check if playback is still active
       if (!playbackOnlyStore.isActive()) {
         return;
@@ -145,41 +186,7 @@ export const useOptimizedPlayback = () => {
     // Start the loop
     animationRef.current = requestAnimationFrame(playbackLoop);
     
-  }, [frames, canvasRef, initializeRenderSettings]);
-
-  /**
-   * Stop optimized playback and return to normal React rendering
-   * Syncs the final frame state back to the main animation store
-   */
-  const stopOptimizedPlayback = useCallback((options?: { preserveFrameIndex?: boolean; frameIndex?: number }) => {
-    const preserve = options?.preserveFrameIndex;
-    const overrideIndex = options?.frameIndex;
-
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-      animationRef.current = undefined;
-    }
-
-    const finalState = playbackOnlyStore.getState();
-    const finalIndex = overrideIndex !== undefined ? overrideIndex : finalState.currentFrameIndex;
-
-    playbackOnlyStore.stop();
-
-    const { setPlaybackMode } = useToolStore.getState();
-    setPlaybackMode(false);
-
-    if (preserve) {
-      // Use pause semantics to avoid resetting to frame 0
-      const { pause } = useAnimationStore.getState();
-      pause();
-      useAnimationStore.getState().goToFrame(finalIndex);
-    } else {
-      const { stop } = useAnimationStore.getState();
-      stop();
-    }
-
-    renderSettingsRef.current = null;
-  }, []);
+  }, [frames, canvasRef, initializeRenderSettings, stopOptimizedPlayback]);
 
   /**
    * Toggle between optimized playback and normal React-based playback
