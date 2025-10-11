@@ -35,12 +35,17 @@
 - **UX**: Compact grid layout with visual character display (space as '␣')
 
 ### **5. Scatter Effect** _(New - October 10, 2025)_
-- **Controls**: Strength slider (0-100), Pattern selector, Random seed input
+- **Controls**: Strength slider (0-100), Pattern selector, Blend Colors toggle, Random seed input (0-9999)
 - **Patterns**: Noise (smooth random), Bayer 2×2/4×4 (ordered dithering), Gaussian (natural distribution)
+- **Blend Colors**: Optional color blending based on displacement distance with canvas background color integration
 - **Processing**: Seeded pseudo-random cell swapping with deterministic results
-- **UI**: Debounced live preview (300ms), pattern descriptions, shuffle seed button
-- **Algorithm**: Efficient O(n) swapping with displacement calculation based on selected pattern type
-- **Features**: Deterministic seeding for reproducible results, up to 10 cell displacement range
+- **UI**: Debounced live preview (300ms), pattern descriptions, shuffle seed button, conditional seed visibility
+- **Algorithm**: Efficient O(n) swapping with displacement calculation, RGB color interpolation for blending
+- **Features**: 
+  - Deterministic seeding for reproducible results (Noise/Gaussian patterns)
+  - Up to 10 cell displacement range
+  - Blend colors with canvas background when swapping with empty cells
+  - Position-based patterns (Bayer) don't require seed input
 
 ## 🎨 **Major UX Improvements Implemented**
 

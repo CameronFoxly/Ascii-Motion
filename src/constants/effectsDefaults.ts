@@ -112,7 +112,10 @@ export const DEFAULT_SCATTER_SETTINGS: ScatterEffectSettings = {
   scatterType: 'noise',
   
   // Random seed for deterministic results (0-9999)
-  seed: Math.floor(Math.random() * 10000)
+  seed: Math.floor(Math.random() * 10000),
+  
+  // Blend colors based on displacement distance
+  blendColors: false
 };
 
 // Canvas analysis settings

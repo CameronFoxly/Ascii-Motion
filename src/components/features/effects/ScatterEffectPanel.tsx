@@ -10,6 +10,7 @@ import { Slider } from '../../ui/slider';
 import { Button } from '../../ui/button';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
+import { Switch } from '../../ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { useEffectsStore } from '../../../stores/effectsStore';
 import { useCanvasStore } from '../../../stores/canvasStore';
@@ -125,6 +126,11 @@ export function ScatterEffectPanel() {
     updateScatterSettings({ seed: randomSeed });
   }, [updateScatterSettings]);
 
+  // Handle blend colors toggle
+  const handleBlendColorsChange = useCallback((checked: boolean) => {
+    updateScatterSettings({ blendColors: checked });
+  }, [updateScatterSettings]);
+
   // Check if current scatter type uses random seed
   const usesSeed = scatterSettings.scatterType === 'noise' || scatterSettings.scatterType === 'gaussian';
 
@@ -209,6 +215,23 @@ export function ScatterEffectPanel() {
               <SelectItem value="gaussian">Gaussian (Natural Distribution)</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Blend Colors Toggle */}
+        <div className="flex items-center justify-between space-x-2">
+          <div className="space-y-0.5">
+            <Label htmlFor="blend-colors" className="text-xs cursor-pointer">
+              Blend Colors
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Blend colors based on displacement distance
+            </p>
+          </div>
+          <Switch
+            id="blend-colors"
+            checked={scatterSettings.blendColors}
+            onCheckedChange={handleBlendColorsChange}
+          />
         </div>
 
         {/* Seed Input (only for Noise and Gaussian patterns) */}

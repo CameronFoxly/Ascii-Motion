@@ -126,7 +126,8 @@ The ASCII Motion Effects System provides powerful, easy-to-use tools to transfor
 **Controls**:
 - **Strength** (0-100): Controls maximum displacement distance (0 = no scatter, 100 = up to 10 cells)
 - **Scatter Pattern**: Choose from 4 different scatter algorithms
-- **Random Seed**: Deterministic seed for consistent, reproducible results
+- **Blend Colors**: Toggle to blend colors of swapped cells based on displacement distance
+- **Random Seed** (Noise/Gaussian only): Deterministic seed for consistent, reproducible results (0-9999)
 
 **Scatter Patterns**:
 - **Noise (Random Smooth)**: Perlin-like noise with smooth, coherent displacement patterns
@@ -138,9 +139,18 @@ The ASCII Motion Effects System provides powerful, easy-to-use tools to transfor
 1. Open Scatter effect panel
 2. Adjust Strength slider to control scatter intensity
 3. Select Scatter Pattern from dropdown menu
-4. Optionally modify Random Seed (or click Shuffle icon for new seed)
-5. Watch live preview update (debounced for performance)
-6. Click Apply to make changes permanent
+4. Toggle Blend Colors on for smooth color transitions (off for exact color swaps)
+5. Optionally modify Random Seed for Noise/Gaussian patterns (or click Shuffle icon for new seed)
+6. Watch live preview update (debounced for performance)
+7. Click Apply to make changes permanent
+
+**Blend Colors Feature**:
+- **OFF**: Characters swap positions exactly, maintaining their original colors
+- **ON**: Colors smoothly blend based on how far cells move from their original position
+  - Cells closer to original position keep more of their original color
+  - Cells farther away blend more with the destination color
+  - When swapping with empty cells, blends with the canvas background color
+  - Creates organic, motion-blur-like color transitions
 
 **Best For**:
 - Creating glitch or distortion effects
@@ -156,11 +166,14 @@ The ASCII Motion Effects System provides powerful, easy-to-use tools to transfor
 - **Gaussian**: Most natural-looking randomness, great for organic scatter
 
 **Pro Tips**:
-- **Use Same Seed**: Record your seed value to recreate exact scatter patterns
+- **Use Same Seed**: Record your seed value to recreate exact scatter patterns (Noise/Gaussian only)
 - **Low Strength**: Subtle scatter (10-30) creates realistic noise without destroying readability
 - **High Strength**: Extreme scatter (70-100) for abstract or chaotic effects
+- **Blend Colors**: Enable for smooth color gradients, disable for crisp color boundaries
+- **Light Backgrounds**: Blend Colors works great on light canvas backgrounds (blends with white/gray)
 - **Pattern Layering**: Apply scatter multiple times with different patterns for complex textures
 - **Timeline Consistency**: Use same seed across frames for consistent animation scatter
+- **Organic Effects**: Combine Gaussian pattern + Blend Colors for natural, flowing distortions
 
 ## 💡 **Tips & Best Practices**
 

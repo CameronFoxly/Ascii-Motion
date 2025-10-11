@@ -70,6 +70,9 @@ export interface ScatterEffectSettings {
   
   // Random seed for deterministic scattering
   seed: number;
+  
+  // Blend colors based on displacement distance
+  blendColors: boolean;
 }
 
 // Effect definition for UI

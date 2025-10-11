@@ -425,11 +425,15 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
           return;
       }
       
+      // Get canvas background color for blend operations
+      const canvasBackgroundColor = useCanvasStore.getState().canvasBackgroundColor;
+      
       // Process effect on current canvas data (await the async function)
       const result = await processEffect(
         state.previewEffect,
         currentCells,
-        effectSettings
+        effectSettings,
+        canvasBackgroundColor
       );
       
       // Update preview store with processed cells if successful
@@ -487,13 +491,18 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
         const { useAnimationStore } = await import('./animationStore');
         const animationStore = useAnimationStore.getState();
         
+        // Get canvas background color for blend operations
+        const { useCanvasStore } = await import('./canvasStore');
+        const canvasBackgroundColor = useCanvasStore.getState().canvasBackgroundColor;
+        
         const result = await processEffectOnFrames(
           effect,
           animationStore.frames,
           settings,
           () => {
             // Progress tracking could be added here if needed
-          }
+          },
+          canvasBackgroundColor
         );
 
         if (result.errors.length > 0) {
@@ -524,7 +533,8 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
         const result = await processEffect(
           effect,
           canvasStore.cells,
-          settings
+          settings,
+          canvasStore.canvasBackgroundColor
         );
 
         if (result.success && result.processedCells) {

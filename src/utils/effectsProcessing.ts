@@ -23,7 +23,8 @@ import type {
 export async function processEffect(
   effectType: EffectType,
   cells: Map<string, Cell>,
-  settings: LevelsEffectSettings | HueSaturationEffectSettings | RemapColorsEffectSettings | RemapCharactersEffectSettings | ScatterEffectSettings
+  settings: LevelsEffectSettings | HueSaturationEffectSettings | RemapColorsEffectSettings | RemapCharactersEffectSettings | ScatterEffectSettings,
+  canvasBackgroundColor: string = '#000000'
 ): Promise<EffectProcessingResult> {
   const startTime = performance.now();
   
@@ -61,7 +62,7 @@ export async function processEffect(
       }
       
       case 'scatter': {
-        const scatterResult = await processScatterEffect(cells, settings as ScatterEffectSettings);
+        const scatterResult = await processScatterEffect(cells, settings as ScatterEffectSettings, canvasBackgroundColor);
         processedCells = scatterResult.processedCells;
         affectedCells = scatterResult.affectedCells;
         break;
@@ -101,7 +102,8 @@ export async function processEffectOnFrames(
   effectType: EffectType,
   frames: Frame[],
   settings: LevelsEffectSettings | HueSaturationEffectSettings | RemapColorsEffectSettings | RemapCharactersEffectSettings | ScatterEffectSettings,
-  onProgress?: (frameIndex: number, totalFrames: number) => void
+  onProgress?: (frameIndex: number, totalFrames: number) => void,
+  canvasBackgroundColor: string = '#000000'
 ): Promise<{ processedFrames: Frame[], totalAffectedCells: number, processingTime: number, errors: string[] }> {
   const startTime = performance.now();
   const processedFrames: Frame[] = [];
@@ -113,7 +115,7 @@ export async function processEffectOnFrames(
     onProgress?.(i, frames.length);
 
     try {
-  const result = await processEffect(effectType, frame.data, settings);
+  const result = await processEffect(effectType, frame.data, settings, canvasBackgroundColor);
       
       if (result.success && result.processedCells) {
         processedFrames.push({
@@ -547,10 +549,11 @@ function hslToHex(h: number, s: number, l: number): string {
  */
 async function processScatterEffect(
   cells: Map<string, Cell>,
-  settings: ScatterEffectSettings
+  settings: ScatterEffectSettings,
+  canvasBackgroundColor: string = '#000000'
 ): Promise<{ processedCells: Map<string, Cell>, affectedCells: number }> {
   const processedCells = new Map<string, Cell>();
-  const { strength, scatterType, seed } = settings;
+  const { strength, scatterType, seed, blendColors } = settings;
   
   // Convert strength (0-100) to max displacement distance (0-10 cells)
   const maxDisplacement = Math.round((strength / 100) * 10);
@@ -565,14 +568,14 @@ async function processScatterEffect(
   const rng = createSeededRNG(seed);
   
   // Get all filled cell positions (cells with content)
-  const filledCells = Array.from(cells.entries()).filter(([_, cell]) => {
+  const filledCells = Array.from(cells.entries()).filter(([, cell]) => {
     // Only scatter cells that have actual content (character or colors)
     return cell.char !== ' ' || cell.color !== 'transparent' || cell.bgColor !== 'transparent';
   });
   
   // Build array of positions from filled cells
   const cellPositions = filledCells.map(([pos]) => pos);
-  const swapPairs: Array<[string, string]> = [];
+  const swapPairs: Array<[string, string, number]> = []; // Added distance to track blend weight
   const swapped = new Set<string>();
   
   // For each filled cell, calculate displacement based on scatter type
@@ -592,10 +595,13 @@ async function processScatterEffect(
     const targetY = y + displacement.dy;
     const targetPos = `${targetX},${targetY}`;
     
+    // Calculate actual distance for blend weight
+    const distance = Math.sqrt(displacement.dx ** 2 + displacement.dy ** 2);
+    
     // Only add to swap pairs if positions are different
     // We can swap with empty cells now
     if (pos !== targetPos && !swapped.has(targetPos)) {
-      swapPairs.push([pos, targetPos]);
+      swapPairs.push([pos, targetPos, distance]);
       swapped.add(pos);
       swapped.add(targetPos);
     }
@@ -607,20 +613,56 @@ async function processScatterEffect(
   });
   
   // Apply swaps - swap cell content between positions
-  swapPairs.forEach(([pos1, pos2]) => {
+  swapPairs.forEach(([pos1, pos2, distance]) => {
     const cell1 = cells.get(pos1);
     const cell2 = cells.get(pos2);
     
     if (cell1) {
-      // Cell1 exists, move it to pos2 (even if pos2 is empty)
-      processedCells.set(pos2, { ...cell1 });
-      
-      if (cell2) {
-        // Cell2 exists, move it to pos1
-        processedCells.set(pos1, { ...cell2 });
+      if (blendColors && maxDisplacement > 0) {
+        // Blend colors based on displacement distance
+        // Weight: closer to original = more of original color
+        const blendWeight = 1 - (distance / maxDisplacement);
+        
+        // Determine the effective background color for blending with empty cells
+        // If canvas background is transparent, use black as fallback
+        const effectiveCanvasBg = canvasBackgroundColor === 'transparent' ? '#000000' : canvasBackgroundColor;
+        
+        // Cell1 moving to pos2
+        const blendedCell1 = cell2 ? {
+          // Blending with an existing cell
+          ...cell1,
+          color: blendColorPair(cell1.color, cell2.color, blendWeight),
+          bgColor: blendColorPair(cell1.bgColor, cell2.bgColor, blendWeight)
+        } : {
+          // Blending with empty cell - use canvas background color
+          ...cell1,
+          color: blendColorPair(cell1.color, effectiveCanvasBg, blendWeight),
+          bgColor: blendColorPair(cell1.bgColor, effectiveCanvasBg, blendWeight)
+        };
+        
+        processedCells.set(pos2, blendedCell1);
+        
+        if (cell2) {
+          // Cell2 moving to pos1 (same blend weight since they swap)
+          const blendedCell2 = {
+            ...cell2,
+            color: blendColorPair(cell2.color, cell1.color, blendWeight),
+            bgColor: blendColorPair(cell2.bgColor, cell1.bgColor, blendWeight)
+          };
+          processedCells.set(pos1, blendedCell2);
+        } else {
+          // Pos2 was empty, clear pos1
+          processedCells.delete(pos1);
+        }
       } else {
-        // Pos2 was empty, clear pos1
-        processedCells.delete(pos1);
+        // No color blending - just swap
+        processedCells.set(pos2, { ...cell1 });
+        
+        if (cell2) {
+          processedCells.set(pos1, { ...cell2 });
+        } else {
+          processedCells.delete(pos1);
+        }
       }
     }
   });
@@ -739,4 +781,36 @@ function calculateDisplacement(
     default:
       return { dx: 0, dy: 0 };
   }
+}
+
+/**
+ * Blend two colors based on a weight (0-1)
+ * Weight of 1 = 100% color1, weight of 0 = 100% color2
+ * Handles transparent colors gracefully
+ */
+function blendColorPair(color1: string, color2: string, weight: number): string {
+  // Handle transparent colors
+  if (color1 === 'transparent' && color2 === 'transparent') {
+    return 'transparent';
+  }
+  if (color1 === 'transparent') {
+    return color2;
+  }
+  if (color2 === 'transparent') {
+    return color1;
+  }
+  
+  // Clamp weight to 0-1
+  const t = Math.max(0, Math.min(1, 1 - weight));
+  
+  const rgb1 = hexToRgb(color1);
+  const rgb2 = hexToRgb(color2);
+  
+  if (!rgb1 || !rgb2) return color1;
+  
+  const r = Math.round(rgb1.r + t * (rgb2.r - rgb1.r));
+  const g = Math.round(rgb1.g + t * (rgb2.g - rgb1.g));
+  const b = Math.round(rgb1.b + t * (rgb2.b - rgb1.b));
+  
+  return rgbToHex(r, g, b);
 }
