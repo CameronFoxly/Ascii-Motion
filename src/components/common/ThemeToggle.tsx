@@ -15,6 +15,7 @@ export function ThemeToggle() {
             size="sm"
             onClick={toggleTheme}
             className="h-8 w-8 p-0"
+            tabIndex={1004}
           >
             {theme === 'dark' ? (
               <Sun className="h-4 w-4" />
