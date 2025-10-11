@@ -6,7 +6,7 @@ The ASCII Motion Effects System provides powerful, easy-to-use tools to transfor
 
 ### **Accessing Effects**
 1. **Open Effects**: In the right sidebar, click the "Effects" section below the Color Palette
-2. **Choose Effect**: Click any of the 4 effect buttons (Levels, Hue & Saturation, Remap Colors, Remap Characters)  
+2. **Choose Effect**: Click any of the 5 effect buttons (Levels, Hue & Saturation, Remap Colors, Remap Characters, Scatter)  
 3. **Live Preview**: Changes appear instantly on canvas with 80% opacity overlay
 4. **Apply or Cancel**: Click "Apply" to make permanent, or "Cancel"/"X" to revert changes
 
@@ -117,6 +117,50 @@ The ASCII Motion Effects System provides powerful, easy-to-use tools to transfor
 - Creating variations with different character sets
 - Replacing hard-to-read characters
 - Converting between ASCII art conventions
+
+---
+
+### **5. Scatter Effect**
+*Randomly scatter ASCII characters across the canvas with customizable patterns*
+
+**Controls**:
+- **Strength** (0-100): Controls maximum displacement distance (0 = no scatter, 100 = up to 10 cells)
+- **Scatter Pattern**: Choose from 4 different scatter algorithms
+- **Random Seed**: Deterministic seed for consistent, reproducible results
+
+**Scatter Patterns**:
+- **Noise (Random Smooth)**: Perlin-like noise with smooth, coherent displacement patterns
+- **Bayer 2×2 (Ordered Pattern)**: Ordered dithering pattern using 2×2 matrix for structured scatter
+- **Bayer 4×4 (Detailed Pattern)**: More detailed ordered pattern using 4×4 matrix for complex structure
+- **Gaussian (Natural Distribution)**: Bell-curve distribution for organic, natural-looking scatter
+
+**How to Use**:
+1. Open Scatter effect panel
+2. Adjust Strength slider to control scatter intensity
+3. Select Scatter Pattern from dropdown menu
+4. Optionally modify Random Seed (or click Shuffle icon for new seed)
+5. Watch live preview update (debounced for performance)
+6. Click Apply to make changes permanent
+
+**Best For**:
+- Creating glitch or distortion effects
+- Adding visual noise for artistic effect
+- Simulating signal interference or degradation
+- Creating textured backgrounds from solid fills
+- Generating organic randomness while maintaining structure
+
+**Pattern Comparison**:
+- **Noise**: Best for smooth, flowing distortions
+- **Bayer 2×2**: Creates regular, grid-like patterns with predictable structure
+- **Bayer 4×4**: More complex patterns with finer detail and variation
+- **Gaussian**: Most natural-looking randomness, great for organic scatter
+
+**Pro Tips**:
+- **Use Same Seed**: Record your seed value to recreate exact scatter patterns
+- **Low Strength**: Subtle scatter (10-30) creates realistic noise without destroying readability
+- **High Strength**: Extreme scatter (70-100) for abstract or chaotic effects
+- **Pattern Layering**: Apply scatter multiple times with different patterns for complex textures
+- **Timeline Consistency**: Use same seed across frames for consistent animation scatter
 
 ## 💡 **Tips & Best Practices**
 

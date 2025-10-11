@@ -16,6 +16,7 @@ import type {
   HueSaturationEffectSettings, 
   RemapColorsEffectSettings, 
   RemapCharactersEffectSettings,
+  ScatterEffectSettings,
   CanvasAnalysis
 } from '../types/effects';
 import { 
@@ -23,6 +24,7 @@ import {
   DEFAULT_HUE_SATURATION_SETTINGS,
   DEFAULT_REMAP_COLORS_SETTINGS,
   DEFAULT_REMAP_CHARACTERS_SETTINGS,
+  DEFAULT_SCATTER_SETTINGS,
   CANVAS_ANALYSIS
 } from '../constants/effectsDefaults';
 import { useCanvasStore } from './canvasStore';
@@ -41,6 +43,7 @@ export interface EffectsState {
   hueSaturationSettings: HueSaturationEffectSettings;
   remapColorsSettings: RemapColorsEffectSettings;
   remapCharactersSettings: RemapCharactersEffectSettings;
+  scatterSettings: ScatterEffectSettings;
   
   // Canvas Analysis State
   canvasAnalysis: CanvasAnalysis | null;     // Cached analysis results
@@ -63,6 +66,7 @@ export interface EffectsState {
   updateHueSaturationSettings: (settings: Partial<HueSaturationEffectSettings>) => void;
   updateRemapColorsSettings: (settings: Partial<RemapColorsEffectSettings>) => void;
   updateRemapCharactersSettings: (settings: Partial<RemapCharactersEffectSettings>) => void;
+  updateScatterSettings: (settings: Partial<ScatterEffectSettings>) => void;
   resetEffectSettings: (effect: EffectType) => void;
   
   // Actions - Canvas Analysis
@@ -114,6 +118,7 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
   hueSaturationSettings: { ...DEFAULT_HUE_SATURATION_SETTINGS },
   remapColorsSettings: { ...DEFAULT_REMAP_COLORS_SETTINGS },
   remapCharactersSettings: { ...DEFAULT_REMAP_CHARACTERS_SETTINGS },
+  scatterSettings: { ...DEFAULT_SCATTER_SETTINGS },
   
   // Analysis state
   canvasAnalysis: null,
@@ -178,6 +183,12 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
     }));
   },
   
+  updateScatterSettings: (settings: Partial<ScatterEffectSettings>) => {
+    set(state => ({
+      scatterSettings: { ...state.scatterSettings, ...settings }
+    }));
+  },
+  
   resetEffectSettings: (effect: EffectType) => {
     switch (effect) {
       case 'levels':
@@ -191,6 +202,9 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
         break;
       case 'remap-characters':
         set({ remapCharactersSettings: { ...DEFAULT_REMAP_CHARACTERS_SETTINGS } });
+        break;
+      case 'scatter':
+        set({ scatterSettings: { ...DEFAULT_SCATTER_SETTINGS } });
         break;
     }
   },
@@ -404,6 +418,9 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
         case 'remap-characters':
           effectSettings = state.remapCharactersSettings;
           break;
+        case 'scatter':
+          effectSettings = state.scatterSettings;
+          break;
         default:
           return;
       }
@@ -453,6 +470,8 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
             return state.remapColorsSettings;
           case 'remap-characters':
             return state.remapCharactersSettings;
+          case 'scatter':
+            return state.scatterSettings;
           default:
             throw new Error(`Unknown effect type: ${effect}`);
         }

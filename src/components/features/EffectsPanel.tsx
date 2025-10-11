@@ -23,12 +23,14 @@ import { LevelsEffectPanel } from './effects/LevelsEffectPanel';
 import { HueSaturationEffectPanel } from './effects/HueSaturationEffectPanel';
 import { RemapColorsEffectPanel } from './effects/RemapColorsEffectPanel';
 import { RemapCharactersEffectPanel } from './effects/RemapCharactersEffectPanel';
+import { ScatterEffectPanel } from './effects/ScatterEffectPanel';
 import {
   X,
   BarChart3,
   Palette,
   RefreshCcw,
-  Type
+  Type,
+  ScatterChart
 } from 'lucide-react';
 
 // Icon mapping for effect headers
@@ -36,7 +38,8 @@ const EFFECT_ICONS = {
   'BarChart3': BarChart3,
   'Palette': Palette,
   'RefreshCcw': RefreshCcw,
-  'Type': Type
+  'Type': Type,
+  'ScatterChart': ScatterChart
 } as const;
 
 // Parse Tailwind duration for animation timing
@@ -165,6 +168,10 @@ export function EffectsPanel() {
           
           {activeEffect === 'remap-characters' && (
             <RemapCharactersEffectPanel />
+          )}
+          
+          {activeEffect === 'scatter' && (
+            <ScatterEffectPanel />
           )}
           
           {/* Analysis status */}

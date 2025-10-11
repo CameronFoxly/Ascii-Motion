@@ -12,6 +12,7 @@ import type {
   HueSaturationEffectSettings,
   RemapColorsEffectSettings,
   RemapCharactersEffectSettings,
+  ScatterEffectSettings,
   EffectProcessingResult,
   ColorRange,
 } from '../types/effects';
@@ -22,7 +23,7 @@ import type {
 export async function processEffect(
   effectType: EffectType,
   cells: Map<string, Cell>,
-  settings: LevelsEffectSettings | HueSaturationEffectSettings | RemapColorsEffectSettings | RemapCharactersEffectSettings
+  settings: LevelsEffectSettings | HueSaturationEffectSettings | RemapColorsEffectSettings | RemapCharactersEffectSettings | ScatterEffectSettings
 ): Promise<EffectProcessingResult> {
   const startTime = performance.now();
   
@@ -56,6 +57,13 @@ export async function processEffect(
         const rchResult = await processRemapCharactersEffect(cells, settings as RemapCharactersEffectSettings);
         processedCells = rchResult.processedCells;
         affectedCells = rchResult.affectedCells;
+        break;
+      }
+      
+      case 'scatter': {
+        const scatterResult = await processScatterEffect(cells, settings as ScatterEffectSettings);
+        processedCells = scatterResult.processedCells;
+        affectedCells = scatterResult.affectedCells;
         break;
       }
         
@@ -92,7 +100,7 @@ export async function processEffect(
 export async function processEffectOnFrames(
   effectType: EffectType,
   frames: Frame[],
-  settings: LevelsEffectSettings | HueSaturationEffectSettings | RemapColorsEffectSettings | RemapCharactersEffectSettings,
+  settings: LevelsEffectSettings | HueSaturationEffectSettings | RemapColorsEffectSettings | RemapCharactersEffectSettings | ScatterEffectSettings,
   onProgress?: (frameIndex: number, totalFrames: number) => void
 ): Promise<{ processedFrames: Frame[], totalAffectedCells: number, processingTime: number, errors: string[] }> {
   const startTime = performance.now();
@@ -531,4 +539,204 @@ function hslToHex(h: number, s: number, l: number): string {
   }
 
   return rgbToHex(Math.round(r * 255), Math.round(g * 255), Math.round(b * 255));
+}
+
+/**
+ * Scatter Effect Processing
+ * Randomly scatters cells based on various patterns
+ */
+async function processScatterEffect(
+  cells: Map<string, Cell>,
+  settings: ScatterEffectSettings
+): Promise<{ processedCells: Map<string, Cell>, affectedCells: number }> {
+  const processedCells = new Map<string, Cell>();
+  const { strength, scatterType, seed } = settings;
+  
+  // Convert strength (0-100) to max displacement distance (0-10 cells)
+  const maxDisplacement = Math.round((strength / 100) * 10);
+  
+  // If strength is 0, return original cells
+  if (maxDisplacement === 0) {
+    cells.forEach((cell, pos) => processedCells.set(pos, { ...cell }));
+    return { processedCells, affectedCells: 0 };
+  }
+  
+  // Create seeded random number generator
+  const rng = createSeededRNG(seed);
+  
+  // Get all filled cell positions (cells with content)
+  const filledCells = Array.from(cells.entries()).filter(([_, cell]) => {
+    // Only scatter cells that have actual content (character or colors)
+    return cell.char !== ' ' || cell.color !== 'transparent' || cell.bgColor !== 'transparent';
+  });
+  
+  // Build array of positions from filled cells
+  const cellPositions = filledCells.map(([pos]) => pos);
+  const swapPairs: Array<[string, string]> = [];
+  const swapped = new Set<string>();
+  
+  // For each filled cell, calculate displacement based on scatter type
+  cellPositions.forEach(pos => {
+    // Skip if already swapped
+    if (swapped.has(pos)) return;
+    
+    const [x, y] = pos.split(',').map(Number);
+    
+    // Calculate displacement vector based on scatter type
+    const displacement = calculateDisplacement(
+      x, y, maxDisplacement, scatterType, rng
+    );
+    
+    // Calculate target position
+    const targetX = x + displacement.dx;
+    const targetY = y + displacement.dy;
+    const targetPos = `${targetX},${targetY}`;
+    
+    // Only add to swap pairs if positions are different
+    // We can swap with empty cells now
+    if (pos !== targetPos && !swapped.has(targetPos)) {
+      swapPairs.push([pos, targetPos]);
+      swapped.add(pos);
+      swapped.add(targetPos);
+    }
+  });
+  
+  // Initialize processed cells with original data
+  cells.forEach((cell, pos) => {
+    processedCells.set(pos, { ...cell });
+  });
+  
+  // Apply swaps - swap cell content between positions
+  swapPairs.forEach(([pos1, pos2]) => {
+    const cell1 = cells.get(pos1);
+    const cell2 = cells.get(pos2);
+    
+    if (cell1) {
+      // Cell1 exists, move it to pos2 (even if pos2 is empty)
+      processedCells.set(pos2, { ...cell1 });
+      
+      if (cell2) {
+        // Cell2 exists, move it to pos1
+        processedCells.set(pos1, { ...cell2 });
+      } else {
+        // Pos2 was empty, clear pos1
+        processedCells.delete(pos1);
+      }
+    }
+  });
+  
+  return { 
+    processedCells, 
+    affectedCells: swapPairs.length * 2 
+  };
+}
+
+/**
+ * Create a seeded pseudo-random number generator
+ */
+function createSeededRNG(seed: number) {
+  let state = seed;
+  
+  return {
+    // Returns a pseudo-random number between 0 and 1
+    next: (): number => {
+      state = (state * 9301 + 49297) % 233280;
+      return state / 233280;
+    },
+    
+    // Returns a random integer between min (inclusive) and max (inclusive)
+    nextInt: (min: number, max: number): number => {
+      const value = (state * 9301 + 49297) % 233280;
+      state = value;
+      return min + Math.floor((value / 233280) * (max - min + 1));
+    },
+    
+    // Returns a random float between min and max
+    nextFloat: (min: number, max: number): number => {
+      state = (state * 9301 + 49297) % 233280;
+      return min + (state / 233280) * (max - min);
+    }
+  };
+}
+
+/**
+ * Calculate displacement vector based on scatter type
+ */
+function calculateDisplacement(
+  x: number,
+  y: number,
+  maxDistance: number,
+  scatterType: 'noise' | 'bayer-2x2' | 'bayer-4x4' | 'gaussian',
+  rng: ReturnType<typeof createSeededRNG>
+): { dx: number, dy: number } {
+  
+  switch (scatterType) {
+    case 'noise': {
+      // Perlin-like noise: smooth random displacement
+      // Use position-based noise for coherent displacement
+      const angle = rng.nextFloat(0, Math.PI * 2);
+      const distance = rng.nextFloat(0, maxDistance);
+      return {
+        dx: Math.round(Math.cos(angle) * distance),
+        dy: Math.round(Math.sin(angle) * distance)
+      };
+    }
+    
+    case 'bayer-2x2': {
+      // Bayer 2x2 ordered dithering pattern
+      const bayer2x2 = [
+        [0, 2],
+        [3, 1]
+      ];
+      const threshold = bayer2x2[y % 2][x % 2] / 4;
+      const scaledDistance = Math.round(threshold * maxDistance);
+      
+      // Deterministic direction based on position
+      const direction = ((x + y) % 4) * (Math.PI / 2);
+      return {
+        dx: Math.round(Math.cos(direction) * scaledDistance),
+        dy: Math.round(Math.sin(direction) * scaledDistance)
+      };
+    }
+    
+    case 'bayer-4x4': {
+      // Bayer 4x4 ordered dithering pattern
+      const bayer4x4 = [
+        [0,  8,  2,  10],
+        [12, 4,  14, 6],
+        [3,  11, 1,  9],
+        [15, 7,  13, 5]
+      ];
+      const threshold = bayer4x4[y % 4][x % 4] / 16;
+      const scaledDistance = Math.round(threshold * maxDistance);
+      
+      // Deterministic direction based on position
+      const direction = ((x + y) % 8) * (Math.PI / 4);
+      return {
+        dx: Math.round(Math.cos(direction) * scaledDistance),
+        dy: Math.round(Math.sin(direction) * scaledDistance)
+      };
+    }
+    
+    case 'gaussian': {
+      // Gaussian distribution: most displacement near center, less at edges
+      // Box-Muller transform for gaussian random
+      const u1 = Math.max(0.0001, rng.next());
+      const u2 = rng.next();
+      const gaussian = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+      
+      // Scale gaussian (typically -3 to +3) to our max distance
+      // Clamp to ensure we stay within maxDistance
+      const distance = Math.min(maxDistance, Math.abs(gaussian) * (maxDistance / 3));
+      const angle = rng.nextFloat(0, Math.PI * 2);
+      
+      return {
+        dx: Math.round(Math.cos(angle) * distance),
+        dy: Math.round(Math.sin(angle) * distance)
+      };
+    }
+    
+    default:
+      return { dx: 0, dy: 0 };
+  }
 }

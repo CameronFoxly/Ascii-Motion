@@ -42,7 +42,7 @@ export const useOptimizedPlayback = () => {
       
       return settings;
       
-    } catch (error) {
+    } catch {
       // Fallback to safe defaults if context is unavailable
       return {
         effectiveCellWidth: 18,

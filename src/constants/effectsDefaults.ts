@@ -9,7 +9,8 @@ import type {
   LevelsEffectSettings, 
   HueSaturationEffectSettings, 
   RemapColorsEffectSettings, 
-  RemapCharactersEffectSettings 
+  RemapCharactersEffectSettings,
+  ScatterEffectSettings
 } from '../types/effects';
 
 // Effect definitions for UI rendering
@@ -41,6 +42,13 @@ export const EFFECT_DEFINITIONS: EffectDefinition[] = [
     icon: 'Type',
     description: 'Replace characters with visual character selector',
     category: 'mapping'
+  },
+  {
+    id: 'scatter',
+    name: 'Scatter',
+    icon: 'ScatterChart',
+    description: 'Randomly scatter characters with customizable patterns',
+    category: 'filter'
   }
 ];
 
@@ -94,6 +102,17 @@ export const DEFAULT_REMAP_CHARACTERS_SETTINGS: RemapCharactersEffectSettings = 
   
   // Processing options
   preserveSpacing: true
+};
+
+export const DEFAULT_SCATTER_SETTINGS: ScatterEffectSettings = {
+  // Scatter strength (0 = no scatter, 100 = max 10 cells displacement)
+  strength: 50,
+  
+  // Pattern type
+  scatterType: 'noise',
+  
+  // Random seed for deterministic results
+  seed: Date.now()
 };
 
 // Canvas analysis settings

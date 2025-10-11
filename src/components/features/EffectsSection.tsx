@@ -23,7 +23,8 @@ import {
   BarChart3,
   Palette,
   RefreshCcw,
-  Type
+  Type,
+  ScatterChart
 } from 'lucide-react';
 
 // Icon mapping for effect buttons
@@ -31,7 +32,8 @@ const EFFECT_ICONS = {
   'BarChart3': BarChart3,
   'Palette': Palette,
   'RefreshCcw': RefreshCcw,
-  'Type': Type
+  'Type': Type,
+  'ScatterChart': ScatterChart
 } as const;
 
 interface EffectsSectionProps {

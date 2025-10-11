@@ -248,8 +248,8 @@ export const useCanvasRenderer = () => {
     }
 
     // Draw static cells (excluding cells being moved)
-    // Skip drawing original cells if time effects preview is active (preview will render all cells)
-    if (!isTimeEffectPreviewActive) {
+    // Skip drawing original cells if time effects preview OR effects preview is active (preview will render all cells)
+    if (!isTimeEffectPreviewActive && !isEffectPreviewActive) {
       for (let y = 0; y < canvasConfig.height; y++) {
         for (let x = 0; x < canvasConfig.width; x++) {
           const key = `${x},${y}`;
@@ -477,31 +477,48 @@ export const useCanvasRenderer = () => {
       const isEffectsPreview = isEffectPreviewActive || isTimeEffectPreviewActive;
       const previewAlpha = isEffectsPreview ? 1.0 : 0.8; // Effects: full opacity, others: semi-transparent
       
-      previewData.forEach((cell, key) => {
-        const [x, y] = key.split(',').map(Number);
+      if (isEffectsPreview) {
+        // For effects previews, render the ENTIRE canvas using preview data
+        // This ensures we show empty cells where content was removed (like scatter effect)
+        ctx.save();
+        ctx.globalAlpha = previewAlpha;
         
-        // Only draw if within canvas bounds
-        if (x >= 0 && x < canvasConfig.width && y >= 0 && y < canvasConfig.height) {
-          ctx.save();
-          ctx.globalAlpha = previewAlpha;
-          
-          // For effects previews, clear the cell area first to ensure complete replacement
-          if (isEffectsPreview) {
-            const pixelX = Math.round(x * effectiveCellWidth + panOffset.x);
-            const pixelY = Math.round(y * effectiveCellHeight + panOffset.y);
-            const cellWidth = Math.round(effectiveCellWidth);
-            const cellHeight = Math.round(effectiveCellHeight);
+        for (let y = 0; y < canvasConfig.height; y++) {
+          for (let x = 0; x < canvasConfig.width; x++) {
+            const key = `${x},${y}`;
+            const previewCell = previewData.get(key);
             
-            // Clear the cell area with canvas background
-            ctx.fillStyle = canvasBackgroundColor;
-            ctx.fillRect(pixelX, pixelY, cellWidth, cellHeight);
+            if (previewCell) {
+              // Draw the preview cell
+              drawCell(ctx, x, y, previewCell);
+            } else {
+              // Draw empty cell with canvas background (shows where cells were removed)
+              const pixelX = Math.round(x * effectiveCellWidth + panOffset.x);
+              const pixelY = Math.round(y * effectiveCellHeight + panOffset.y);
+              const cellWidth = Math.round(effectiveCellWidth);
+              const cellHeight = Math.round(effectiveCellHeight);
+              
+              ctx.fillStyle = canvasBackgroundColor;
+              ctx.fillRect(pixelX, pixelY, cellWidth, cellHeight);
+            }
           }
-          
-          drawCell(ctx, x, y, cell);
-          
-          ctx.restore();
         }
-      });
+        
+        ctx.restore();
+      } else {
+        // For non-effects previews, only draw the preview cells (existing behavior)
+        previewData.forEach((cell, key) => {
+          const [x, y] = key.split(',').map(Number);
+          
+          // Only draw if within canvas bounds
+          if (x >= 0 && x < canvasConfig.width && y >= 0 && y < canvasConfig.height) {
+            ctx.save();
+            ctx.globalAlpha = previewAlpha;
+            drawCell(ctx, x, y, cell);
+            ctx.restore();
+          }
+        });
+      }
 
       // Draw purple dotted outline for ASCII Type preview
       if (activeTool === 'asciitype' && previewOrigin && previewDimensions) {

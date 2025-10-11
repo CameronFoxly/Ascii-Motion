@@ -5,7 +5,7 @@
  */
 
 // Core effect types
-export type EffectType = 'levels' | 'hue-saturation' | 'remap-colors' | 'remap-characters';
+export type EffectType = 'levels' | 'hue-saturation' | 'remap-colors' | 'remap-characters' | 'scatter';
 
 // Color range targeting for effects
 export interface ColorRange {
@@ -59,6 +59,17 @@ export interface RemapCharactersEffectSettings {
   
   // Processing options
   preserveSpacing: boolean;
+}
+
+export interface ScatterEffectSettings {
+  // Scatter strength (0-100, maps to max displacement distance of 0-10 cells)
+  strength: number;
+  
+  // Scatter pattern type
+  scatterType: 'noise' | 'bayer-2x2' | 'bayer-4x4' | 'gaussian';
+  
+  // Random seed for deterministic scattering
+  seed: number;
 }
 
 // Effect definition for UI
@@ -149,7 +160,7 @@ export interface EffectProcessingResult {
 export interface EffectHistoryAction {
   type: 'EFFECT_APPLIED';
   effectType: EffectType;
-  settings: LevelsEffectSettings | HueSaturationEffectSettings | RemapColorsEffectSettings | RemapCharactersEffectSettings;
+  settings: LevelsEffectSettings | HueSaturationEffectSettings | RemapColorsEffectSettings | RemapCharactersEffectSettings | ScatterEffectSettings;
   targetScope: 'canvas' | 'timeline';
   affectedFrames?: number[];
   timestamp: number;
@@ -160,4 +171,5 @@ export type EffectSettings =
   | LevelsEffectSettings 
   | HueSaturationEffectSettings 
   | RemapColorsEffectSettings 
-  | RemapCharactersEffectSettings;
+  | RemapCharactersEffectSettings
+  | ScatterEffectSettings;

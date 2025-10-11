@@ -25,6 +25,7 @@ export const useEffectsHistory = () => {
     hueSaturationSettings,
     remapColorsSettings,
     remapCharactersSettings,
+    scatterSettings,
     clearError
   } = useEffectsStore();
   
@@ -44,10 +45,12 @@ export const useEffectsHistory = () => {
         return remapColorsSettings;
       case 'remap-characters':
         return remapCharactersSettings;
+      case 'scatter':
+        return scatterSettings;
       default:
         throw new Error(`Unknown effect type: ${effectType}`);
     }
-  }, [levelsSettings, hueSaturationSettings, remapColorsSettings, remapCharactersSettings]);
+  }, [levelsSettings, hueSaturationSettings, remapColorsSettings, remapCharactersSettings, scatterSettings]);
 
   /**
    * Apply effect with history tracking
@@ -131,7 +134,8 @@ export const useEffectsHistory = () => {
       'levels': 'Levels',
       'hue-saturation': 'Hue & Saturation',
       'remap-colors': 'Remap Colors', 
-      'remap-characters': 'Remap Characters'
+      'remap-characters': 'Remap Characters',
+      'scatter': 'Scatter'
     };
     return effectNames[effectType] || effectType;
   }, []);
