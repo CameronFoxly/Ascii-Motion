@@ -373,14 +373,37 @@ export class MediaProcessor {
 
   /**
    * Parse MP4 file to extract framerate using MP4Box
+   * 
+   * Note: Suppresses console errors for known non-critical metadata warnings
+   * (e.g., QuickTime atoms like ©TIM, ©NAM that MP4Box doesn't recognize)
    */
   private parseMP4FrameRate(arrayBuffer: ArrayBuffer): Promise<number> {
     return new Promise((resolve) => {
       const mp4boxFile: MP4File = MP4Box.createFile();
       
+      // Temporarily suppress console.error to prevent MP4Box metadata warnings
+      // MP4Box logs errors directly before calling our error handler
+      const originalError = console.error;
+      console.error = (...args: unknown[]) => {
+        // Check all arguments for MP4Box metadata warnings
+        const allArgs = args.map(arg => String(arg)).join(' ');
+        
+        // Suppress known non-critical MP4Box metadata warnings
+        if (allArgs.includes('BoxParser') || 
+            allArgs.includes('Invalid box type') ||
+            allArgs.includes('©')) { // QuickTime atoms start with ©
+          // Silently ignore - these are QuickTime metadata atoms we don't need
+          return;
+        }
+        
+        // Pass through other errors
+        originalError.apply(console, args);
+      };
+      
       // Set up event handlers
-  mp4boxFile.onReady = (info: MP4Info) => {
-
+      mp4boxFile.onReady = (info: MP4Info) => {
+        // Restore console.error
+        console.error = originalError;
         
         // Look for video tracks
         const videoTrack = info.videoTracks?.[0];
@@ -414,21 +437,21 @@ export class MediaProcessor {
             }
           }
           
-
           resolve(frameRate > 0 && frameRate <= 120 ? frameRate : 0);
         } else {
-
           resolve(0);
         }
       };
       
       mp4boxFile.onError = () => {
+        // Restore console.error
+        console.error = originalError;
         // MP4Box parsing failed, use default framerate
         resolve(0);
       };
       
       // Convert ArrayBuffer to the format MP4Box expects
-  const buffer = arrayBuffer as Mp4ArrayBuffer;
+      const buffer = arrayBuffer as Mp4ArrayBuffer;
       buffer.fileStart = 0;
       
       // Append data and flush
