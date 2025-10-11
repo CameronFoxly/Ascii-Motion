@@ -27,13 +27,13 @@ export interface ConversionSettings {
   // Text (foreground) color mapping - NEW
   enableTextColorMapping: boolean;
   textColorPalette: string[]; // Array of hex colors from selected palette
-  textColorMappingMode: 'closest' | 'dithering' | 'by-index';
+  textColorMappingMode: 'closest' | 'noise-dither' | 'bayer2x2' | 'bayer4x4' | 'by-index';
   defaultTextColor: string; // Default color when text color mapping is disabled
   
   // Background color mapping - NEW
   enableBackgroundColorMapping: boolean;
   backgroundColorPalette: string[]; // Array of hex colors from selected palette
-  backgroundColorMappingMode: 'closest' | 'dithering' | 'by-index';
+  backgroundColorMappingMode: 'closest' | 'noise-dither' | 'bayer2x2' | 'bayer4x4' | 'by-index';
   
   // Legacy color settings (keep for backward compatibility)
   useOriginalColors: boolean;
@@ -333,6 +333,7 @@ export class ColorMatcher {
 
   /**
    * Simple dithering algorithm for color mapping
+   * @deprecated Use ditherColorNoise, ditherColorBayer2x2, or ditherColorBayer4x4 instead
    */
   static ditherColor(r: number, g: number, b: number, palette: string[], ditherStrength: number = 0.1): string {
     // Add some noise for dithering effect
@@ -340,6 +341,92 @@ export class ColorMatcher {
     const ditheredR = Math.max(0, Math.min(255, r + noise()));
     const ditheredG = Math.max(0, Math.min(255, g + noise()));
     const ditheredB = Math.max(0, Math.min(255, b + noise()));
+    
+    return this.findClosestColor(ditheredR, ditheredG, ditheredB, palette);
+  }
+
+  /**
+   * Noise-based dithering with position-based pseudo-random for consistent results
+   * Uses deterministic noise based on x,y coordinates for reproducible dithering
+   */
+  static ditherColorNoise(
+    r: number, g: number, b: number, 
+    palette: string[], 
+    ditherStrength: number,
+    x: number, y: number
+  ): string {
+    // Position-based pseudo-random noise (deterministic)
+    const noise1 = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+    const noise2 = Math.sin(x * 93.9898 + y * 47.233) * 25643.2831;
+    const noise = ((noise1 - Math.floor(noise1)) + (noise2 - Math.floor(noise2))) / 2;
+    
+    // Convert ditherStrength (0-1) to noise amplitude
+    const amplitude = ditherStrength * 255;
+    const offset = (noise - 0.5) * amplitude;
+    
+    const ditheredR = Math.max(0, Math.min(255, r + offset));
+    const ditheredG = Math.max(0, Math.min(255, g + offset));
+    const ditheredB = Math.max(0, Math.min(255, b + offset));
+    
+    return this.findClosestColor(ditheredR, ditheredG, ditheredB, palette);
+  }
+
+  /**
+   * Bayer 2x2 ordered dithering for structured, retro aesthetic
+   * Creates a classic halftone pattern using a 2x2 Bayer matrix
+   */
+  static ditherColorBayer2x2(
+    r: number, g: number, b: number,
+    palette: string[],
+    ditherStrength: number,
+    x: number, y: number
+  ): string {
+    const bayer2x2 = [
+      [0, 2],
+      [3, 1]
+    ];
+    
+    const matrixX = Math.abs(x) % 2;
+    const matrixY = Math.abs(y) % 2;
+    const threshold = bayer2x2[matrixY][matrixX] / 4; // Normalize to 0-1
+    
+    // Apply threshold to each color channel
+    const offset = (threshold - 0.5) * ditherStrength * 255;
+    
+    const ditheredR = Math.max(0, Math.min(255, r + offset));
+    const ditheredG = Math.max(0, Math.min(255, g + offset));
+    const ditheredB = Math.max(0, Math.min(255, b + offset));
+    
+    return this.findClosestColor(ditheredR, ditheredG, ditheredB, palette);
+  }
+
+  /**
+   * Bayer 4x4 ordered dithering for finer, more detailed patterns
+   * Creates smoother dithering with more gradation levels
+   */
+  static ditherColorBayer4x4(
+    r: number, g: number, b: number,
+    palette: string[],
+    ditherStrength: number,
+    x: number, y: number
+  ): string {
+    const bayer4x4 = [
+      [0,  8,  2,  10],
+      [12, 4,  14, 6],
+      [3,  11, 1,  9],
+      [15, 7,  13, 5]
+    ];
+    
+    const matrixX = Math.abs(x) % 4;
+    const matrixY = Math.abs(y) % 4;
+    const threshold = bayer4x4[matrixY][matrixX] / 16; // Normalize to 0-1
+    
+    // Apply threshold to each color channel
+    const offset = (threshold - 0.5) * ditherStrength * 255;
+    
+    const ditheredR = Math.max(0, Math.min(255, r + offset));
+    const ditheredG = Math.max(0, Math.min(255, g + offset));
+    const ditheredB = Math.max(0, Math.min(255, b + offset));
     
     return this.findClosestColor(ditheredR, ditheredG, ditheredB, palette);
   }
@@ -486,12 +573,36 @@ export class ASCIIConverter {
         let color: string;
         if (settings.enableTextColorMapping && settings.textColorPalette.length > 0) {
           // Use palette-based color mapping
-          if (settings.textColorMappingMode === 'dithering') {
-            color = ColorMatcher.ditherColor(adjustedR, adjustedG, adjustedB, settings.textColorPalette, settings.ditherStrength);
-          } else if (settings.textColorMappingMode === 'by-index') {
-            color = ColorMatcher.mapColorByIndex(adjustedR, adjustedG, adjustedB, settings.textColorPalette);
-          } else {
-            color = ColorMatcher.findClosestColor(adjustedR, adjustedG, adjustedB, settings.textColorPalette);
+          switch (settings.textColorMappingMode) {
+            case 'noise-dither':
+              color = ColorMatcher.ditherColorNoise(
+                adjustedR, adjustedG, adjustedB, 
+                settings.textColorPalette, 
+                settings.ditherStrength,
+                x, y
+              );
+              break;
+            case 'bayer2x2':
+              color = ColorMatcher.ditherColorBayer2x2(
+                adjustedR, adjustedG, adjustedB,
+                settings.textColorPalette,
+                settings.ditherStrength,
+                x, y
+              );
+              break;
+            case 'bayer4x4':
+              color = ColorMatcher.ditherColorBayer4x4(
+                adjustedR, adjustedG, adjustedB,
+                settings.textColorPalette,
+                settings.ditherStrength,
+                x, y
+              );
+              break;
+            case 'by-index':
+              color = ColorMatcher.mapColorByIndex(adjustedR, adjustedG, adjustedB, settings.textColorPalette);
+              break;
+            default: // 'closest'
+              color = ColorMatcher.findClosestColor(adjustedR, adjustedG, adjustedB, settings.textColorPalette);
           }
         } else if (!settings.enableTextColorMapping) {
           // Use default text color when text color mapping is explicitly disabled
@@ -512,12 +623,36 @@ export class ASCIIConverter {
         let bgColor: string;
         if (settings.enableBackgroundColorMapping && settings.backgroundColorPalette.length > 0) {
           // Use palette-based background color mapping
-          if (settings.backgroundColorMappingMode === 'dithering') {
-            bgColor = ColorMatcher.ditherColor(adjustedR, adjustedG, adjustedB, settings.backgroundColorPalette, settings.ditherStrength);
-          } else if (settings.backgroundColorMappingMode === 'by-index') {
-            bgColor = ColorMatcher.mapColorByIndex(adjustedR, adjustedG, adjustedB, settings.backgroundColorPalette);
-          } else {
-            bgColor = ColorMatcher.findClosestColor(adjustedR, adjustedG, adjustedB, settings.backgroundColorPalette);
+          switch (settings.backgroundColorMappingMode) {
+            case 'noise-dither':
+              bgColor = ColorMatcher.ditherColorNoise(
+                adjustedR, adjustedG, adjustedB,
+                settings.backgroundColorPalette,
+                settings.ditherStrength,
+                x, y
+              );
+              break;
+            case 'bayer2x2':
+              bgColor = ColorMatcher.ditherColorBayer2x2(
+                adjustedR, adjustedG, adjustedB,
+                settings.backgroundColorPalette,
+                settings.ditherStrength,
+                x, y
+              );
+              break;
+            case 'bayer4x4':
+              bgColor = ColorMatcher.ditherColorBayer4x4(
+                adjustedR, adjustedG, adjustedB,
+                settings.backgroundColorPalette,
+                settings.ditherStrength,
+                x, y
+              );
+              break;
+            case 'by-index':
+              bgColor = ColorMatcher.mapColorByIndex(adjustedR, adjustedG, adjustedB, settings.backgroundColorPalette);
+              break;
+            default: // 'closest'
+              bgColor = ColorMatcher.findClosestColor(adjustedR, adjustedG, adjustedB, settings.backgroundColorPalette);
           }
         } else {
           bgColor = 'transparent'; // Default transparent background

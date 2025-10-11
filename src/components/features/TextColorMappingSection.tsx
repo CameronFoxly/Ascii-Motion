@@ -104,7 +104,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
     onSettingsChange?.();
   };
   
-  const handleMappingModeChange = (mode: 'closest' | 'dithering' | 'by-index') => {
+  const handleMappingModeChange = (mode: 'closest' | 'noise-dither' | 'bayer2x2' | 'bayer4x4' | 'by-index') => {
     updateSettings({ textColorMappingMode: mode });
     onSettingsChange?.();
   };
@@ -736,8 +736,14 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                       <SelectItem value="closest" className="text-xs">
                         Closest Match
                       </SelectItem>
-                      <SelectItem value="dithering" className="text-xs">
-                        Dithering
+                      <SelectItem value="noise-dither" className="text-xs">
+                        Noise Dithering
+                      </SelectItem>
+                      <SelectItem value="bayer2x2" className="text-xs">
+                        Bayer 2×2
+                      </SelectItem>
+                      <SelectItem value="bayer4x4" className="text-xs">
+                        Bayer 4×4
                       </SelectItem>
                       <SelectItem value="by-index" className="text-xs">
                         By Index

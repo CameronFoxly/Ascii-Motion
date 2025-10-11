@@ -152,6 +152,19 @@ export function MediaImportPanel() {
   
   // Preview state management
   const [isPreviewActive, setIsPreviewActive] = useState(false);
+  
+  // Local state for width/height inputs to allow temporary empty values
+  const [widthInputValue, setWidthInputValue] = useState<string>(String(settings.characterWidth));
+  const [heightInputValue, setHeightInputValue] = useState<string>(String(settings.characterHeight));
+  
+  // Sync local input state when settings change externally
+  useEffect(() => {
+    setWidthInputValue(String(settings.characterWidth));
+  }, [settings.characterWidth]);
+  
+  useEffect(() => {
+    setHeightInputValue(String(settings.characterHeight));
+  }, [settings.characterHeight]);
 
   // Handle linked sizing when maintain aspect ratio is enabled
   const handleWidthChange = useCallback((value: number) => {
@@ -189,6 +202,39 @@ export function MediaImportPanel() {
       updateSettings({ characterHeight: value });
     }
   }, [settings.maintainAspectRatio, originalImageAspectRatio, updateSettings]);
+
+  // Input handlers that allow empty strings during typing
+  const handleWidthInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setWidthInputValue(value);
+  }, []);
+  
+  const handleWidthInputBlur = useCallback(() => {
+    const numValue = parseInt(widthInputValue);
+    if (isNaN(numValue) || numValue < 1) {
+      // Reset to current value if invalid
+      setWidthInputValue(String(settings.characterWidth));
+    } else {
+      // Apply the valid value
+      handleWidthChange(numValue);
+    }
+  }, [widthInputValue, settings.characterWidth, handleWidthChange]);
+  
+  const handleHeightInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setHeightInputValue(value);
+  }, []);
+  
+  const handleHeightInputBlur = useCallback(() => {
+    const numValue = parseInt(heightInputValue);
+    if (isNaN(numValue) || numValue < 1) {
+      // Reset to current value if invalid
+      setHeightInputValue(String(settings.characterHeight));
+    } else {
+      // Apply the valid value
+      handleHeightChange(numValue);
+    }
+  }, [heightInputValue, settings.characterHeight, handleHeightChange]);
 
   // Preview management functions
   const startPreview = useCallback(() => {
@@ -1076,8 +1122,9 @@ export function MediaImportPanel() {
                               id="char-width"
                               type="number"
                               min="1"
-                              value={settings.characterWidth}
-                              onChange={(e) => handleWidthChange(parseInt(e.target.value) || 1)}
+                              value={widthInputValue}
+                              onChange={handleWidthInputChange}
+                              onBlur={handleWidthInputBlur}
                               className="h-8 text-xs rounded-r-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                             <div className="flex flex-col">
@@ -1109,8 +1156,9 @@ export function MediaImportPanel() {
                               id="char-height"
                               type="number"
                               min="1"
-                              value={settings.characterHeight}
-                              onChange={(e) => handleHeightChange(parseInt(e.target.value) || 1)}
+                              value={heightInputValue}
+                              onChange={handleHeightInputChange}
+                              onBlur={handleHeightInputBlur}
                               className="h-8 text-xs rounded-r-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                             <div className="flex flex-col">

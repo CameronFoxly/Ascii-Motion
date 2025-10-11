@@ -82,12 +82,12 @@ export interface ImportSettings {
   // Text Color Mapping settings (NEW)
   enableTextColorMapping: boolean;
   textColorPaletteId: string | null;     // Active palette ID from paletteStore
-  textColorMappingMode: 'closest' | 'dithering' | 'by-index';
+  textColorMappingMode: 'closest' | 'noise-dither' | 'bayer2x2' | 'bayer4x4' | 'by-index';
   
   // Background Color Mapping settings (NEW)  
   enableBackgroundColorMapping: boolean;
   backgroundColorPaletteId: string | null; // Active palette ID from paletteStore
-  backgroundColorMappingMode: 'closest' | 'dithering' | 'by-index';
+  backgroundColorMappingMode: 'closest' | 'noise-dither' | 'bayer2x2' | 'bayer4x4' | 'by-index';
   
   // Legacy color palette settings (Phase 4.3 - Session 3) 
   useOriginalColors: boolean;
