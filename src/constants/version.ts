@@ -1,12 +1,33 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.44";
-export const BUILD_DATE = "2025-10-11T23:27:24.970Z";
-export const BUILD_HASH = "2fe98eb";
+export const VERSION = "0.1.45";
+export const BUILD_DATE = "2025-10-12T04:53:05.922Z";
+export const BUILD_HASH = "45d0ce6";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.45",
+    "date": "2025-10-12T04:53:05.922Z",
+    "commits": [
+      "Add re-apply latest effect feature",
+      "Fixed build errors.",
+      "Implement redo functionality for apply_effect actions",
+      "Merge pull request #24 from CameronFoxly/copilot/improve-tabbing-experience",
+      "Fix: Make all dialog and panel buttons tabbable with natural DOM order",
+      "Polish code based on final review feedback",
+      "Refactor reapplyLatestEffect to reduce code duplication",
+      "Add re-apply latest effect functionality",
+      "Initial plan for re-apply latest effect feature",
+      "Initial plan",
+      "Fix: Allow Tab key to navigate between frame duration fields",
+      "Fix tab order: header first, frames sequential, add right panel tabs",
+      "Add tab order documentation",
+      "Add tab order to header and tool buttons",
+      "Initial plan"
+    ]
+  },
   {
     "version": "0.1.44",
     "date": "2025-10-11T23:27:24.970Z",

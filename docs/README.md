@@ -4,6 +4,12 @@ This directory contains comprehensive documentation for the ASCII Motion project
 
 ## 📁 **Documentation Structure**
 
+### **🔐 Authentication & Backend (NEW - October 2025)**
+- [`AUTH_IMPLEMENTATION_PLAN.md`](./AUTH_IMPLEMENTATION_PLAN.md) - **Complete authentication & cloud storage implementation plan**
+- [`AUTH_QUICK_START.md`](./AUTH_QUICK_START.md) - **Quick setup guide for Supabase authentication (2-3 hours)**
+- [`TERMS_OF_SERVICE.md`](./TERMS_OF_SERVICE.md) - **Legal: Terms of Service with GDPR compliance**
+- [`PRIVACY_POLICY.md`](./PRIVACY_POLICY.md) - **Legal: Privacy Policy with GDPR compliance**
+
 ### **Development & Implementation**
 - [`EFFECTS_SYSTEM_IMPLEMENTATION.md`](./EFFECTS_SYSTEM_IMPLEMENTATION.md) - Complete effects system architecture and implementation patterns
 - [`GRADIENT_FILL_IMPLEMENTATION.md`](./GRADIENT_FILL_IMPLEMENTATION.md) - Complete gradient tool implementation analysis
