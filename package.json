@@ -3,9 +3,16 @@
   "private": true,
   "version": "0.1.45",
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run build:packages && tsc -b && vite build",
+    "build:packages": "npm run build -ws --if-present",
+    "build:core": "npm run build -w @ascii-motion/core",
+    "build:premium": "npm run build -w @ascii-motion/premium",
+    "dev:packages": "npm run dev -ws --if-present",
     "lint": "eslint .",
     "preview": "vite preview",
     "build:prod": "npm run build",
@@ -16,6 +23,7 @@
     "deploy": "npm run version:patch && npm run build:prod && vercel --prod",
     "deploy:major": "npm run version:minor && npm run build:prod && vercel --prod",
     "deploy:preview": "vercel",
+    "check-licenses": "node scripts/check-licenses.js",
     "docs-check": "echo '📋 Documentation Health Check:' && echo '1. Do COPILOT_INSTRUCTIONS.md patterns match current code?' && echo '2. Are all DEVELOPMENT.md step statuses accurate?' && echo '3. Do all file paths in docs exist?' && echo '4. Run npm run dev to verify no breaking changes' && npm run dev"
   },
   "dependencies": {

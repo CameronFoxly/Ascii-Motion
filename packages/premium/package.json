@@ -1,0 +1,37 @@
+{
+  "name": "@ascii-motion/premium",
+  "version": "0.1.45",
+  "type": "module",
+  "license": "PROPRIETARY",
+  "description": "ASCII Motion - Premium features (authentication, cloud storage, payments)",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./auth/*": {
+      "types": "./dist/auth/*/index.d.ts",
+      "import": "./dist/auth/*/index.js"
+    },
+    "./cloud/*": {
+      "types": "./dist/cloud/*/index.d.ts",
+      "import": "./dist/cloud/*/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch",
+    "clean": "rm -rf dist"
+  },
+  "peerDependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "@ascii-motion/core": "workspace:*"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1"
+  }
+}
