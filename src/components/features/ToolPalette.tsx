@@ -120,25 +120,31 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
     setActiveTool(tool.id);
   };
 
-  const ToolButton: React.FC<{ tool: { id: Tool; name: string; icon: React.ReactNode; description: string } }> = ({ tool }) => (
-    <Tooltip key={tool.id}>
-      <TooltipTrigger asChild>
-        <Button
-          variant={effectiveTool === tool.id ? 'default' : 'outline'}
-          size="sm"
-          className="h-8 w-8 p-0 touch-manipulation"
-          onClick={() => handleToolClick(tool)}
-          aria-label={`${tool.name} tool - ${tool.description}`}
-          aria-pressed={effectiveTool === tool.id}
-        >
-          {tool.icon}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="right">
-        <p className="text-xs">{getToolTooltipText(tool.id, tool.description)}</p>
-      </TooltipContent>
-    </Tooltip>
-  );
+  const ToolButton: React.FC<{ tool: { id: Tool; name: string; icon: React.ReactNode; description: string } }> = ({ tool }) => {
+    // Tools use default tabIndex (0) to come after header and frames but in natural DOM order
+    const tabIndex = 0;
+    
+    return (
+      <Tooltip key={tool.id}>
+        <TooltipTrigger asChild>
+          <Button
+            variant={effectiveTool === tool.id ? 'default' : 'outline'}
+            size="sm"
+            className="h-8 w-8 p-0 touch-manipulation"
+            onClick={() => handleToolClick(tool)}
+            aria-label={`${tool.name} tool - ${tool.description}`}
+            aria-pressed={effectiveTool === tool.id}
+            tabIndex={tabIndex}
+          >
+            {tool.icon}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="right">
+          <p className="text-xs">{getToolTooltipText(tool.id, tool.description)}</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  };
 
   return (
     <TooltipProvider>

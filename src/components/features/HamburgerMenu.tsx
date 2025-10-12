@@ -37,6 +37,7 @@ export const HamburgerMenu: React.FC = () => {
               size="sm"
               className="h-8 w-8 p-0"
               aria-label="Menu"
+              tabIndex={1}
             >
               <Menu className="h-4 w-4" />
             </Button>

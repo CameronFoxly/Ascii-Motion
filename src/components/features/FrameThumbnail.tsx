@@ -199,15 +199,13 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
     }
   };
 
-  // Handle Enter and Tab keys to commit changes
+  // Handle Enter key to commit changes
   const handleDurationKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter' || event.key === 'Tab') {
-      // For Tab, we let the default behavior happen but ensure blur occurs first
-      if (event.key === 'Enter') {
-        event.preventDefault(); // Prevent form submission
-      }
+    if (event.key === 'Enter') {
+      event.preventDefault(); // Prevent form submission
       event.currentTarget.blur(); // Trigger blur event to commit changes
     }
+    // Tab key: let default behavior happen - blur will occur naturally when focus moves
   };
 
   // Handle mouse down on duration input to prevent drag initiation
@@ -370,7 +368,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
           onMouseEnter={handleDurationMouseEnter}
           onMouseLeave={handleDurationMouseLeave}
           onClick={(e) => e.stopPropagation()}
-          tabIndex={frameIndex + 1} // Sequential tab order: frame 0 = tabIndex 1, frame 1 = tabIndex 2, etc.
+          tabIndex={11 + frameIndex} // Sequential tab order: frame 0 = tabIndex 11, frame 1 = tabIndex 12, etc.
           className="flex-1 text-xs px-1 py-0.5 border border-border rounded w-12 bg-background"
           min="17"
           max="10000"
