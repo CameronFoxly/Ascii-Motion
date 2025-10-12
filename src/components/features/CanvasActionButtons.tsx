@@ -5,7 +5,7 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import { useToolStore } from '@/stores/toolStore';
 import { useAnimationStore } from '@/stores/animationStore';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import type { AnyHistoryAction, CanvasHistoryAction } from '@/types';
+import type { AnyHistoryAction, ApplyEffectHistoryAction, CanvasHistoryAction } from '@/types';
 
 /**
  * Canvas Action Buttons Component
@@ -188,16 +188,17 @@ export const CanvasActionButtons: React.FC = () => {
         break;
 
       case 'apply_effect': {
-        const effectAction = action as import('../types').ApplyEffectHistoryAction;
+        const effectAction = action as ApplyEffectHistoryAction;
         if (isRedo) {
           // Redo: Restore the "after" state (following the forward snapshot pattern)
           if (effectAction.data.applyToTimeline) {
             // Restore all affected frames to their post-effect state
-            if (effectAction.data.newFramesData) {
-              effectAction.data.newFramesData.forEach(({ frameIndex, data }) => {
+            const { newFramesData } = effectAction.data;
+            if (newFramesData) {
+              newFramesData.forEach(({ frameIndex, data }) => {
                 animationStore.setFrameData(frameIndex, data);
               });
-              console.log(`✅ Redo: Applied ${effectAction.data.effectType} effect to ${effectAction.data.newFramesData.length} frames`);
+              console.log(`✅ Redo: Applied ${effectAction.data.effectType} effect to ${newFramesData.length} frames`);
             } else {
               console.warn(`⚠️ Redo for ${effectAction.data.effectType} effect: newFramesData missing (legacy entry)`);
             }
@@ -214,11 +215,12 @@ export const CanvasActionButtons: React.FC = () => {
           // Undo: Restore previous data
           if (effectAction.data.applyToTimeline) {
             // Restore all affected frames
-            if (effectAction.data.previousFramesData) {
-              effectAction.data.previousFramesData.forEach(({ frameIndex, data }) => {
+            const { previousFramesData } = effectAction.data;
+            if (previousFramesData) {
+              previousFramesData.forEach(({ frameIndex, data }) => {
                 animationStore.setFrameData(frameIndex, data);
               });
-              console.log(`✅ Undo: Restored ${effectAction.data.previousFramesData.length} frames from ${effectAction.data.effectType} effect`);
+              console.log(`✅ Undo: Restored ${previousFramesData.length} frames from ${effectAction.data.effectType} effect`);
             }
           } else {
             // Restore single canvas
