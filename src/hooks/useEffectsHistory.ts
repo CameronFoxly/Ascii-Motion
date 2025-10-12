@@ -171,9 +171,9 @@ export const useEffectsHistory = () => {
   }, [applyToTimeline, frames, canvasData]);
 
   /**
-   * Apply effect settings to the store
+   * Apply effect settings to the store (used for temporary setting changes)
    */
-  const applyEffectSettingsToStore = useCallback((effectType: EffectType, settings: EffectSettings) => {
+  const setEffectSettingsTemporarily = useCallback((effectType: EffectType, settings: EffectSettings) => {
     const { 
       updateLevelsSettings, 
       updateHueSaturationSettings,
@@ -216,8 +216,8 @@ export const useEffectsHistory = () => {
       
       const { effectType, effectSettings } = lastAppliedEffect;
       
-      // Use the current applyToTimeline setting, not the saved one
-      // This allows users to apply the same effect to canvas or timeline flexibly
+      // Respect the current timeline toggle state, allowing the same effect
+      // to be applied to different targets (canvas vs timeline)
       const currentApplyToTimeline = applyToTimeline;
       
       // Prepare history data
@@ -265,13 +265,13 @@ export const useEffectsHistory = () => {
       const currentSettings = getCurrentEffectSettings(effectType);
       
       // Apply the saved settings temporarily
-      applyEffectSettingsToStore(effectType, effectSettings);
+      setEffectSettingsTemporarily(effectType, effectSettings);
       
       // Apply the effect
       const success = await applyEffect(effectType);
       
       // Restore the previous settings
-      applyEffectSettingsToStore(effectType, currentSettings);
+      setEffectSettingsTemporarily(effectType, currentSettings);
       
       if (success) {
         // Push to history stack
@@ -300,7 +300,7 @@ export const useEffectsHistory = () => {
     currentFrameIndex,
     canvasData,
     getCurrentEffectSettings,
-    applyEffectSettingsToStore,
+    setEffectSettingsTemporarily,
     pushToHistory,
     clearError,
     setLastAppliedEffect
