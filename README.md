@@ -151,7 +151,7 @@ Where I'm at with the concept:
 
 
 <details>
-<summary> ✅� Phase 4: Advanced Tools (Next) (complete...for now </summary>
+<summary> ✅ Phase 4: Advanced Tools (Next) (complete...for now </summary>
   
 - [x] Brush sizing and shape
 - [x] Advanced color palettes beyond ANSI
