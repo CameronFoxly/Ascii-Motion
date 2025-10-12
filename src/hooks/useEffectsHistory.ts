@@ -115,6 +115,22 @@ export const useEffectsHistory = () => {
       const success = await applyEffect(effectType);
       
       if (success) {
+        // Capture the "after" state for redo (following the forward snapshot pattern)
+        // We need to get the updated data from the stores after the effect was applied
+        if (applyToTimeline) {
+          // Get the updated state of all frames for redo
+          const { frames: updatedFrames } = useAnimationStore.getState();
+          const newFramesData = updatedFrames.map((frame, index) => ({
+            frameIndex: index,
+            data: new Map(frame.data)
+          }));
+          historyData.newFramesData = newFramesData;
+        } else {
+          // Get the updated canvas state for redo
+          const { cells: updatedCells } = useCanvasStore.getState();
+          historyData.newCanvasData = new Map(updatedCells);
+        }
+        
         // Push to history stack only if effect was successfully applied
         pushToHistory(historyAction);
         
@@ -274,6 +290,22 @@ export const useEffectsHistory = () => {
       setEffectSettingsTemporarily(effectType, currentSettings);
       
       if (success) {
+        // Capture the "after" state for redo (following the forward snapshot pattern)
+        // We need to get the updated data from the stores after the effect was applied
+        if (currentApplyToTimeline) {
+          // Get the updated state of all frames for redo
+          const { frames: updatedFrames } = useAnimationStore.getState();
+          const newFramesData = updatedFrames.map((frame, index) => ({
+            frameIndex: index,
+            data: new Map(frame.data)
+          }));
+          historyData.newFramesData = newFramesData;
+        } else {
+          // Get the updated canvas state for redo
+          const { cells: updatedCells } = useCanvasStore.getState();
+          historyData.newCanvasData = new Map(updatedCells);
+        }
+        
         // Push to history stack
         pushToHistory(historyAction);
         

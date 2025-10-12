@@ -412,8 +412,10 @@ export interface ApplyEffectHistoryAction extends HistoryAction {
     effectSettings: import('./effects').EffectSettings; // Settings object for the effect
     applyToTimeline: boolean;
     affectedFrameIndices: number[];
-    previousCanvasData?: Map<string, Cell>; // For single canvas effects
-    previousFramesData?: Array<{ frameIndex: number; data: Map<string, Cell> }>; // For timeline effects
+    previousCanvasData?: Map<string, Cell>; // For single canvas effects (before)
+    previousFramesData?: Array<{ frameIndex: number; data: Map<string, Cell> }>; // For timeline effects (before)
+    newCanvasData?: Map<string, Cell>; // For single canvas effects (after) - needed for redo
+    newFramesData?: Array<{ frameIndex: number; data: Map<string, Cell> }>; // For timeline effects (after) - needed for redo
   };
 }
 

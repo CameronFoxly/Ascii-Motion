@@ -190,12 +190,26 @@ const processHistoryAction = (
     case 'apply_effect': {
       const effectAction = action as import('../types').ApplyEffectHistoryAction;
       if (isRedo) {
-        // Redo: Re-apply the effect
-        console.log(`Redo: Re-applying ${effectAction.data.effectType} effect`);
-        // Note: For redo, we would need to re-run the effect processing
-        // This is complex because we'd need to re-apply the effect with the same settings
-        // For now, we'll show a message that redo for effects is not yet implemented
-        console.warn('Redo for effects is not yet implemented - would need to re-apply effect');
+        // Redo: Restore the "after" state (following the forward snapshot pattern)
+        if (effectAction.data.applyToTimeline) {
+          // Restore all affected frames to their post-effect state
+          if (effectAction.data.newFramesData) {
+            effectAction.data.newFramesData.forEach(({ frameIndex, data }) => {
+              animationStore.setFrameData(frameIndex, data);
+            });
+            console.log(`✅ Redo: Applied ${effectAction.data.effectType} effect to ${effectAction.data.newFramesData.length} frames`);
+          } else {
+            console.warn(`⚠️ Redo for ${effectAction.data.effectType} effect: newFramesData missing (legacy entry)`);
+          }
+        } else {
+          // Restore single canvas to its post-effect state
+          if (effectAction.data.newCanvasData) {
+            canvasStore.setCanvasData(effectAction.data.newCanvasData);
+            console.log(`✅ Redo: Applied ${effectAction.data.effectType} effect to canvas`);
+          } else {
+            console.warn(`⚠️ Redo for ${effectAction.data.effectType} effect: newCanvasData missing (legacy entry)`);
+          }
+        }
       } else {
         // Undo: Restore previous data
         if (effectAction.data.applyToTimeline) {
