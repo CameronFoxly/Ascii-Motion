@@ -182,7 +182,7 @@ export const KeyboardShortcutsDialog: React.FC<KeyboardShortcutsDialogProps> = (
                           key={shortcutIndex}
                           className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors"
                         >
-                          <span className="text-sm text-foreground mr-2">
+                          <span className="text-sm text-foreground flex-1 min-w-0 mr-2">
                             {shortcut.description}
                           </span>
                           <KeyDisplay keys={shortcut.keys} />
