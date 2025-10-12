@@ -10,7 +10,15 @@ import { useEffectsStore } from '../stores/effectsStore';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
-import type { EffectType } from '../types/effects';
+import type { 
+  EffectType, 
+  EffectSettings,
+  LevelsEffectSettings,
+  HueSaturationEffectSettings,
+  RemapColorsEffectSettings,
+  RemapCharactersEffectSettings,
+  ScatterEffectSettings
+} from '../types/effects';
 import type { ApplyEffectHistoryAction } from '../types';
 
 /**
@@ -163,6 +171,37 @@ export const useEffectsHistory = () => {
   }, [applyToTimeline, frames, canvasData]);
 
   /**
+   * Apply effect settings to the store
+   */
+  const applyEffectSettingsToStore = useCallback((effectType: EffectType, settings: EffectSettings) => {
+    const { 
+      updateLevelsSettings, 
+      updateHueSaturationSettings,
+      updateRemapColorsSettings,
+      updateRemapCharactersSettings,
+      updateScatterSettings
+    } = useEffectsStore.getState();
+    
+    switch (effectType) {
+      case 'levels':
+        updateLevelsSettings(settings as LevelsEffectSettings);
+        break;
+      case 'hue-saturation':
+        updateHueSaturationSettings(settings as HueSaturationEffectSettings);
+        break;
+      case 'remap-colors':
+        updateRemapColorsSettings(settings as RemapColorsEffectSettings);
+        break;
+      case 'remap-characters':
+        updateRemapCharactersSettings(settings as RemapCharactersEffectSettings);
+        break;
+      case 'scatter':
+        updateScatterSettings(settings as ScatterEffectSettings);
+        break;
+    }
+  }, []);
+
+  /**
    * Re-apply the last applied effect with the same settings
    */
   const reapplyLatestEffect = useCallback(async (): Promise<boolean> => {
@@ -178,6 +217,7 @@ export const useEffectsHistory = () => {
       const { effectType, effectSettings } = lastAppliedEffect;
       
       // Use the current applyToTimeline setting, not the saved one
+      // This allows users to apply the same effect to canvas or timeline flexibly
       const currentApplyToTimeline = applyToTimeline;
       
       // Prepare history data
@@ -219,59 +259,19 @@ export const useEffectsHistory = () => {
       };
 
       // Temporarily set the effect settings from the last applied effect
-      // We need to restore them after applying
-      const { 
-        updateLevelsSettings, 
-        updateHueSaturationSettings,
-        updateRemapColorsSettings,
-        updateRemapCharactersSettings,
-        updateScatterSettings,
-        applyEffect
-      } = useEffectsStore.getState();
+      const { applyEffect } = useEffectsStore.getState();
       
       // Save current settings to restore later
       const currentSettings = getCurrentEffectSettings(effectType);
       
-      // Set the saved settings
-      switch (effectType) {
-        case 'levels':
-          updateLevelsSettings(effectSettings as import('../types/effects').LevelsEffectSettings);
-          break;
-        case 'hue-saturation':
-          updateHueSaturationSettings(effectSettings as import('../types/effects').HueSaturationEffectSettings);
-          break;
-        case 'remap-colors':
-          updateRemapColorsSettings(effectSettings as import('../types/effects').RemapColorsEffectSettings);
-          break;
-        case 'remap-characters':
-          updateRemapCharactersSettings(effectSettings as import('../types/effects').RemapCharactersEffectSettings);
-          break;
-        case 'scatter':
-          updateScatterSettings(effectSettings as import('../types/effects').ScatterEffectSettings);
-          break;
-      }
+      // Apply the saved settings temporarily
+      applyEffectSettingsToStore(effectType, effectSettings);
       
       // Apply the effect
       const success = await applyEffect(effectType);
       
       // Restore the previous settings
-      switch (effectType) {
-        case 'levels':
-          updateLevelsSettings(currentSettings as import('../types/effects').LevelsEffectSettings);
-          break;
-        case 'hue-saturation':
-          updateHueSaturationSettings(currentSettings as import('../types/effects').HueSaturationEffectSettings);
-          break;
-        case 'remap-colors':
-          updateRemapColorsSettings(currentSettings as import('../types/effects').RemapColorsEffectSettings);
-          break;
-        case 'remap-characters':
-          updateRemapCharactersSettings(currentSettings as import('../types/effects').RemapCharactersEffectSettings);
-          break;
-        case 'scatter':
-          updateScatterSettings(currentSettings as import('../types/effects').ScatterEffectSettings);
-          break;
-      }
+      applyEffectSettingsToStore(effectType, currentSettings);
       
       if (success) {
         // Push to history stack
@@ -300,6 +300,7 @@ export const useEffectsHistory = () => {
     currentFrameIndex,
     canvasData,
     getCurrentEffectSettings,
+    applyEffectSettingsToStore,
     pushToHistory,
     clearError,
     setLastAppliedEffect
