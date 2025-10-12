@@ -12,6 +12,26 @@ dist
 dist-ssr
 *.local
 
+# Monorepo build outputs
+packages/*/dist
+packages/*/.tsbuildinfo
+
+# Premium package protection
+# Note: Premium code is in a separate private Git repository (Git submodule).
+# No gitignore patterns needed - the entire packages/premium/ directory
+# is managed by Git submodules and points to a private repo.
+# See: .gitmodules and docs/GIT_SUBMODULE_SETUP.md
+
+# Environment variables (CRITICAL: Never commit these!)
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Internal security documentation (CRITICAL: Never commit!)
+docs/INTERNAL_SECURITY_MEASURES.md
+**/INTERNAL_*.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

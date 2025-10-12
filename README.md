@@ -1,7 +1,7 @@
 # [ASCII Motion](https://ascii-motion.vercel.app)
 
 ![ASCII Motion](https://img.shields.io/badge/status-in%20development-yellow)
-![License](https://img.shields.io/badge/license-MIT-blue)
+![License - Dual](https://img.shields.io/badge/license-MIT%20%2B%20Proprietary-blue)
 
 A web app for creating and animating ASCII/ANSI art. 
 
@@ -10,6 +10,22 @@ https://ascii-motion.app
 
 <img width="2610" height="1758" alt="Screenshot of the ASCII Motion app UI" src="https://github.com/user-attachments/assets/e2be1571-c322-4c8f-bdef-10ab01eb9a05" />
 </br>
+
+## 📦 Project Structure
+
+**This is a monorepo with dual licensing:**
+
+- **`packages/core/`** - Open source core features (MIT License)
+  - Canvas editor, drawing tools, animation system
+  - Export features (PNG, SVG, GIF, MP4, etc.)
+  - All UI components and utilities
+
+- **`packages/premium/`** - Premium features (Proprietary License)
+  - User authentication (email-based)
+  - Cloud project storage (Supabase)
+  - Payment integration (future)
+
+See [docs/MONOREPO_SETUP_GUIDE.md](docs/MONOREPO_SETUP_GUIDE.md) for details.
 
 ## 🎨 Current Features
 
@@ -192,12 +208,42 @@ Where I'm at with the concept:
 - **[Product Requirements Document](./PRD.md)** - Complete feature specifications
 - **[Development Guide](./DEVELOPMENT.md)** - Setup and project structure
 - **[Copilot Instructions](./COPILOT_INSTRUCTIONS.md)** - Development guidelines
+- **[Monorepo Setup Guide](./docs/MONOREPO_SETUP_GUIDE.md)** - Dual-license structure and migration
 - **[Technical Documentation](./docs/)** - Comprehensive implementation guides, plans, and feature documentation
 - **[Development Tools](./dev-tools/)** - Test scripts and debugging utilities
 
+## 🤝 Contributing
+
+We welcome contributions to the **open-source core** (`packages/core/`)!
+
+**What you can contribute:**
+- ✅ New drawing tools
+- ✅ Animation features
+- ✅ Export formats
+- ✅ UI improvements
+- ✅ Bug fixes
+- ✅ Documentation
+
+**What is proprietary:**
+- ❌ Authentication system (`packages/premium/`)
+- ❌ Cloud storage features
+- ❌ Payment integration
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+
 ## 📜 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+**Dual License:**
+
+- **Core Features** (`packages/core/`) - [MIT License](LICENSE-MIT)
+  - Free to use, modify, and distribute
+  - No restrictions on commercial use
+
+- **Premium Features** (`packages/premium/`) - [Proprietary License](LICENSE-PREMIUM)
+  - Authentication and cloud storage
+  - Unauthorized copying or distribution prohibited
+
+See individual LICENSE files for full details.
 
 ---
 

@@ -305,43 +305,82 @@ if (allErrors.length > 0) {
 
 ## 🔄 Git Workflow
 
+### Repository Structure
+
+**Main Repository (Public):**
+- Repository: `github.com/cameronfoxly/Ascii-Motion`
+- License: MIT (core) + Proprietary notice
+- Contains: Core package, main app, documentation
+- Branch: `add-authentication`
+
+**Premium Repository (Private - Git Submodule):**
+- Repository: `github.com/CameronFoxly/Ascii-Motion-Premium`
+- License: Proprietary
+- Contains: Authentication, cloud sync, payment features
+- Linked: `packages/premium/` directory
+
+### Working with Git Submodules
+
+**Complete Guide:** See `docs/GIT_SUBMODULE_SETUP.md` for full details.
+
+**Quick Commands:**
+
+```bash
+# Clone project with submodules (first time)
+git clone --recurse-submodules https://github.com/cameronfoxly/Ascii-Motion.git
+
+# If already cloned, initialize submodule
+git submodule update --init --recursive
+
+# Work on premium features
+cd packages/premium
+# Make changes...
+git add .
+git commit -m "feat(auth): Add new feature"
+git push origin main
+
+# Update main repo to track premium changes
+cd ../..
+git add packages/premium
+git commit -m "Update premium package to latest"
+git push origin add-authentication
+
+# Pull latest including submodule updates
+git pull --recurse-submodules
+```
+
 ### Branches
 
-- `main` - Production code (includes core + premium)
-- `develop` - Development branch
+- `main` / `add-authentication` - Development branches
 - `feature/*` - Feature branches
+- Premium repo has independent branches
 
 ### Commit Messages
 
 ```bash
-# For core changes
+# For core changes (main repo)
 git commit -m "feat(core): Add polygon tool"
 
-# For premium changes
-git commit -m "feat(premium): Add cloud sync"
+# For premium changes (in packages/premium/)
+cd packages/premium
+git commit -m "feat(auth): Add OAuth support"
+cd ../..
 
-# For both
-git commit -m "feat: Update project save system (core + premium)"
+# Update submodule reference (main repo)
+git commit -m "Update premium package to v1.2.0"
 ```
 
-### .gitignore Updates
+### Premium Code Protection
 
-Ensure these are ignored:
+**Implemented:** Git Submodule with Private Repository
 
-```
-# Environment variables (premium secrets)
-.env.local
-.env.production
+- ✅ Premium code in separate private GitHub repository
+- ✅ Main repo only contains submodule reference (commit SHA)
+- ✅ Impossible to accidentally expose premium code
+- ✅ Full version control for premium features
+- ✅ Multi-machine workflow supported
 
-# Build outputs
-packages/*/dist
-
-# Dependencies
-node_modules
-
-# Premium config (if sensitive)
-packages/premium/.env*
-```
+**See:** `docs/PREMIUM_CODE_PROTECTION.md` for complete details.
 
 ---
 

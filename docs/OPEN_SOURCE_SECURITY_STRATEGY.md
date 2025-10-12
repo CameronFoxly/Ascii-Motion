@@ -4,6 +4,10 @@
 **For:** ASCII Motion Project  
 **Purpose:** Maintain open-source core while protecting premium features and user data
 
+> **⚠️ Security Notice:** This document describes general security patterns and best practices.
+> It does NOT contain actual credentials, specific implementation details, or exploitable vulnerabilities.
+> All code examples are templates for educational purposes.
+
 ---
 
 ## 🎯 Core Philosophy
@@ -248,30 +252,23 @@ export function HamburgerMenu() {
 **Even if someone gets API keys, RLS protects data**
 
 ```sql
--- Users can only access their own projects
-create policy "Users can view their own projects"
+-- Example: Users can only access their own projects
+create policy "Users can view own projects"
   on projects for select
-  using ( (select auth.uid()) = user_id );
+  using ( auth.uid() = user_id );
 
-create policy "Users can update their own projects"
+create policy "Users can update own projects"
   on projects for update
-  using ( (select auth.uid()) = user_id );
+  using ( auth.uid() = user_id );
 
--- Even service role can't bypass RLS (unless security definer function)
-alter table projects force row level security;
+-- Force RLS on all tables
+alter table projects enable row level security;
 ```
 
-**API Key Security:**
-
-```typescript
-// ✅ GOOD: Anon key is public (safe to expose)
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-// This key only allows authenticated actions via RLS
-
-// ❌ BAD: Service role key (NEVER in frontend)
-// const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY;
-// This bypasses RLS! Only for backend/serverless functions
-```
+**Important Principle:**
+- Supabase anon key is designed to be public (client-side safe)
+- RLS policies enforce access control at the database level
+- Service role key must NEVER be exposed in frontend code
 
 ### Layer 5: Code Obfuscation (Optional)
 
@@ -470,8 +467,8 @@ useCanvasStore.getState().setCells(data.canvas_data.cells); // Could be maliciou
 
 ```bash
 # .env.local (local development, gitignored)
-VITE_SUPABASE_URL=https://dev-project.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGci... (dev anon key)
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key_here
 ```
 
 ### Production Environment (Vercel)
@@ -482,12 +479,12 @@ VITE_SUPABASE_ANON_KEY=eyJhbGci... (dev anon key)
 Settings → Environment Variables
 
 Production:
-VITE_SUPABASE_URL = https://prod-project.supabase.co
-VITE_SUPABASE_ANON_KEY = eyJhbGci... (prod anon key)
+VITE_SUPABASE_URL = https://your-prod-project.supabase.co
+VITE_SUPABASE_ANON_KEY = your_prod_anon_key_here
 
-Preview (optional separate):
-VITE_SUPABASE_URL = https://preview-project.supabase.co
-VITE_SUPABASE_ANON_KEY = eyJhbGci... (preview anon key)
+Preview (optional):
+VITE_SUPABASE_URL = https://your-preview-project.supabase.co
+VITE_SUPABASE_ANON_KEY = your_preview_anon_key_here
 ```
 
 **Never:**
