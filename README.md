@@ -145,21 +145,20 @@ Where I'm at with the concept:
 - [x] SVG vector export with text-as-outlines, grid, background, and formatting options
 - [x] Complete session export/import (.asciimtn files with custom color & character palettes)
 - [x] Typography settings preservation (font size, spacing)
-- [x] Professional export UI with format-specific dialogs
-- [x] Robust error handling and validation
+- [x] Export UI with format-specific dialogs
 - [x] Import video/image files and convert to ASCII
 </details>
 
 
 <details>
-<summary> 📅 Phase 4: Advanced Tools (Next) </summary>
+<summary> ✅� Phase 4: Advanced Tools (Next) (complete...for now </summary>
   
-- [ ] Custom brush system with pattern creation
+- [x] Brush sizing and shape
 - [x] Advanced color palettes beyond ANSI
 - [x] Re-color brush (change colors without affecting characters)
 - [x] Gradient fill tool 
-- [ ] Figlet text system
-- [ ] Draw boxes and tables with ascii characters
+- [x] Figlet text system
+- [x] Draw boxes and tables with ascii characters
 </details>
 
 <details>
