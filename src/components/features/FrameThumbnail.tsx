@@ -199,15 +199,13 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
     }
   };
 
-  // Handle Enter and Tab keys to commit changes
+  // Handle Enter key to commit changes
   const handleDurationKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter' || event.key === 'Tab') {
-      // For Tab, we let the default behavior happen but ensure blur occurs first
-      if (event.key === 'Enter') {
-        event.preventDefault(); // Prevent form submission
-      }
+    if (event.key === 'Enter') {
+      event.preventDefault(); // Prevent form submission
       event.currentTarget.blur(); // Trigger blur event to commit changes
     }
+    // Tab key: let default behavior happen - blur will occur naturally when focus moves
   };
 
   // Handle mouse down on duration input to prevent drag initiation
