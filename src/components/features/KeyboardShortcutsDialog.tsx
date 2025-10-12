@@ -26,7 +26,7 @@ const KEYBOARD_SHORTCUTS: ShortcutSection[] = [
     shortcuts: [
       { keys: ['P'], description: 'Pencil tool' },
       { keys: ['E'], description: 'Eraser tool' },
-      { keys: ['F'], description: 'Fill (Paint Bucket) tool' },
+      { keys: ['F'], description: 'Fill tool' },
       { keys: ['M'], description: 'Rectangular Selection tool' },
       { keys: ['L'], description: 'Lasso Selection tool' },
       { keys: ['W'], description: 'Magic Wand Selection tool' },
@@ -35,7 +35,7 @@ const KEYBOARD_SHORTCUTS: ShortcutSection[] = [
       { keys: ['O'], description: 'Ellipse tool' },
       { keys: ['T'], description: 'Text tool' },
       { keys: ['G'], description: 'Gradient Fill tool' },
-      { keys: ['Alt'], description: 'Temporary Eyedropper (hold while using drawing tools)' },
+      { keys: ['Alt'], description: 'Temporary Eyedropper' },
     ]
   },
   {
@@ -43,7 +43,7 @@ const KEYBOARD_SHORTCUTS: ShortcutSection[] = [
     shortcuts: [
       { keys: ['Cmd', 'A'], description: 'Select All' },
       { keys: ['Cmd', 'C'], description: 'Copy Selection' },
-      { keys: ['Cmd', 'V'], description: 'Paste Selection (press again to commit)' },
+      { keys: ['Cmd', 'V'], description: 'Paste Selection' },
       { keys: ['Cmd', 'Z'], description: 'Undo' },
       { keys: ['Cmd', 'Shift', 'Z'], description: 'Redo' },
       { keys: ['Delete'], description: 'Delete selected cells' },
@@ -51,7 +51,7 @@ const KEYBOARD_SHORTCUTS: ShortcutSection[] = [
       { keys: ['Esc'], description: 'Clear selection' },
       { keys: ['Shift', 'H'], description: 'Flip selection horizontally' },
       { keys: ['Shift', 'V'], description: 'Flip selection vertically' },
-      { keys: ['Space'], description: 'Pan canvas (hold and drag)' },
+      { keys: ['Space'], description: 'Pan canvas' },
     ]
   },
   {
@@ -69,9 +69,9 @@ const KEYBOARD_SHORTCUTS: ShortcutSection[] = [
   {
     title: 'Zoom & Navigation',
     shortcuts: [
-      { keys: ['+'], description: 'Zoom in (20% increments)' },
-      { keys: ['='], description: 'Zoom in (20% increments)' },
-      { keys: ['-'], description: 'Zoom out (20% increments)' },
+      { keys: ['+'], description: 'Zoom in' },
+      { keys: ['='], description: 'Zoom in' },
+      { keys: ['-'], description: 'Zoom out' },
     ]
   },
   {
@@ -170,19 +170,19 @@ export const KeyboardShortcutsDialog: React.FC<KeyboardShortcutsDialogProps> = (
               {filteredSections.map((section, sectionIndex) => (
                 <Card key={sectionIndex} className="border-border/50">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base font-semibold">
+                    <CardTitle className="text-base font-semibold text-muted-foreground">
                       {section.title}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     {/* 2-column grid layout */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-2">
                       {section.shortcuts.map((shortcut, shortcutIndex) => (
                         <div 
                           key={shortcutIndex}
-                          className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors"
+                          className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors gap-4"
                         >
-                          <span className="text-sm text-foreground flex-1 min-w-0 mr-2">
+                          <span className="text-sm text-foreground flex-1 min-w-0">
                             {shortcut.description}
                           </span>
                           <KeyDisplay keys={shortcut.keys} />
