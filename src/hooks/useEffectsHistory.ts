@@ -10,7 +10,15 @@ import { useEffectsStore } from '../stores/effectsStore';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
-import type { EffectType } from '../types/effects';
+import type { 
+  EffectType, 
+  EffectSettings,
+  LevelsEffectSettings,
+  HueSaturationEffectSettings,
+  RemapColorsEffectSettings,
+  RemapCharactersEffectSettings,
+  ScatterEffectSettings
+} from '../types/effects';
 import type { ApplyEffectHistoryAction } from '../types';
 
 /**
@@ -26,7 +34,9 @@ export const useEffectsHistory = () => {
     remapColorsSettings,
     remapCharactersSettings,
     scatterSettings,
-    clearError
+    clearError,
+    setLastAppliedEffect,
+    lastAppliedEffect
   } = useEffectsStore();
   
   const { cells: canvasData } = useCanvasStore();
@@ -105,8 +115,32 @@ export const useEffectsHistory = () => {
       const success = await applyEffect(effectType);
       
       if (success) {
+        // Capture the "after" state for redo (following the forward snapshot pattern)
+        // We need to get the updated data from the stores after the effect was applied
+        if (applyToTimeline) {
+          // Get the updated state of all frames for redo
+          const { frames: updatedFrames } = useAnimationStore.getState();
+          const newFramesData = updatedFrames.map((frame, index) => ({
+            frameIndex: index,
+            data: new Map(frame.data)
+          }));
+          historyData.newFramesData = newFramesData;
+        } else {
+          // Get the updated canvas state for redo
+          const { cells: updatedCells } = useCanvasStore.getState();
+          historyData.newCanvasData = new Map(updatedCells);
+        }
+        
         // Push to history stack only if effect was successfully applied
         pushToHistory(historyAction);
+        
+        // Save this effect as the last applied effect
+        setLastAppliedEffect({
+          effectType,
+          effectSettings: { ...settings },
+          applyToTimeline,
+          timestamp: Date.now()
+        });
       } else {
         console.error(`❌ Effect application failed, not adding to history`);
       }
@@ -123,7 +157,8 @@ export const useEffectsHistory = () => {
     canvasData, 
     getCurrentEffectSettings, 
     pushToHistory,
-    clearError
+    clearError,
+    setLastAppliedEffect
   ]);
 
   /**
@@ -151,10 +186,164 @@ export const useEffectsHistory = () => {
     }
   }, [applyToTimeline, frames, canvasData]);
 
+  /**
+   * Apply effect settings to the store (used for temporary setting changes)
+   */
+  const setEffectSettingsTemporarily = useCallback((effectType: EffectType, settings: EffectSettings) => {
+    const { 
+      updateLevelsSettings, 
+      updateHueSaturationSettings,
+      updateRemapColorsSettings,
+      updateRemapCharactersSettings,
+      updateScatterSettings
+    } = useEffectsStore.getState();
+    
+    switch (effectType) {
+      case 'levels':
+        updateLevelsSettings(settings as LevelsEffectSettings);
+        break;
+      case 'hue-saturation':
+        updateHueSaturationSettings(settings as HueSaturationEffectSettings);
+        break;
+      case 'remap-colors':
+        updateRemapColorsSettings(settings as RemapColorsEffectSettings);
+        break;
+      case 'remap-characters':
+        updateRemapCharactersSettings(settings as RemapCharactersEffectSettings);
+        break;
+      case 'scatter':
+        updateScatterSettings(settings as ScatterEffectSettings);
+        break;
+    }
+  }, []);
+
+  /**
+   * Re-apply the last applied effect with the same settings
+   */
+  const reapplyLatestEffect = useCallback(async (): Promise<boolean> => {
+    if (!lastAppliedEffect) {
+      console.warn('No previous effect to reapply');
+      return false;
+    }
+
+    try {
+      // Clear any previous errors
+      clearError();
+      
+      const { effectType, effectSettings } = lastAppliedEffect;
+      
+      // Respect the current timeline toggle state, allowing the same effect
+      // to be applied to different targets (canvas vs timeline)
+      const currentApplyToTimeline = applyToTimeline;
+      
+      // Prepare history data
+      let historyData: ApplyEffectHistoryAction['data'];
+      
+      if (currentApplyToTimeline) {
+        // Save current state of all frames for undo
+        const previousFramesData = frames.map((frame, index) => ({
+          frameIndex: index,
+          data: new Map(frame.data)
+        }));
+        
+        historyData = {
+          effectType,
+          effectSettings: { ...effectSettings },
+          applyToTimeline: true,
+          affectedFrameIndices: frames.map((_, index) => index),
+          previousFramesData
+        };
+      } else {
+        // Save current canvas state for undo
+        historyData = {
+          effectType,
+          effectSettings: { ...effectSettings },
+          applyToTimeline: false,
+          affectedFrameIndices: [currentFrameIndex],
+          previousCanvasData: new Map(canvasData)
+        };
+      }
+
+      // Create history action
+      const historyAction: ApplyEffectHistoryAction = {
+        type: 'apply_effect',
+        timestamp: Date.now(),
+        description: currentApplyToTimeline 
+          ? `Re-apply ${effectType} effect to timeline (${frames.length} frames)`
+          : `Re-apply ${effectType} effect to frame ${currentFrameIndex + 1}`,
+        data: historyData
+      };
+
+      // Temporarily set the effect settings from the last applied effect
+      const { applyEffect } = useEffectsStore.getState();
+      
+      // Save current settings to restore later
+      const currentSettings = getCurrentEffectSettings(effectType);
+      
+      // Apply the saved settings temporarily
+      setEffectSettingsTemporarily(effectType, effectSettings);
+      
+      // Apply the effect
+      const success = await applyEffect(effectType);
+      
+      // Restore the previous settings
+      setEffectSettingsTemporarily(effectType, currentSettings);
+      
+      if (success) {
+        // Capture the "after" state for redo (following the forward snapshot pattern)
+        // We need to get the updated data from the stores after the effect was applied
+        if (currentApplyToTimeline) {
+          // Get the updated state of all frames for redo
+          const { frames: updatedFrames } = useAnimationStore.getState();
+          const newFramesData = updatedFrames.map((frame, index) => ({
+            frameIndex: index,
+            data: new Map(frame.data)
+          }));
+          historyData.newFramesData = newFramesData;
+        } else {
+          // Get the updated canvas state for redo
+          const { cells: updatedCells } = useCanvasStore.getState();
+          historyData.newCanvasData = new Map(updatedCells);
+        }
+        
+        // Push to history stack
+        pushToHistory(historyAction);
+        
+        // Update last applied effect timestamp
+        setLastAppliedEffect({
+          effectType,
+          effectSettings: { ...effectSettings },
+          applyToTimeline: currentApplyToTimeline,
+          timestamp: Date.now()
+        });
+      } else {
+        console.error(`❌ Effect re-application failed, not adding to history`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('Failed to reapply latest effect:', error);
+      return false;
+    }
+  }, [
+    lastAppliedEffect,
+    applyToTimeline,
+    frames,
+    currentFrameIndex,
+    canvasData,
+    getCurrentEffectSettings,
+    setEffectSettingsTemporarily,
+    pushToHistory,
+    clearError,
+    setLastAppliedEffect
+  ]);
+
   return {
     applyEffectWithHistory,
     getEffectDescription,
     canApplyEffect,
-    getCurrentEffectSettings
+    getCurrentEffectSettings,
+    reapplyLatestEffect,
+    hasLastAppliedEffect: !!lastAppliedEffect
   };
 };

@@ -17,7 +17,8 @@ import type {
   RemapColorsEffectSettings, 
   RemapCharactersEffectSettings,
   ScatterEffectSettings,
-  CanvasAnalysis
+  CanvasAnalysis,
+  LastAppliedEffect
 } from '../types/effects';
 import { 
   DEFAULT_LEVELS_SETTINGS,
@@ -53,6 +54,9 @@ export interface EffectsState {
   isPreviewActive: boolean;                  // Live preview enabled
   previewEffect: EffectType | null;          // Effect being previewed
   
+  // Last Applied Effect State
+  lastAppliedEffect: LastAppliedEffect | null; // Last successfully applied effect
+  
   // Error State
   lastError: string | null;                  // Last error message
   
@@ -82,6 +86,7 @@ export interface EffectsState {
   
   // Actions - Effect Application
   applyEffect: (effect: EffectType) => Promise<boolean>;
+  setLastAppliedEffect: (effect: LastAppliedEffect) => void;
   
   // Actions - Error Management
   clearError: () => void;
@@ -127,6 +132,9 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
   // Preview state
   isPreviewActive: false,
   previewEffect: null,
+  
+  // Last applied effect state
+  lastAppliedEffect: null,
   
   // Error state
   lastError: null,
@@ -560,6 +568,11 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
     }
   },
   
+  // Set last applied effect (used after successful application)
+  setLastAppliedEffect: (effect: LastAppliedEffect) => {
+    set({ lastAppliedEffect: effect });
+  },
+  
   // Utility Actions
   clearError: () => {
     set({ lastError: null });
@@ -578,6 +591,7 @@ export const useEffectsStore = create<EffectsState>((set, get) => ({
       isAnalyzing: false,
       isPreviewActive: false,
       previewEffect: null,
+      lastAppliedEffect: null,
       lastError: null
     });
   }

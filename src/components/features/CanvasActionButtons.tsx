@@ -5,7 +5,7 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import { useToolStore } from '@/stores/toolStore';
 import { useAnimationStore } from '@/stores/animationStore';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import type { AnyHistoryAction, CanvasHistoryAction } from '@/types';
+import type { AnyHistoryAction, ApplyEffectHistoryAction, CanvasHistoryAction } from '@/types';
 
 /**
  * Canvas Action Buttons Component
@@ -188,23 +188,45 @@ export const CanvasActionButtons: React.FC = () => {
         break;
 
       case 'apply_effect': {
-        const effectAction = action as any;
+        const effectAction = action as ApplyEffectHistoryAction;
         if (isRedo) {
-          // Redo: Re-apply the effect (not yet implemented)
-          console.warn('Redo for effects is not yet implemented');
+          // Redo: Restore the "after" state (following the forward snapshot pattern)
+          if (effectAction.data.applyToTimeline) {
+            // Restore all affected frames to their post-effect state
+            const { newFramesData } = effectAction.data;
+            if (newFramesData) {
+              newFramesData.forEach(({ frameIndex, data }) => {
+                animationStore.setFrameData(frameIndex, data);
+              });
+              console.log(`✅ Redo: Applied ${effectAction.data.effectType} effect to ${newFramesData.length} frames`);
+            } else {
+              console.warn(`⚠️ Redo for ${effectAction.data.effectType} effect: newFramesData missing (legacy entry)`);
+            }
+          } else {
+            // Restore single canvas to its post-effect state
+            if (effectAction.data.newCanvasData) {
+              setCanvasData(effectAction.data.newCanvasData);
+              console.log(`✅ Redo: Applied ${effectAction.data.effectType} effect to canvas`);
+            } else {
+              console.warn(`⚠️ Redo for ${effectAction.data.effectType} effect: newCanvasData missing (legacy entry)`);
+            }
+          }
         } else {
           // Undo: Restore previous data
           if (effectAction.data.applyToTimeline) {
             // Restore all affected frames
-            if (effectAction.data.previousFramesData) {
-              effectAction.data.previousFramesData.forEach(({ frameIndex, data }: any) => {
+            const { previousFramesData } = effectAction.data;
+            if (previousFramesData) {
+              previousFramesData.forEach(({ frameIndex, data }) => {
                 animationStore.setFrameData(frameIndex, data);
               });
+              console.log(`✅ Undo: Restored ${previousFramesData.length} frames from ${effectAction.data.effectType} effect`);
             }
           } else {
             // Restore single canvas
             if (effectAction.data.previousCanvasData) {
               setCanvasData(effectAction.data.previousCanvasData);
+              console.log(`✅ Undo: Restored canvas from ${effectAction.data.effectType} effect`);
             }
           }
         }

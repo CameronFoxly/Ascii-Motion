@@ -176,3 +176,11 @@ export type EffectSettings =
   | RemapColorsEffectSettings 
   | RemapCharactersEffectSettings
   | ScatterEffectSettings;
+
+// Last applied effect info for re-apply functionality
+export interface LastAppliedEffect {
+  effectType: EffectType;
+  effectSettings: EffectSettings;
+  applyToTimeline: boolean;
+  timestamp: number;
+}

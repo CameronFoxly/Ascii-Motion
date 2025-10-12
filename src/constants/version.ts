@@ -1,12 +1,21 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.43";
-export const BUILD_DATE = "2025-10-11T08:16:32.498Z";
-export const BUILD_HASH = "28d6ba1";
+export const VERSION = "0.1.44";
+export const BUILD_DATE = "2025-10-11T23:27:24.970Z";
+export const BUILD_HASH = "2fe98eb";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.1.44",
+    "date": "2025-10-11T23:27:24.970Z",
+    "commits": [
+      "Added back in playback UI visual feedback, removed stop UI button",
+      "Fixed playback hotkey issue",
+      "Fixed deployment-stopping lint errors."
+    ]
+  },
   {
     "version": "0.1.43",
     "date": "2025-10-11T08:16:32.498Z",
