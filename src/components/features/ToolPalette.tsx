@@ -121,11 +121,8 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
   };
 
   const ToolButton: React.FC<{ tool: { id: Tool; name: string; icon: React.ReactNode; description: string } }> = ({ tool }) => {
-    // Calculate tab index based on tool position in combined array
-    // Use high tab indices (starting at 1000) to come after header and frame duration fields
-    const allTools = [...DRAWING_TOOLS, ...SELECTION_TOOLS, ...UTILITY_TOOLS];
-    const toolIndex = allTools.findIndex(t => t.id === tool.id);
-    const tabIndex = toolIndex >= 0 ? 1000 + toolIndex : undefined;
+    // Tools use default tabIndex (0) to come after header and frames but in natural DOM order
+    const tabIndex = 0;
     
     return (
       <Tooltip key={tool.id}>

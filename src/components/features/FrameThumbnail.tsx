@@ -368,7 +368,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
           onMouseEnter={handleDurationMouseEnter}
           onMouseLeave={handleDurationMouseLeave}
           onClick={(e) => e.stopPropagation()}
-          tabIndex={100 + frameIndex} // Sequential tab order: frame 0 = tabIndex 100, frame 1 = tabIndex 101, etc.
+          tabIndex={11 + frameIndex} // Sequential tab order: frame 0 = tabIndex 11, frame 1 = tabIndex 12, etc.
           className="flex-1 text-xs px-1 py-0.5 border border-border rounded w-12 bg-background"
           min="17"
           max="10000"
