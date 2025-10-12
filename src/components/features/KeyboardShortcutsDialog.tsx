@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { ScrollArea } from '../ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Input } from '../ui/input';
+import { Search } from 'lucide-react';
 
 interface KeyboardShortcutsDialogProps {
   isOpen: boolean;
@@ -113,43 +115,90 @@ export const KeyboardShortcutsDialog: React.FC<KeyboardShortcutsDialogProps> = (
   isOpen, 
   onOpenChange 
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter shortcuts based on search query
+  const filteredSections = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return KEYBOARD_SHORTCUTS;
+    }
+
+    const query = searchQuery.toLowerCase();
+    
+    return KEYBOARD_SHORTCUTS.map(section => ({
+      ...section,
+      shortcuts: section.shortcuts.filter(shortcut => {
+        // Search in description
+        const matchesDescription = shortcut.description.toLowerCase().includes(query);
+        
+        // Search in keyboard shortcut keys
+        const matchesKeys = shortcut.keys.some(key => 
+          key.toLowerCase().includes(query)
+        );
+        
+        return matchesDescription || matchesKeys;
+      })
+    })).filter(section => section.shortcuts.length > 0);
+  }, [searchQuery]);
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh]">
+      <DialogContent className="max-w-5xl max-h-[85vh]">
         <DialogHeader>
           <DialogTitle>Keyboard Shortcuts</DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="h-[calc(85vh-120px)] pr-4">
-          <div className="space-y-4">
-            {KEYBOARD_SHORTCUTS.map((section, sectionIndex) => (
-              <Card key={sectionIndex} className="border-border/50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold">
-                    {section.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {section.shortcuts.map((shortcut, shortcutIndex) => (
-                    <div 
-                      key={shortcutIndex}
-                      className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors"
-                    >
-                      <span className="text-sm text-foreground">
-                        {shortcut.description}
-                      </span>
-                      <KeyDisplay keys={shortcut.keys} />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            ))}
-
-            {/* Note about platform differences */}
-            <div className="text-xs text-muted-foreground text-center pt-2 pb-1">
-              Note: "Cmd" shortcuts use Ctrl on Windows/Linux
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search shortcuts..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        
+        <ScrollArea className="h-[calc(85vh-180px)] pr-4">
+          {filteredSections.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No shortcuts found matching "{searchQuery}"
             </div>
-          </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredSections.map((section, sectionIndex) => (
+                <Card key={sectionIndex} className="border-border/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base font-semibold">
+                      {section.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {/* 2-column grid layout */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                      {section.shortcuts.map((shortcut, shortcutIndex) => (
+                        <div 
+                          key={shortcutIndex}
+                          className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors"
+                        >
+                          <span className="text-sm text-foreground mr-2">
+                            {shortcut.description}
+                          </span>
+                          <KeyDisplay keys={shortcut.keys} />
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* Note about platform differences */}
+              <div className="text-xs text-muted-foreground text-center pt-2 pb-1">
+                Note: "Cmd" shortcuts use Ctrl on Windows/Linux
+              </div>
+            </div>
+          )}
         </ScrollArea>
       </DialogContent>
     </Dialog>
