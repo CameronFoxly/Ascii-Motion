@@ -125,6 +125,7 @@ export function ActiveStyleSection({ className = '' }: ActiveStyleSectionProps) 
                         onClick={() => {
                           setIsCharacterPickerOpen(true);
                         }}
+                        tabIndex={2000}
                         style={{
                           // Use canvas background color as the button background
                           backgroundColor: canvasBackgroundColor === 'transparent' ? '#000000' : canvasBackgroundColor,

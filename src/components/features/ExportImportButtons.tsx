@@ -103,7 +103,7 @@ export const ExportImportButtons: React.FC = () => {
               variant="outline"
               size="sm"
               className="h-8 px-3 gap-2"
-              tabIndex={1003}
+              tabIndex={3}
             >
               <Upload className="h-4 w-4" />
               <span className="text-sm">Import</span>
@@ -137,7 +137,7 @@ export const ExportImportButtons: React.FC = () => {
               variant="outline"
               size="sm"
               className="h-8 px-3 gap-2"
-              tabIndex={1002}
+              tabIndex={2}
             >
               <Download className="h-4 w-4" />
               <span className="text-sm">Export</span>

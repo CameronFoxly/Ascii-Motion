@@ -11,70 +11,88 @@ The application uses offset-based tab indices to ensure logical keyboard navigat
 
 | Range | Component | Description |
 |-------|-----------|-------------|
-| 1-999 | Frame Duration Fields | Sequential tab order through animation frames (frameIndex + 1) |
-| 1001-1004 | Header Controls | Left-to-right: Hamburger menu, Export, Import, Theme toggle |
-| 2000-2014 | Tool Palette | 15 tool buttons in visual top-to-bottom order |
+| 1-10 | Header Controls | Left-to-right: Hamburger menu (1), Export (2), Import (3), Theme toggle (4) |
+| 100-999 | Frame Duration Fields | Sequential tab order through animation frames (100 + frameIndex) |
+| 1000-1999 | Tool Palette | 15 tool buttons in visual top-to-bottom order (1000+) |
+| 2000-2999 | Right Panel | Character selector (2000), FG color (2001), BG color (2002), Swap (2003), Reset (2004) |
 | 3000+ | Other UI Elements | Reserved for future tab order assignments |
 
 ## Implementation Details
 
-### Frame Duration Fields
+### Header Controls (1-4)
+- **Hamburger Menu** (`tabIndex={1}`): Opens project file and app info menu - **FIRST TABBABLE ELEMENT**
+- **Export Button** (`tabIndex={2}`): Opens export format dropdown  
+- **Import Button** (`tabIndex={3}`): Opens import format dropdown
+- **Theme Toggle** (`tabIndex={4}`): Switches between light and dark themes
+
+### Frame Duration Fields (100+)
 - **Location**: `src/components/features/FrameThumbnail.tsx`
-- **Tab Index**: `frameIndex + 1`
+- **Tab Index**: `100 + frameIndex`
 - **Behavior**: Allows sequential tabbing through frames (frame 0 → frame 1 → frame 2, etc.)
 - **Special**: Duplicate and Delete buttons within frames have `tabIndex={-1}` to skip them
+- **After frames**: Tab continues to tool palette, not stuck at end
 
-### Header Controls
-- **Hamburger Menu** (`tabIndex={1001}`): Opens project file and app info menu
-- **Export Button** (`tabIndex={1002}`): Opens export format dropdown  
-- **Import Button** (`tabIndex={1003}`): Opens import format dropdown
-- **Theme Toggle** (`tabIndex={1004}`): Switches between light and dark themes
-
-### Tool Palette
+### Tool Palette (1000+)
 - **Location**: `src/components/features/ToolPalette.tsx`
-- **Tab Index**: `2000 + toolIndex` (calculated from position in tool array)
+- **Tab Index**: `1000 + toolIndex` (calculated from position in tool array)
 - **Order**: Drawing tools (9) → Selection tools (3) → Utility tools (3)
 - **Behavior**: Tools are tabbable in the visual order they appear in the left panel
+
+### Right Panel (2000+)
+- **Location**: Various components in right sidebar
+- **Components**:
+  - Character selector button: `tabIndex={2000}`
+  - Foreground color button: `tabIndex={2001}`
+  - Background color button: `tabIndex={2002}`
+  - Swap colors button: `tabIndex={2003}`
+  - Reset colors button: `tabIndex={2004}`
 
 ## Design Rationale
 
 ### Why Offset-Based Indices?
 
-1. **Frame Priority**: Frame duration fields need sequential tab order (requirement from issue)
-2. **Separation**: Using large offsets (1000, 2000) ensures no conflicts between groups
-3. **Flexibility**: Leaves room for adding more elements without renumbering
-4. **Visual Logic**: Tab order matches visual layout within each group
+1. **Header First**: Users expect to start with header navigation (hamburger menu first)
+2. **Frame Sequential**: Frame duration fields need sequential tab order (requirement from issue)
+3. **Separation**: Using large offsets (100, 1000, 2000) ensures no conflicts between groups
+4. **Flexibility**: Leaves room for adding more elements without renumbering
+5. **Visual Logic**: Tab order matches visual layout within each group
+6. **No Dead Ends**: Tab always continues to next section, never gets stuck
 
-### Future Extensions
+### Dialog Focus Management
 
-Additional UI elements can be added to the tab order using these guidelines:
+All dialogs use Radix UI's Dialog component which provides:
+- Automatic focus trapping within the dialog
+- Focus returns to trigger element on close
+- Natural tab order within dialog content
+- ESC key to close
+- Overlay click to close
 
-- **3000-3999**: Canvas settings and controls
-- **4000-4999**: Character and color pickers
-- **5000-5999**: Playback and timeline controls
-- **6000-6999**: Panel toggles and other navigation
+Buttons within dialogs should be naturally tabbable without explicit tab indices.
 
 ## Testing Tab Order
 
 To verify tab order works correctly:
 
 1. Open the application
-2. Press Tab repeatedly
-3. Expected order:
-   - First tab: Frame 1 duration field (if frames exist)
-   - Continue through all frame duration fields
-   - Then: Hamburger menu (header)
-   - Then: Export, Import, Theme toggle (header)
-   - Then: Tool buttons (left panel, top to bottom)
-   - Then: Other elements in document order
+2. Press Tab - should start at **Hamburger menu** (not first frame)
+3. Continue pressing Tab - expected order:
+   - Header: Hamburger → Export → Import → Theme
+   - Frames: Frame 0 → Frame 1 → Frame 2... (if frames exist)
+   - Tools: Pencil → Eraser → Paint Bucket → ... → Flip Vertical
+   - Right Panel: Character → FG Color → BG Color → Swap → Reset
+   - Other elements in natural document order
+4. After last frame, tab should continue to tools (not stuck)
+5. Shift+Tab reverses the order correctly
 
 ## Implementation Files
 
-- `src/components/features/HamburgerMenu.tsx`
-- `src/components/features/ExportImportButtons.tsx`
-- `src/components/common/ThemeToggle.tsx`
-- `src/components/features/ToolPalette.tsx`
-- `src/components/features/FrameThumbnail.tsx`
+- `src/components/features/HamburgerMenu.tsx` - tabIndex={1}
+- `src/components/features/ExportImportButtons.tsx` - tabIndex={2, 3}
+- `src/components/common/ThemeToggle.tsx` - tabIndex={4}
+- `src/components/features/FrameThumbnail.tsx` - tabIndex={100 + frameIndex}
+- `src/components/features/ToolPalette.tsx` - tabIndex={1000+}
+- `src/components/features/ActiveStyleSection.tsx` - tabIndex={2000}
+- `src/components/features/ForegroundBackgroundSelector.tsx` - tabIndex={2001-2004}
 
 ## Accessibility Notes
 
@@ -82,3 +100,4 @@ To verify tab order works correctly:
 - Tab focus is visually indicated with browser default or custom styling
 - Disabled buttons are properly excluded from tab order
 - Modal dialogs trap focus appropriately
+- No tab "dead ends" - focus always progresses to next section
