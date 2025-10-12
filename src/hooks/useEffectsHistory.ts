@@ -26,7 +26,9 @@ export const useEffectsHistory = () => {
     remapColorsSettings,
     remapCharactersSettings,
     scatterSettings,
-    clearError
+    clearError,
+    setLastAppliedEffect,
+    lastAppliedEffect
   } = useEffectsStore();
   
   const { cells: canvasData } = useCanvasStore();
@@ -107,6 +109,14 @@ export const useEffectsHistory = () => {
       if (success) {
         // Push to history stack only if effect was successfully applied
         pushToHistory(historyAction);
+        
+        // Save this effect as the last applied effect
+        setLastAppliedEffect({
+          effectType,
+          effectSettings: { ...settings },
+          applyToTimeline,
+          timestamp: Date.now()
+        });
       } else {
         console.error(`❌ Effect application failed, not adding to history`);
       }
@@ -123,7 +133,8 @@ export const useEffectsHistory = () => {
     canvasData, 
     getCurrentEffectSettings, 
     pushToHistory,
-    clearError
+    clearError,
+    setLastAppliedEffect
   ]);
 
   /**
@@ -151,10 +162,155 @@ export const useEffectsHistory = () => {
     }
   }, [applyToTimeline, frames, canvasData]);
 
+  /**
+   * Re-apply the last applied effect with the same settings
+   */
+  const reapplyLatestEffect = useCallback(async (): Promise<boolean> => {
+    if (!lastAppliedEffect) {
+      console.warn('No previous effect to reapply');
+      return false;
+    }
+
+    try {
+      // Clear any previous errors
+      clearError();
+      
+      const { effectType, effectSettings } = lastAppliedEffect;
+      
+      // Use the current applyToTimeline setting, not the saved one
+      const currentApplyToTimeline = applyToTimeline;
+      
+      // Prepare history data
+      let historyData: ApplyEffectHistoryAction['data'];
+      
+      if (currentApplyToTimeline) {
+        // Save current state of all frames for undo
+        const previousFramesData = frames.map((frame, index) => ({
+          frameIndex: index,
+          data: new Map(frame.data)
+        }));
+        
+        historyData = {
+          effectType,
+          effectSettings: { ...effectSettings },
+          applyToTimeline: true,
+          affectedFrameIndices: frames.map((_, index) => index),
+          previousFramesData
+        };
+      } else {
+        // Save current canvas state for undo
+        historyData = {
+          effectType,
+          effectSettings: { ...effectSettings },
+          applyToTimeline: false,
+          affectedFrameIndices: [currentFrameIndex],
+          previousCanvasData: new Map(canvasData)
+        };
+      }
+
+      // Create history action
+      const historyAction: ApplyEffectHistoryAction = {
+        type: 'apply_effect',
+        timestamp: Date.now(),
+        description: currentApplyToTimeline 
+          ? `Re-apply ${effectType} effect to timeline (${frames.length} frames)`
+          : `Re-apply ${effectType} effect to frame ${currentFrameIndex + 1}`,
+        data: historyData
+      };
+
+      // Temporarily set the effect settings from the last applied effect
+      // We need to restore them after applying
+      const { 
+        updateLevelsSettings, 
+        updateHueSaturationSettings,
+        updateRemapColorsSettings,
+        updateRemapCharactersSettings,
+        updateScatterSettings,
+        applyEffect
+      } = useEffectsStore.getState();
+      
+      // Save current settings to restore later
+      const currentSettings = getCurrentEffectSettings(effectType);
+      
+      // Set the saved settings
+      switch (effectType) {
+        case 'levels':
+          updateLevelsSettings(effectSettings as import('../types/effects').LevelsEffectSettings);
+          break;
+        case 'hue-saturation':
+          updateHueSaturationSettings(effectSettings as import('../types/effects').HueSaturationEffectSettings);
+          break;
+        case 'remap-colors':
+          updateRemapColorsSettings(effectSettings as import('../types/effects').RemapColorsEffectSettings);
+          break;
+        case 'remap-characters':
+          updateRemapCharactersSettings(effectSettings as import('../types/effects').RemapCharactersEffectSettings);
+          break;
+        case 'scatter':
+          updateScatterSettings(effectSettings as import('../types/effects').ScatterEffectSettings);
+          break;
+      }
+      
+      // Apply the effect
+      const success = await applyEffect(effectType);
+      
+      // Restore the previous settings
+      switch (effectType) {
+        case 'levels':
+          updateLevelsSettings(currentSettings as import('../types/effects').LevelsEffectSettings);
+          break;
+        case 'hue-saturation':
+          updateHueSaturationSettings(currentSettings as import('../types/effects').HueSaturationEffectSettings);
+          break;
+        case 'remap-colors':
+          updateRemapColorsSettings(currentSettings as import('../types/effects').RemapColorsEffectSettings);
+          break;
+        case 'remap-characters':
+          updateRemapCharactersSettings(currentSettings as import('../types/effects').RemapCharactersEffectSettings);
+          break;
+        case 'scatter':
+          updateScatterSettings(currentSettings as import('../types/effects').ScatterEffectSettings);
+          break;
+      }
+      
+      if (success) {
+        // Push to history stack
+        pushToHistory(historyAction);
+        
+        // Update last applied effect timestamp
+        setLastAppliedEffect({
+          effectType,
+          effectSettings: { ...effectSettings },
+          applyToTimeline: currentApplyToTimeline,
+          timestamp: Date.now()
+        });
+      } else {
+        console.error(`❌ Effect re-application failed, not adding to history`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('Failed to reapply latest effect:', error);
+      return false;
+    }
+  }, [
+    lastAppliedEffect,
+    applyToTimeline,
+    frames,
+    currentFrameIndex,
+    canvasData,
+    getCurrentEffectSettings,
+    pushToHistory,
+    clearError,
+    setLastAppliedEffect
+  ]);
+
   return {
     applyEffectWithHistory,
     getEffectDescription,
     canApplyEffect,
-    getCurrentEffectSettings
+    getCurrentEffectSettings,
+    reapplyLatestEffect,
+    hasLastAppliedEffect: !!lastAppliedEffect
   };
 };

@@ -16,6 +16,7 @@ import {
 } from '../ui/collapsible';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
 import { useEffectsStore } from '../../stores/effectsStore';
+import { useEffectsHistory } from '../../hooks/useEffectsHistory';
 import { EFFECT_DEFINITIONS } from '../../constants/effectsDefaults';
 import type { EffectType } from '../../types/effects';
 import { 
@@ -24,7 +25,8 @@ import {
   Palette,
   RefreshCcw,
   Type,
-  ScatterChart
+  ScatterChart,
+  RefreshCw
 } from 'lucide-react';
 
 // Icon mapping for effect buttons
@@ -47,9 +49,15 @@ export function EffectsSection({ className = '' }: EffectsSectionProps) {
     openEffectPanel, 
     isAnalyzing
   } = useEffectsStore();
+  
+  const { reapplyLatestEffect, hasLastAppliedEffect, canApplyEffect } = useEffectsHistory();
 
   const handleEffectClick = (effectId: EffectType) => {
     openEffectPanel(effectId);
+  };
+  
+  const handleReapplyLatestEffect = async () => {
+    await reapplyLatestEffect();
   };
 
   return (
@@ -84,6 +92,19 @@ export function EffectsSection({ className = '' }: EffectsSectionProps) {
                   </Button>
                 );
               })}
+              
+              {/* Re-apply Latest Effect Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReapplyLatestEffect}
+                disabled={!hasLastAppliedEffect || isAnalyzing || !canApplyEffect()}
+                className="w-full justify-start gap-2 h-8 text-xs"
+                title={hasLastAppliedEffect ? 'Re-apply the last effect with the same settings' : 'No effect has been applied yet'}
+              >
+                <RefreshCw className="w-3 h-3" />
+                Re-apply Latest Effect
+              </Button>
             </div>
             
             {/* Analysis Status */}
