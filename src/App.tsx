@@ -41,14 +41,35 @@ import { AddFramesDialog } from './components/features/timeEffects/AddFramesDial
 import { WaveWarpDialog } from './components/features/timeEffects/WaveWarpDialog'
 import { WiggleDialog } from './components/features/timeEffects/WiggleDialog'
 import { useLayoutState } from './hooks/useLayoutState'
+import { SaveToCloudDialog } from './components/features/SaveToCloudDialog'
+import { ProjectsDialog } from './components/features/ProjectsDialog'
+import { useCloudDialogState } from './hooks/useCloudDialogState'
+import { useCloudProjectActions } from './hooks/useCloudProjectActions'
+import { useAuth } from '@ascii-motion/premium'
 
-function App() {
+/**
+ * Inner component that uses auth hooks
+ * This component is rendered inside AuthProvider
+ * Fixed: Moved useAuth hook inside AuthProvider context
+ */
+function AppContent() {
   const { layout, toggleLeftPanel, toggleRightPanel, toggleBottomPanel, toggleFullscreen } = useLayoutState()
+  
+  // Cloud storage state and actions
+  const { user } = useAuth()
+  const { 
+    showSaveToCloudDialog, 
+    showProjectsDialog,
+    setShowSaveToCloudDialog,
+    setShowProjectsDialog,
+  } = useCloudDialogState()
+  const {
+    handleLoadFromCloud,
+    handleDownloadProject,
+  } = useCloudProjectActions()
 
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <div className="h-screen grid grid-rows-[auto_1fr] bg-background text-foreground">
+    <div className="h-screen grid grid-rows-[auto_1fr] bg-background text-foreground">
         {/* Header - compact */}
         <header className="flex-shrink-0 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="px-4 py-2">
@@ -227,15 +248,43 @@ function App() {
           <AddFramesDialog />
           <WaveWarpDialog />
           <WiggleDialog />
+          
+          {/* Cloud Storage Dialogs - Inside CanvasProvider to access context */}
+          {user && (
+            <>
+              <SaveToCloudDialog 
+                open={showSaveToCloudDialog} 
+                onOpenChange={setShowSaveToCloudDialog} 
+              />
+              <ProjectsDialog
+                open={showProjectsDialog}
+                onOpenChange={setShowProjectsDialog}
+                onLoadProject={handleLoadFromCloud}
+                onDownloadProject={handleDownloadProject}
+              />
+            </>
+          )}
         </CanvasProvider>
         
         {/* Performance Overlay for Development */}
         <PerformanceOverlay />
+        
+        {/* Vercel Analytics */}
+        <Analytics />
       </div>
-      
-      {/* Vercel Analytics */}
-      <Analytics />
-    </ThemeProvider>
+  )
+}
+
+/**
+ * App wrapper component
+ * Provides AuthProvider and ThemeProvider context
+ */
+function App() {
+  return (
+    <AuthProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
     </AuthProvider>
   )
 }
