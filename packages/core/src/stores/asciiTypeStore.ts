@@ -9,7 +9,7 @@ export interface AsciiPreviewCell {
 
 export type AsciiPreviewGrid = AsciiPreviewCell[][];
 
-interface AsciiDimensions {
+export interface AsciiDimensions {
   width: number;
   height: number;
 }

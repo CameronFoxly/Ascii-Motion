@@ -1,5 +1,8 @@
 import figlet from 'figlet';
 
+// Figlet types - @types/figlet is incomplete for our needs
+type FigletKerningMethod = 'default' | 'full' | 'fitted' | 'controlled smushing' | 'universal smushing';
+
 const FIGLET_FONT_MODULES = import.meta.glob<{ default: string }>(
   '../../node_modules/figlet/importable-fonts/*.js'
 );
@@ -47,7 +50,7 @@ async function ensureFontLoaded(fontName: string): Promise<void> {
 
 export type AsciiTypeLayoutPreset = 'normal' | 'narrow' | 'squeezed' | 'fitted' | 'wide';
 
-const LAYOUT_PRESET_TO_FIGLET: Record<AsciiTypeLayoutPreset, figlet.KerningMethods> = {
+const LAYOUT_PRESET_TO_FIGLET: Record<AsciiTypeLayoutPreset, FigletKerningMethod> = {
   normal: 'default',
   wide: 'full',
   fitted: 'fitted',
@@ -80,7 +83,7 @@ export async function renderFigletText(
   await ensureFontLoaded(font);
 
   const rendered = figlet.textSync(text || ' ', {
-    font: font as figlet.Fonts,
+    font: font as any, // figlet types are incomplete
     horizontalLayout: LAYOUT_PRESET_TO_FIGLET[horizontalLayout],
     verticalLayout: LAYOUT_PRESET_TO_FIGLET[verticalLayout],
   });
@@ -90,6 +93,6 @@ export async function renderFigletText(
   return { lines };
 }
 
-export function getFigletKerning(layout: AsciiTypeLayoutPreset): figlet.KerningMethods {
+export function getFigletKerning(layout: AsciiTypeLayoutPreset): FigletKerningMethod {
   return LAYOUT_PRESET_TO_FIGLET[layout];
 }
