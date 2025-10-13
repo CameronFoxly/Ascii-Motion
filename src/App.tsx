@@ -3,7 +3,9 @@ import { Analytics } from '@vercel/analytics/react'
 import { CanvasWithShortcuts } from './components/features/CanvasWithShortcuts'
 import { CanvasProvider } from './contexts/CanvasContext'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { AuthProvider } from '@ascii-motion/premium'
 import { ThemeToggle } from './components/common/ThemeToggle'
+import { AuthButtons } from './components/features/AuthButtons'
 import { AsciiTypePanel } from './components/features/AsciiTypePanel'
 import { AsciiBoxPanel } from './components/features/AsciiBoxPanel'
 import { AsciiTypePreviewDialog } from './components/features/AsciiTypePreviewDialog'
@@ -44,8 +46,9 @@ function App() {
   const { layout, toggleLeftPanel, toggleRightPanel, toggleBottomPanel, toggleFullscreen } = useLayoutState()
 
   return (
-    <ThemeProvider>
-      <div className="h-screen grid grid-rows-[auto_1fr] bg-background text-foreground">
+    <AuthProvider>
+      <ThemeProvider>
+        <div className="h-screen grid grid-rows-[auto_1fr] bg-background text-foreground">
         {/* Header - compact */}
         <header className="flex-shrink-0 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="px-4 py-2">
@@ -63,6 +66,7 @@ function App() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <AuthButtons />
                 <ExportImportButtons />
                 <ThemeToggle />
               </div>
@@ -232,6 +236,7 @@ function App() {
       {/* Vercel Analytics */}
       <Analytics />
     </ThemeProvider>
+    </AuthProvider>
   )
 }
 
