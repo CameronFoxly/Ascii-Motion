@@ -3,6 +3,17 @@
 ## Overview
 This guide walks you through testing the newly integrated authentication system in ASCII Motion.
 
+## ⚠️ Important Security Note
+
+**Duplicate Email Signups:**
+If you try to sign up with an email that already has an account, you'll see the success message ("Check Your Email") even though no email was sent. **This is intentional and correct behavior** for security reasons:
+
+- **Prevents email enumeration attacks** - Attackers can't discover which emails have accounts
+- **Industry standard practice** - Used by Google, GitHub, Twitter, etc.
+- **User privacy protection** - Doesn't reveal which emails are registered
+
+If a user tries to sign up with an existing email, they simply won't receive a verification email. They should use the "Already have an account? Sign In" link instead.
+
 ## Prerequisites
 - Dev server running: `npm run dev`
 - Browser open at: http://localhost:5175/
@@ -29,7 +40,7 @@ This guide walks you through testing the newly integrated authentication system 
 
 **Common Issues:**
 - Email not received? Check spam folder, wait 2-3 minutes
-- Error "User already exists"? Email is already registered
+- Seeing success but no email? Email might already be registered (this is normal - see security note above)
 
 ---
 

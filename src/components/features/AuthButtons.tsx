@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth, SignUpDialog, SignInDialog, PasswordResetDialog, UserMenu } from '@ascii-motion/premium';
-import { LogIn, UserPlus } from 'lucide-react';
+import { LogIn, UserPlus, Loader2 } from 'lucide-react';
 
 export function AuthButtons() {
   const { user, loading } = useAuth();
@@ -9,9 +9,19 @@ export function AuthButtons() {
   const [showSignIn, setShowSignIn] = useState(false);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
 
-  // Don't render anything while loading
+  // Show loading indicator while checking session
   if (loading) {
-    return null;
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        disabled
+        className="gap-1.5"
+      >
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span className="hidden sm:inline">Loading...</span>
+      </Button>
+    );
   }
 
   // Show UserMenu if logged in
