@@ -1,0 +1,816 @@
+/**
+ * effectsProcessing.ts - Core effect processing algorithms for ASCII Motion
+ * 
+ * Provides functions to apply each effect type to canvas data, supporting
+ * both single frame and timeline application with proper error handling.
+ */
+
+import type { Cell, Frame } from '../types';
+import type {
+  EffectType,
+  LevelsEffectSettings,
+  HueSaturationEffectSettings,
+  RemapColorsEffectSettings,
+  RemapCharactersEffectSettings,
+  ScatterEffectSettings,
+  EffectProcessingResult,
+  ColorRange,
+} from '../types/effects';
+
+/**
+ * Main effect processing function - applies an effect to canvas data
+ */
+export async function processEffect(
+  effectType: EffectType,
+  cells: Map<string, Cell>,
+  settings: LevelsEffectSettings | HueSaturationEffectSettings | RemapColorsEffectSettings | RemapCharactersEffectSettings | ScatterEffectSettings,
+  canvasBackgroundColor: string = '#000000'
+): Promise<EffectProcessingResult> {
+  const startTime = performance.now();
+  
+  try {
+    let processedCells: Map<string, Cell> | null = null;
+    let affectedCells = 0;
+
+    switch (effectType) {
+      case 'levels': {
+        const result = await processLevelsEffect(cells, settings as LevelsEffectSettings);
+        processedCells = result.processedCells;
+        affectedCells = result.affectedCells;
+        break;
+      }
+        
+      case 'hue-saturation': {
+        const hsResult = await processHueSaturationEffect(cells, settings as HueSaturationEffectSettings);
+        processedCells = hsResult.processedCells;
+        affectedCells = hsResult.affectedCells;
+        break;
+      }
+        
+      case 'remap-colors': {
+        const rcResult = await processRemapColorsEffect(cells, settings as RemapColorsEffectSettings);
+        processedCells = rcResult.processedCells;
+        affectedCells = rcResult.affectedCells;
+        break;
+      }
+        
+      case 'remap-characters': {
+        const rchResult = await processRemapCharactersEffect(cells, settings as RemapCharactersEffectSettings);
+        processedCells = rchResult.processedCells;
+        affectedCells = rchResult.affectedCells;
+        break;
+      }
+      
+      case 'scatter': {
+        const scatterResult = await processScatterEffect(cells, settings as ScatterEffectSettings, canvasBackgroundColor);
+        processedCells = scatterResult.processedCells;
+        affectedCells = scatterResult.affectedCells;
+        break;
+      }
+        
+      default:
+        throw new Error(`Unknown effect type: ${effectType}`);
+    }
+
+    const processingTime = performance.now() - startTime;
+
+    return {
+      success: true,
+      processedCells,
+      affectedCells,
+      processingTime,
+    };
+
+  } catch (error) {
+    const processingTime = performance.now() - startTime;
+    console.error(`Effect processing failed for ${effectType}:`, error);
+    
+    return {
+      success: false,
+      processedCells: null,
+      affectedCells: 0,
+      processingTime,
+      error: error instanceof Error ? error.message : 'Unknown processing error'
+    };
+  }
+}
+
+/**
+ * Process multiple frames with an effect (for timeline application)
+ */
+export async function processEffectOnFrames(
+  effectType: EffectType,
+  frames: Frame[],
+  settings: LevelsEffectSettings | HueSaturationEffectSettings | RemapColorsEffectSettings | RemapCharactersEffectSettings | ScatterEffectSettings,
+  onProgress?: (frameIndex: number, totalFrames: number) => void,
+  canvasBackgroundColor: string = '#000000'
+): Promise<{ processedFrames: Frame[], totalAffectedCells: number, processingTime: number, errors: string[] }> {
+  const startTime = performance.now();
+  const processedFrames: Frame[] = [];
+  const errors: string[] = [];
+  let totalAffectedCells = 0;
+
+  for (let i = 0; i < frames.length; i++) {
+    const frame = frames[i];
+    onProgress?.(i, frames.length);
+
+    try {
+  const result = await processEffect(effectType, frame.data, settings, canvasBackgroundColor);
+      
+      if (result.success && result.processedCells) {
+        processedFrames.push({
+          ...frame,
+          data: result.processedCells
+        });
+        totalAffectedCells += result.affectedCells;
+      } else {
+        // Keep original frame if processing failed
+        processedFrames.push(frame);
+        if (result.error) {
+          errors.push(`Frame ${i}: ${result.error}`);
+        }
+      }
+    } catch (error) {
+      processedFrames.push(frame);
+      errors.push(`Frame ${i}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  const processingTime = performance.now() - startTime;
+
+  return {
+    processedFrames,
+    totalAffectedCells,
+    processingTime,
+    errors
+  };
+}
+
+/**
+ * Levels Effect Processing
+ */
+async function processLevelsEffect(
+  cells: Map<string, Cell>,
+  settings: LevelsEffectSettings
+): Promise<{ processedCells: Map<string, Cell>, affectedCells: number }> {
+  const processedCells = new Map<string, Cell>();
+  let affectedCells = 0;
+
+  const {
+    shadowsInput,
+    midtonesInput,
+    highlightsInput,
+    outputMin,
+    outputMax,
+    colorRange
+  } = settings;
+
+  cells.forEach((cell, position) => {
+    const newCell = { ...cell };
+    let cellModified = false;
+
+    // Apply levels to foreground color
+    if (cell.color && shouldProcessColor(cell.color, colorRange)) {
+      const adjustedColor = applyLevelsToColor(
+        cell.color,
+        shadowsInput,
+        midtonesInput,
+        highlightsInput,
+        outputMin,
+        outputMax
+      );
+      if (adjustedColor !== cell.color) {
+        newCell.color = adjustedColor;
+        cellModified = true;
+      }
+    }
+
+    // Apply levels to background color
+    if (cell.bgColor && cell.bgColor !== 'transparent' && shouldProcessColor(cell.bgColor, colorRange)) {
+      const adjustedBgColor = applyLevelsToColor(
+        cell.bgColor,
+        shadowsInput,
+        midtonesInput,
+        highlightsInput,
+        outputMin,
+        outputMax
+      );
+      if (adjustedBgColor !== cell.bgColor) {
+        newCell.bgColor = adjustedBgColor;
+        cellModified = true;
+      }
+    }
+
+    processedCells.set(position, newCell);
+    if (cellModified) affectedCells++;
+  });
+
+  return { processedCells, affectedCells };
+}
+
+/**
+ * Hue & Saturation Effect Processing
+ */
+async function processHueSaturationEffect(
+  cells: Map<string, Cell>,
+  settings: HueSaturationEffectSettings
+): Promise<{ processedCells: Map<string, Cell>, affectedCells: number }> {
+  const processedCells = new Map<string, Cell>();
+  let affectedCells = 0;
+
+  const { hue, saturation, lightness, colorRange } = settings;
+
+  cells.forEach((cell, position) => {
+    const newCell = { ...cell };
+    let cellModified = false;
+
+    // Apply HSL adjustments to foreground color
+    if (cell.color && shouldProcessColor(cell.color, colorRange)) {
+      const adjustedColor = applyHSLAdjustments(cell.color, hue, saturation, lightness);
+      if (adjustedColor !== cell.color) {
+        newCell.color = adjustedColor;
+        cellModified = true;
+      }
+    }
+
+    // Apply HSL adjustments to background color
+    if (cell.bgColor && cell.bgColor !== 'transparent' && shouldProcessColor(cell.bgColor, colorRange)) {
+      const adjustedBgColor = applyHSLAdjustments(cell.bgColor, hue, saturation, lightness);
+      if (adjustedBgColor !== cell.bgColor) {
+        newCell.bgColor = adjustedBgColor;
+        cellModified = true;
+      }
+    }
+
+    processedCells.set(position, newCell);
+    if (cellModified) affectedCells++;
+  });
+
+  return { processedCells, affectedCells };
+}
+
+/**
+ * Remap Colors Effect Processing
+ */
+async function processRemapColorsEffect(
+  cells: Map<string, Cell>,
+  settings: RemapColorsEffectSettings
+): Promise<{ processedCells: Map<string, Cell>, affectedCells: number }> {
+  const processedCells = new Map<string, Cell>();
+  let affectedCells = 0;
+
+  const { colorMappings, matchExact } = settings;
+
+  cells.forEach((cell, position) => {
+    const newCell = { ...cell };
+    let cellModified = false;
+
+    // Remap foreground color
+    if (cell.color) {
+      const mappedColor = findColorMapping(cell.color, colorMappings, matchExact);
+      if (mappedColor && mappedColor !== cell.color) {
+        newCell.color = mappedColor;
+        cellModified = true;
+      }
+    }
+
+    // Remap background color
+    if (cell.bgColor && cell.bgColor !== 'transparent') {
+      const mappedBgColor = findColorMapping(cell.bgColor, colorMappings, matchExact);
+      if (mappedBgColor && mappedBgColor !== cell.bgColor) {
+        newCell.bgColor = mappedBgColor;
+        cellModified = true;
+      }
+    }
+
+    processedCells.set(position, newCell);
+    if (cellModified) affectedCells++;
+  });
+
+  return { processedCells, affectedCells };
+}
+
+/**
+ * Remap Characters Effect Processing
+ */
+async function processRemapCharactersEffect(
+  cells: Map<string, Cell>,
+  settings: RemapCharactersEffectSettings
+): Promise<{ processedCells: Map<string, Cell>, affectedCells: number }> {
+  const processedCells = new Map<string, Cell>();
+  let affectedCells = 0;
+
+  const { characterMappings } = settings;
+
+  cells.forEach((cell, position) => {
+    const newCell = { ...cell };
+    let cellModified = false;
+
+    // Remap character
+    if (cell.char && characterMappings[cell.char]) {
+      const mappedChar = characterMappings[cell.char];
+      if (mappedChar !== cell.char) {
+        newCell.char = mappedChar;
+        cellModified = true;
+      }
+    }
+
+    processedCells.set(position, newCell);
+    if (cellModified) affectedCells++;
+  });
+
+  return { processedCells, affectedCells };
+}
+
+// =============================================================================
+// Color Processing Utilities
+// =============================================================================
+
+/**
+ * Check if a color should be processed based on color range settings
+ */
+function shouldProcessColor(color: string, colorRange: ColorRange | undefined): boolean {
+  if (!colorRange || colorRange.type === 'all') {
+    return true;
+  }
+  
+  if (colorRange.type === 'custom') {
+    return (colorRange.customColors ?? []).includes(color);
+  }
+  
+  // For 'text' and 'background' types, we'd need context about which colors are text vs background
+  // For now, process all colors
+  return true;
+}
+
+/**
+ * Apply levels adjustment to a single color
+ */
+function applyLevelsToColor(
+  color: string,
+  shadowsInput: number,
+  midtonesInput: number,
+  highlightsInput: number,
+  outputMin: number,
+  outputMax: number
+): string {
+  const rgb = hexToRgb(color);
+  if (!rgb) return color;
+
+  // Apply levels to each channel
+  const adjustedR = applyLevelsToChannel(rgb.r, shadowsInput, midtonesInput, highlightsInput, outputMin, outputMax);
+  const adjustedG = applyLevelsToChannel(rgb.g, shadowsInput, midtonesInput, highlightsInput, outputMin, outputMax);
+  const adjustedB = applyLevelsToChannel(rgb.b, shadowsInput, midtonesInput, highlightsInput, outputMin, outputMax);
+
+  return rgbToHex(adjustedR, adjustedG, adjustedB);
+}
+
+/**
+ * Apply levels adjustment to a single color channel
+ */
+function applyLevelsToChannel(
+  value: number,
+  shadowsInput: number,
+  midtonesInput: number,
+  highlightsInput: number,
+  outputMin: number,
+  outputMax: number
+): number {
+  // Validate input range - prevent division by zero
+  if (highlightsInput <= shadowsInput) {
+    // Invalid range: highlights must be greater than shadows
+    // Return value unchanged to prevent processing errors
+    return Math.round(Math.max(0, Math.min(255, value)));
+  }
+  
+  // Clamp input to shadows-highlights range
+  if (value <= shadowsInput) return outputMin;
+  if (value >= highlightsInput) return outputMax;
+  
+  // Apply gamma correction for midtones
+  const normalizedInput = (value - shadowsInput) / (highlightsInput - shadowsInput);
+  const gammaAdjusted = Math.pow(normalizedInput, 1.0 / midtonesInput);
+  
+  // Map to output range
+  const result = outputMin + (gammaAdjusted * (outputMax - outputMin));
+  
+  return Math.round(Math.max(0, Math.min(255, result)));
+}
+
+/**
+ * Apply HSL adjustments to a color
+ */
+function applyHSLAdjustments(color: string, hueShift: number, saturationShift: number, lightnessShift: number): string {
+  const hsl = hexToHsl(color);
+  if (!hsl) return color;
+
+  // Apply adjustments
+  let newHue = (hsl.h + hueShift) % 360;
+  if (newHue < 0) newHue += 360;
+  
+  const newSaturation = Math.max(0, Math.min(100, hsl.s + saturationShift));
+  const newLightness = Math.max(0, Math.min(100, hsl.l + lightnessShift));
+
+  return hslToHex(newHue, newSaturation, newLightness);
+}
+
+/**
+ * Find a color mapping, supporting exact and fuzzy matching
+ */
+function findColorMapping(color: string, mappings: Record<string, string>, exactMatch: boolean): string | null {
+  // Direct exact match
+  if (mappings[color]) {
+    return mappings[color];
+  }
+  
+  if (!exactMatch) {
+    // Try case-insensitive match
+    const lowerColor = color.toLowerCase();
+    const lowerMappings = Object.entries(mappings).find(([key]) => key.toLowerCase() === lowerColor);
+    if (lowerMappings) {
+      return lowerMappings[1];
+    }
+    
+    // Try without # prefix
+    if (color.startsWith('#')) {
+      const withoutHash = color.slice(1);
+      if (mappings[withoutHash]) {
+        return mappings[withoutHash];
+      }
+    } else {
+      const withHash = '#' + color;
+      if (mappings[withHash]) {
+        return mappings[withHash];
+      }
+    }
+  }
+  
+  return null;
+}
+
+// =============================================================================
+// Color Conversion Utilities
+// =============================================================================
+
+/**
+ * Convert hex color to RGB
+ */
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+}
+
+/**
+ * Convert RGB to hex
+ */
+function rgbToHex(r: number, g: number, b: number): string {
+  const toHex = (n: number) => {
+    const hex = Math.round(Math.max(0, Math.min(255, n))).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  };
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+/**
+ * Convert hex color to HSL
+ */
+function hexToHsl(hex: string): { h: number; s: number; l: number } | null {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+
+  const r = rgb.r / 255;
+  const g = rgb.g / 255;
+  const b = rgb.b / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+
+  return {
+    h: Math.round(h * 360),
+    s: Math.round(s * 100),
+    l: Math.round(l * 100)
+  };
+}
+
+/**
+ * Convert HSL to hex
+ */
+function hslToHex(h: number, s: number, l: number): string {
+  h = h / 360;
+  s = s / 100;
+  l = l / 100;
+
+  const hue2rgb = (p: number, q: number, t: number) => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+  };
+
+  let r, g, b;
+
+  if (s === 0) {
+    r = g = b = l; // achromatic
+  } else {
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+
+  return rgbToHex(Math.round(r * 255), Math.round(g * 255), Math.round(b * 255));
+}
+
+/**
+ * Scatter Effect Processing
+ * Randomly scatters cells based on various patterns
+ */
+async function processScatterEffect(
+  cells: Map<string, Cell>,
+  settings: ScatterEffectSettings,
+  canvasBackgroundColor: string = '#000000'
+): Promise<{ processedCells: Map<string, Cell>, affectedCells: number }> {
+  const processedCells = new Map<string, Cell>();
+  const { strength, scatterType, seed, blendColors } = settings;
+  
+  // Convert strength (0-100) to max displacement distance (0-10 cells)
+  const maxDisplacement = Math.round((strength / 100) * 10);
+  
+  // If strength is 0, return original cells
+  if (maxDisplacement === 0) {
+    cells.forEach((cell, pos) => processedCells.set(pos, { ...cell }));
+    return { processedCells, affectedCells: 0 };
+  }
+  
+  // Create seeded random number generator
+  const rng = createSeededRNG(seed);
+  
+  // Get all filled cell positions (cells with content)
+  const filledCells = Array.from(cells.entries()).filter(([, cell]) => {
+    // Only scatter cells that have actual content (character or colors)
+    return cell.char !== ' ' || cell.color !== 'transparent' || cell.bgColor !== 'transparent';
+  });
+  
+  // Build array of positions from filled cells
+  const cellPositions = filledCells.map(([pos]) => pos);
+  const swapPairs: Array<[string, string, number]> = []; // Added distance to track blend weight
+  const swapped = new Set<string>();
+  
+  // For each filled cell, calculate displacement based on scatter type
+  cellPositions.forEach(pos => {
+    // Skip if already swapped
+    if (swapped.has(pos)) return;
+    
+    const [x, y] = pos.split(',').map(Number);
+    
+    // Calculate displacement vector based on scatter type
+    const displacement = calculateDisplacement(
+      x, y, maxDisplacement, scatterType, rng
+    );
+    
+    // Calculate target position
+    const targetX = x + displacement.dx;
+    const targetY = y + displacement.dy;
+    const targetPos = `${targetX},${targetY}`;
+    
+    // Calculate actual distance for blend weight
+    const distance = Math.sqrt(displacement.dx ** 2 + displacement.dy ** 2);
+    
+    // Only add to swap pairs if positions are different
+    // We can swap with empty cells now
+    if (pos !== targetPos && !swapped.has(targetPos)) {
+      swapPairs.push([pos, targetPos, distance]);
+      swapped.add(pos);
+      swapped.add(targetPos);
+    }
+  });
+  
+  // Initialize processed cells with original data
+  cells.forEach((cell, pos) => {
+    processedCells.set(pos, { ...cell });
+  });
+  
+  // Apply swaps - swap cell content between positions
+  swapPairs.forEach(([pos1, pos2, distance]) => {
+    const cell1 = cells.get(pos1);
+    const cell2 = cells.get(pos2);
+    
+    if (cell1) {
+      if (blendColors && maxDisplacement > 0) {
+        // Blend colors based on displacement distance
+        // Weight: closer to original = more of original color
+        const blendWeight = 1 - (distance / maxDisplacement);
+        
+        // Determine the effective background color for blending with empty cells
+        // If canvas background is transparent, use black as fallback
+        const effectiveCanvasBg = canvasBackgroundColor === 'transparent' ? '#000000' : canvasBackgroundColor;
+        
+        // Cell1 moving to pos2
+        const blendedCell1 = cell2 ? {
+          // Blending with an existing cell
+          ...cell1,
+          color: blendColorPair(cell1.color, cell2.color, blendWeight),
+          bgColor: blendColorPair(cell1.bgColor, cell2.bgColor, blendWeight)
+        } : {
+          // Blending with empty cell - use canvas background color
+          ...cell1,
+          color: blendColorPair(cell1.color, effectiveCanvasBg, blendWeight),
+          bgColor: blendColorPair(cell1.bgColor, effectiveCanvasBg, blendWeight)
+        };
+        
+        processedCells.set(pos2, blendedCell1);
+        
+        if (cell2) {
+          // Cell2 moving to pos1 (same blend weight since they swap)
+          const blendedCell2 = {
+            ...cell2,
+            color: blendColorPair(cell2.color, cell1.color, blendWeight),
+            bgColor: blendColorPair(cell2.bgColor, cell1.bgColor, blendWeight)
+          };
+          processedCells.set(pos1, blendedCell2);
+        } else {
+          // Pos2 was empty, clear pos1
+          processedCells.delete(pos1);
+        }
+      } else {
+        // No color blending - just swap
+        processedCells.set(pos2, { ...cell1 });
+        
+        if (cell2) {
+          processedCells.set(pos1, { ...cell2 });
+        } else {
+          processedCells.delete(pos1);
+        }
+      }
+    }
+  });
+  
+  return { 
+    processedCells, 
+    affectedCells: swapPairs.length * 2 
+  };
+}
+
+/**
+ * Create a seeded pseudo-random number generator
+ */
+function createSeededRNG(seed: number) {
+  let state = seed;
+  
+  return {
+    // Returns a pseudo-random number between 0 and 1
+    next: (): number => {
+      state = (state * 9301 + 49297) % 233280;
+      return state / 233280;
+    },
+    
+    // Returns a random integer between min (inclusive) and max (inclusive)
+    nextInt: (min: number, max: number): number => {
+      const value = (state * 9301 + 49297) % 233280;
+      state = value;
+      return min + Math.floor((value / 233280) * (max - min + 1));
+    },
+    
+    // Returns a random float between min and max
+    nextFloat: (min: number, max: number): number => {
+      state = (state * 9301 + 49297) % 233280;
+      return min + (state / 233280) * (max - min);
+    }
+  };
+}
+
+/**
+ * Calculate displacement vector based on scatter type
+ */
+function calculateDisplacement(
+  x: number,
+  y: number,
+  maxDistance: number,
+  scatterType: 'noise' | 'bayer-2x2' | 'bayer-4x4' | 'gaussian',
+  rng: ReturnType<typeof createSeededRNG>
+): { dx: number, dy: number } {
+  
+  switch (scatterType) {
+    case 'noise': {
+      // Perlin-like noise: smooth random displacement
+      // Use position-based noise for coherent displacement
+      const angle = rng.nextFloat(0, Math.PI * 2);
+      const distance = rng.nextFloat(0, maxDistance);
+      return {
+        dx: Math.round(Math.cos(angle) * distance),
+        dy: Math.round(Math.sin(angle) * distance)
+      };
+    }
+    
+    case 'bayer-2x2': {
+      // Bayer 2x2 ordered dithering pattern
+      const bayer2x2 = [
+        [0, 2],
+        [3, 1]
+      ];
+      const threshold = bayer2x2[y % 2][x % 2] / 4;
+      const scaledDistance = Math.round(threshold * maxDistance);
+      
+      // Deterministic direction based on position
+      const direction = ((x + y) % 4) * (Math.PI / 2);
+      return {
+        dx: Math.round(Math.cos(direction) * scaledDistance),
+        dy: Math.round(Math.sin(direction) * scaledDistance)
+      };
+    }
+    
+    case 'bayer-4x4': {
+      // Bayer 4x4 ordered dithering pattern
+      const bayer4x4 = [
+        [0,  8,  2,  10],
+        [12, 4,  14, 6],
+        [3,  11, 1,  9],
+        [15, 7,  13, 5]
+      ];
+      const threshold = bayer4x4[y % 4][x % 4] / 16;
+      const scaledDistance = Math.round(threshold * maxDistance);
+      
+      // Deterministic direction based on position
+      const direction = ((x + y) % 8) * (Math.PI / 4);
+      return {
+        dx: Math.round(Math.cos(direction) * scaledDistance),
+        dy: Math.round(Math.sin(direction) * scaledDistance)
+      };
+    }
+    
+    case 'gaussian': {
+      // Gaussian distribution: most displacement near center, less at edges
+      // Box-Muller transform for gaussian random
+      const u1 = Math.max(0.0001, rng.next());
+      const u2 = rng.next();
+      const gaussian = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+      
+      // Scale gaussian (typically -3 to +3) to our max distance
+      // Clamp to ensure we stay within maxDistance
+      const distance = Math.min(maxDistance, Math.abs(gaussian) * (maxDistance / 3));
+      const angle = rng.nextFloat(0, Math.PI * 2);
+      
+      return {
+        dx: Math.round(Math.cos(angle) * distance),
+        dy: Math.round(Math.sin(angle) * distance)
+      };
+    }
+    
+    default:
+      return { dx: 0, dy: 0 };
+  }
+}
+
+/**
+ * Blend two colors based on a weight (0-1)
+ * Weight of 1 = 100% color1, weight of 0 = 100% color2
+ * Handles transparent colors gracefully
+ */
+function blendColorPair(color1: string, color2: string, weight: number): string {
+  // Handle transparent colors
+  if (color1 === 'transparent' && color2 === 'transparent') {
+    return 'transparent';
+  }
+  if (color1 === 'transparent') {
+    return color2;
+  }
+  if (color2 === 'transparent') {
+    return color1;
+  }
+  
+  // Clamp weight to 0-1
+  const t = Math.max(0, Math.min(1, 1 - weight));
+  
+  const rgb1 = hexToRgb(color1);
+  const rgb2 = hexToRgb(color2);
+  
+  if (!rgb1 || !rgb2) return color1;
+  
+  const r = Math.round(rgb1.r + t * (rgb2.r - rgb1.r));
+  const g = Math.round(rgb1.g + t * (rgb2.g - rgb1.g));
+  const b = Math.round(rgb1.b + t * (rgb2.b - rgb1.b));
+  
+  return rgbToHex(r, g, b);
+}
