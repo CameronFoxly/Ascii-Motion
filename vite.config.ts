@@ -8,6 +8,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@ascii-motion/core": path.resolve(__dirname, "./packages/core/src"),
+      "@ascii-motion/premium": path.resolve(__dirname, "./packages/premium/src"),
     },
   },
   optimizeDeps: {
