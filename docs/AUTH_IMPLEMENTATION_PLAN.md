@@ -505,36 +505,68 @@ $$ language plpgsql security definer;
 - [ ] Set up environment variables
 - [ ] Update .gitignore
 
-### Phase 2: Authentication Foundation 🔨
-**Estimated Time:** 4-6 hours
+### Phase 2: Authentication Foundation ✅
+**Estimated Time:** 4-6 hours  
+**Status:** COMPLETE
 
-- [ ] Create Supabase client utility
-- [ ] Build AuthContext and useAuth hook
-- [ ] Create SignUpDialog component
-- [ ] Create SignInDialog component
-- [ ] Create EmailVerificationDialog
-- [ ] Add auth state to header
-- [ ] Test signup → verify → signin flow
+- [x] Create Supabase client utility
+- [x] Build AuthContext and useAuth hook
+- [x] Create SignUpDialog component
+- [x] Create SignInDialog component
+- [x] Add auth state to header (UserMenu component)
+- [x] Test signup → verify → signin flow
+- [x] Implement manual session restoration from localStorage
+- [x] Work around broken Supabase client with direct REST API
 
-### Phase 3: Cloud Storage System 🔨
-**Estimated Time:** 6-8 hours
+**Notes:** 
+- Session persistence uses manual localStorage management due to Supabase client issues
+- See `SUPABASE_ARCHITECTURE.md` for REST API implementation details
 
-- [ ] Create useProjectSync hook
-- [ ] Implement save to cloud function
-- [ ] Implement load from cloud function
-- [ ] Add auto-save toggle to hamburger menu
-- [ ] Handle localStorage ↔ Supabase sync
-- [ ] Add conflict resolution logic
+### Phase 3: Cloud Storage System ✅
+**Estimated Time:** 6-8 hours  
+**Status:** COMPLETE
 
-### Phase 4: Project Management UI 🔨
-**Estimated Time:** 4-6 hours
+- [x] Create useCloudProject hook (with REST API)
+- [x] Implement save to cloud function
+- [x] Implement load from cloud function
+- [x] Implement list projects function
+- [x] Add "Save to Cloud" to hamburger menu
+- [x] Add "Open from Cloud" to hamburger menu
+- [x] Create SaveToCloudDialog component
+- [x] Create ProjectsDialog component (basic version)
+- [x] Integrate with SessionImporter for loading
+- [x] Integrate with useExportDataCollector for saving
 
-- [ ] Create ProjectsDialog component
-- [ ] Display saved projects list
-- [ ] Add rename project functionality
-- [ ] Add delete project functionality
-- [ ] Add duplicate project functionality
-- [ ] Show storage quota (X/3 projects)
+**Deferred:**
+- [ ] Add auto-save toggle (optional feature)
+- [ ] Handle localStorage ↔ Supabase sync (not needed with cloud-first approach)
+- [ ] Add conflict resolution logic (future enhancement)
+
+### Phase 4: Project Management UI ✅
+**Estimated Time:** 4-6 hours  
+**Status:** COMPLETE
+
+- [x] Create ProjectsDialog component (basic structure)
+- [x] Display saved projects list
+- [x] Add rename project functionality
+- [x] Add delete project functionality  
+- [x] Convert deleteProject() to REST API
+- [x] Convert renameProject() to REST API
+- [x] Show storage quota (X/3 projects)
+- [x] Add upload .asciimtn file feature
+- [x] Add download as .asciimtn feature
+- [x] Add project actions dropdown menu
+- [x] Add inline rename with keyboard support
+- [x] Polish UI with loading states
+- [x] Add empty state when no projects
+- [x] Add relative time formatting
+- [x] Add delete confirmation
+
+**Deferred:**
+- [ ] Add duplicate project functionality (future)
+- [ ] Add project search/filter (future)
+- [ ] Add sort options dropdown (future)
+- [ ] Dynamic tier limits (future)
 
 ### Phase 5: Export Refactoring 🔨
 **Estimated Time:** 2-3 hours

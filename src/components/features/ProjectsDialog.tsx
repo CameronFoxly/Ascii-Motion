@@ -198,7 +198,7 @@ export function ProjectsDialog({
         <DialogHeader>
           <DialogTitle>My Cloud Projects</DialogTitle>
           <DialogDescription>
-            Open, manage, and upload your projects
+            Open, manage, and upload your projects • {projects.length}/3 projects used
           </DialogDescription>
         </DialogHeader>
 

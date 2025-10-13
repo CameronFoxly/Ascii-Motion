@@ -8,23 +8,99 @@
 Files created:
 - `packages/premium/src/cloud/types.ts` - TypeScript interfaces
 - `packages/premium/src/cloud/utils/projectSerializer.ts` - Serialization utilities
-- `packages/premium/src/cloud/useCloudProject.ts` - Main cloud project hook
+- `packages/premium/src/cloud/useCloudProject.ts` - Main cloud project hook (REST API)
 - `packages/premium/src/cloud/index.ts` - Barrel exports
-- `packages/premium/src/cloud/USAGE_EXAMPLE.ts` - Integration guide
+- `packages/premium/src/auth/AuthContext.tsx` - Session management with localStorage workaround
+- `packages/premium/src/auth/lib/supabase.ts` - Supabase client setup
 
 **Features:**
 - ✅ TypeScript interfaces for CloudProject, SessionData, ProjectListItem
 - ✅ Serialization utilities (serialize/deserialize projects)
 - ✅ useCloudProject hook with all core operations:
-  - saveToCloud() - Save/update projects
-  - loadFromCloud() - Load projects with last_opened_at update
-  - listProjects() - List user's projects (RLS enforced)
-  - deleteProject() - Soft delete
-  - renameProject() - Rename projects
+  - saveToCloud() - Save/update projects (REST API)
+  - loadFromCloud() - Load projects with last_opened_at update (REST API)
+  - listProjects() - List user's projects (REST API)
+  - deleteProject() - Soft delete (needs REST API conversion)
+  - renameProject() - Rename projects (needs REST API conversion)
   - uploadSessionFile() - Upload .asciimtn files
   - getProjectForDownload() - Get session data for download
+- ✅ Direct REST API implementation bypassing broken Supabase client
+- ✅ Manual session persistence via localStorage
 
-**Next:** Phase 2 UI Integration
+**Architecture Notes:**
+- Uses direct fetch() calls to Supabase REST API
+- See `docs/SUPABASE_ARCHITECTURE.md` for implementation details
+- Supabase JS client only used for auth, not database operations
+
+### ✅ Phase 2: UI Integration (COMPLETE)
+**Completed:** October 13, 2025
+
+Files created:
+- `packages/premium/src/cloud/components/SaveToCloudDialog.tsx` - Save dialog
+- `packages/premium/src/cloud/components/ProjectsDialog.tsx` - Projects list dialog
+
+Features:
+- ✅ SaveToCloudDialog component with name/description inputs
+- ✅ ProjectsDialog component listing all user projects
+- ✅ HamburgerMenu integration ("Save to Cloud" / "Open from Cloud")
+- ✅ Authentication-gated cloud features
+- ✅ Loading states and error handling
+- ✅ Integration with SessionImporter for loading
+- ✅ Integration with useExportDataCollector for saving
+
+**Next:** Phase 3 - Enhanced Project Management
+
+---
+
+### ✅ Phase 3: Enhanced Project Management (COMPLETE)
+**Completed:** October 13, 2025
+
+**Completed Tasks:**
+- [x] Convert deleteProject() to REST API
+- [x] Convert renameProject() to REST API  
+- [x] Add rename UI in ProjectsDialog
+- [x] Add delete confirmation dialog
+- [x] Add project quota display (X/3 projects)
+- [x] Add upload .asciimtn file button
+- [x] Add download as .asciimtn button
+- [x] Add sort by date (default)
+- [x] Polish empty state UI
+- [x] Add relative time formatting ("2h ago", "3d ago")
+- [x] Add dropdown menu for project actions
+- [x] Add inline rename with Enter/Escape support
+
+**Features:**
+- Full CRUD operations via REST API
+- Upload local .asciimtn files to cloud
+- Download cloud projects as .asciimtn files
+- Rename projects inline
+- Soft delete with confirmation
+- Project count display in dialog header
+- Responsive grid layout (1 column mobile, 2 desktop)
+
+**Deferred:**
+- [ ] Add search/filter functionality (future)
+- [ ] Add project thumbnails/previews (future)
+- [ ] Dynamic quota based on subscription tier (future)
+- [ ] Sort options dropdown (future)
+
+### 📅 Phase 4: Auto-Save & Sync (FUTURE)
+**Status:** Deferred
+
+- [ ] useProjectAutoSave hook
+- [ ] Cloud status indicator in toolbar
+- [ ] Conflict resolution dialog
+- [ ] Offline detection and handling
+- [ ] Background sync queue
+
+### 📅 Phase 5: Advanced Features (FUTURE)
+**Status:** Planning
+
+- [ ] Project versioning
+- [ ] Collaborative editing
+- [ ] Project sharing/publishing
+- [ ] Project templates
+- [ ] Gallery integration
 
 ---
 
