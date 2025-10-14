@@ -51,6 +51,9 @@ import {
   Upload,
   FolderOpen,
   FileText,
+  ChevronDown,
+  ChevronRight,
+  Undo2,
 } from 'lucide-react';
 import { ProjectCanvasPreview } from './ProjectCanvasPreview';
 
@@ -71,19 +74,24 @@ export function ProjectsDialog({
     loading,
     error,
     listProjects,
+    listDeletedProjects,
     loadFromCloud,
     deleteProject,
+    restoreProject,
+    permanentlyDeleteProject,
     renameProject,
     updateDescription,
     uploadSessionFile,
   } = useCloudProject();
 
   const [projects, setProjects] = useState<CloudProject[]>([]);
+  const [deletedProjects, setDeletedProjects] = useState<CloudProject[]>([]);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [editingDescriptionId, setEditingDescriptionId] = useState<string | null>(null);
   const [newDescription, setNewDescription] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [trashExpanded, setTrashExpanded] = useState(false);
 
   // Load projects when dialog opens
   useEffect(() => {
@@ -100,12 +108,16 @@ export function ProjectsDialog({
   }, [error]);
 
   const loadProjectsList = async () => {
-    const data = await listProjects();
-    // Sort by most recently opened first
-    const sorted = data.sort((a, b) => 
+    const activeData = await listProjects();
+    const deletedData = await listDeletedProjects();
+    
+    // Sort active projects by most recently opened first
+    const sortedActive = activeData.sort((a, b) => 
       new Date(b.lastOpenedAt).getTime() - new Date(a.lastOpenedAt).getTime()
     );
-    setProjects(sorted);
+    
+    setProjects(sortedActive);
+    setDeletedProjects(deletedData);
   };
 
   const handleOpenProject = async (project: CloudProject) => {
@@ -174,6 +186,26 @@ export function ProjectsDialog({
   const handleEditDescriptionCancel = () => {
     setEditingDescriptionId(null);
     setNewDescription('');
+  };
+
+  const handleRestoreProject = async (project: CloudProject) => {
+    const success = await restoreProject(project.id);
+    if (success) {
+      console.log(`[ProjectsDialog] Restored "${project.name}"`);
+      await loadProjectsList();
+    }
+  };
+
+  const handlePermanentlyDeleteProject = async (project: CloudProject) => {
+    if (!confirm(`Permanently delete "${project.name}"?\n\nThis action cannot be undone. The project will be removed from the database immediately.`)) {
+      return;
+    }
+
+    const success = await permanentlyDeleteProject(project.id);
+    if (success) {
+      console.log(`[ProjectsDialog] Permanently deleted "${project.name}"`);
+      await loadProjectsList();
+    }
   };
 
   const handleDownloadProject = async (project: CloudProject) => {
@@ -438,6 +470,88 @@ export function ProjectsDialog({
                   </CardFooter>
                 </Card>
               ))}
+            </div>
+          )}
+
+          {/* Trash Section */}
+          {deletedProjects.length > 0 && (
+            <div className="mt-6 border-t border-border/50 pt-4">
+              <button
+                onClick={() => setTrashExpanded(!trashExpanded)}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full"
+              >
+                {trashExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+                <Trash2 className="h-4 w-4" />
+                <span>Trash ({deletedProjects.length})</span>
+              </button>
+              
+              {trashExpanded && (
+                <div className="mt-4 space-y-4">
+                  <p className="text-xs text-muted-foreground italic">
+                    Items in trash removed permanently after 30 days
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {deletedProjects.map((project) => (
+                      <Card key={project.id} className="relative border-border/50 opacity-60">
+                        <CardHeader>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <CardTitle className="text-base">
+                                {project.name}
+                              </CardTitle>
+                              <CardDescription>
+                                {project.sessionData.animation.frames.length} frame{project.sessionData.animation.frames.length !== 1 ? 's' : ''}
+                              </CardDescription>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          {/* Canvas Preview */}
+                          <ProjectCanvasPreview project={project} />
+                          
+                          {/* Deleted Date */}
+                          <div className="flex items-center text-xs text-muted-foreground">
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Deleted {formatDate(project.updatedAt)}
+                          </div>
+                          
+                          {/* Description (read-only) */}
+                          {project.description && (
+                            <div className="text-sm text-muted-foreground mt-2 max-h-[4.5rem] overflow-y-auto">
+                              {project.description}
+                            </div>
+                          )}
+                        </CardContent>
+                        <CardFooter className="flex flex-col gap-2">
+                          <Button
+                            className="w-full"
+                            variant="outline"
+                            onClick={() => handleRestoreProject(project)}
+                            disabled={loading}
+                          >
+                            <Undo2 className="h-4 w-4 mr-2" />
+                            Restore
+                          </Button>
+                          <Button
+                            className="w-full"
+                            variant="destructive"
+                            onClick={() => handlePermanentlyDeleteProject(project)}
+                            disabled={loading}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Permanently Delete
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
