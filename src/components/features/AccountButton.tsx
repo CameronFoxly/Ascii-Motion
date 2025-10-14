@@ -24,6 +24,17 @@ export function AccountButton() {
   const [showSignIn, setShowSignIn] = useState(false);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
 
+  // Handle sign out and reset dialog states
+  const handleSignOut = async () => {
+    // Close all dialogs first
+    setShowSignIn(false);
+    setShowSignUp(false);
+    setShowPasswordReset(false);
+    
+    // Then sign out
+    await signOut();
+  };
+
   // Show loading state
   if (loading) {
     return (
@@ -96,7 +107,7 @@ export function AccountButton() {
               <Button
                 variant="default"
                 size="sm"
-                className="h-8 w-8 p-0 bg-primary text-primary-foreground"
+                className="h-8 w-8 p-0 text-sm font-medium"
               >
                 {firstLetter}
               </Button>
@@ -123,7 +134,7 @@ export function AccountButton() {
             <span className="text-muted-foreground">Account settings (coming soon)</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => signOut()}>
+          <DropdownMenuItem onClick={handleSignOut}>
             <LogOut className="mr-2 h-4 w-4" />
             <span>Sign out</span>
           </DropdownMenuItem>
