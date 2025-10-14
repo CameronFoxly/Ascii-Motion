@@ -62,8 +62,15 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
 
     setSaving(true);
     try {
+      // Add name and description to export data
+      const dataWithMetadata = {
+        ...exportData,
+        name: projectName.trim(),
+        description: description.trim() || undefined,
+      };
+      
       const project = await handleSaveToCloud(
-        exportData,
+        dataWithMetadata,
         projectName.trim(),
         description.trim() || undefined
       );

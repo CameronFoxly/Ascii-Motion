@@ -326,6 +326,8 @@ export class ExportRenderer {
       // Create session data structure
       const sessionData = {
         version: '1.0.0',
+        name: data.name,
+        description: data.description,
         metadata: settings.includeMetadata ? {
           exportedAt: new Date().toISOString(),
           exportVersion: '1.0.0',

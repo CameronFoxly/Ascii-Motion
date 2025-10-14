@@ -26,6 +26,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Card,
   CardContent,
@@ -49,6 +50,7 @@ import {
   Edit, 
   Upload,
   FolderOpen,
+  FileText,
 } from 'lucide-react';
 
 interface ProjectsDialogProps {
@@ -71,12 +73,15 @@ export function ProjectsDialog({
     loadFromCloud,
     deleteProject,
     renameProject,
+    updateDescription,
     uploadSessionFile,
   } = useCloudProject();
 
   const [projects, setProjects] = useState<CloudProject[]>([]);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
+  const [editingDescriptionId, setEditingDescriptionId] = useState<string | null>(null);
+  const [newDescription, setNewDescription] = useState('');
   const [uploading, setUploading] = useState(false);
 
   // Load projects when dialog opens
@@ -145,6 +150,25 @@ export function ProjectsDialog({
   const handleRenameCancel = () => {
     setRenamingId(null);
     setNewName('');
+  };
+
+  const handleEditDescriptionStart = (project: CloudProject) => {
+    setEditingDescriptionId(project.id);
+    setNewDescription(project.description || '');
+  };
+
+  const handleEditDescriptionSubmit = async (projectId: string) => {
+    const success = await updateDescription(projectId, newDescription.trim());
+    if (success) {
+      console.log('[ProjectsDialog] Description updated');
+      setEditingDescriptionId(null);
+      await loadProjectsList();
+    }
+  };
+
+  const handleEditDescriptionCancel = () => {
+    setEditingDescriptionId(null);
+    setNewDescription('');
   };
 
   const handleDownloadProject = async (project: CloudProject) => {
@@ -317,6 +341,10 @@ export function ProjectsDialog({
                                 <Edit className="h-4 w-4 mr-2" />
                                 Rename
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditDescriptionStart(project)}>
+                                <FileText className="h-4 w-4 mr-2" />
+                                Edit Description
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleDownloadProject(project)}>
                                 <Download className="h-4 w-4 mr-2" />
                                 Download
@@ -339,9 +367,39 @@ export function ProjectsDialog({
                       <Folder className="h-3 w-3 mr-1" />
                       Last opened {formatDate(project.lastOpenedAt)}
                     </div>
-                    {project.description && (
+                    {editingDescriptionId === project.id ? (
+                      <div className="mt-2 space-y-2">
+                        <Textarea
+                          value={newDescription}
+                          onChange={(e) => setNewDescription(e.target.value)}
+                          placeholder="Enter description..."
+                          rows={2}
+                          autoFocus
+                          className="text-sm"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleEditDescriptionSubmit(project.id)}
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={handleEditDescriptionCancel}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : project.description ? (
                       <p className="text-sm text-muted-foreground mt-2">
                         {project.description}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground/50 mt-2 italic">
+                        No description
                       </p>
                     )}
                   </CardContent>

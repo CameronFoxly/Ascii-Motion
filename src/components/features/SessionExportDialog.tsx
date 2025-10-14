@@ -7,6 +7,7 @@ import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Switch } from '../ui/switch';
 import { Save, Download, Settings, Loader2 } from 'lucide-react';
+import { Textarea } from '../ui/textarea';
 import { useExportStore } from '../../stores/exportStore';
 import { useExportDataCollector } from '../../utils/exportDataCollector';
 import { ExportRenderer } from '../../utils/exportRenderer';
@@ -28,6 +29,7 @@ export const SessionExportDialog: React.FC = () => {
   const exportData = useExportDataCollector();
 
   const [filename, setFilename] = useState('ascii-motion-project');
+  const [description, setDescription] = useState('');
 
   const isOpen = showExportModal && activeFormat === 'session';
 
@@ -49,8 +51,15 @@ export const SessionExportDialog: React.FC = () => {
         setProgress(progress);
       });
 
+      // Add name and description to export data
+      const dataWithMetadata = {
+        ...exportData,
+        name: filename.trim(),
+        description: description.trim() || undefined,
+      };
+
       // Perform the export
-      await renderer.exportSession(exportData, sessionSettings, filename);
+      await renderer.exportSession(dataWithMetadata, sessionSettings, filename);
       
       // Close dialog on success
       handleClose();
@@ -79,20 +88,34 @@ export const SessionExportDialog: React.FC = () => {
 
         <div className="flex flex-col max-h-[80vh]">
           {/* Sticky File Name Input */}
-          <div className="sticky top-0 z-10 bg-background px-6 py-4 border-b space-y-2">
-            <Label htmlFor="filename">File Name</Label>
-            <div className="flex">
-              <Input
-                id="filename"
-                value={filename}
-                onChange={(e) => setFilename(e.target.value)}
-                placeholder="Enter filename"
-                className="flex-1"
+          <div className="sticky top-0 z-10 bg-background px-6 py-4 border-b space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="filename">File Name</Label>
+              <div className="flex">
+                <Input
+                  id="filename"
+                  value={filename}
+                  onChange={(e) => setFilename(e.target.value)}
+                  placeholder="Enter filename"
+                  className="flex-1"
+                  disabled={isExporting}
+                />
+                <Badge variant="outline" className="ml-2 self-center">
+                  .asciimtn
+                </Badge>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (Optional)</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="A brief description of your project..."
+                rows={2}
                 disabled={isExporting}
               />
-              <Badge variant="outline" className="ml-2 self-center">
-                .asciimtn
-              </Badge>
             </div>
           </div>
 

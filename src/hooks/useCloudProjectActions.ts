@@ -14,10 +14,11 @@
  * - Converts between app's ExportDataBundle and premium's SessionData format
  */
 
-import { useState, useCallback } from 'react';
-import { useCloudProject, type SessionData } from '@ascii-motion/premium';
-import { saveAs } from 'file-saver';
+import { useCallback, useState } from 'react';
+import { useCloudProject } from '@ascii-motion/premium';
+import type { CloudProject, SessionData } from '@ascii-motion/premium';
 import type { ExportDataBundle } from '../types/export';
+import { saveAs } from 'file-saver';
 import { useSessionImporter } from '../utils/sessionImporter';
 
 export function useCloudProjectActions() {
@@ -34,6 +35,8 @@ export function useCloudProjectActions() {
   const createSessionData = useCallback((data: ExportDataBundle): SessionData => {
     return {
       version: '1.0.0',
+      name: data.name,
+      description: data.description,
       metadata: {
         exportedAt: new Date().toISOString(),
         exportVersion: '1.0.0',
@@ -157,12 +160,31 @@ export function useCloudProjectActions() {
 
   /**
    * Download cloud project as .asciimtn file
+   * Uses the same export format as local session export for consistency
    */
   const handleDownloadProject = useCallback(
     async (_projectId: string, projectName: string, sessionData: unknown) => {
       try {
-        // Create blob and download
-        const blob = new Blob([JSON.stringify(sessionData, null, 2)], {
+        const typedSessionData = sessionData as SessionData;
+        
+        // Use the same export structure as exportRenderer.exportSession
+        // This ensures consistency between local exports and cloud downloads
+        const exportData = {
+          version: '1.0.0',
+          name: typedSessionData.name || projectName,
+          description: typedSessionData.description,
+          metadata: typedSessionData.metadata,
+          canvas: typedSessionData.canvas,
+          animation: typedSessionData.animation,
+          tools: typedSessionData.tools,
+          ui: typedSessionData.ui,
+          typography: typedSessionData.typography,
+          palettes: typedSessionData.palettes,
+          characterPalettes: typedSessionData.characterPalettes,
+        };
+        
+        // Create blob and download with consistent formatting
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], {
           type: 'application/json',
         });
         saveAs(blob, `${projectName}.asciimtn`);
