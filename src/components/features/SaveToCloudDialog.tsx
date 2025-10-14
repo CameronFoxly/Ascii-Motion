@@ -29,7 +29,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
-import { Loader2, Cloud } from 'lucide-react';
+import { Loader2, Cloud, CloudUpload } from 'lucide-react';
 
 interface SaveToCloudDialogProps {
   open: boolean;
@@ -90,7 +90,7 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] border-border/50">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Cloud className="h-5 w-5" />
@@ -133,12 +133,12 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
           <Button onClick={handleSave} disabled={saving}>
             {saving ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
                 Saving...
               </>
             ) : (
               <>
-                <Cloud className="h-4 w-4 mr-2" />
+                <CloudUpload className="h-4 w-4 mr-1.5" />
                 Save
               </>
             )}

@@ -96,7 +96,7 @@ export function AccountButton() {
   // Signed In State
   const email = user.email || 'User';
   const firstLetter = email[0].toUpperCase();
-  const tierName = profile?.subscription_tier_id ? 'Pro Plan' : 'Free Plan'; // Will be updated when tier data is available
+  const tierName = profile?.subscription_tier?.display_name || 'Free Plan';
 
   return (
     <TooltipProvider>
