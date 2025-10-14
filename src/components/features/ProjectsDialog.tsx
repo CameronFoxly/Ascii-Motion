@@ -52,6 +52,7 @@ import {
   FolderOpen,
   FileText,
 } from 'lucide-react';
+import { ProjectCanvasPreview } from './ProjectCanvasPreview';
 
 interface ProjectsDialogProps {
   open: boolean;
@@ -100,7 +101,11 @@ export function ProjectsDialog({
 
   const loadProjectsList = async () => {
     const data = await listProjects();
-    setProjects(data);
+    // Sort by most recently opened first
+    const sorted = data.sort((a, b) => 
+      new Date(b.lastOpenedAt).getTime() - new Date(a.lastOpenedAt).getTime()
+    );
+    setProjects(sorted);
   };
 
   const handleOpenProject = async (project: CloudProject) => {
@@ -226,7 +231,7 @@ export function ProjectsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col border-border/50">
         <DialogHeader>
           <DialogTitle>My Cloud Projects</DialogTitle>
           <DialogDescription>
@@ -282,9 +287,9 @@ export function ProjectsDialog({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {projects.map((project) => (
-                <Card key={project.id} className="relative">
+                <Card key={project.id} className="relative border-border/50">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       {renamingId === project.id ? (
@@ -319,7 +324,11 @@ export function ProjectsDialog({
                       ) : (
                         <>
                           <div className="flex-1">
-                            <CardTitle className="text-base">
+                            <CardTitle 
+                              className="text-base cursor-pointer hover:text-primary transition-colors"
+                              onClick={() => handleRenameStart(project)}
+                              title="Click to rename"
+                            >
                               {project.name}
                             </CardTitle>
                             <CardDescription>
@@ -363,10 +372,16 @@ export function ProjectsDialog({
                     </div>
                   </CardHeader>
                   <CardContent>
+                    {/* Canvas Preview */}
+                    <ProjectCanvasPreview project={project} />
+                    
+                    {/* Last Opened */}
                     <div className="flex items-center text-xs text-muted-foreground">
                       <Folder className="h-3 w-3 mr-1" />
                       Last opened {formatDate(project.lastOpenedAt)}
                     </div>
+                    
+                    {/* Description */}
                     {editingDescriptionId === project.id ? (
                       <div className="mt-2 space-y-2">
                         <Textarea
@@ -394,11 +409,19 @@ export function ProjectsDialog({
                         </div>
                       </div>
                     ) : project.description ? (
-                      <p className="text-sm text-muted-foreground mt-2">
+                      <div 
+                        className="text-sm text-muted-foreground mt-2 max-h-[4.5rem] overflow-y-auto cursor-pointer hover:text-primary/80 transition-colors"
+                        onClick={() => handleEditDescriptionStart(project)}
+                        title="Click to edit description"
+                      >
                         {project.description}
-                      </p>
+                      </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground/50 mt-2 italic">
+                      <p 
+                        className="text-sm text-muted-foreground/50 mt-2 italic cursor-pointer hover:text-muted-foreground transition-colors"
+                        onClick={() => handleEditDescriptionStart(project)}
+                        title="Click to add description"
+                      >
                         No description
                       </p>
                     )}
