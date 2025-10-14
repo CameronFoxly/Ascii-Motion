@@ -41,6 +41,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { 
   Loader2, 
   MoreVertical, 
@@ -54,6 +60,8 @@ import {
   ChevronDown,
   ChevronRight,
   Undo2,
+  Check,
+  X,
 } from 'lucide-react';
 import { ProjectCanvasPreview } from './ProjectCanvasPreview';
 
@@ -97,6 +105,19 @@ export function ProjectsDialog({
   useEffect(() => {
     if (open) {
       loadProjectsList();
+    }
+  }, [open]);
+
+  // Reset dialog state when closed
+  useEffect(() => {
+    if (!open) {
+      // Collapse trash
+      setTrashExpanded(false);
+      // Cancel any edit operations
+      setRenamingId(null);
+      setNewName('');
+      setEditingDescriptionId(null);
+      setNewDescription('');
     }
   }, [open]);
 
@@ -265,7 +286,7 @@ export function ProjectsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col border-border/50">
         <DialogHeader>
-          <DialogTitle>My Cloud Projects</DialogTitle>
+          <DialogTitle>My Projects</DialogTitle>
           <DialogDescription>
             Open, manage, and upload your projects • {projects.length}/3 projects used
           </DialogDescription>
@@ -273,10 +294,9 @@ export function ProjectsDialog({
 
         {/* Upload Button */}
         <div className="flex gap-2">
-          <Label htmlFor="upload-file" className="flex-1">
+          <Label htmlFor="upload-file">
             <Button
               variant="outline"
-              className="w-full"
               disabled={uploading || loading}
               asChild
             >
@@ -321,11 +341,11 @@ export function ProjectsDialog({
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {projects.map((project) => (
-                <Card key={project.id} className="relative border-border/50">
+                <Card key={project.id} className="relative border-border/50 flex flex-col">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       {renamingId === project.id ? (
-                        <div className="flex-1 flex gap-2">
+                        <div className="flex-1 flex gap-2 items-center">
                           <Input
                             value={newName}
                             onChange={(e) => setNewName(e.target.value)}
@@ -339,25 +359,45 @@ export function ProjectsDialog({
                             autoFocus
                             className="h-8"
                           />
-                          <Button
-                            size="sm"
-                            onClick={() => handleRenameSubmit(project.id)}
-                          >
-                            Save
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={handleRenameCancel}
-                          >
-                            Cancel
-                          </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="icon"
+                                  className="h-8 w-8 shrink-0"
+                                  onClick={() => handleRenameSubmit(project.id)}
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Save</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 shrink-0"
+                                  onClick={handleRenameCancel}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Cancel</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       ) : (
                         <>
                           <div className="flex-1">
                             <CardTitle 
-                              className="text-base cursor-pointer hover:text-primary transition-colors"
+                              className="text-base cursor-pointer hover:text-primary transition-colors line-clamp-3"
                               onClick={() => handleRenameStart(project)}
                               title="Click to rename"
                             >
@@ -458,7 +498,7 @@ export function ProjectsDialog({
                       </p>
                     )}
                   </CardContent>
-                  <CardFooter>
+                  <CardFooter className="mt-auto">
                     <Button
                       className="w-full"
                       onClick={() => handleOpenProject(project)}
@@ -497,11 +537,11 @@ export function ProjectsDialog({
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {deletedProjects.map((project) => (
-                      <Card key={project.id} className="relative border-border/50 opacity-60">
+                      <Card key={project.id} className="relative border-border/50 opacity-60 flex flex-col">
                         <CardHeader>
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <CardTitle className="text-base">
+                              <CardTitle className="text-base line-clamp-3">
                                 {project.name}
                               </CardTitle>
                               <CardDescription>
@@ -527,7 +567,7 @@ export function ProjectsDialog({
                             </div>
                           )}
                         </CardContent>
-                        <CardFooter className="flex flex-col gap-2">
+                        <CardFooter className="flex flex-col gap-2 mt-auto">
                           <Button
                             className="w-full"
                             variant="outline"
