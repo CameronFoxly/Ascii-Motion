@@ -15,7 +15,7 @@
 
 import { useState, useEffect } from 'react';
 import { useCloudProject } from '@ascii-motion/premium';
-import type { ProjectListItem } from '@ascii-motion/premium';
+import type { CloudProject } from '@ascii-motion/premium';
 import {
   Dialog,
   DialogContent,
@@ -74,7 +74,7 @@ export function ProjectsDialog({
     uploadSessionFile,
   } = useCloudProject();
 
-  const [projects, setProjects] = useState<ProjectListItem[]>([]);
+  const [projects, setProjects] = useState<CloudProject[]>([]);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -98,7 +98,7 @@ export function ProjectsDialog({
     setProjects(data);
   };
 
-  const handleOpenProject = async (project: ProjectListItem) => {
+  const handleOpenProject = async (project: CloudProject) => {
     try {
       const cloudProject = await loadFromCloud(project.id);
       if (cloudProject) {
@@ -111,7 +111,7 @@ export function ProjectsDialog({
     }
   };
 
-  const handleDeleteProject = async (project: ProjectListItem) => {
+  const handleDeleteProject = async (project: CloudProject) => {
     if (!confirm(`Delete "${project.name}"? This cannot be undone.`)) {
       return;
     }
@@ -123,7 +123,7 @@ export function ProjectsDialog({
     }
   };
 
-  const handleRenameStart = (project: ProjectListItem) => {
+  const handleRenameStart = (project: CloudProject) => {
     setRenamingId(project.id);
     setNewName(project.name);
   };
@@ -147,7 +147,7 @@ export function ProjectsDialog({
     setNewName('');
   };
 
-  const handleDownloadProject = async (project: ProjectListItem) => {
+  const handleDownloadProject = async (project: CloudProject) => {
     try {
       const cloudProject = await loadFromCloud(project.id);
       if (cloudProject) {
@@ -299,7 +299,7 @@ export function ProjectsDialog({
                               {project.name}
                             </CardTitle>
                             <CardDescription>
-                              {project.frameCount} frame{project.frameCount !== 1 ? 's' : ''}
+                              {project.sessionData.animation.frames.length} frame{project.sessionData.animation.frames.length !== 1 ? 's' : ''}
                             </CardDescription>
                           </div>
                           <DropdownMenu>

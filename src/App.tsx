@@ -5,7 +5,7 @@ import { CanvasProvider } from './contexts/CanvasContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { AuthProvider } from '@ascii-motion/premium'
 import { ThemeToggle } from './components/common/ThemeToggle'
-import { AuthButtons } from './components/features/AuthButtons'
+import { AccountButton } from './components/features/AccountButton'
 import { AsciiTypePanel } from './components/features/AsciiTypePanel'
 import { AsciiBoxPanel } from './components/features/AsciiBoxPanel'
 import { AsciiTypePreviewDialog } from './components/features/AsciiTypePreviewDialog'
@@ -87,9 +87,9 @@ function AppContent() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <AuthButtons />
                 <ExportImportButtons />
                 <ThemeToggle />
+                <AccountButton />
               </div>
             </div>
           </div>
