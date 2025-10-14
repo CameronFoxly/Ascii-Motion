@@ -1,8 +1,16 @@
 /**
- * ASCII Motion
+ * ASCII Motion - PREMIUM FEATURE
  * Cloud Projects Dialog
  * 
  * Manages cloud projects - list, open, delete, rename, upload, download
+ * 
+ * @premium This component requires authentication and uses premium cloud storage features
+ * @requires @ascii-motion/premium package
+ * 
+ * Architecture Note:
+ * - UI Component: Lives in main app for design system cohesion
+ * - Business Logic: Imported from @ascii-motion/premium (useCloudProject hook)
+ * - This keeps UI components with shadcn/ui design system while logic stays in premium package
  */
 
 import { useState, useEffect } from 'react';

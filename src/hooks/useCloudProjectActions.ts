@@ -1,9 +1,17 @@
 /**
- * ASCII Motion
+ * ASCII Motion - PREMIUM FEATURE
  * Cloud Project Actions Hook
  * 
  * Handles save to cloud and load from cloud operations
  * Simplified version using session export/import
+ * 
+ * @premium This hook uses premium cloud storage features
+ * @requires @ascii-motion/premium package
+ * 
+ * Architecture Note:
+ * - Integration Hook: Lives in main app to bridge app state with premium features
+ * - Uses: useCloudProject from @ascii-motion/premium for storage operations
+ * - Converts between app's ExportDataBundle and premium's SessionData format
  */
 
 import { useState, useCallback } from 'react';
