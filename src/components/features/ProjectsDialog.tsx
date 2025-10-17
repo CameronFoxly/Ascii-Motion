@@ -560,87 +560,109 @@ export function ProjectsDialog({
             </div>
           )}
 
-          {/* Trash Section - Only show for Pro users */}
-          {isProUser() && deletedProjects.length > 0 && (
-            <div className="mt-6 border-t border-border/50 pt-4">
-              <button
-                onClick={() => setTrashExpanded(!trashExpanded)}
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full"
-              >
-                {trashExpanded ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-                <Trash2 className="h-4 w-4" />
-                <span>Trash ({deletedProjects.length})</span>
-              </button>
-              
-              {trashExpanded && (
-                <div className="mt-4 space-y-4">
-                  <p className="text-xs text-muted-foreground italic">
-                    Items in trash removed permanently after 30 days
-                  </p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {deletedProjects.map((project) => (
-                      <Card key={project.id} className="relative border-border/50 opacity-60 flex flex-col">
-                        <CardHeader>
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <CardTitle className="text-base line-clamp-3">
-                                {project.name}
-                              </CardTitle>
-                              <CardDescription>
-                                {project.sessionData.animation.frames.length} frame{project.sessionData.animation.frames.length !== 1 ? 's' : ''}
-                              </CardDescription>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          {/* Canvas Preview */}
-                          <ProjectCanvasPreview project={project} />
-                          
-                          {/* Deleted Date */}
-                          <div className="flex items-center text-xs text-muted-foreground">
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Deleted {formatDate(project.updatedAt)}
-                          </div>
-                          
-                          {/* Description (read-only) */}
-                          {project.description && (
-                            <div className="text-sm text-muted-foreground mt-2 max-h-[4.5rem] overflow-y-auto">
-                              {project.description}
-                            </div>
-                          )}
-                        </CardContent>
-                        <CardFooter className="flex flex-col gap-2 mt-auto">
-                          <Button
-                            className="w-full"
-                            variant="outline"
-                            onClick={() => handleRestoreProject(project)}
-                            disabled={loading}
-                          >
-                            <Undo2 className="h-4 w-4 mr-2" />
-                            Restore
-                          </Button>
-                          <Button
-                            className="w-full"
-                            variant="destructive"
-                            onClick={() => handlePermanentlyDeleteProject(project)}
-                            disabled={loading}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Permanently Delete
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
+          {/* Trash Section - Visible to all users */}
+          <div className="mt-6 border-t border-border/50 pt-4">
+            <button
+              onClick={() => setTrashExpanded(!trashExpanded)}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full"
+            >
+              {trashExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
               )}
-            </div>
-          )}
+              <Trash2 className="h-4 w-4" />
+              <span>Trash {isProUser() && deletedProjects.length > 0 && `(${deletedProjects.length})`}</span>
+            </button>
+            
+            {trashExpanded && (
+              <div className="mt-4 space-y-4">
+                {isProUser() ? (
+                  // Pro users: Show deleted projects or empty state
+                  deletedProjects.length > 0 ? (
+                    <>
+                      <p className="text-xs text-muted-foreground italic">
+                        Items in trash removed permanently after 30 days
+                      </p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {deletedProjects.map((project) => (
+                          <Card key={project.id} className="relative border-border/50 opacity-60 flex flex-col">
+                            <CardHeader>
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <CardTitle className="text-base line-clamp-3">
+                                    {project.name}
+                                  </CardTitle>
+                                  <CardDescription>
+                                    {project.sessionData.animation.frames.length} frame{project.sessionData.animation.frames.length !== 1 ? 's' : ''}
+                                  </CardDescription>
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent>
+                              {/* Canvas Preview */}
+                              <ProjectCanvasPreview project={project} />
+                              
+                              {/* Deleted Date */}
+                              <div className="flex items-center text-xs text-muted-foreground">
+                                <Trash2 className="h-3 w-3 mr-1" />
+                                Deleted {formatDate(project.updatedAt)}
+                              </div>
+                              
+                              {/* Description (read-only) */}
+                              {project.description && (
+                                <div className="text-sm text-muted-foreground mt-2 max-h-[4.5rem] overflow-y-auto">
+                                  {project.description}
+                                </div>
+                              )}
+                            </CardContent>
+                            <CardFooter className="flex flex-col gap-2 mt-auto">
+                              <Button
+                                className="w-full"
+                                variant="outline"
+                                onClick={() => handleRestoreProject(project)}
+                                disabled={loading}
+                              >
+                                <Undo2 className="h-4 w-4 mr-2" />
+                                Restore
+                              </Button>
+                              <Button
+                                className="w-full"
+                                variant="destructive"
+                                onClick={() => handlePermanentlyDeleteProject(project)}
+                                disabled={loading}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Permanently Delete
+                              </Button>
+                            </CardFooter>
+                          </Card>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <Trash2 className="h-12 w-12 text-muted-foreground mb-2 opacity-50" />
+                      <p className="text-sm text-muted-foreground">Trash is empty</p>
+                    </div>
+                  )
+                ) : (
+                  // Free users: Show upgrade message
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Trash2 className="h-12 w-12 text-muted-foreground mb-3 opacity-50" />
+                    <p className="text-sm font-medium text-foreground mb-1">
+                      Restoring deleted files from trash
+                    </p>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Available to Pro users
+                    </p>
+                    <Badge variant="secondary">Coming Soon</Badge>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </DialogContent>
 
