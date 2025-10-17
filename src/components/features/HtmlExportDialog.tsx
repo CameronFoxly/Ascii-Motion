@@ -210,7 +210,7 @@ export const HtmlExportDialog: React.FC = () => {
             </Card>
 
             {/* Info Card */}
-            <Card className="bg-muted/50">
+            <Card className="bg-muted/50 border-border/50">
               <CardContent className="pt-4">
                 <div className="text-xs text-muted-foreground">
                   <div className="font-medium mb-2">HTML Export Features:</div>

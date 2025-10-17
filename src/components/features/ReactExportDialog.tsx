@@ -208,7 +208,7 @@ export const ReactExportDialog: React.FC = () => {
 
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-            <Card>
+            <Card className="border-border/50">
               <CardContent className="pt-4 space-y-4">
                 <div className="flex items-center gap-2">
                   <Settings className="w-4 h-4" />
@@ -258,7 +258,7 @@ export const ReactExportDialog: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-border/50">
               <CardContent className="pt-4 space-y-4">
                 <div className="flex items-center gap-2">
                   <Copy className="w-4 h-4" />
@@ -309,7 +309,7 @@ export const ReactExportDialog: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-border/50">
               <CardContent className="pt-4 space-y-3">
                 <span className="text-sm font-medium">Export Summary</span>
                 <Separator className="bg-border/50" />

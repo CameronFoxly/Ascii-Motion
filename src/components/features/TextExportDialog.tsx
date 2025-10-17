@@ -126,7 +126,7 @@ export const TextExportDialog: React.FC = () => {
 
           {/* Scrollable Settings */}
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-            <Card>
+            <Card className="border-border/50">
               <CardContent className="pt-4 space-y-4">
                 <div className="flex items-center gap-2 mb-1">
                   <Settings className="w-4 h-4" />
@@ -216,7 +216,7 @@ export const TextExportDialog: React.FC = () => {
             </Card>
 
             {/* Export Info */}
-            <Card>
+            <Card className="border-border/50">
               <CardContent className="pt-4">
                 <h4 className="text-sm font-medium mb-3">Export Details</h4>
                 <div className="space-y-2 text-xs text-muted-foreground">

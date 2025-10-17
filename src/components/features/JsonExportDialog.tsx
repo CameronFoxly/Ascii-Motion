@@ -115,7 +115,7 @@ export const JsonExportDialog: React.FC = () => {
 
           {/* Scrollable Settings */}
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-            <Card>
+            <Card className="border-border/50">
               <CardContent className="pt-4 space-y-4">
                 <div className="flex items-center gap-2">
                   <Settings className="w-4 h-4" />
@@ -170,7 +170,7 @@ export const JsonExportDialog: React.FC = () => {
             </Card>
 
             {/* Info Card */}
-            <Card className="bg-muted/50">
+            <Card className="bg-muted/50 border-border/50">
               <CardContent className="pt-4">
                 <div className="text-xs text-muted-foreground">
                   <div className="font-medium mb-2">JSON Export Format:</div>
