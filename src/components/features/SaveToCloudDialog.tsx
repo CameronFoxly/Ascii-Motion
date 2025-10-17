@@ -19,6 +19,7 @@ import type { UserProfile } from '@ascii-motion/premium';
 import { useCloudProjectActions } from '../../hooks/useCloudProjectActions';
 import { useExportDataCollector } from '../../utils/exportDataCollector';
 import { useProjectMetadataStore } from '../../stores/projectMetadataStore';
+import { useCloudDialogState } from '../../hooks/useCloudDialogState';
 import {
   Dialog,
   DialogContent,
@@ -45,6 +46,7 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
   const { handleSaveToCloud, currentProjectName, currentProjectId } = useCloudProjectActions();
   const { getUserProfile, listProjects } = useCloudProject();
   const { projectName: storedProjectName, projectDescription: storedProjectDescription } = useProjectMetadataStore();
+  const { setShowProjectsDialog } = useCloudDialogState();
   
   const [projectName, setProjectName] = useState(storedProjectName || currentProjectName);
   const [description, setDescription] = useState(storedProjectDescription || '');
@@ -203,7 +205,8 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
         onOpenChange={setShowUpgradeDialog}
         onManageProjects={() => {
           setShowUpgradeDialog(false);
-          // Could optionally open projects dialog here
+          onOpenChange(false);
+          setShowProjectsDialog(true);
         }}
         currentProjects={projectCount}
         maxProjects={userProfile?.subscriptionTier?.maxProjects === -1 ? 3 : userProfile?.subscriptionTier?.maxProjects || 3}

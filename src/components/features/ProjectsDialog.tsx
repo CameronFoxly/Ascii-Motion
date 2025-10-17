@@ -332,8 +332,8 @@ export function ProjectsDialog({
             </p>
             {!isProUser() && (
               <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <Badge variant="secondary">Coming Soon</Badge>
                 <span>Upgrade to Pro for unlimited storage</span>
+                <Badge variant="secondary">Coming Soon</Badge>
               </div>
             )}
           </div>

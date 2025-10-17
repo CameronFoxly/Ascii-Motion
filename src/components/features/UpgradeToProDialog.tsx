@@ -39,10 +39,12 @@ export function UpgradeToProDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] border-border/50">
         <DialogHeader>
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-purple-500" />
-            <DialogTitle>Upgrade to Pro</DialogTitle>
-            <Badge variant="secondary" className="ml-auto">Coming Soon</Badge>
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-purple-500" />
+              <DialogTitle>Upgrade to Pro</DialogTitle>
+              <Badge variant="secondary" className="ml-2">Coming Soon</Badge>
+            </div>
           </div>
           <DialogDescription className="pt-2">
             You've reached your free storage limit
@@ -55,7 +57,7 @@ export function UpgradeToProDialog({
           </div>
 
           <div className="rounded-lg border border-border/50 bg-muted/50 p-4 space-y-2">
-            <h4 className="font-semibold text-sm">Pro includes:</h4>
+            <h4 className="font-semibold text-sm">Pro will include:</h4>
             <ul className="text-sm space-y-1.5 text-muted-foreground">
               <li className="flex items-start gap-2">
                 <span className="text-purple-500">✓</span>
@@ -67,7 +69,7 @@ export function UpgradeToProDialog({
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-purple-500">✓</span>
-                <span>Version history (coming soon)</span>
+                <span>Version history</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-purple-500">✓</span>
