@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { validateProjectName, validateProjectDescription, sanitizeString } from '@ascii-motion/premium';
 import {
   Dialog,
   DialogContent,
@@ -32,6 +33,8 @@ export function ProjectSettingsDialog() {
   const [description, setDescription] = useState(projectDescription);
   const [width, setWidth] = useState(canvasWidth);
   const [height, setHeight] = useState(canvasHeight);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [descriptionError, setDescriptionError] = useState<string | null>(null);
 
   // Sync form with store when dialog opens
   useEffect(() => {
@@ -44,8 +47,25 @@ export function ProjectSettingsDialog() {
   }, [showProjectSettingsDialog, projectName, projectDescription, canvasWidth, canvasHeight]);
 
   const handleSave = () => {
-    if (!name.trim()) {
-      alert('Please enter a project name');
+    // Clear previous errors
+    setNameError(null);
+    setDescriptionError(null);
+    
+    // Sanitize inputs
+    const sanitizedName = sanitizeString(name);
+    const sanitizedDescription = sanitizeString(description);
+    
+    // Validate project name
+    const nameValidation = validateProjectName(sanitizedName);
+    if (!nameValidation.valid) {
+      setNameError(nameValidation.error || 'Invalid project name');
+      return;
+    }
+    
+    // Validate description
+    const descValidation = validateProjectDescription(sanitizedDescription);
+    if (!descValidation.valid) {
+      setDescriptionError(descValidation.error || 'Invalid description');
       return;
     }
 
@@ -60,8 +80,8 @@ export function ProjectSettingsDialog() {
     }
 
     // Update project metadata
-    setProjectName(name.trim());
-    setProjectDescription(description.trim());
+    setProjectName(sanitizedName);
+    setProjectDescription(sanitizedDescription);
     
     // Update canvas size if changed
     if (sizeChanged) {
@@ -102,25 +122,49 @@ export function ProjectSettingsDialog() {
         <div className="grid gap-4 py-4">
           {/* Project Name */}
           <div className="grid gap-2">
-            <Label htmlFor="settings-project-name">Project name</Label>
+            <Label htmlFor="settings-project-name">
+              Project name
+              <span className="text-xs text-muted-foreground ml-2">
+                ({name.length}/100)
+              </span>
+            </Label>
             <Input
               id="settings-project-name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                setNameError(null);
+              }}
               placeholder="Enter project name"
+              className={nameError ? 'border-destructive' : ''}
             />
+            {nameError && (
+              <p className="text-sm text-destructive">{nameError}</p>
+            )}
           </div>
 
           {/* Description */}
           <div className="grid gap-2">
-            <Label htmlFor="settings-project-description">Description (optional)</Label>
+            <Label htmlFor="settings-project-description">
+              Description (optional)
+              <span className="text-xs text-muted-foreground ml-2">
+                ({description.length}/500)
+              </span>
+            </Label>
             <Textarea
               id="settings-project-description"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                setDescriptionError(null);
+              }}
               placeholder="Add a description for your project"
               rows={3}
+              className={descriptionError ? 'border-destructive' : ''}
             />
+            {descriptionError && (
+              <p className="text-sm text-destructive">{descriptionError}</p>
+            )}
           </div>
 
           {/* Canvas Size */}

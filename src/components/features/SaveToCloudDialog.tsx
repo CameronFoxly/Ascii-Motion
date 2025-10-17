@@ -14,7 +14,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useAuth, useCloudProject } from '@ascii-motion/premium';
+import { useAuth, useCloudProject, validateProjectName, validateProjectDescription, sanitizeString } from '@ascii-motion/premium';
 import type { UserProfile } from '@ascii-motion/premium';
 import { useCloudProjectActions } from '../../hooks/useCloudProjectActions';
 import { useExportDataCollector } from '../../utils/exportDataCollector';
@@ -54,6 +54,8 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [projectCount, setProjectCount] = useState(0);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [descriptionError, setDescriptionError] = useState<string | null>(null);
 
   // Sync with projectMetadataStore when dialog opens
   useEffect(() => {
@@ -84,9 +86,27 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
   const handleSave = async () => {
     console.log('[SaveToCloudDialog] Save button clicked');
     
-    if (!projectName.trim()) {
-      console.warn('[SaveToCloudDialog] Project name is empty');
-      alert('Please enter a project name');
+    // Clear previous errors
+    setNameError(null);
+    setDescriptionError(null);
+    
+    // Sanitize inputs
+    const sanitizedName = sanitizeString(projectName);
+    const sanitizedDescription = sanitizeString(description);
+    
+    // Validate project name
+    const nameValidation = validateProjectName(sanitizedName);
+    if (!nameValidation.valid) {
+      console.warn('[SaveToCloudDialog] Project name validation failed:', nameValidation.error);
+      setNameError(nameValidation.error || 'Invalid project name');
+      return;
+    }
+    
+    // Validate description
+    const descValidation = validateProjectDescription(sanitizedDescription);
+    if (!descValidation.valid) {
+      console.warn('[SaveToCloudDialog] Description validation failed:', descValidation.error);
+      setDescriptionError(descValidation.error || 'Invalid description');
       return;
     }
 
@@ -108,8 +128,8 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
     }
 
     console.log('[SaveToCloudDialog] Starting save...', {
-      projectName: projectName.trim(),
-      description: description.trim(),
+      projectName: sanitizedName,
+      description: sanitizedDescription,
       hasExportData: !!exportData,
       isNewProject,
       saveAsMode,
@@ -125,8 +145,8 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
       // We'll do this by passing a flag or by modifying the hook
       const project = await handleSaveToCloud(
         exportData,
-        projectName.trim(),
-        description.trim() || undefined,
+        sanitizedName,
+        sanitizedDescription || undefined,
         saveAsMode // Pass saveAsMode to force new project creation
       );
 
@@ -165,26 +185,50 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
 
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="name">Project Name</Label>
+            <Label htmlFor="name">
+              Project Name
+              <span className="text-xs text-muted-foreground ml-2">
+                ({projectName.length}/100)
+              </span>
+            </Label>
             <Input
               id="name"
               value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
+              onChange={(e) => {
+                setProjectName(e.target.value);
+                setNameError(null); // Clear error on change
+              }}
               placeholder="My Animation"
               disabled={saving}
+              className={nameError ? 'border-destructive' : ''}
             />
+            {nameError && (
+              <p className="text-sm text-destructive">{nameError}</p>
+            )}
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="description">Description (Optional)</Label>
+            <Label htmlFor="description">
+              Description (Optional)
+              <span className="text-xs text-muted-foreground ml-2">
+                ({description.length}/500)
+              </span>
+            </Label>
             <Textarea
               id="description"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                setDescriptionError(null); // Clear error on change
+              }}
               placeholder="A brief description of your project..."
               rows={3}
               disabled={saving}
+              className={descriptionError ? 'border-destructive' : ''}
             />
+            {descriptionError && (
+              <p className="text-sm text-destructive">{descriptionError}</p>
+            )}
           </div>
         </div>
 
