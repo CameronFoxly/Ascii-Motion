@@ -80,7 +80,7 @@ export const SessionExportDialog: React.FC = () => {
   return (
     <Dialog open={isOpen} onOpenChange={setShowExportModal}>
       <DialogContent className="max-w-md p-0 overflow-hidden border-border/50">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b bg-background">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border/50 bg-background">
           <DialogTitle className="flex items-center gap-2">
             <Save className="w-5 h-5" />
             Save Session File
@@ -89,7 +89,7 @@ export const SessionExportDialog: React.FC = () => {
 
         <div className="flex flex-col max-h-[80vh]">
           {/* Sticky File Name Input */}
-          <div className="sticky top-0 z-10 bg-background px-6 py-4 border-b space-y-4">
+          <div className="sticky top-0 z-10 bg-background px-6 py-4 border-b border-border/50 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="filename">File Name</Label>
               <div className="flex">
@@ -178,8 +178,8 @@ export const SessionExportDialog: React.FC = () => {
             </div>
           </div>
 
-          {/* Sticky Action Buttons */}
-          <div className="sticky bottom-0 z-10 bg-background px-6 py-4 border-t flex justify-end gap-2">
+          {/* Sticky Actions */}
+          <div className="sticky bottom-0 z-10 bg-background px-6 py-4 border-t border-border/50 flex justify-end gap-2">
             <Button variant="outline" onClick={handleClose} disabled={isExporting}>
               Cancel
             </Button>
