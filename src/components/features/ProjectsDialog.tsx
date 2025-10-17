@@ -19,7 +19,6 @@ import type { CloudProject } from '@ascii-motion/premium';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -27,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import {
   Card,
   CardContent,
@@ -64,6 +64,8 @@ import {
   X,
 } from 'lucide-react';
 import { ProjectCanvasPreview } from './ProjectCanvasPreview';
+import { UpgradeToProDialog } from './UpgradeToProDialog';
+import type { UserProfile } from '@ascii-motion/premium';
 
 interface ProjectsDialogProps {
   open: boolean;
@@ -90,6 +92,7 @@ export function ProjectsDialog({
     renameProject,
     updateDescription,
     uploadSessionFile,
+    getUserProfile,
   } = useCloudProject();
 
   const [projects, setProjects] = useState<CloudProject[]>([]);
@@ -100,6 +103,8 @@ export function ProjectsDialog({
   const [newDescription, setNewDescription] = useState('');
   const [uploading, setUploading] = useState(false);
   const [trashExpanded, setTrashExpanded] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
 
   // Load projects when dialog opens
   useEffect(() => {
@@ -129,8 +134,11 @@ export function ProjectsDialog({
   }, [error]);
 
   const loadProjectsList = async () => {
-    const activeData = await listProjects();
-    const deletedData = await listDeletedProjects();
+    const [activeData, deletedData, profile] = await Promise.all([
+      listProjects(),
+      listDeletedProjects(),
+      getUserProfile(),
+    ]);
     
     // Sort active projects by most recently opened first
     const sortedActive = activeData.sort((a, b) => 
@@ -139,6 +147,29 @@ export function ProjectsDialog({
     
     setProjects(sortedActive);
     setDeletedProjects(deletedData);
+    setUserProfile(profile);
+  };
+
+  // Check if user can create more projects
+  const canCreateProject = () => {
+    if (!userProfile?.subscriptionTier) return true; // Allow if no tier info
+    const maxProjects = userProfile.subscriptionTier.maxProjects;
+    return maxProjects === -1 || projects.length < maxProjects;
+  };
+
+  // Get project limit info
+  const getProjectLimit = () => {
+    if (!userProfile?.subscriptionTier) return { current: projects.length, max: 3 };
+    const maxProjects = userProfile.subscriptionTier.maxProjects;
+    return {
+      current: projects.length,
+      max: maxProjects === -1 ? Infinity : maxProjects,
+    };
+  };
+
+  // Check if user is on pro tier
+  const isProUser = () => {
+    return userProfile?.subscriptionTier?.name === 'pro';
   };
 
   const handleOpenProject = async (project: CloudProject) => {
@@ -250,6 +281,14 @@ export function ProjectsDialog({
       return;
     }
 
+    // Check project limit before uploading
+    if (!canCreateProject()) {
+      console.log('[ProjectsDialog] Project limit reached, showing upgrade dialog');
+      setShowUpgradeDialog(true);
+      event.target.value = ''; // Reset file input
+      return;
+    }
+
     setUploading(true);
     try {
       const project = await uploadSessionFile(file);
@@ -287,9 +326,17 @@ export function ProjectsDialog({
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col border-border/50">
         <DialogHeader>
           <DialogTitle>My Projects</DialogTitle>
-          <DialogDescription>
-            Open, manage, and upload your projects • {projects.length}/3 projects used
-          </DialogDescription>
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">
+              Open, manage, and upload your projects • {getProjectLimit().current}/{getProjectLimit().max === Infinity ? '∞' : getProjectLimit().max} projects used
+            </p>
+            {!isProUser() && (
+              <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Badge variant="secondary">Coming Soon</Badge>
+                <span>Upgrade to Pro for unlimited storage</span>
+              </div>
+            )}
+          </div>
         </DialogHeader>
 
         {/* Upload Button */}
@@ -513,8 +560,8 @@ export function ProjectsDialog({
             </div>
           )}
 
-          {/* Trash Section */}
-          {deletedProjects.length > 0 && (
+          {/* Trash Section - Only show for Pro users */}
+          {isProUser() && deletedProjects.length > 0 && (
             <div className="mt-6 border-t border-border/50 pt-4">
               <button
                 onClick={() => setTrashExpanded(!trashExpanded)}
@@ -596,6 +643,17 @@ export function ProjectsDialog({
           )}
         </div>
       </DialogContent>
+
+      {/* Upgrade to Pro Dialog */}
+      <UpgradeToProDialog
+        open={showUpgradeDialog}
+        onOpenChange={setShowUpgradeDialog}
+        onManageProjects={() => {
+          // Dialog is already open, just close upgrade dialog
+        }}
+        currentProjects={getProjectLimit().current}
+        maxProjects={getProjectLimit().max === Infinity ? 3 : getProjectLimit().max}
+      />
     </Dialog>
   );
 }

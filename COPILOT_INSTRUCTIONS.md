@@ -1,6 +1,104 @@
 # ASCII Motion - Copilot Development Instructions
 
-## 🚨 **MANDATORY: DOCUMENTATION UPDATE PROTOCOL** 🚨
+## � **CRITICAL: DOCUMENTATION SECURITY & ORGANIZATION** 🔒
+
+### **⚠️ WHERE TO PUT DOCUMENTATION ⚠️**
+
+**ASCII Motion has TWO documentation locations based on sensitivity:**
+
+#### **🔐 SECURE/PREMIUM Documentation**
+**Location:** `packages/premium/docs/`
+
+**MUST go here if documentation contains:**
+- ❌ Authentication system details (sign up, sign in, sessions, JWT)
+- ❌ Database architecture (Supabase, RLS policies, migrations)
+- ❌ Cloud storage implementation (user projects, saving, loading)
+- ❌ Subscription tiers (Free vs Pro, limits, tier management)
+- ❌ Payment integration (Stripe, webhooks, billing)
+- ❌ Security policies (API keys, credentials, secrets)
+- ❌ SQL queries and database scripts
+- ❌ Backend/server-side architecture
+- ❌ Any system that requires environment variables with secrets
+
+**File naming conventions:**
+- `AUTH_*.md` - Authentication related
+- `SUPABASE_*.md` - Database/Supabase specific
+- `CLOUD_STORAGE_*.md` - Cloud storage features
+- `SUBSCRIPTION_*.md` - Tier/payment related
+- `SECURITY_*.md` - Security policies
+- `SQL_*.sql` - Database scripts
+
+**Example:**
+```markdown
+# Creating auth documentation
+❌ WRONG: docs/AUTH_IMPLEMENTATION.md
+✅ CORRECT: packages/premium/docs/AUTH_IMPLEMENTATION.md
+```
+
+#### **📖 PUBLIC Documentation**
+**Location:** `docs/`
+
+**Can go here if documentation is about:**
+- ✅ User-facing features and tutorials
+- ✅ Drawing tools (brush, shapes, line, etc.)
+- ✅ Animation system (frames, playback, layers)
+- ✅ Effects system (filters, color adjustments)
+- ✅ Canvas rendering (non-sensitive architecture)
+- ✅ UI/UX patterns and component design
+- ✅ File import/export formats
+- ✅ Open source contribution guidelines
+- ✅ Public API reference
+
+**Example:**
+```markdown
+# Creating drawing tool documentation
+✅ CORRECT: docs/BRUSH_TOOL_IMPLEMENTATION.md
+```
+
+#### **🚨 SECURITY RULES FOR DOCUMENTATION**
+
+**NEVER include in ANY documentation:**
+- ❌ Real API keys or secrets (use `YOUR_API_KEY_HERE`)
+- ❌ Real database credentials (use `your-project-url-here`)
+- ❌ Real user emails or data (use `user@example.com`)
+- ❌ Production URLs with sensitive data
+- ❌ Service role keys
+- ❌ Stripe secret keys (test keys only, marked as TEST)
+- ❌ Actual environment variable values
+
+**ALWAYS use placeholders:**
+```bash
+# ✅ CORRECT
+VITE_SUPABASE_URL=your-project-url-here
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
+
+# ❌ WRONG
+VITE_SUPABASE_URL=https://abc123.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+#### **📋 Quick Decision Tree**
+
+```
+Does this doc mention...
+├─ Database/Supabase? → packages/premium/docs/ 🔒
+├─ Authentication? → packages/premium/docs/ 🔒
+├─ Cloud storage? → packages/premium/docs/ 🔒
+├─ Subscriptions/tiers? → packages/premium/docs/ 🔒
+├─ Payments/Stripe? → packages/premium/docs/ 🔒
+├─ Security policies? → packages/premium/docs/ 🔒
+└─ None of the above? → docs/ ✅ (probably safe)
+
+When in doubt? → packages/premium/docs/ 🔒
+```
+
+**See also:**
+- [`packages/premium/docs/README.md`](packages/premium/docs/README.md) - Secure docs index
+- [`docs/PREMIUM_DOCS_MOVED.md`](docs/PREMIUM_DOCS_MOVED.md) - Why we did this
+
+---
+
+## �🚨 **MANDATORY: DOCUMENTATION UPDATE PROTOCOL** 🚨
 
 ### **⚠️ STOP: Read This Before Making ANY Changes ⚠️**
 

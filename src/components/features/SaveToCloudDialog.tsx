@@ -13,8 +13,9 @@
  * - This keeps UI components with shadcn/ui design system while logic stays in premium package
  */
 
-import { useState } from 'react';
-import { useAuth } from '@ascii-motion/premium';
+import { useState, useEffect } from 'react';
+import { useAuth, useCloudProject } from '@ascii-motion/premium';
+import type { UserProfile } from '@ascii-motion/premium';
 import { useCloudProjectActions } from '../../hooks/useCloudProjectActions';
 import { useExportDataCollector } from '../../utils/exportDataCollector';
 import {
@@ -30,6 +31,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Loader2, Cloud, CloudUpload } from 'lucide-react';
+import { UpgradeToProDialog } from './UpgradeToProDialog';
 
 interface SaveToCloudDialogProps {
   open: boolean;
@@ -39,11 +41,30 @@ interface SaveToCloudDialogProps {
 export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps) {
   const { user } = useAuth();
   const exportData = useExportDataCollector();
-  const { handleSaveToCloud, currentProjectName } = useCloudProjectActions();
+  const { handleSaveToCloud, currentProjectName, currentProjectId } = useCloudProjectActions();
+  const { getUserProfile, listProjects } = useCloudProject();
   
   const [projectName, setProjectName] = useState(currentProjectName);
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [projectCount, setProjectCount] = useState(0);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+
+  // Load user profile and project count when dialog opens
+  useEffect(() => {
+    if (open && user) {
+      const loadData = async () => {
+        const [profile, projects] = await Promise.all([
+          getUserProfile(),
+          listProjects(),
+        ]);
+        setUserProfile(profile);
+        setProjectCount(projects.length);
+      };
+      loadData();
+    }
+  }, [open, user, getUserProfile, listProjects]);
 
   const handleSave = async () => {
     console.log('[SaveToCloudDialog] Save button clicked');
@@ -54,10 +75,27 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
       return;
     }
 
+    // Check if this is a new project (not updating existing)
+    const isNewProject = !currentProjectId;
+    
+    // Check project limit for new projects only
+    if (isNewProject && userProfile?.subscriptionTier) {
+      const maxProjects = userProfile.subscriptionTier.maxProjects;
+      const canCreate = maxProjects === -1 || projectCount < maxProjects;
+      
+      if (!canCreate) {
+        console.log('[SaveToCloudDialog] Project limit reached, showing upgrade dialog');
+        onOpenChange(false); // Close save dialog
+        setShowUpgradeDialog(true); // Show upgrade dialog
+        return;
+      }
+    }
+
     console.log('[SaveToCloudDialog] Starting save...', {
       projectName: projectName.trim(),
       description: description.trim(),
       hasExportData: !!exportData,
+      isNewProject,
     });
 
     setSaving(true);
@@ -152,6 +190,18 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Upgrade to Pro Dialog */}
+      <UpgradeToProDialog
+        open={showUpgradeDialog}
+        onOpenChange={setShowUpgradeDialog}
+        onManageProjects={() => {
+          setShowUpgradeDialog(false);
+          // Could optionally open projects dialog here
+        }}
+        currentProjects={projectCount}
+        maxProjects={userProfile?.subscriptionTier?.maxProjects === -1 ? 3 : userProfile?.subscriptionTier?.maxProjects || 3}
+      />
     </Dialog>
   );
 }
