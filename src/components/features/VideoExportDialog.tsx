@@ -117,7 +117,7 @@ export const VideoExportDialog: React.FC = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={setShowExportModal}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden">
+      <DialogContent className="max-w-lg p-0 overflow-hidden border-border/50">
         <DialogHeader className="px-6 pt-6 pb-4 border-b bg-background">
           <DialogTitle className="flex items-center gap-2">
             <Video className="w-5 h-5" />

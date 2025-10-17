@@ -104,7 +104,7 @@ export const ExportCharacterPaletteDialog: React.FC<ExportCharacterPaletteDialog
   if (!exportData) {
     return (
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-[400px] border-border/50">
           <DialogHeader>
             <DialogTitle>Export Character Palette</DialogTitle>
           </DialogHeader>
@@ -124,7 +124,7 @@ export const ExportCharacterPaletteDialog: React.FC<ExportCharacterPaletteDialog
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col border-border/50">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Download className="h-4 w-4" />

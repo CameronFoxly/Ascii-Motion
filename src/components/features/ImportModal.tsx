@@ -66,7 +66,7 @@ export const ImportModal: React.FC = () => {
       />
 
       <Dialog open={isOpen} onOpenChange={setShowImportModal}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md border-border/50">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Save className="w-5 h-5" />

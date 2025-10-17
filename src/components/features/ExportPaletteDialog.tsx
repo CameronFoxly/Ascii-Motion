@@ -131,7 +131,7 @@ export const ExportPaletteDialog: React.FC<ExportPaletteDialogProps> = ({
   if (!exportData) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md border-border/50">
           <DialogHeader>
             <DialogTitle>Export Color Palette</DialogTitle>
           </DialogHeader>
@@ -152,7 +152,7 @@ export const ExportPaletteDialog: React.FC<ExportPaletteDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg border-border/50">
         <DialogHeader>
           <DialogTitle>Export Color Palette</DialogTitle>
         </DialogHeader>

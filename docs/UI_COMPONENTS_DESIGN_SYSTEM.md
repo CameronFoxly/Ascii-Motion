@@ -2,6 +2,32 @@
 
 This document outlines the standardized UI components and design patterns used in ASCII Motion for maintaining consistency across the application.
 
+## Dialog Design Standards
+
+### Border Consistency
+
+**All dialogs** throughout the application use the `border-border/50` class for consistent, subtle borders that create a professional, cohesive appearance.
+
+**Standard Pattern**:
+```tsx
+<DialogContent className="max-w-md border-border/50">
+  {/* Dialog content */}
+</DialogContent>
+
+// With custom layout (export dialogs)
+<DialogContent className="max-w-lg p-0 overflow-hidden border-border/50">
+  {/* Dialog content */}
+</DialogContent>
+```
+
+**Why `border-border/50`?**
+- ✅ Softer, less harsh appearance than default thick white borders
+- ✅ Matches the design system used in panels and other components
+- ✅ Creates visual hierarchy without overwhelming the content
+- ✅ Consistent with shadcn/ui best practices
+
+See `DIALOG_CONSISTENCY_UPDATE.md` for complete details on the standardization effort.
+
 ## Draggable Dialog Components
 
 ### DraggableDialogBar
