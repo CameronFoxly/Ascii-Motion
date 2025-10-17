@@ -22,6 +22,13 @@ interface ShortcutSection {
 
 const KEYBOARD_SHORTCUTS: ShortcutSection[] = [
   {
+    title: 'File & Project',
+    shortcuts: [
+      { keys: ['Cmd', 'S'], description: 'Save to Cloud (or Export Session)' },
+      { keys: ['Cmd', 'O'], description: 'Open from Cloud (or Import Session)' },
+    ]
+  },
+  {
     title: 'Tool Selection',
     shortcuts: [
       { keys: ['P'], description: 'Pencil tool' },

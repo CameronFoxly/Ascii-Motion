@@ -63,11 +63,17 @@ export const HamburgerMenu: React.FC = () => {
                 <MenubarItem onClick={() => setShowSaveToCloudDialog(true)} className="cursor-pointer">
                   <CloudUpload className="mr-2 h-4 w-4" />
                   <span>Save Project</span>
+                  <span className="ml-auto pl-4 text-xs text-muted-foreground">
+                    {navigator.platform.includes('Mac') ? '⌘S' : 'Ctrl+S'}
+                  </span>
                 </MenubarItem>
                 
                 <MenubarItem onClick={() => setShowProjectsDialog(true)} className="cursor-pointer">
                   <CloudDownload className="mr-2 h-4 w-4" />
                   <span>Open Project</span>
+                  <span className="ml-auto pl-4 text-xs text-muted-foreground">
+                    {navigator.platform.includes('Mac') ? '⌘O' : 'Ctrl+O'}
+                  </span>
                 </MenubarItem>
                 
                 <MenubarSeparator />

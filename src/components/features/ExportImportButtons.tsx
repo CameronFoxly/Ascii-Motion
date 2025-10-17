@@ -53,7 +53,7 @@ const EXPORT_OPTIONS = [
   {
     id: 'session' as ExportFormatId,
     name: '.asciimtn Project',
-    description: 'Full ascii-motion session file',
+    description: 'Export session file (Ctrl+S for cloud)',
     icon: Save,
   },
 ];
@@ -75,7 +75,7 @@ const IMPORT_OPTIONS = [
   {
     id: 'session' as ExportFormatId,
     name: '.asciimtn',
-    description: 'Load project file',
+    description: 'Import project file (Ctrl+O for cloud)',
     icon: FolderOpen,
   },
 ];
