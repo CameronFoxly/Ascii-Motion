@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -11,6 +11,7 @@ import { Globe, Download, Loader2, Palette, Type } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
 import type { HtmlExportSettings } from '../../types/export';
 import { useExportDataCollector } from '../../utils/exportDataCollector';
+import { useProjectMetadataStore } from '../../stores/projectMetadataStore';
 import { ExportRenderer } from '../../utils/exportRenderer';
 
 /**
@@ -28,10 +29,18 @@ export const HtmlExportDialog: React.FC = () => {
   const isExporting = useExportStore(state => state.isExporting);
   
   const exportData = useExportDataCollector();
+  const projectName = useProjectMetadataStore((state) => state.projectName);
 
-  const [filename, setFilename] = useState('ascii-motion-animation');
+  const [filename, setFilename] = useState(projectName || 'ascii-motion-animation');
 
   const isOpen = showExportModal && activeFormat === 'html';
+
+  // Sync filename with project name when dialog opens
+  useEffect(() => {
+    if (isOpen && projectName) {
+      setFilename(projectName);
+    }
+  }, [isOpen, projectName]);
 
   const handleClose = () => {
     setShowExportModal(false);

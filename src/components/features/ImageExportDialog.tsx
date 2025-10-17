@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -11,6 +11,7 @@ import { Slider } from '../ui/slider';
 import { FileImage, Download, Settings, Loader2 } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
 import { useExportDataCollector } from '../../utils/exportDataCollector';
+import { useProjectMetadataStore } from '../../stores/projectMetadataStore';
 import { ExportRenderer } from '../../utils/exportRenderer';
 import type { SvgExportSettings } from '../../types/export';
 import { 
@@ -53,10 +54,18 @@ export const ImageExportDialog: React.FC = () => {
 	const isExporting = useExportStore((state) => state.isExporting);
 
 	const exportData = useExportDataCollector();
+	const projectName = useProjectMetadataStore((state) => state.projectName);
 
-	const [filename, setFilename] = useState('ascii-motion-frame');
+	const [filename, setFilename] = useState(projectName || 'ascii-motion-frame');
 
 	const isOpen = showExportModal && activeFormat === 'png';
+
+	// Sync filename with project name when dialog opens
+	useEffect(() => {
+		if (isOpen && projectName) {
+			setFilename(projectName);
+		}
+	}, [isOpen, projectName]);
 	const fileExtension = 
 		imageSettings.format === 'png' ? 'png' : 
 		imageSettings.format === 'jpg' ? 'jpg' : 'svg';

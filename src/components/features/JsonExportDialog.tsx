@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -9,6 +9,7 @@ import { Switch } from '../ui/switch';
 import { FileText, Download, Settings, Loader2 } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
 import { useExportDataCollector } from '../../utils/exportDataCollector';
+import { useProjectMetadataStore } from '../../stores/projectMetadataStore';
 import { ExportRenderer } from '../../utils/exportRenderer';
 
 /**
@@ -26,10 +27,18 @@ export const JsonExportDialog: React.FC = () => {
   const isExporting = useExportStore(state => state.isExporting);
   
   const exportData = useExportDataCollector();
+  const projectName = useProjectMetadataStore((state) => state.projectName);
 
-  const [filename, setFilename] = useState('ascii-motion-data');
+  const [filename, setFilename] = useState(projectName || 'ascii-motion-data');
 
   const isOpen = showExportModal && activeFormat === 'json';
+
+  // Sync filename with project name when dialog opens
+  useEffect(() => {
+    if (isOpen && projectName) {
+      setFilename(projectName);
+    }
+  }, [isOpen, projectName]);
 
   const handleClose = () => {
     setShowExportModal(false);

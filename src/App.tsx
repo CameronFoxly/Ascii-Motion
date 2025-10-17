@@ -46,6 +46,9 @@ import { ProjectsDialog } from './components/features/ProjectsDialog'
 import { useCloudDialogState } from './hooks/useCloudDialogState'
 import { useCloudProjectActions } from './hooks/useCloudProjectActions'
 import { useAuth } from '@ascii-motion/premium'
+import { InlineProjectNameEditor } from './components/features/InlineProjectNameEditor'
+import { NewProjectDialog } from './components/features/NewProjectDialog'
+import { ProjectSettingsDialog } from './components/features/ProjectSettingsDialog'
 
 /**
  * Inner component that uses auth hooks
@@ -85,6 +88,9 @@ function AppContent() {
                   <span className="text-purple-400">  -▐▛▀▜▌ ▝▀▚▖▐▌     █    █      ▐▌  ▐▌▐▌ ▐▌ █    █  ▐▌ ▐▌▐▌ ▝▜▌</span>
                   <span className="text-purple-300">  -▐▌ ▐▌▗▄▄▞▘▝▚▄▄▖▗▄█▄▖▗▄█▄▖    ▐▌  ▐▌▝▚▄▞▘ █  ▗▄█▄▖▝▚▄▞▘▐▌  ▐▌</span>
                 </div>
+              </div>
+              <div className="flex-1 flex justify-center">
+                <InlineProjectNameEditor />
               </div>
               <div className="flex items-center gap-2">
                 <ExportImportButtons />
@@ -248,6 +254,10 @@ function AppContent() {
           <AddFramesDialog />
           <WaveWarpDialog />
           <WiggleDialog />
+          
+          {/* Project Management Dialogs */}
+          <NewProjectDialog />
+          <ProjectSettingsDialog />
           
           {/* Cloud Storage Dialogs - Inside CanvasProvider to access context */}
           {user && (

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -9,6 +9,7 @@ import { Checkbox } from '../ui/checkbox';
 import { FileText, Download, Settings, Loader2 } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
 import { useExportDataCollector } from '../../utils/exportDataCollector';
+import { useProjectMetadataStore } from '../../stores/projectMetadataStore';
 import { ExportRenderer } from '../../utils/exportRenderer';
 import type { TextExportSettings } from '../../types/export';
 
@@ -24,12 +25,20 @@ export const TextExportDialog: React.FC = () => {
   const setTextSettings = useExportStore(state => state.setTextSettings);
   
   const exportData = useExportDataCollector();
+  const projectName = useProjectMetadataStore((state) => state.projectName);
   
-  const [filename, setFilename] = useState('ascii-motion-text');
+  const [filename, setFilename] = useState(projectName || 'ascii-motion-text');
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState<{ message: string; progress: number } | null>(null);
 
   const isOpen = showExportModal && activeFormat === 'text';
+
+  // Sync filename with project name when dialog opens
+  useEffect(() => {
+    if (isOpen && projectName) {
+      setFilename(projectName);
+    }
+  }, [isOpen, projectName]);
 
   const handleClose = () => {
     setShowExportModal(false);

@@ -11,6 +11,7 @@ import { Card, CardContent } from '../ui/card';
 import { Video, Loader2, Play, Settings } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
 import { useExportDataCollector } from '../../utils/exportDataCollector';
+import { useProjectMetadataStore } from '../../stores/projectMetadataStore';
 import { ExportRenderer } from '../../utils/exportRenderer';
 import { calculateExportPixelDimensions, formatPixelDimensions } from '../../utils/exportPixelCalculator';
 import type { VideoExportSettings } from '../../types/export';
@@ -25,6 +26,7 @@ export const VideoExportDialog: React.FC = () => {
   const setShowExportModal = useExportStore(state => state.setShowExportModal);
   
   const exportData = useExportDataCollector();
+  const projectName = useProjectMetadataStore((state) => state.projectName);
   
   const [videoSettings, setVideoSettings] = useState<VideoExportSettings>({
     sizeMultiplier: 2,
@@ -37,11 +39,18 @@ export const VideoExportDialog: React.FC = () => {
     loops: 'none'
   });
   
-  const [filename, setFilename] = useState('ascii-motion-video');
+  const [filename, setFilename] = useState(projectName || 'ascii-motion-video');
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState<{ message: string; progress: number } | null>(null);
 
   const isOpen = showExportModal && activeFormat === 'mp4';
+
+  // Sync filename with project name when dialog opens
+  useEffect(() => {
+    if (isOpen && projectName) {
+      setFilename(projectName);
+    }
+  }, [isOpen, projectName]);
 
   // Check WebCodecs support
   const [supportsWebCodecs, setSupportsWebCodecs] = useState(false);

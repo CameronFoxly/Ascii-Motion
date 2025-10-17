@@ -115,6 +115,8 @@ export interface ExportDataBundle {
     buildDate: string;
     buildHash: string;
     exportDate: string;
+    projectName?: string;
+    projectDescription?: string;
   };
   
   // Animation data

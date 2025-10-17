@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -7,9 +7,9 @@ import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Switch } from '../ui/switch';
 import { Save, Download, Settings, Loader2 } from 'lucide-react';
-import { Textarea } from '../ui/textarea';
 import { useExportStore } from '../../stores/exportStore';
 import { useExportDataCollector } from '../../utils/exportDataCollector';
+import { useProjectMetadataStore } from '../../stores/projectMetadataStore';
 import { ExportRenderer } from '../../utils/exportRenderer';
 
 /**
@@ -27,11 +27,18 @@ export const SessionExportDialog: React.FC = () => {
   const isExporting = useExportStore(state => state.isExporting);
   
   const exportData = useExportDataCollector();
+  const projectName = useProjectMetadataStore((state) => state.projectName);
 
-  const [filename, setFilename] = useState('ascii-motion-project');
-  const [description, setDescription] = useState('');
+  const [filename, setFilename] = useState(projectName || 'ascii-motion-project');
 
   const isOpen = showExportModal && activeFormat === 'session';
+
+  // Sync filename with project name when dialog opens
+  useEffect(() => {
+    if (isOpen && projectName) {
+      setFilename(projectName);
+    }
+  }, [isOpen, projectName]);
 
   const handleClose = () => {
     setShowExportModal(false);
@@ -51,15 +58,9 @@ export const SessionExportDialog: React.FC = () => {
         setProgress(progress);
       });
 
-      // Add name and description to export data
-      const dataWithMetadata = {
-        ...exportData,
-        name: filename.trim(),
-        description: description.trim() || undefined,
-      };
-
-      // Perform the export
-      await renderer.exportSession(dataWithMetadata, sessionSettings, filename);
+      // Export data already contains project metadata from projectMetadataStore
+      // No need to manually inject name/description
+      await renderer.exportSession(exportData, sessionSettings, filename);
       
       // Close dialog on success
       handleClose();
@@ -104,18 +105,9 @@ export const SessionExportDialog: React.FC = () => {
                   .asciimtn
                 </Badge>
               </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="description">Description (Optional)</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="A brief description of your project..."
-                rows={2}
-                disabled={isExporting}
-              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Project metadata (name, description) is stored in Project Settings
+              </p>
             </div>
           </div>
 

@@ -187,6 +187,18 @@ export class ExportRenderer {
         svgSettings.includeBackground ? data.canvasBackgroundColor : undefined
       );
 
+      // Add metadata as SVG comments
+      if (data.metadata.projectName || data.metadata.projectDescription) {
+        svg += '  <!-- ASCII Motion Export -->\n';
+        if (data.metadata.projectName) {
+          svg += `  <!-- Project: ${data.metadata.projectName} -->\n`;
+        }
+        if (data.metadata.projectDescription) {
+          svg += `  <!-- Description: ${data.metadata.projectDescription} -->\n`;
+        }
+        svg += `  <!-- Exported: ${new Date().toISOString()} -->\n`;
+      }
+
       // Add grid if enabled
       if (svgSettings.includeGrid) {
         this.updateProgress('Rendering grid...', 30);
@@ -326,8 +338,8 @@ export class ExportRenderer {
       // Create session data structure
       const sessionData = {
         version: '1.0.0',
-        name: data.name,
-        description: data.description,
+        name: data.metadata.projectName || data.name || 'Untitled Project',
+        description: data.metadata.projectDescription || data.description,
         metadata: settings.includeMetadata ? {
           exportedAt: new Date().toISOString(),
           exportVersion: '1.0.0',
@@ -422,6 +434,12 @@ export class ExportRenderer {
       // Add metadata header if requested
       if (settings.includeMetadata) {
         textLines.push('ASCII Motion Text Export');
+        if (data.metadata.projectName) {
+          textLines.push(`Project: ${data.metadata.projectName}`);
+        }
+        if (data.metadata.projectDescription) {
+          textLines.push(`Description: ${data.metadata.projectDescription}`);
+        }
         textLines.push(`Version: ${data.metadata.version}`);
         textLines.push(`Export Date: ${data.metadata.exportDate}`);
         textLines.push(`Frames: ${data.frames.length}`);
@@ -593,8 +611,8 @@ export class ExportRenderer {
             exportedAt: new Date().toISOString(),
             exportVersion: '1.0.0',
             appVersion: data.metadata.version,
-            description: 'ASCII Motion Animation - Human Readable Format',
-            title: filename,
+            description: data.metadata.projectDescription || 'ASCII Motion Animation - Human Readable Format',
+            title: data.metadata.projectName || filename,
             frameCount: data.frames.length,
             canvasSize: {
               width: data.canvasDimensions.width,
@@ -903,7 +921,8 @@ export class ExportRenderer {
 
       <div class="info">
         ${settings.includeMetadata ? `
-        <div>ASCII Motion Animation</div>
+        ${data.metadata.projectName ? `<div><strong>${data.metadata.projectName}</strong></div>` : '<div>ASCII Motion Animation</div>'}
+        ${data.metadata.projectDescription ? `<div>${data.metadata.projectDescription}</div>` : ''}
         <div>Frames: ${data.frames.length} | Duration: ${animationDuration.toFixed(1)}s</div>
         <div>Resolution: ${data.canvasDimensions.width}×${data.canvasDimensions.height}</div>
         <div>Exported: ${new Date().toLocaleDateString()}</div>

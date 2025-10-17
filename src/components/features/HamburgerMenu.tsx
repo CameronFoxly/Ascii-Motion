@@ -8,11 +8,12 @@ import {
   MenubarSeparator,
   MenubarTrigger,
 } from '../ui/menubar';
-import { Menu, Info, Keyboard, CloudUpload, CloudDownload } from 'lucide-react';
+import { Menu, Info, Keyboard, CloudUpload, CloudDownload, FilePlus2, Settings } from 'lucide-react';
 import { AboutDialog } from './AboutDialog';
 import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
 import { useAuth } from '@ascii-motion/premium';
 import { useCloudDialogState } from '../../hooks/useCloudDialogState';
+import { useProjectDialogState } from '../../hooks/useProjectDialogState';
 
 /**
  * Hamburger menu button for the top header bar
@@ -27,6 +28,11 @@ export const HamburgerMenu: React.FC = () => {
     setShowSaveToCloudDialog,
     setShowProjectsDialog,
   } = useCloudDialogState();
+  
+  const {
+    setShowNewProjectDialog,
+    setShowProjectSettingsDialog,
+  } = useProjectDialogState();
 
   return (
     <>
@@ -44,6 +50,14 @@ export const HamburgerMenu: React.FC = () => {
             </Button>
           </MenubarTrigger>
           <MenubarContent align="start" className="border-border/50">
+            {/* Project Management */}
+            <MenubarItem onClick={() => setShowNewProjectDialog(true)} className="cursor-pointer">
+              <FilePlus2 className="mr-2 h-4 w-4" />
+              <span>New Project</span>
+            </MenubarItem>
+            
+            <MenubarSeparator />
+            
             {user && (
               <>
                 <MenubarItem onClick={() => setShowSaveToCloudDialog(true)} className="cursor-pointer">
@@ -59,6 +73,13 @@ export const HamburgerMenu: React.FC = () => {
                 <MenubarSeparator />
               </>
             )}
+            
+            <MenubarItem onClick={() => setShowProjectSettingsDialog(true)} className="cursor-pointer">
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Project Settings</span>
+            </MenubarItem>
+            
+            <MenubarSeparator />
             
             <MenubarItem onClick={() => setShowKeyboardShortcuts(true)} className="cursor-pointer">
               <Keyboard className="mr-2 h-4 w-4" />

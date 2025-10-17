@@ -7,6 +7,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { usePaletteStore } from '../stores/paletteStore';
 import { VERSION, BUILD_DATE, BUILD_HASH } from '../constants/version';
 import { useCharacterPaletteStore } from '../stores/characterPaletteStore';
+import { useProjectMetadataStore } from '../stores/projectMetadataStore';
 
 /**
  * Collects all data needed for export operations
@@ -63,6 +64,13 @@ export class ExportDataCollector {
       characterSpacing
     } = characterPaletteStore;
 
+    // Get project metadata
+    const projectMetadataStore = useProjectMetadataStore.getState();
+    const {
+      projectName,
+      projectDescription
+    } = projectMetadataStore;
+
     // Get UI context data (we'll need to pass this in since we can't use hooks here)
     // This will be handled by the calling component
 
@@ -72,7 +80,9 @@ export class ExportDataCollector {
         version: VERSION,
         buildDate: BUILD_DATE,
         buildHash: BUILD_HASH,
-        exportDate: new Date().toISOString()
+        exportDate: new Date().toISOString(),
+        projectName,
+        projectDescription
       },
       
       // Animation data
@@ -188,6 +198,10 @@ export const useExportDataCollector = (): ExportDataBundle => {
   const invertCharacterDensity = useCharacterPaletteStore(state => state.invertDensity);
   const characterSpacingSetting = useCharacterPaletteStore(state => state.characterSpacing);
 
+  // Get project metadata
+  const projectName = useProjectMetadataStore(state => state.projectName);
+  const projectDescription = useProjectMetadataStore(state => state.projectDescription);
+
   // Get canvas context data
   const {
     zoom,
@@ -207,7 +221,9 @@ export const useExportDataCollector = (): ExportDataBundle => {
       version: VERSION,
       buildDate: BUILD_DATE,
       buildHash: BUILD_HASH,
-      exportDate: new Date().toISOString()
+      exportDate: new Date().toISOString(),
+      projectName,
+      projectDescription
     },
     
     // Animation data

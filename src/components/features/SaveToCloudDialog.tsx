@@ -18,6 +18,7 @@ import { useAuth, useCloudProject } from '@ascii-motion/premium';
 import type { UserProfile } from '@ascii-motion/premium';
 import { useCloudProjectActions } from '../../hooks/useCloudProjectActions';
 import { useExportDataCollector } from '../../utils/exportDataCollector';
+import { useProjectMetadataStore } from '../../stores/projectMetadataStore';
 import {
   Dialog,
   DialogContent,
@@ -43,13 +44,22 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
   const exportData = useExportDataCollector();
   const { handleSaveToCloud, currentProjectName, currentProjectId } = useCloudProjectActions();
   const { getUserProfile, listProjects } = useCloudProject();
+  const { projectName: storedProjectName, projectDescription: storedProjectDescription } = useProjectMetadataStore();
   
-  const [projectName, setProjectName] = useState(currentProjectName);
-  const [description, setDescription] = useState('');
+  const [projectName, setProjectName] = useState(storedProjectName || currentProjectName);
+  const [description, setDescription] = useState(storedProjectDescription || '');
   const [saving, setSaving] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [projectCount, setProjectCount] = useState(0);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+
+  // Sync with projectMetadataStore when dialog opens
+  useEffect(() => {
+    if (open) {
+      setProjectName(storedProjectName || currentProjectName);
+      setDescription(storedProjectDescription || '');
+    }
+  }, [open, storedProjectName, storedProjectDescription, currentProjectName]);
 
   // Load user profile and project count when dialog opens
   useEffect(() => {
@@ -100,15 +110,11 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
 
     setSaving(true);
     try {
-      // Add name and description to export data
-      const dataWithMetadata = {
-        ...exportData,
-        name: projectName.trim(),
-        description: description.trim() || undefined,
-      };
-      
+      // Export data already contains project metadata from projectMetadataStore
+      // No need to manually inject name/description into export data
+      // But we still pass them as separate parameters for cloud storage metadata
       const project = await handleSaveToCloud(
-        dataWithMetadata,
+        exportData,
         projectName.trim(),
         description.trim() || undefined
       );
@@ -116,8 +122,8 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
       if (project) {
         console.log('[SaveToCloudDialog] ✓ Save successful, closing dialog');
         onOpenChange(false);
-        setProjectName(currentProjectName);
-        setDescription('');
+        setProjectName(storedProjectName || currentProjectName);
+        setDescription(storedProjectDescription || '');
       } else {
         console.error('[SaveToCloudDialog] ✗ Save returned null');
       }
