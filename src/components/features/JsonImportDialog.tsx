@@ -66,7 +66,7 @@ export const JsonImportDialog: React.FC = () => {
       />
 
       <Dialog open={isOpen} onOpenChange={setShowImportModal}>
-        <DialogContent className="max-w-md border-border/50">
+        <DialogContent className="max-w-md border-border/50" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5" />

@@ -112,7 +112,7 @@ export const ImportPaletteDialog: React.FC<ImportPaletteDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg border-border/50">
+      <DialogContent className="max-w-lg border-border/50" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Import Color Palette</DialogTitle>
         </DialogHeader>

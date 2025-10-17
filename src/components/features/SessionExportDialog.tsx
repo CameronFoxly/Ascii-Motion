@@ -79,7 +79,7 @@ export const SessionExportDialog: React.FC = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={setShowExportModal}>
-      <DialogContent className="max-w-md p-0 overflow-hidden border-border/50">
+      <DialogContent className="max-w-md p-0 overflow-hidden border-border/50" aria-describedby={undefined}>
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-border/50 bg-background">
           <DialogTitle className="flex items-center gap-2">
             <Save className="w-5 h-5" />

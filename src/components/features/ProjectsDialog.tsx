@@ -323,7 +323,7 @@ export function ProjectsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col border-border/50">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col border-border/50" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>My Projects</DialogTitle>
           <div className="space-y-1">

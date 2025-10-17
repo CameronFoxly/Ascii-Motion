@@ -32,7 +32,7 @@ export const AboutDialog: React.FC<AboutDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl border-border/50">
+      <DialogContent className="max-w-2xl border-border/50" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle className="flex flex-col items-start gap-1">
             <div className="relative inline-block">
