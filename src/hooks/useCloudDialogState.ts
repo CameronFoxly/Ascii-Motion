@@ -12,13 +12,17 @@ import { create } from 'zustand';
 interface CloudDialogState {
   showSaveToCloudDialog: boolean;
   showProjectsDialog: boolean;
+  saveAsMode: boolean; // true = "Save As...", false = "Save"
   setShowSaveToCloudDialog: (show: boolean) => void;
   setShowProjectsDialog: (show: boolean) => void;
+  setSaveAsMode: (saveAs: boolean) => void;
 }
 
 export const useCloudDialogState = create<CloudDialogState>((set) => ({
   showSaveToCloudDialog: false,
   showProjectsDialog: false,
+  saveAsMode: false,
   setShowSaveToCloudDialog: (show) => set({ showSaveToCloudDialog: show }),
   setShowProjectsDialog: (show) => set({ showProjectsDialog: show }),
+  setSaveAsMode: (saveAs) => set({ saveAsMode: saveAs }),
 }));

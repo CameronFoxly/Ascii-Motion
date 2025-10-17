@@ -86,11 +86,12 @@ export function useCloudProjectActions() {
    * Save current project to cloud
    */
   const handleSaveToCloud = useCallback(
-    async (exportData: ExportDataBundle, projectName?: string, description?: string) => {
+    async (exportData: ExportDataBundle, projectName?: string, description?: string, forceNew?: boolean) => {
       console.log('[CloudActions] Starting save to cloud...', {
         projectName: projectName || currentProjectName,
         hasDescription: !!description,
         currentProjectId,
+        forceNew,
       });
 
       try {
@@ -104,11 +105,12 @@ export function useCloudProjectActions() {
         });
 
         // Save to cloud
+        // If forceNew is true, don't pass projectId to create a new project
         console.log('[CloudActions] Calling saveToCloud...');
         const project = await saveToCloud(sessionData, {
           name: projectName || currentProjectName,
           description,
-          projectId: currentProjectId || undefined,
+          projectId: forceNew ? undefined : (currentProjectId || undefined),
         });
 
         if (project) {

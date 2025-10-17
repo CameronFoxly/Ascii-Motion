@@ -46,7 +46,7 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
   const { handleSaveToCloud, currentProjectName, currentProjectId } = useCloudProjectActions();
   const { getUserProfile, listProjects } = useCloudProject();
   const { projectName: storedProjectName, projectDescription: storedProjectDescription } = useProjectMetadataStore();
-  const { setShowProjectsDialog } = useCloudDialogState();
+  const { setShowProjectsDialog, saveAsMode, setSaveAsMode } = useCloudDialogState();
   
   const [projectName, setProjectName] = useState(storedProjectName || currentProjectName);
   const [description, setDescription] = useState(storedProjectDescription || '');
@@ -60,8 +60,11 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
     if (open) {
       setProjectName(storedProjectName || currentProjectName);
       setDescription(storedProjectDescription || '');
+    } else {
+      // Reset saveAsMode when dialog closes
+      setSaveAsMode(false);
     }
-  }, [open, storedProjectName, storedProjectDescription, currentProjectName]);
+  }, [open, storedProjectName, storedProjectDescription, currentProjectName, setSaveAsMode]);
 
   // Load user profile and project count when dialog opens
   useEffect(() => {
@@ -87,8 +90,9 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
       return;
     }
 
-    // Check if this is a new project (not updating existing)
-    const isNewProject = !currentProjectId;
+    // Check if this is a new project
+    // saveAsMode=true forces creation of new project even if currentProjectId exists
+    const isNewProject = saveAsMode || !currentProjectId;
     
     // Check project limit for new projects only
     if (isNewProject && userProfile?.subscriptionTier) {
@@ -108,6 +112,7 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
       description: description.trim(),
       hasExportData: !!exportData,
       isNewProject,
+      saveAsMode,
     });
 
     setSaving(true);
@@ -115,10 +120,14 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
       // Export data already contains project metadata from projectMetadataStore
       // No need to manually inject name/description into export data
       // But we still pass them as separate parameters for cloud storage metadata
+      
+      // For "Save As", we need to temporarily clear currentProjectId to force new project creation
+      // We'll do this by passing a flag or by modifying the hook
       const project = await handleSaveToCloud(
         exportData,
         projectName.trim(),
-        description.trim() || undefined
+        description.trim() || undefined,
+        saveAsMode // Pass saveAsMode to force new project creation
       );
 
       if (project) {
@@ -147,7 +156,7 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Cloud className="h-5 w-5" />
-            Save to Cloud
+            {saveAsMode ? 'Save As...' : 'Save to Cloud'}
           </DialogTitle>
           <DialogDescription>
             Save your project to the cloud for access from any device

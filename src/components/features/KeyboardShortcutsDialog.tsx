@@ -24,8 +24,9 @@ const KEYBOARD_SHORTCUTS: ShortcutSection[] = [
   {
     title: 'File & Project',
     shortcuts: [
-      { keys: ['Cmd', 'S'], description: 'Save to Cloud (or Export Session)' },
-      { keys: ['Cmd', 'O'], description: 'Open from Cloud (or Import Session)' },
+      { keys: ['Cmd', 'S'], description: 'Save to Cloud (requires sign in)' },
+      { keys: ['Cmd', 'Shift', 'S'], description: 'Save As... (requires sign in)' },
+      { keys: ['Cmd', 'O'], description: 'Open from Cloud (requires sign in)' },
     ]
   },
   {

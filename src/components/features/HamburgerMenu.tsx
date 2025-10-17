@@ -14,6 +14,7 @@ import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
 import { useAuth } from '@ascii-motion/premium';
 import { useCloudDialogState } from '../../hooks/useCloudDialogState';
 import { useProjectDialogState } from '../../hooks/useProjectDialogState';
+import { useProjectFileActions } from '../../hooks/useProjectFileActions';
 
 /**
  * Hamburger menu button for the top header bar
@@ -33,6 +34,8 @@ export const HamburgerMenu: React.FC = () => {
     setShowNewProjectDialog,
     setShowProjectSettingsDialog,
   } = useProjectDialogState();
+
+  const { showSaveAsDialog } = useProjectFileActions();
 
   return (
     <>
@@ -65,6 +68,14 @@ export const HamburgerMenu: React.FC = () => {
                   <span>Save Project</span>
                   <span className="ml-auto pl-4 text-xs text-muted-foreground">
                     {navigator.platform.includes('Mac') ? '⌘S' : 'Ctrl+S'}
+                  </span>
+                </MenubarItem>
+                
+                <MenubarItem onClick={showSaveAsDialog} className="cursor-pointer">
+                  <CloudUpload className="mr-2 h-4 w-4" />
+                  <span>Save As...</span>
+                  <span className="ml-auto pl-4 text-xs text-muted-foreground">
+                    {navigator.platform.includes('Mac') ? '⇧⌘S' : 'Ctrl+Shift+S'}
                   </span>
                 </MenubarItem>
                 
