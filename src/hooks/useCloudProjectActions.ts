@@ -16,7 +16,7 @@
 
 import { useCallback, useState } from 'react';
 import { useCloudProject } from '@ascii-motion/premium';
-import type { CloudProject, SessionData } from '@ascii-motion/premium';
+import type { SessionData } from '@ascii-motion/premium';
 import type { ExportDataBundle } from '../types/export';
 import { saveAs } from 'file-saver';
 import { useSessionImporter } from '../utils/sessionImporter';
