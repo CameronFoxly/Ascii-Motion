@@ -109,7 +109,7 @@ export const HtmlExportDialog: React.FC = () => {
           {/* Scrollable Settings */}
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
             {/* Appearance Settings */}
-            <Card>
+            <Card className="border-border/50">
               <CardContent className="pt-4 space-y-4">
                 <div className="flex items-center gap-2">
                   <Palette className="w-4 h-4" />
@@ -185,7 +185,7 @@ export const HtmlExportDialog: React.FC = () => {
             </Card>
 
             {/* Additional Options */}
-            <Card>
+            <Card className="border-border/50">
               <CardContent className="pt-4 space-y-4">
                 <div className="flex items-center gap-2">
                   <Type className="w-4 h-4" />

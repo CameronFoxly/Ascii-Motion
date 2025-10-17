@@ -315,7 +315,7 @@ export const VideoExportDialog: React.FC = () => {
             </div>
 
             {/* Video Preview Info */}
-            <Card className="bg-muted/50">
+            <Card className="bg-muted/50 border-border/50">
               <CardContent className="pt-4">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">

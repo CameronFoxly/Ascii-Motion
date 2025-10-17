@@ -205,7 +205,7 @@ export const ImageExportDialog: React.FC = () => {
 
 					{/* Scrollable Settings */}
 					<div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-						<Card>
+						<Card className="border-border/50">
 							<CardContent className="pt-4 space-y-4">
 								<div className="flex items-center gap-2 mb-1">
 									<Settings className="w-4 h-4" />
