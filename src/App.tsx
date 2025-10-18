@@ -1,4 +1,5 @@
 import './App.css'
+import { useState, useEffect } from 'react'
 import { Analytics } from '@vercel/analytics/react'
 import { CanvasWithShortcuts } from './components/features/CanvasWithShortcuts'
 import { CanvasProvider } from './contexts/CanvasContext'
@@ -45,7 +46,7 @@ import { SaveToCloudDialog } from './components/features/SaveToCloudDialog'
 import { ProjectsDialog } from './components/features/ProjectsDialog'
 import { useCloudDialogState } from './hooks/useCloudDialogState'
 import { useCloudProjectActions } from './hooks/useCloudProjectActions'
-import { useAuth } from '@ascii-motion/premium'
+import { useAuth, usePasswordRecoveryCallback, UpdatePasswordDialog } from '@ascii-motion/premium'
 import { InlineProjectNameEditor } from './components/features/InlineProjectNameEditor'
 import { NewProjectDialog } from './components/features/NewProjectDialog'
 import { ProjectSettingsDialog } from './components/features/ProjectSettingsDialog'
@@ -70,6 +71,22 @@ function AppContent() {
     handleLoadFromCloud,
     handleDownloadProject,
   } = useCloudProjectActions()
+
+  // Password recovery callback detection
+  const { isRecovery, resetRecovery } = usePasswordRecoveryCallback()
+  const [showUpdatePasswordDialog, setShowUpdatePasswordDialog] = useState(isRecovery)
+
+  // Update dialog visibility when recovery state changes
+  useEffect(() => {
+    setShowUpdatePasswordDialog(isRecovery)
+  }, [isRecovery])
+
+  const handleUpdatePasswordClose = (open: boolean) => {
+    setShowUpdatePasswordDialog(open)
+    if (!open) {
+      resetRecovery()
+    }
+  }
 
   return (
     <div className="h-screen grid grid-rows-[auto_1fr] bg-background text-foreground">
@@ -274,6 +291,12 @@ function AppContent() {
               />
             </>
           )}
+          
+          {/* Password Recovery Dialog - Shows when user clicks email reset link */}
+          <UpdatePasswordDialog 
+            open={showUpdatePasswordDialog} 
+            onOpenChange={handleUpdatePasswordClose}
+          />
         </CanvasProvider>
         
         {/* Performance Overlay for Development */}
