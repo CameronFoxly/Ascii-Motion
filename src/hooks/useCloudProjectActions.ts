@@ -87,26 +87,12 @@ export function useCloudProjectActions() {
    */
   const handleSaveToCloud = useCallback(
     async (exportData: ExportDataBundle, projectName?: string, description?: string, forceNew?: boolean) => {
-      console.log('[CloudActions] Starting save to cloud...', {
-        projectName,
-        hasDescription: !!description,
-        currentProjectId,
-        forceNew,
-      });
-
       try {
         // Create session data from current state
-        console.log('[CloudActions] Creating session data from export data...');
         const sessionData = createSessionData(exportData);
-        console.log('[CloudActions] Session data created:', {
-          version: sessionData.version,
-          framesCount: sessionData.animation.frames.length,
-          canvasSize: `${sessionData.canvas.width}x${sessionData.canvas.height}`,
-        });
 
         // Save to cloud
         // If forceNew is true, don't pass projectId to create a new project
-        console.log('[CloudActions] Calling saveToCloud...');
         const project = await saveToCloud(sessionData, {
           name: projectName || exportData.name || 'Untitled Project',
           description,
@@ -115,13 +101,12 @@ export function useCloudProjectActions() {
 
         if (project) {
           setCurrentProjectId(project.id);
-          console.log('[CloudActions] ✓ Saved to cloud successfully:', project.name);
           return project;
         } else {
-          console.error('[CloudActions] ✗ Save returned null');
+          console.error('[CloudActions] Save returned null');
         }
       } catch (err) {
-        console.error('[CloudActions] ✗ Save failed with exception:', err);
+        console.error('[CloudActions] Save failed:', err);
       }
       return null;
     },
@@ -135,21 +120,6 @@ export function useCloudProjectActions() {
   const handleLoadFromCloud = useCallback(
     async (projectId: string, sessionData: unknown) => {
       try {
-        console.log('[CloudActions] handleLoadFromCloud called', {
-          projectId,
-          hasSessionData: !!sessionData,
-          sessionDataType: typeof sessionData,
-        });
-        
-        // Log what's in the session data
-        const typedData = sessionData as any;
-        console.log('[CloudActions] Session data preview:', {
-          hasName: !!typedData?.name,
-          name: typedData?.name,
-          hasDescription: !!typedData?.description,
-          description: typedData?.description,
-        });
-        
         // Create a blob from the session data
         const blob = new Blob([JSON.stringify(sessionData, null, 2)], {
           type: 'application/json',
@@ -160,16 +130,13 @@ export function useCloudProjectActions() {
           type: 'application/json',
         });
 
-        console.log('[CloudActions] Calling importSession...');
         // Use existing session importer
         await importSession(file);
 
         // Update current project tracking
         setCurrentProjectId(projectId);
-        console.log('[CloudActions] ✓ Loaded from cloud successfully:', projectId);
-        console.log('[CloudActions] ✓ Set currentProjectId to:', projectId);
       } catch (err) {
-        console.error('[CloudActions] ✗ Load failed:', err);
+        console.error('[CloudActions] Load failed:', err);
         throw err;
       }
     },

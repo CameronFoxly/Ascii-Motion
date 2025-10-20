@@ -204,13 +204,11 @@ export function ProjectsDialog({
 
   const handleRenameSubmit = async (projectId: string) => {
     if (!newName.trim()) {
-      console.error('[ProjectsDialog] Project name cannot be empty');
       return;
     }
 
     const success = await renameProject(projectId, newName.trim());
     if (success) {
-      console.log('[ProjectsDialog] Project renamed');
       setRenamingId(null);
       await loadProjectsList();
     }
@@ -229,7 +227,6 @@ export function ProjectsDialog({
   const handleEditDescriptionSubmit = async (projectId: string) => {
     const success = await updateDescription(projectId, newDescription.trim());
     if (success) {
-      console.log('[ProjectsDialog] Description updated');
       setEditingDescriptionId(null);
       await loadProjectsList();
     }
@@ -283,7 +280,6 @@ export function ProjectsDialog({
 
     // Check project limit before uploading
     if (!canCreateProject()) {
-      console.log('[ProjectsDialog] Project limit reached, showing upgrade dialog');
       setShowUpgradeDialog(true);
       event.target.value = ''; // Reset file input
       return;
@@ -293,7 +289,6 @@ export function ProjectsDialog({
     try {
       const project = await uploadSessionFile(file);
       if (project) {
-        console.log(`[ProjectsDialog] Uploaded "${project.name}"`);
         await loadProjectsList();
       }
     } catch (err) {

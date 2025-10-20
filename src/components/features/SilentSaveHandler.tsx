@@ -32,8 +32,6 @@ export function SilentSaveHandler() {
     // Reset the flag immediately to prevent duplicate saves
     setTriggerSilentSave(false);
 
-    console.log('[SilentSaveHandler] Performing silent save for project:', currentProjectId);
-
     const performSilentSave = async () => {
       try {
         await handleSaveToCloud(
@@ -43,15 +41,13 @@ export function SilentSaveHandler() {
           false // Don't force new - update existing
         );
         
-        console.log('[SilentSaveHandler] ✓ Silent save successful');
-        
         // Show success toast with project name and purple cloud icon
         toast.success('Saved to your projects', {
           description: projectName,
           icon: <CloudUpload className="h-5 w-5 text-purple-500" />,
         });
       } catch (error) {
-        console.error('[SilentSaveHandler] ✗ Silent save failed:', error);
+        console.error('[SilentSaveHandler] Failed to save project:', error);
         
         // Show error toast
         toast.error('Failed to save project', {

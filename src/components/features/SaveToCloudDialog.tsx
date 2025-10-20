@@ -84,8 +84,6 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
   }, [open, user, getUserProfile, listProjects]);
 
   const handleSave = async () => {
-    console.log('[SaveToCloudDialog] Save button clicked');
-    
     // Clear previous errors
     setNameError(null);
     setDescriptionError(null);
@@ -120,20 +118,11 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
       const canCreate = maxProjects === -1 || projectCount < maxProjects;
       
       if (!canCreate) {
-        console.log('[SaveToCloudDialog] Project limit reached, showing upgrade dialog');
         onOpenChange(false); // Close save dialog
         setShowUpgradeDialog(true); // Show upgrade dialog
         return;
       }
     }
-
-    console.log('[SaveToCloudDialog] Starting save...', {
-      projectName: sanitizedName,
-      description: sanitizedDescription,
-      hasExportData: !!exportData,
-      isNewProject,
-      saveAsMode,
-    });
 
     setSaving(true);
     try {
@@ -151,18 +140,14 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
       );
 
       if (project) {
-        console.log('[SaveToCloudDialog] ✓ Save successful, closing dialog');
         onOpenChange(false);
         setProjectName(storedProjectName);
         setDescription(storedProjectDescription);
-      } else {
-        console.error('[SaveToCloudDialog] ✗ Save returned null');
       }
     } catch (err) {
-      console.error('[SaveToCloudDialog] ✗ Save exception:', err);
+      console.error('[SaveToCloudDialog] Save failed:', err);
     } finally {
       setSaving(false);
-      console.log('[SaveToCloudDialog] Save process complete');
     }
   };
 

@@ -225,30 +225,16 @@ export class SessionImporter {
     const characterPaletteStore = useCharacterPaletteStore.getState();
     const projectMetadataStore = useProjectMetadataStore.getState();
     
-    console.log('[SessionImporter] Starting session restoration...', {
-      hasName: !!sessionData.name,
-      hasDescription: !!sessionData.description,
-      name: sessionData.name,
-      description: sessionData.description,
-    });
-    
     // Set importing flag to prevent auto-save during import
     animationStore.setImportingSession(true);
     
     // Restore project metadata (name and description)
     if (sessionData.name) {
-      console.log('[SessionImporter] Setting project name:', sessionData.name);
       projectMetadataStore.setProjectName(sessionData.name);
-      console.log('[SessionImporter] Project name set. Current state:', projectMetadataStore.projectName);
-    } else {
-      console.warn('[SessionImporter] No project name in session data');
     }
     
     if (sessionData.description) {
-      console.log('[SessionImporter] Setting project description:', sessionData.description);
       projectMetadataStore.setProjectDescription(sessionData.description);
-    } else {
-      console.log('[SessionImporter] No project description in session data');
     }
     
     // Restore canvas data

@@ -18,15 +18,11 @@ export const useProjectFileActions = () => {
       return; // Not authenticated, do nothing
     }
 
-    console.log('[ProjectFileActions] showSaveProjectDialog called, currentProjectId:', currentProjectId);
-
     // If project has been saved before (has currentProjectId), trigger silent save
     if (currentProjectId) {
-      console.log('[ProjectFileActions] Project has currentProjectId, triggering silent save');
       setTriggerSilentSave(true); // This will be handled by a component with CanvasContext access
     } else {
       // New project, show dialog to get name/description
-      console.log('[ProjectFileActions] New project, showing save dialog');
       setSaveAsMode(false);
       setShowSaveToCloudDialog(true);
     }
