@@ -26,7 +26,6 @@ export const HamburgerMenu: React.FC = () => {
   
   const { user } = useAuth();
   const { 
-    setShowSaveToCloudDialog,
     setShowProjectsDialog,
   } = useCloudDialogState();
   
@@ -35,7 +34,7 @@ export const HamburgerMenu: React.FC = () => {
     setShowProjectSettingsDialog,
   } = useProjectDialogState();
 
-  const { showSaveAsDialog } = useProjectFileActions();
+  const { showSaveProjectDialog, showSaveAsDialog } = useProjectFileActions();
 
   return (
     <>
@@ -63,7 +62,7 @@ export const HamburgerMenu: React.FC = () => {
             
             {user && (
               <>
-                <MenubarItem onClick={() => setShowSaveToCloudDialog(true)} className="cursor-pointer">
+                <MenubarItem onClick={showSaveProjectDialog} className="cursor-pointer">
                   <CloudUpload className="mr-2 h-4 w-4" />
                   <span>Save Project</span>
                   <span className="ml-auto pl-4 text-xs text-muted-foreground">

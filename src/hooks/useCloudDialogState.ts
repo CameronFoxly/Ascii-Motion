@@ -13,16 +13,20 @@ interface CloudDialogState {
   showSaveToCloudDialog: boolean;
   showProjectsDialog: boolean;
   saveAsMode: boolean; // true = "Save As...", false = "Save"
+  triggerSilentSave: boolean; // true = trigger silent save without showing dialog
   setShowSaveToCloudDialog: (show: boolean) => void;
   setShowProjectsDialog: (show: boolean) => void;
   setSaveAsMode: (saveAs: boolean) => void;
+  setTriggerSilentSave: (trigger: boolean) => void;
 }
 
 export const useCloudDialogState = create<CloudDialogState>((set) => ({
   showSaveToCloudDialog: false,
   showProjectsDialog: false,
   saveAsMode: false,
+  triggerSilentSave: false,
   setShowSaveToCloudDialog: (show) => set({ showSaveToCloudDialog: show }),
   setShowProjectsDialog: (show) => set({ showProjectsDialog: show }),
   setSaveAsMode: (saveAs) => set({ saveAsMode: saveAs }),
+  setTriggerSilentSave: (trigger) => set({ triggerSilentSave: trigger }),
 }));

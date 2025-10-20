@@ -16,6 +16,7 @@ import { useProjectMetadataStore } from '../../stores/projectMetadataStore';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useAnimationStore } from '../../stores/animationStore';
 import { useToolStore } from '../../stores/toolStore';
+import { useCloudProjectActions } from '../../hooks/useCloudProjectActions';
 
 /**
  * New Project Dialog
@@ -32,6 +33,7 @@ export function NewProjectDialog() {
   const { setCanvasSize, clearCanvas } = useCanvasStore();
   const { resetAnimation } = useAnimationStore();
   const { clearHistory } = useToolStore();
+  const { clearCurrentProject } = useCloudProjectActions();
   
   const [name, setName] = useState('Untitled Project');
   const [description, setDescription] = useState('');
@@ -57,6 +59,9 @@ export function NewProjectDialog() {
     // Set project metadata
     setProjectName(name.trim());
     setProjectDescription(description.trim());
+    
+    // Clear cloud project tracking (this is a new project)
+    clearCurrentProject();
     
     // Initialize canvas
     setCanvasSize(width, height);

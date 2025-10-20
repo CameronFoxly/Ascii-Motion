@@ -50,6 +50,7 @@ import { useAuth, usePasswordRecoveryCallback, UpdatePasswordDialog } from '@asc
 import { InlineProjectNameEditor } from './components/features/InlineProjectNameEditor'
 import { NewProjectDialog } from './components/features/NewProjectDialog'
 import { ProjectSettingsDialog } from './components/features/ProjectSettingsDialog'
+import { SilentSaveHandler } from './components/features/SilentSaveHandler'
 
 /**
  * Inner component that uses auth hooks
@@ -279,6 +280,9 @@ function AppContent() {
           {/* Cloud Storage Dialogs - Inside CanvasProvider to access context */}
           {user && (
             <>
+              {/* Silent Save Handler - Handles Ctrl+S for already-saved projects */}
+              <SilentSaveHandler />
+              
               <SaveToCloudDialog 
                 open={showSaveToCloudDialog} 
                 onOpenChange={setShowSaveToCloudDialog} 

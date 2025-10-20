@@ -20,10 +20,10 @@ import type { SessionData } from '@ascii-motion/premium';
 import type { ExportDataBundle } from '../types/export';
 import { saveAs } from 'file-saver';
 import { useSessionImporter } from '../utils/sessionImporter';
+import { useProjectMetadataStore } from '../stores/projectMetadataStore';
 
 export function useCloudProjectActions() {
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
-  const [currentProjectName, setCurrentProjectName] = useState<string>('Untitled');
+  const { currentProjectId, setCurrentProjectId } = useProjectMetadataStore();
   const [showProjectsDialog, setShowProjectsDialog] = useState(false);
 
   const { saveToCloud } = useCloudProject();
@@ -88,7 +88,7 @@ export function useCloudProjectActions() {
   const handleSaveToCloud = useCallback(
     async (exportData: ExportDataBundle, projectName?: string, description?: string, forceNew?: boolean) => {
       console.log('[CloudActions] Starting save to cloud...', {
-        projectName: projectName || currentProjectName,
+        projectName,
         hasDescription: !!description,
         currentProjectId,
         forceNew,
@@ -108,14 +108,13 @@ export function useCloudProjectActions() {
         // If forceNew is true, don't pass projectId to create a new project
         console.log('[CloudActions] Calling saveToCloud...');
         const project = await saveToCloud(sessionData, {
-          name: projectName || currentProjectName,
+          name: projectName || exportData.name || 'Untitled Project',
           description,
           projectId: forceNew ? undefined : (currentProjectId || undefined),
         });
 
         if (project) {
           setCurrentProjectId(project.id);
-          setCurrentProjectName(project.name);
           console.log('[CloudActions] ✓ Saved to cloud successfully:', project.name);
           return project;
         } else {
@@ -126,7 +125,7 @@ export function useCloudProjectActions() {
       }
       return null;
     },
-    [saveToCloud, currentProjectId, currentProjectName, createSessionData]
+    [saveToCloud, currentProjectId, createSessionData]
   );
 
   /**
@@ -136,6 +135,21 @@ export function useCloudProjectActions() {
   const handleLoadFromCloud = useCallback(
     async (projectId: string, sessionData: unknown) => {
       try {
+        console.log('[CloudActions] handleLoadFromCloud called', {
+          projectId,
+          hasSessionData: !!sessionData,
+          sessionDataType: typeof sessionData,
+        });
+        
+        // Log what's in the session data
+        const typedData = sessionData as any;
+        console.log('[CloudActions] Session data preview:', {
+          hasName: !!typedData?.name,
+          name: typedData?.name,
+          hasDescription: !!typedData?.description,
+          description: typedData?.description,
+        });
+        
         // Create a blob from the session data
         const blob = new Blob([JSON.stringify(sessionData, null, 2)], {
           type: 'application/json',
@@ -146,14 +160,16 @@ export function useCloudProjectActions() {
           type: 'application/json',
         });
 
+        console.log('[CloudActions] Calling importSession...');
         // Use existing session importer
         await importSession(file);
 
         // Update current project tracking
         setCurrentProjectId(projectId);
-        console.log('[CloudActions] Loaded from cloud:', projectId);
+        console.log('[CloudActions] ✓ Loaded from cloud successfully:', projectId);
+        console.log('[CloudActions] ✓ Set currentProjectId to:', projectId);
       } catch (err) {
-        console.error('[CloudActions] Load failed:', err);
+        console.error('[CloudActions] ✗ Load failed:', err);
         throw err;
       }
     },
@@ -203,11 +219,17 @@ export function useCloudProjectActions() {
   const openProjectsDialog = useCallback(() => {
     setShowProjectsDialog(true);
   }, []);
+  
+  /**
+   * Clear current project tracking (for New Project action)
+   */
+  const clearCurrentProject = useCallback(() => {
+    setCurrentProjectId(null);
+  }, []);
 
   return {
     // State
     currentProjectId,
-    currentProjectName,
     showProjectsDialog,
     setShowProjectsDialog,
 
@@ -216,5 +238,6 @@ export function useCloudProjectActions() {
     handleLoadFromCloud,
     handleDownloadProject,
     openProjectsDialog,
+    clearCurrentProject,
   };
 }

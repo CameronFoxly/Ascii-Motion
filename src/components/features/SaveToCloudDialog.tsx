@@ -43,13 +43,13 @@ interface SaveToCloudDialogProps {
 export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps) {
   const { user } = useAuth();
   const exportData = useExportDataCollector();
-  const { handleSaveToCloud, currentProjectName, currentProjectId } = useCloudProjectActions();
+  const { handleSaveToCloud } = useCloudProjectActions();
   const { getUserProfile, listProjects } = useCloudProject();
-  const { projectName: storedProjectName, projectDescription: storedProjectDescription } = useProjectMetadataStore();
+  const { projectName: storedProjectName, projectDescription: storedProjectDescription, currentProjectId } = useProjectMetadataStore();
   const { setShowProjectsDialog, saveAsMode, setSaveAsMode } = useCloudDialogState();
   
-  const [projectName, setProjectName] = useState(storedProjectName || currentProjectName);
-  const [description, setDescription] = useState(storedProjectDescription || '');
+  const [projectName, setProjectName] = useState(storedProjectName);
+  const [description, setDescription] = useState(storedProjectDescription);
   const [saving, setSaving] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [projectCount, setProjectCount] = useState(0);
@@ -60,13 +60,13 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
   // Sync with projectMetadataStore when dialog opens
   useEffect(() => {
     if (open) {
-      setProjectName(storedProjectName || currentProjectName);
-      setDescription(storedProjectDescription || '');
+      setProjectName(storedProjectName);
+      setDescription(storedProjectDescription);
     } else {
       // Reset saveAsMode when dialog closes
       setSaveAsMode(false);
     }
-  }, [open, storedProjectName, storedProjectDescription, currentProjectName, setSaveAsMode]);
+  }, [open, storedProjectName, storedProjectDescription, setSaveAsMode]);
 
   // Load user profile and project count when dialog opens
   useEffect(() => {
@@ -153,8 +153,8 @@ export function SaveToCloudDialog({ open, onOpenChange }: SaveToCloudDialogProps
       if (project) {
         console.log('[SaveToCloudDialog] ✓ Save successful, closing dialog');
         onOpenChange(false);
-        setProjectName(storedProjectName || currentProjectName);
-        setDescription(storedProjectDescription || '');
+        setProjectName(storedProjectName);
+        setDescription(storedProjectDescription);
       } else {
         console.error('[SaveToCloudDialog] ✗ Save returned null');
       }
