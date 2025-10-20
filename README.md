@@ -11,21 +11,6 @@ https://ascii-motion.app
 <img width="2610" height="1758" alt="Screenshot of the ASCII Motion app UI" src="https://github.com/user-attachments/assets/e2be1571-c322-4c8f-bdef-10ab01eb9a05" />
 </br>
 
-## 📦 Project Structure
-
-**This is a monorepo with dual licensing:**
-
-- **`packages/core/`** - Open source core features (MIT License)
-  - Canvas editor, drawing tools, animation system
-  - Export features (PNG, SVG, GIF, MP4, etc.)
-  - All UI components and utilities
-
-- **`packages/premium/`** - Premium features (Proprietary License)
-  - User authentication (email-based)
-  - Cloud project storage (Supabase)
-  - Payment integration (future)
-
-See [docs/MONOREPO_SETUP_GUIDE.md](docs/MONOREPO_SETUP_GUIDE.md) for details.
 
 ## 🎨 Current Features
 
@@ -34,6 +19,7 @@ See [docs/MONOREPO_SETUP_GUIDE.md](docs/MONOREPO_SETUP_GUIDE.md) for details.
 - Custom Color and Character Palettes including presets and import/export features
 - Convert images or video assets to ASCII art, with fine-tuned rendering control
 - Multiple Export Formats: Images (PNG, JPEG, SVG), Videos (MP4, WebM), Text files, JSON, HTML, and full session export
+  
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -97,8 +83,23 @@ npm run version:major
 - **Zustand** - State management
 - **Lucide React** - Icons
 
+## 📦 Project Structure
 
-## 🏛️ Architecture
+**This is a monorepo with dual licensing:**
+
+- **`packages/core/`** - Open source core features (MIT License)
+  - Canvas editor, drawing tools, animation system
+  - Export features (PNG, SVG, GIF, MP4, etc.)
+  - All UI components and utilities
+
+- **`packages/premium/`** - Premium features (Proprietary License)
+  - User authentication (email-based)
+  - Cloud project storage (Supabase)
+  - Payment integration (future)
+
+See [docs/MONOREPO_SETUP_GUIDE.md](docs/MONOREPO_SETUP_GUIDE.md) for details.
+
+## 🏛️ Core App Architecture
 
 ```
 src/
@@ -178,17 +179,17 @@ Where I'm at with the concept:
 </details>
 
 <details>
-<summary> 🧪 Phase 5: Testing and bug bashing </summary>
+<summary> ✅ Phase 5: Testing and bug bashing </summary>
    
-- [ ] FIX ALL THE BUGS!!!
-- [ ] Sweeten tool set with quality of life improvements
-- [ ] Address accessibilty issues
+- [x] FIX ALL THE BUGS!!!
+- [x] Sweeten tool set with quality of life improvements
+- [x] Address accessibilty issues
 </details>
 
 <details>
 <summary> 💸 Phase 6: Setup database and auth </summary>
    
-- [ ] Set up database for user account creation and project saving
+- [x] Set up database for user account creation and project saving
 - [ ] Version history for projects
 - [ ] Set up paid tiers to cover server costs if we start getting traction????
  </details>
@@ -216,20 +217,119 @@ Where I'm at with the concept:
 
 We welcome contributions to the **open-source core** (`packages/core/`)!
 
+### For Open Source Contributors
+
 **What you can contribute:**
-- ✅ New drawing tools
-- ✅ Animation features
-- ✅ Export formats
-- ✅ UI improvements
-- ✅ Bug fixes
-- ✅ Documentation
+- ✅ New drawing tools and brushes
+- ✅ Animation features and effects
+- ✅ Export formats and converters
+- ✅ UI/UX improvements
+- ✅ Bug fixes and performance optimizations
+- ✅ Documentation and examples
 
 **What is proprietary:**
 - ❌ Authentication system (`packages/premium/`)
 - ❌ Cloud storage features
 - ❌ Payment integration
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+### Monorepo Setup for Contributors
+
+**Important:** This project uses a monorepo structure with a private Git submodule for premium features.
+
+#### Project Structure
+```
+Ascii-Motion/               # Main repository (public)
+├── packages/
+│   ├── core/              # Open source (MIT) - You work here!
+│   │   ├── src/
+│   │   │   ├── components/
+│   │   │   ├── stores/
+│   │   │   ├── hooks/
+│   │   │   └── utils/
+│   │   └── package.json
+│   └── premium/           # Private submodule (Proprietary)
+│       └── (not accessible to contributors)
+├── src/                   # Legacy code (being migrated to core)
+└── package.json           # Root workspace config
+```
+
+#### Getting Started
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/cameronfoxly/Ascii-Motion.git
+   cd Ascii-Motion
+   npm install
+   ```
+
+2. **The `packages/premium/` folder will be empty** - This is expected! You don't need it to contribute.
+
+3. **All your work happens in `packages/core/`:**
+   ```bash
+   # Core package has its own dev server
+   cd packages/core
+   npm run dev
+   ```
+
+4. **Development workflow:**
+   - Make changes in `packages/core/src/`
+   - The dev server will hot-reload your changes
+   - Test thoroughly before submitting PR
+   - Follow existing code patterns and TypeScript conventions
+
+#### Import Paths
+
+When writing code in `packages/core/`, use these import patterns:
+
+```typescript
+// ✅ Correct - Importing from core package
+import { Button } from '@ascii-motion/core/components';
+import { useCanvas } from '@ascii-motion/core/hooks';
+import { CanvasStore } from '@ascii-motion/core/stores';
+
+// ❌ Incorrect - Don't import from premium
+import { AuthContext } from '@ascii-motion/premium/auth';
+```
+
+#### What Happens to Premium Code?
+
+- The main app (`src/` folder) imports from both `core` and `premium`
+- When you run `npm run dev` from the root, both packages are built
+- **If `packages/premium/` is missing,** the app will still work but without auth/cloud features
+- Your contributions to `core` are completely independent of premium features
+
+#### Testing Your Changes
+
+```bash
+# Test from core package (recommended for contributors)
+cd packages/core
+npm run dev        # Opens Storybook or component sandbox
+npm run test       # Run unit tests
+npm run lint       # Check code style
+
+# Test in full app (optional)
+cd ../..           # Back to root
+npm run dev        # Runs full app (may show warnings about missing premium)
+```
+
+#### Submitting Pull Requests
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-tool`
+3. Make your changes in `packages/core/`
+4. Commit with clear messages: `git commit -m "Add gradient brush tool"`
+5. Push to your fork: `git push origin feature/amazing-tool`
+6. Open a Pull Request to the `main` branch
+
+**PR Checklist:**
+- [ ] Changes are only in `packages/core/` (no premium code)
+- [ ] Code follows existing patterns and TypeScript conventions
+- [ ] Tests pass (`npm run test`)
+- [ ] No linting errors (`npm run lint`)
+- [ ] Documentation updated if needed
+- [ ] PR description explains what and why
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
 
 ## 📜 License
 
