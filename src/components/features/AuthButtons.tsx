@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { useAuth, SignUpDialog, SignInDialog, PasswordResetDialog, UserMenu } from '@ascii-motion/premium';
+import { useAuth, SignUpDialog, SignInDialog, PasswordResetDialog, UserMenu, AccountSettingsDialog } from '@ascii-motion/premium';
 import { LogIn, UserPlus, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { useCloudDialogState } from '@/hooks/useCloudDialogState';
 
 export function AuthButtons() {
   const { user, loading } = useAuth();
   const [showSignUp, setShowSignUp] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [showAccountSettings, setShowAccountSettings] = useState(false);
+  const { setShowProjectsDialog } = useCloudDialogState();
 
   // Show loading indicator while checking session
   if (loading) {
@@ -26,7 +30,24 @@ export function AuthButtons() {
 
   // Show UserMenu if logged in
   if (user) {
-    return <UserMenu />;
+    return (
+      <>
+        <UserMenu 
+          onManageProjects={() => setShowProjectsDialog(true)}
+          onAccountSettings={() => setShowAccountSettings(true)}
+        />
+        <AccountSettingsDialog
+          open={showAccountSettings}
+          onOpenChange={setShowAccountSettings}
+          onPasswordChanged={() => {
+            toast.success('Successfully changed password');
+          }}
+          onAccountDeleted={() => {
+            toast.success('Account deleted successfully');
+          }}
+        />
+      </>
+    );
   }
 
   // Show Sign Up / Sign In buttons if logged out

@@ -15,14 +15,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useAuth, SignUpDialog, SignInDialog, PasswordResetDialog } from '@ascii-motion/premium';
+import { useAuth, SignUpDialog, SignInDialog, PasswordResetDialog, AccountSettingsDialog } from '@ascii-motion/premium';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function AccountButton() {
   const { user, profile, loading, signOut } = useAuth();
   const [showSignUp, setShowSignUp] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [showAccountSettings, setShowAccountSettings] = useState(false);
 
   // Handle sign out and reset dialog states
   const handleSignOut = async () => {
@@ -129,9 +131,9 @@ export function AccountButton() {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem disabled>
+          <DropdownMenuItem onClick={() => setShowAccountSettings(true)}>
             <Settings className="mr-2 h-4 w-4" />
-            <span className="text-muted-foreground">Account settings (coming soon)</span>
+            <span>Account Settings</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSignOut}>
@@ -140,6 +142,18 @@ export function AccountButton() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Account Settings Dialog */}
+      <AccountSettingsDialog
+        open={showAccountSettings}
+        onOpenChange={setShowAccountSettings}
+        onPasswordChanged={() => {
+          toast.success('Successfully changed password');
+        }}
+        onAccountDeleted={() => {
+          toast.success('Account deleted successfully');
+        }}
+      />
     </TooltipProvider>
   );
 }
