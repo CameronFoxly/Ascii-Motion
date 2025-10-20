@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import { AppReveal } from './components/common/AppReveal'
 import App from './App'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 
 // Preload fonts for SVG export (async, non-blocking)
 import('./utils/font/fontLoader').then(({ fontLoader }) => {
@@ -20,5 +21,6 @@ createRoot(document.getElementById('root')!).render(
     <AppReveal>
       <App />
     </AppReveal>
+    <SpeedInsights />
   </StrictMode>,
 )

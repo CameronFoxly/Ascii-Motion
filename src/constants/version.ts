@@ -1,12 +1,85 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.1.45";
-export const BUILD_DATE = "2025-10-12T04:53:05.922Z";
-export const BUILD_HASH = "45d0ce6";
+export const VERSION = "0.2.0";
+export const BUILD_DATE = "2025-10-20T07:42:20.994Z";
+export const BUILD_HASH = "f548543";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.2.0",
+    "date": "2025-10-20T07:42:20.994Z",
+    "commits": [
+      "Adding the Auth system to main",
+      "Update readme",
+      "Update readme",
+      "Update premium package",
+      "Added basic account settings dialog",
+      "Cleaned up a bunch of debugging logs",
+      "Added toast component for notifications",
+      "Fixed up project metadata sync issues",
+      "Update subpackage",
+      "Fix eyeball error on password field with password manager overlay",
+      "Recognize password reset flow correctly",
+      "Fixed aria warnings about dialog descriptions for acccessibility",
+      "Removed thick white borders!",
+      "Added validation to input fields for security sake",
+      "Update big white outlines on stuff",
+      "Cleaned up dialogs.",
+      "Updated section divider inconsistencies",
+      "Fixed inconsistent UI dialog outlines",
+      "Fixed a few lint errors",
+      "More UI nudging",
+      "More UI sweetening",
+      "Fixed up project management UI",
+      "Improved project management system and standardized metadata.",
+      "Update menus",
+      "Updated trash functionality",
+      "Update package ref",
+      "Restructured docs",
+      "Added figma workflow notes for later",
+      "Tightened up projects dialog some more.",
+      "Added trash and perm delete functions",
+      "Updated cloud projects design",
+      "Consolidated export functions and added description to .asciimtn files",
+      "Fixed up save to cloud dialog",
+      "Fixed up header buttons",
+      "Reduced duplication in core directory, added docs around duplicating shared components",
+      "Latest package update for premium directory",
+      "More docs and reorganize UI and logic seperation",
+      "Updated docs and projects dialog",
+      "Added supabase architecture docs",
+      "Fixed persisted session bug, but still broken cloud save",
+      "Update cloud storage docs",
+      "Updated docs wth auth setup",
+      "docs(auth): Add session persistence fix documentation",
+      "fix(auth): Improve session persistence and loading state",
+      "refactor(auth): Update premium submodule - secure signup behavior",
+      "debug(auth): Update premium submodule with signup debugging",
+      "fix(auth): Update premium submodule with better signup error handling",
+      "docs: Add comprehensive build fixes documentation",
+      "fix(build): Fix TypeScript build errors in monorepo packages",
+      "docs: Add comprehensive authentication testing guide",
+      "feat(auth): Integrate authentication into main app",
+      "feat(auth): Update premium submodule with auth UI components",
+      "feat(auth): Update premium submodule - AuthContext complete",
+      "Setup supabase migration",
+      "feat(auth): Update premium submodule with Supabase client",
+      "docs: Complete monorepo documentation and Git submodule setup",
+      "Add premium package as private Git submodule",
+      "Added monorepo plan",
+      "Initial plan created for auth",
+      "Update readme again",
+      "Update README",
+      "Cleanup keyboard shortcut dialog, added search",
+      "Address UI feedback: remove parentheticals, grey section titles, improve spacing",
+      "Improve text handling in shortcut items to prevent overflow",
+      "Add search bar and 2-column layout to keyboard shortcuts dialog",
+      "Initial plan for keyboard shortcuts dialog improvements",
+      "Initial plan"
+    ]
+  },
   {
     "version": "0.1.45",
     "date": "2025-10-12T04:53:05.922Z",
