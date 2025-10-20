@@ -51,6 +51,7 @@ import { InlineProjectNameEditor } from './components/features/InlineProjectName
 import { NewProjectDialog } from './components/features/NewProjectDialog'
 import { ProjectSettingsDialog } from './components/features/ProjectSettingsDialog'
 import { SilentSaveHandler } from './components/features/SilentSaveHandler'
+import { Toaster } from './components/ui/sonner'
 
 /**
  * Inner component that uses auth hooks
@@ -305,6 +306,9 @@ function AppContent() {
         
         {/* Performance Overlay for Development */}
         <PerformanceOverlay />
+        
+        {/* Toast Notifications */}
+        <Toaster />
         
         {/* Vercel Analytics */}
         <Analytics />

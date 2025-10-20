@@ -9,6 +9,8 @@
  */
 
 import { useEffect } from 'react';
+import { toast } from 'sonner';
+import { CloudUpload } from 'lucide-react';
 import { useCloudDialogState } from '../../hooks/useCloudDialogState';
 import { useCloudProjectActions } from '../../hooks/useCloudProjectActions';
 import { useProjectMetadataStore } from '../../stores/projectMetadataStore';
@@ -42,10 +44,19 @@ export function SilentSaveHandler() {
         );
         
         console.log('[SilentSaveHandler] ✓ Silent save successful');
-        // TODO: Show toast notification: "[projectName] saved to cloud"
+        
+        // Show success toast with project name and purple cloud icon
+        toast.success('Saved to your projects', {
+          description: projectName,
+          icon: <CloudUpload className="h-5 w-5 text-purple-500" />,
+        });
       } catch (error) {
         console.error('[SilentSaveHandler] ✗ Silent save failed:', error);
-        // TODO: Show error toast
+        
+        // Show error toast
+        toast.error('Failed to save project', {
+          description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        });
       }
     };
 
