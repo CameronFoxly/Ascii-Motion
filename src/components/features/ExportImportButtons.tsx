@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 
-import { Download, Upload, FileImage, Film, FileText, ChevronDown, Globe, FileCode } from 'lucide-react';
+import { Download, Upload, FileImage, Film, FileText, ChevronDown, Globe, FileCode, Save, FolderOpen } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
 import { useImportModal } from '../../stores/importStore';
 import type { ExportFormatId } from '../../types/export';
@@ -50,6 +50,12 @@ const EXPORT_OPTIONS = [
     description: 'Character data as a .txt file',
     icon: FileText,
   },
+  {
+    id: 'session' as ExportFormatId,
+    name: '.asciimtn Project',
+    description: 'Full ascii-motion session file',
+    icon: Save,
+  },
 ];
 
 // Import format definitions for dropdown
@@ -65,6 +71,12 @@ const IMPORT_OPTIONS = [
     name: 'JSON Data',
     description: 'Load JSON project',
     icon: FileText,
+  },
+  {
+    id: 'session' as ExportFormatId,
+    name: '.asciimtn',
+    description: 'Load project file',
+    icon: FolderOpen,
   },
 ];
 

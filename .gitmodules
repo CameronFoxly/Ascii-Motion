@@ -1,0 +1,3 @@
+[submodule "packages/premium"]
+	path = packages/premium
+	url = https://github.com/cameronfoxly/Ascii-Motion-Premium.git

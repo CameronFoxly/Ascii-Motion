@@ -39,9 +39,9 @@ export const VersionDisplay: React.FC = () => {
       </TooltipProvider>
 
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="max-w-lg w-[90vw] h-[85vh] max-h-[600px] flex flex-col p-0">
+        <DialogContent className="max-w-lg w-[90vw] h-[85vh] max-h-[600px] flex flex-col p-0 border-border/50" aria-describedby={undefined}>
           {/* Fixed Header */}
-          <DialogHeader className="flex-shrink-0 px-4 py-3 border-b">
+          <DialogHeader className="flex-shrink-0 px-4 py-3 border-b border-border/50">
             <DialogTitle className="flex items-center gap-2 text-base">
               <GitCommit className="w-4 h-4" />
               ASCII Motion Version History

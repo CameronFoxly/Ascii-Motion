@@ -1,6 +1,104 @@
 # ASCII Motion - Copilot Development Instructions
 
-## 🚨 **MANDATORY: DOCUMENTATION UPDATE PROTOCOL** 🚨
+## � **CRITICAL: DOCUMENTATION SECURITY & ORGANIZATION** 🔒
+
+### **⚠️ WHERE TO PUT DOCUMENTATION ⚠️**
+
+**ASCII Motion has TWO documentation locations based on sensitivity:**
+
+#### **🔐 SECURE/PREMIUM Documentation**
+**Location:** `packages/premium/docs/`
+
+**MUST go here if documentation contains:**
+- ❌ Authentication system details (sign up, sign in, sessions, JWT)
+- ❌ Database architecture (Supabase, RLS policies, migrations)
+- ❌ Cloud storage implementation (user projects, saving, loading)
+- ❌ Subscription tiers (Free vs Pro, limits, tier management)
+- ❌ Payment integration (Stripe, webhooks, billing)
+- ❌ Security policies (API keys, credentials, secrets)
+- ❌ SQL queries and database scripts
+- ❌ Backend/server-side architecture
+- ❌ Any system that requires environment variables with secrets
+
+**File naming conventions:**
+- `AUTH_*.md` - Authentication related
+- `SUPABASE_*.md` - Database/Supabase specific
+- `CLOUD_STORAGE_*.md` - Cloud storage features
+- `SUBSCRIPTION_*.md` - Tier/payment related
+- `SECURITY_*.md` - Security policies
+- `SQL_*.sql` - Database scripts
+
+**Example:**
+```markdown
+# Creating auth documentation
+❌ WRONG: docs/AUTH_IMPLEMENTATION.md
+✅ CORRECT: packages/premium/docs/AUTH_IMPLEMENTATION.md
+```
+
+#### **📖 PUBLIC Documentation**
+**Location:** `docs/`
+
+**Can go here if documentation is about:**
+- ✅ User-facing features and tutorials
+- ✅ Drawing tools (brush, shapes, line, etc.)
+- ✅ Animation system (frames, playback, layers)
+- ✅ Effects system (filters, color adjustments)
+- ✅ Canvas rendering (non-sensitive architecture)
+- ✅ UI/UX patterns and component design
+- ✅ File import/export formats
+- ✅ Open source contribution guidelines
+- ✅ Public API reference
+
+**Example:**
+```markdown
+# Creating drawing tool documentation
+✅ CORRECT: docs/BRUSH_TOOL_IMPLEMENTATION.md
+```
+
+#### **🚨 SECURITY RULES FOR DOCUMENTATION**
+
+**NEVER include in ANY documentation:**
+- ❌ Real API keys or secrets (use `YOUR_API_KEY_HERE`)
+- ❌ Real database credentials (use `your-project-url-here`)
+- ❌ Real user emails or data (use `user@example.com`)
+- ❌ Production URLs with sensitive data
+- ❌ Service role keys
+- ❌ Stripe secret keys (test keys only, marked as TEST)
+- ❌ Actual environment variable values
+
+**ALWAYS use placeholders:**
+```bash
+# ✅ CORRECT
+VITE_SUPABASE_URL=your-project-url-here
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
+
+# ❌ WRONG
+VITE_SUPABASE_URL=https://abc123.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+#### **📋 Quick Decision Tree**
+
+```
+Does this doc mention...
+├─ Database/Supabase? → packages/premium/docs/ 🔒
+├─ Authentication? → packages/premium/docs/ 🔒
+├─ Cloud storage? → packages/premium/docs/ 🔒
+├─ Subscriptions/tiers? → packages/premium/docs/ 🔒
+├─ Payments/Stripe? → packages/premium/docs/ 🔒
+├─ Security policies? → packages/premium/docs/ 🔒
+└─ None of the above? → docs/ ✅ (probably safe)
+
+When in doubt? → packages/premium/docs/ 🔒
+```
+
+**See also:**
+- [`packages/premium/docs/README.md`](packages/premium/docs/README.md) - Secure docs index
+- [`docs/PREMIUM_DOCS_MOVED.md`](docs/PREMIUM_DOCS_MOVED.md) - Why we did this
+
+---
+
+## �🚨 **MANDATORY: DOCUMENTATION UPDATE PROTOCOL** 🚨
 
 ### **⚠️ STOP: Read This Before Making ANY Changes ⚠️**
 
@@ -1018,6 +1116,64 @@ src/
 - Follow existing component organization patterns
 - Place new components in appropriate subdirectories
 - **✅ CREATE: React components, hooks, stores, utilities**
+- **⚠️ IMPORTANT: UI components in `src/components/ui/` must be synced** - See "Shared UI Pattern" below
+
+#### **`packages/` Directory** - Monorepo Packages
+- `core/` - Shared UI component library (shadcn/ui components only)
+- `premium/` - Premium features (Git submodule, private repository)
+- **⚠️ CRITICAL: packages/core must be kept in sync with src/components/ui**
+
+---
+
+### **🚨 MANDATORY: Shared UI Component Pattern**
+
+**When adding or modifying shadcn/ui components:**
+
+#### **Adding a New Component:**
+```bash
+# 1. Add component to main app
+npx shadcn@latest add <component>
+# Creates: src/components/ui/<component>.tsx
+
+# 2. Copy to core package (REQUIRED!)
+cp src/components/ui/<component>.tsx packages/core/src/components/ui/
+
+# 3. Add export to packages/core/src/components/index.ts
+export * from './ui/<component>';
+```
+
+#### **Modifying an Existing Component:**
+```bash
+# 1. Edit main app version
+# Edit: src/components/ui/<component>.tsx
+
+# 2. Sync to core package (REQUIRED!)
+cp src/components/ui/<component>.tsx packages/core/src/components/ui/
+```
+
+#### **Modifying cn() Utility:**
+```bash
+# 1. Edit: src/lib/utils.ts
+
+# 2. Sync to core package (REQUIRED!)
+cp src/lib/utils.ts packages/core/src/lib/utils.ts
+```
+
+**Why This Pattern Exists:**
+- Premium features (in private `packages/premium` submodule) need UI components
+- Premium package cannot import from main app due to package boundaries
+- `packages/core` acts as shared UI library for both main app and premium features
+
+**📖 Full Documentation:** See `docs/SHARED_UI_COMPONENTS_PATTERN.md`
+
+**✅ Quick Sync Check:**
+```bash
+# Compare files to detect drift
+diff -r src/components/ui packages/core/src/components/ui
+diff src/lib/utils.ts packages/core/src/lib/utils.ts
+```
+
+---
 
 ### **🎯 File Creation Rules**
 

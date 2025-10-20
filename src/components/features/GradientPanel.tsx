@@ -504,7 +504,7 @@ export function GradientPanel() {
           isAnimating ? "translate-x-0" : "translate-x-full"
         )}>
           {/* Header */}
-          <div className="flex items-center justify-between p-3 border-b border-border">
+          <div className="flex items-center justify-between p-3 border-b border-border/50">
             <h2 className="text-sm font-medium flex items-center gap-2">
               <GradientIcon className="w-3 h-3" />
               Gradient Fill
@@ -600,7 +600,7 @@ export function GradientPanel() {
           </ScrollArea>
 
           {/* Footer with Apply/Cancel Buttons */}
-          <div className="p-3 border-t border-border space-y-3">
+          <div className="p-3 border-t border-border/50 space-y-3">
             <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"

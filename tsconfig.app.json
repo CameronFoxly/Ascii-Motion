@@ -26,8 +26,10 @@
     /* Path mapping */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@ascii-motion/core": ["./packages/core/src"],
+      "@ascii-motion/premium": ["./packages/premium/src"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "packages/premium/src"]
 }

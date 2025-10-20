@@ -90,7 +90,7 @@ src/
 │   ├── common/         # Shared/reusable components (CellRenderer, PerformanceMonitor, ThemeToggle)
 │   ├── features/       # Complex components (CanvasGrid, CanvasRenderer, CanvasOverlay, CanvasWithShortcuts, ToolPalette, CharacterPalette, ColorPicker)
 │   ├── tools/          # Tool-specific components (SelectionTool, DrawingTool, LassoTool, TextTool, RectangleTool, EllipseTool, PaintBucketTool, EyedropperTool)
-│   └── ui/             # Shadcn UI components
+│   └── ui/             # Shadcn UI components ⚠️ See "Shared UI Pattern" below
 ├── stores/             # Zustand state management
 │   ├── canvasStore.ts        # Canvas data and operations
 │   ├── animationStore.ts     # Animation timeline and frames
@@ -101,7 +101,54 @@ src/
 ├── utils/              # Utility functions
 ├── constants/          # App constants and configurations
 └── lib/                # Third-party library configurations
+
+packages/
+├── core/               # ⚠️ Shared UI Library (must be kept in sync)
+│   └── src/
+│       ├── components/ui/   # Copy of src/components/ui/
+│       └── lib/utils.ts     # Copy of src/lib/utils.ts
+└── premium/            # Premium features (Git submodule, private repo)
+    └── src/
+        └── auth/       # Authentication & cloud features
 ```
+
+### ⚠️ IMPORTANT: Shared UI Component Pattern
+
+**When adding or modifying shadcn/ui components, you MUST update BOTH locations:**
+
+1. **Adding a new shadcn component:**
+   ```bash
+   # 1. Add to main app
+   npx shadcn@latest add <component>
+   
+   # 2. Copy to core package
+   cp src/components/ui/<component>.tsx packages/core/src/components/ui/
+   
+   # 3. Add export to packages/core/src/components/index.ts
+   export * from './ui/<component>';
+   ```
+
+2. **Modifying an existing UI component:**
+   ```bash
+   # 1. Edit: src/components/ui/<component>.tsx
+   
+   # 2. Copy to core package
+   cp src/components/ui/<component>.tsx packages/core/src/components/ui/
+   ```
+
+3. **Modifying the cn() utility:**
+   ```bash
+   # 1. Edit: src/lib/utils.ts
+   
+   # 2. Copy to core package
+   cp src/lib/utils.ts packages/core/src/lib/utils.ts
+   ```
+
+**Why?** The premium package (private repository) needs access to UI components but cannot import from the main app due to package boundaries. `packages/core` acts as a shared UI library.
+
+**📖 Full Documentation:** See `docs/SHARED_UI_COMPONENTS_PATTERN.md` for complete details.
+
+---
 
 ## 🎯 Getting Started
 

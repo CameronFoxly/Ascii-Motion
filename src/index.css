@@ -96,6 +96,20 @@
     outline-offset: 2px;
   }
 
+  /* Hide native browser password reveal and clear buttons */
+  input::-ms-reveal,
+  input::-ms-clear {
+    display: none;
+  }
+
+  input::-webkit-credentials-auto-fill-button,
+  input::-webkit-clear-button,
+  input::-webkit-inner-spin-button,
+  input::-webkit-outer-spin-button {
+    display: none;
+    -webkit-appearance: none;
+  }
+
   /* Touch-friendly scrolling */
   * {
     -webkit-overflow-scrolling: touch;

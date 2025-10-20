@@ -1,23 +1,53 @@
 import { useCallback } from 'react';
-import { useExportStore } from '../stores/exportStore';
+import { useAuth } from '@ascii-motion/premium';
+import { useCloudDialogState } from './useCloudDialogState';
+import { useProjectMetadataStore } from '../stores/projectMetadataStore';
 
+/**
+ * Provides actions for Save (Ctrl+S), Save As (Ctrl+Shift+S), and Open (Ctrl+O) shortcuts
+ * - If user is authenticated: Opens cloud save/open dialogs or performs silent save
+ * - If user is not authenticated: Shortcuts are disabled (no-op)
+ */
 export const useProjectFileActions = () => {
-  const setActiveFormat = useExportStore((state) => state.setActiveFormat);
-  const setShowExportModal = useExportStore((state) => state.setShowExportModal);
-  const setShowImportModal = useExportStore((state) => state.setShowImportModal);
+  const { user } = useAuth();
+  const { setShowSaveToCloudDialog, setShowProjectsDialog, setSaveAsMode, setTriggerSilentSave } = useCloudDialogState();
+  const { currentProjectId } = useProjectMetadataStore();
 
   const showSaveProjectDialog = useCallback(() => {
-    setActiveFormat('session');
-    setShowExportModal(true);
-  }, [setActiveFormat, setShowExportModal]);
+    if (!user) {
+      return; // Not authenticated, do nothing
+    }
+
+    // If project has been saved before (has currentProjectId), trigger silent save
+    if (currentProjectId) {
+      setTriggerSilentSave(true); // This will be handled by a component with CanvasContext access
+    } else {
+      // New project, show dialog to get name/description
+      setSaveAsMode(false);
+      setShowSaveToCloudDialog(true);
+    }
+  }, [user, currentProjectId, setSaveAsMode, setShowSaveToCloudDialog, setTriggerSilentSave]);
+
+  const showSaveAsDialog = useCallback(() => {
+    if (user) {
+      setSaveAsMode(true); // Save As mode (always create new)
+      setShowSaveToCloudDialog(true);
+    }
+    // If not authenticated, do nothing (shortcuts disabled)
+  }, [user, setShowSaveToCloudDialog, setSaveAsMode]);
 
   const showOpenProjectDialog = useCallback(() => {
-    setActiveFormat('session');
-    setShowImportModal(true);
-  }, [setActiveFormat, setShowImportModal]);
+    if (user) {
+      // User is authenticated - use cloud projects dialog
+      setShowProjectsDialog(true);
+    }
+    // If not authenticated, do nothing (shortcuts disabled)
+  }, [user, setShowProjectsDialog]);
 
   return {
     showSaveProjectDialog,
+    showSaveAsDialog,
     showOpenProjectDialog,
+    currentProjectId, // Expose for checking if project is saved
   } as const;
 };

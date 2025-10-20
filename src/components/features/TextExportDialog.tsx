@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -9,6 +9,7 @@ import { Checkbox } from '../ui/checkbox';
 import { FileText, Download, Settings, Loader2 } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
 import { useExportDataCollector } from '../../utils/exportDataCollector';
+import { useProjectMetadataStore } from '../../stores/projectMetadataStore';
 import { ExportRenderer } from '../../utils/exportRenderer';
 import type { TextExportSettings } from '../../types/export';
 
@@ -24,12 +25,20 @@ export const TextExportDialog: React.FC = () => {
   const setTextSettings = useExportStore(state => state.setTextSettings);
   
   const exportData = useExportDataCollector();
+  const projectName = useProjectMetadataStore((state) => state.projectName);
   
-  const [filename, setFilename] = useState('ascii-motion-text');
+  const [filename, setFilename] = useState(projectName || 'ascii-motion-text');
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState<{ message: string; progress: number } | null>(null);
 
   const isOpen = showExportModal && activeFormat === 'text';
+
+  // Sync filename with project name when dialog opens
+  useEffect(() => {
+    if (isOpen && projectName) {
+      setFilename(projectName);
+    }
+  }, [isOpen, projectName]);
 
   const handleClose = () => {
     setShowExportModal(false);
@@ -71,8 +80,8 @@ export const TextExportDialog: React.FC = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={setShowExportModal}>
-      <DialogContent className="max-w-md p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b bg-background">
+      <DialogContent className="max-w-md p-0 overflow-hidden border-border/50" aria-describedby={undefined}>
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border/50 bg-background">
           <DialogTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
             Export Simple Text
@@ -81,7 +90,7 @@ export const TextExportDialog: React.FC = () => {
 
         <div className="flex flex-col max-h-[80vh]">
           {/* Sticky Progress + Filename */}
-          <div className="sticky top-0 z-10 bg-background px-6 py-4 border-b space-y-4">
+          <div className="sticky top-0 z-10 bg-background px-6 py-4 border-b border-border/50 space-y-4">
             {progress && (
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
@@ -117,7 +126,7 @@ export const TextExportDialog: React.FC = () => {
 
           {/* Scrollable Settings */}
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-            <Card>
+            <Card className="border-border/50">
               <CardContent className="pt-4 space-y-4">
                 <div className="flex items-center gap-2 mb-1">
                   <Settings className="w-4 h-4" />
@@ -207,7 +216,7 @@ export const TextExportDialog: React.FC = () => {
             </Card>
 
             {/* Export Info */}
-            <Card>
+            <Card className="border-border/50">
               <CardContent className="pt-4">
                 <h4 className="text-sm font-medium mb-3">Export Details</h4>
                 <div className="space-y-2 text-xs text-muted-foreground">
@@ -232,8 +241,8 @@ export const TextExportDialog: React.FC = () => {
             </Card>
           </div>
 
-          {/* Sticky Action Buttons */}
-          <div className="sticky bottom-0 z-10 bg-background px-6 py-4 border-t flex justify-end gap-2">
+          {/* Sticky Actions */}
+          <div className="sticky bottom-0 z-10 bg-background px-6 py-4 border-t border-border/50 flex justify-end gap-2">
             <Button variant="outline" onClick={handleClose} disabled={isExporting}>
               Cancel
             </Button>

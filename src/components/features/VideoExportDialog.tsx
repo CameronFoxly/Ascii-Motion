@@ -11,6 +11,7 @@ import { Card, CardContent } from '../ui/card';
 import { Video, Loader2, Play, Settings } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
 import { useExportDataCollector } from '../../utils/exportDataCollector';
+import { useProjectMetadataStore } from '../../stores/projectMetadataStore';
 import { ExportRenderer } from '../../utils/exportRenderer';
 import { calculateExportPixelDimensions, formatPixelDimensions } from '../../utils/exportPixelCalculator';
 import type { VideoExportSettings } from '../../types/export';
@@ -25,6 +26,7 @@ export const VideoExportDialog: React.FC = () => {
   const setShowExportModal = useExportStore(state => state.setShowExportModal);
   
   const exportData = useExportDataCollector();
+  const projectName = useProjectMetadataStore((state) => state.projectName);
   
   const [videoSettings, setVideoSettings] = useState<VideoExportSettings>({
     sizeMultiplier: 2,
@@ -37,11 +39,18 @@ export const VideoExportDialog: React.FC = () => {
     loops: 'none'
   });
   
-  const [filename, setFilename] = useState('ascii-motion-video');
+  const [filename, setFilename] = useState(projectName || 'ascii-motion-video');
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState<{ message: string; progress: number } | null>(null);
 
   const isOpen = showExportModal && activeFormat === 'mp4';
+
+  // Sync filename with project name when dialog opens
+  useEffect(() => {
+    if (isOpen && projectName) {
+      setFilename(projectName);
+    }
+  }, [isOpen, projectName]);
 
   // Check WebCodecs support
   const [supportsWebCodecs, setSupportsWebCodecs] = useState(false);
@@ -107,18 +116,18 @@ export const VideoExportDialog: React.FC = () => {
   const estimatedSize = Math.round((frameCount * videoSettings.sizeMultiplier * 50) / 1024); // Rough estimate in KB
 
   return (
-    <Dialog open={isOpen} onOpenChange={setShowExportModal}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b bg-background">
+        <Dialog open={isOpen} onOpenChange={setShowExportModal}>
+      <DialogContent className="max-w-xl p-0 overflow-hidden border-border/50" aria-describedby={undefined}>
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border/50 bg-background">
           <DialogTitle className="flex items-center gap-2">
             <Video className="w-5 h-5" />
-            Export Video Animation
+            Export Video
           </DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col max-h-[80vh]">
-          {/* Sticky Filename & Progress */}
-          <div className="sticky top-0 z-10 bg-background px-6 py-4 border-b space-y-4">
+          {/* Sticky Format Selection */}
+          <div className="sticky top-0 z-10 bg-background px-6 py-4 border-b border-border/50 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="filename">File Name</Label>
               <Input
@@ -306,7 +315,7 @@ export const VideoExportDialog: React.FC = () => {
             </div>
 
             {/* Video Preview Info */}
-            <Card className="bg-muted/50">
+            <Card className="bg-muted/50 border-border/50">
               <CardContent className="pt-4">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
@@ -332,7 +341,7 @@ export const VideoExportDialog: React.FC = () => {
           </div>
 
           {/* Sticky Action Buttons */}
-          <div className="sticky bottom-0 z-10 bg-background px-6 py-4 border-t flex justify-end gap-2">
+          <div className="sticky bottom-0 z-10 bg-background px-6 py-4 border-t border-border/50 flex justify-end gap-2">
             <Button
               variant="outline"
               onClick={handleClose}

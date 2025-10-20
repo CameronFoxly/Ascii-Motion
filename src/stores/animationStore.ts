@@ -49,6 +49,9 @@ interface AnimationState extends Animation {
   importFramesAppend: (frames: Array<{ data: Map<string, Cell>, duration: number }>) => void;
   importSessionFrames: (frames: Array<{ id: string, name: string, duration: number, data: Map<string, Cell>, thumbnail?: string }>) => void;
   
+  // Reset animation to initial state
+  resetAnimation: () => void;
+  
   // Drag controls
   setDraggingFrame: (isDragging: boolean) => void;
   
@@ -823,5 +826,19 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
         totalDuration: frames.reduce((total, frame) => total + frame.duration, 0)
       };
     });
-  }
+  },
+
+  // Reset animation to initial state with single blank frame
+  resetAnimation: () => {
+    const newFrame = createEmptyFrame();
+    newFrame.name = 'Frame 1';
+    
+    set({
+      frames: [newFrame],
+      currentFrameIndex: 0,
+      isPlaying: false,
+      selectedFrameIndices: new Set([0]),
+      totalDuration: newFrame.duration,
+    });
+  },
 }));

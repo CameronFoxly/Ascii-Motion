@@ -3,6 +3,7 @@ import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
 import { usePaletteStore } from '../stores/paletteStore';
 import { useCharacterPaletteStore } from '../stores/characterPaletteStore';
+import { useProjectMetadataStore } from '../stores/projectMetadataStore';
 import type { Cell, Tool } from '../types';
 import { DEFAULT_FRAME_DURATION } from '../constants';
 import type { TypographySettings } from './canvasSizeConversion';
@@ -57,6 +58,8 @@ interface SessionCharacterPalettesData {
 
 interface SessionImportData {
   version: string;
+  name?: string;
+  description?: string;
   canvas: SessionCanvasData;
   animation: SessionAnimationData;
   tools: SessionToolsData;
@@ -220,9 +223,19 @@ export class SessionImporter {
     const toolStore = useToolStore.getState();
     const paletteStore = usePaletteStore.getState();
     const characterPaletteStore = useCharacterPaletteStore.getState();
+    const projectMetadataStore = useProjectMetadataStore.getState();
     
     // Set importing flag to prevent auto-save during import
     animationStore.setImportingSession(true);
+    
+    // Restore project metadata (name and description)
+    if (sessionData.name) {
+      projectMetadataStore.setProjectName(sessionData.name);
+    }
+    
+    if (sessionData.description) {
+      projectMetadataStore.setProjectDescription(sessionData.description);
+    }
     
     // Restore canvas data
     canvasStore.setCanvasSize(sessionData.canvas.width, sessionData.canvas.height);

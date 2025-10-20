@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -9,6 +9,7 @@ import { Switch } from '../ui/switch';
 import { Save, Download, Settings, Loader2 } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
 import { useExportDataCollector } from '../../utils/exportDataCollector';
+import { useProjectMetadataStore } from '../../stores/projectMetadataStore';
 import { ExportRenderer } from '../../utils/exportRenderer';
 
 /**
@@ -26,10 +27,18 @@ export const SessionExportDialog: React.FC = () => {
   const isExporting = useExportStore(state => state.isExporting);
   
   const exportData = useExportDataCollector();
+  const projectName = useProjectMetadataStore((state) => state.projectName);
 
-  const [filename, setFilename] = useState('ascii-motion-project');
+  const [filename, setFilename] = useState(projectName || 'ascii-motion-project');
 
   const isOpen = showExportModal && activeFormat === 'session';
+
+  // Sync filename with project name when dialog opens
+  useEffect(() => {
+    if (isOpen && projectName) {
+      setFilename(projectName);
+    }
+  }, [isOpen, projectName]);
 
   const handleClose = () => {
     setShowExportModal(false);
@@ -49,7 +58,8 @@ export const SessionExportDialog: React.FC = () => {
         setProgress(progress);
       });
 
-      // Perform the export
+      // Export data already contains project metadata from projectMetadataStore
+      // No need to manually inject name/description
       await renderer.exportSession(exportData, sessionSettings, filename);
       
       // Close dialog on success
@@ -69,8 +79,8 @@ export const SessionExportDialog: React.FC = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={setShowExportModal}>
-      <DialogContent className="max-w-md p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b bg-background">
+      <DialogContent className="max-w-md p-0 overflow-hidden border-border/50" aria-describedby={undefined}>
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border/50 bg-background">
           <DialogTitle className="flex items-center gap-2">
             <Save className="w-5 h-5" />
             Save Session File
@@ -79,26 +89,31 @@ export const SessionExportDialog: React.FC = () => {
 
         <div className="flex flex-col max-h-[80vh]">
           {/* Sticky File Name Input */}
-          <div className="sticky top-0 z-10 bg-background px-6 py-4 border-b space-y-2">
-            <Label htmlFor="filename">File Name</Label>
-            <div className="flex">
-              <Input
-                id="filename"
-                value={filename}
-                onChange={(e) => setFilename(e.target.value)}
-                placeholder="Enter filename"
-                className="flex-1"
-                disabled={isExporting}
-              />
-              <Badge variant="outline" className="ml-2 self-center">
-                .asciimtn
-              </Badge>
+          <div className="sticky top-0 z-10 bg-background px-6 py-4 border-b border-border/50 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="filename">File Name</Label>
+              <div className="flex">
+                <Input
+                  id="filename"
+                  value={filename}
+                  onChange={(e) => setFilename(e.target.value)}
+                  placeholder="Enter filename"
+                  className="flex-1"
+                  disabled={isExporting}
+                />
+                <Badge variant="outline" className="ml-2 self-center">
+                  .asciimtn
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Project metadata (name, description) is stored in Project Settings
+              </p>
             </div>
           </div>
 
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-            <Card>
+            <Card className="border-border/50">
               <CardContent className="pt-4 space-y-4">
                 <div className="flex items-center gap-2 mb-1">
                   <Settings className="w-4 h-4" />
@@ -123,7 +138,7 @@ export const SessionExportDialog: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-border/50">
               <CardContent className="pt-4">
                 <h4 className="text-sm font-medium mb-3">What's Included</h4>
                 <div className="space-y-2 text-xs text-muted-foreground">
@@ -163,8 +178,8 @@ export const SessionExportDialog: React.FC = () => {
             </div>
           </div>
 
-          {/* Sticky Action Buttons */}
-          <div className="sticky bottom-0 z-10 bg-background px-6 py-4 border-t flex justify-end gap-2">
+          {/* Sticky Actions */}
+          <div className="sticky bottom-0 z-10 bg-background px-6 py-4 border-t border-border/50 flex justify-end gap-2">
             <Button variant="outline" onClick={handleClose} disabled={isExporting}>
               Cancel
             </Button>

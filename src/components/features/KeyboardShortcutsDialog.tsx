@@ -22,6 +22,14 @@ interface ShortcutSection {
 
 const KEYBOARD_SHORTCUTS: ShortcutSection[] = [
   {
+    title: 'File & Project',
+    shortcuts: [
+      { keys: ['Cmd', 'S'], description: 'Save to Cloud (requires sign in)' },
+      { keys: ['Cmd', 'Shift', 'S'], description: 'Save As... (requires sign in)' },
+      { keys: ['Cmd', 'O'], description: 'Open from Cloud (requires sign in)' },
+    ]
+  },
+  {
     title: 'Tool Selection',
     shortcuts: [
       { keys: ['P'], description: 'Pencil tool' },
@@ -143,7 +151,7 @@ export const KeyboardShortcutsDialog: React.FC<KeyboardShortcutsDialogProps> = (
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[85vh]">
+      <DialogContent className="max-w-5xl max-h-[85vh] border-border/50" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Keyboard Shortcuts</DialogTitle>
         </DialogHeader>

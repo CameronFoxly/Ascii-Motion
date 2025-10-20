@@ -4,6 +4,20 @@ This directory contains comprehensive documentation for the ASCII Motion project
 
 ## 📁 **Documentation Structure**
 
+### **🔐 Authentication & Backend (NEW - October 2025)**
+- [`AUTH_IMPLEMENTATION_PLAN.md`](./AUTH_IMPLEMENTATION_PLAN.md) - **Complete authentication & cloud storage implementation plan**
+- [`AUTH_QUICK_START.md`](./AUTH_QUICK_START.md) - **Quick setup guide for Supabase authentication (2-3 hours)**
+- [`TERMS_OF_SERVICE.md`](./TERMS_OF_SERVICE.md) - **Legal: Terms of Service with GDPR compliance**
+- [`PRIVACY_POLICY.md`](./PRIVACY_POLICY.md) - **Legal: Privacy Policy with GDPR compliance**
+
+### **🎨 Design System & UI (NEW - October 2025)**
+- [`FIGMA_WORKFLOW_README.md`](./FIGMA_WORKFLOW_README.md) - **START HERE: Complete Figma ↔ React dialog redesign workflow**
+- [`FIGMA_REACT_DIALOG_REDESIGN_MASTER_GUIDE.md`](./FIGMA_REACT_DIALOG_REDESIGN_MASTER_GUIDE.md) - Master guide with weekly workflow plans
+- [`DIALOG_COMPONENT_AUDIT.md`](./DIALOG_COMPONENT_AUDIT.md) - Analysis of all 26 dialog components with patterns
+- [`FIGMA_DESIGN_SYSTEM_SETUP.md`](./FIGMA_DESIGN_SYSTEM_SETUP.md) - Complete design token reference and specifications
+- [`FIGMA_COMPONENT_RECREATION_GUIDE.md`](./FIGMA_COMPONENT_RECREATION_GUIDE.md) - Step-by-step Figma component creation
+- [`FIGMA_MCP_WORKFLOW_GUIDE.md`](./FIGMA_MCP_WORKFLOW_GUIDE.md) - Figma MCP tools quick reference
+
 ### **Development & Implementation**
 - [`EFFECTS_SYSTEM_IMPLEMENTATION.md`](./EFFECTS_SYSTEM_IMPLEMENTATION.md) - Complete effects system architecture and implementation patterns
 - [`GRADIENT_FILL_IMPLEMENTATION.md`](./GRADIENT_FILL_IMPLEMENTATION.md) - Complete gradient tool implementation analysis

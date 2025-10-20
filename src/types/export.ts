@@ -105,12 +105,18 @@ export type ExportSettings =
 
 // Export data bundle - all data needed for any export
 export interface ExportDataBundle {
+  // Project metadata
+  name?: string;
+  description?: string;
+  
   // Version metadata
   metadata: {
     version: string;
     buildDate: string;
     buildHash: string;
     exportDate: string;
+    projectName?: string;
+    projectDescription?: string;
   };
   
   // Animation data

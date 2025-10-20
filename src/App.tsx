@@ -1,9 +1,12 @@
 import './App.css'
+import { useState, useEffect } from 'react'
 import { Analytics } from '@vercel/analytics/react'
 import { CanvasWithShortcuts } from './components/features/CanvasWithShortcuts'
 import { CanvasProvider } from './contexts/CanvasContext'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { AuthProvider } from '@ascii-motion/premium'
 import { ThemeToggle } from './components/common/ThemeToggle'
+import { AccountButton } from './components/features/AccountButton'
 import { AsciiTypePanel } from './components/features/AsciiTypePanel'
 import { AsciiBoxPanel } from './components/features/AsciiBoxPanel'
 import { AsciiTypePreviewDialog } from './components/features/AsciiTypePreviewDialog'
@@ -39,13 +42,56 @@ import { AddFramesDialog } from './components/features/timeEffects/AddFramesDial
 import { WaveWarpDialog } from './components/features/timeEffects/WaveWarpDialog'
 import { WiggleDialog } from './components/features/timeEffects/WiggleDialog'
 import { useLayoutState } from './hooks/useLayoutState'
+import { SaveToCloudDialog } from './components/features/SaveToCloudDialog'
+import { ProjectsDialog } from './components/features/ProjectsDialog'
+import { useCloudDialogState } from './hooks/useCloudDialogState'
+import { useCloudProjectActions } from './hooks/useCloudProjectActions'
+import { useAuth, usePasswordRecoveryCallback, UpdatePasswordDialog } from '@ascii-motion/premium'
+import { InlineProjectNameEditor } from './components/features/InlineProjectNameEditor'
+import { NewProjectDialog } from './components/features/NewProjectDialog'
+import { ProjectSettingsDialog } from './components/features/ProjectSettingsDialog'
+import { SilentSaveHandler } from './components/features/SilentSaveHandler'
+import { Toaster } from './components/ui/sonner'
 
-function App() {
+/**
+ * Inner component that uses auth hooks
+ * This component is rendered inside AuthProvider
+ * Fixed: Moved useAuth hook inside AuthProvider context
+ */
+function AppContent() {
   const { layout, toggleLeftPanel, toggleRightPanel, toggleBottomPanel, toggleFullscreen } = useLayoutState()
+  
+  // Cloud storage state and actions
+  const { user } = useAuth()
+  const { 
+    showSaveToCloudDialog, 
+    showProjectsDialog,
+    setShowSaveToCloudDialog,
+    setShowProjectsDialog,
+  } = useCloudDialogState()
+  const {
+    handleLoadFromCloud,
+    handleDownloadProject,
+  } = useCloudProjectActions()
+
+  // Password recovery callback detection
+  const { isRecovery, resetRecovery } = usePasswordRecoveryCallback()
+  const [showUpdatePasswordDialog, setShowUpdatePasswordDialog] = useState(isRecovery)
+
+  // Update dialog visibility when recovery state changes
+  useEffect(() => {
+    setShowUpdatePasswordDialog(isRecovery)
+  }, [isRecovery])
+
+  const handleUpdatePasswordClose = (open: boolean) => {
+    setShowUpdatePasswordDialog(open)
+    if (!open) {
+      resetRecovery()
+    }
+  }
 
   return (
-    <ThemeProvider>
-      <div className="h-screen grid grid-rows-[auto_1fr] bg-background text-foreground">
+    <div className="h-screen grid grid-rows-[auto_1fr] bg-background text-foreground">
         {/* Header - compact */}
         <header className="flex-shrink-0 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="px-4 py-2">
@@ -62,9 +108,13 @@ function App() {
                   <span className="text-purple-300">  -▐▌ ▐▌▗▄▄▞▘▝▚▄▄▖▗▄█▄▖▗▄█▄▖    ▐▌  ▐▌▝▚▄▞▘ █  ▗▄█▄▖▝▚▄▞▘▐▌  ▐▌</span>
                 </div>
               </div>
+              <div className="flex-1 flex justify-center">
+                <InlineProjectNameEditor />
+              </div>
               <div className="flex items-center gap-2">
                 <ExportImportButtons />
                 <ThemeToggle />
+                <AccountButton />
               </div>
             </div>
           </div>
@@ -223,15 +273,60 @@ function App() {
           <AddFramesDialog />
           <WaveWarpDialog />
           <WiggleDialog />
+          
+          {/* Project Management Dialogs */}
+          <NewProjectDialog />
+          <ProjectSettingsDialog />
+          
+          {/* Cloud Storage Dialogs - Inside CanvasProvider to access context */}
+          {user && (
+            <>
+              {/* Silent Save Handler - Handles Ctrl+S for already-saved projects */}
+              <SilentSaveHandler />
+              
+              <SaveToCloudDialog 
+                open={showSaveToCloudDialog} 
+                onOpenChange={setShowSaveToCloudDialog} 
+              />
+              <ProjectsDialog
+                open={showProjectsDialog}
+                onOpenChange={setShowProjectsDialog}
+                onLoadProject={handleLoadFromCloud}
+                onDownloadProject={handleDownloadProject}
+              />
+            </>
+          )}
+          
+          {/* Password Recovery Dialog - Shows when user clicks email reset link */}
+          <UpdatePasswordDialog 
+            open={showUpdatePasswordDialog} 
+            onOpenChange={handleUpdatePasswordClose}
+          />
         </CanvasProvider>
         
         {/* Performance Overlay for Development */}
         <PerformanceOverlay />
+        
+        {/* Toast Notifications */}
+        <Toaster />
+        
+        {/* Vercel Analytics */}
+        <Analytics />
       </div>
-      
-      {/* Vercel Analytics */}
-      <Analytics />
-    </ThemeProvider>
+  )
+}
+
+/**
+ * App wrapper component
+ * Provides AuthProvider and ThemeProvider context
+ */
+function App() {
+  return (
+    <AuthProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
+    </AuthProvider>
   )
 }
 

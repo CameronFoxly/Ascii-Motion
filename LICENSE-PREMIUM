@@ -1,0 +1,45 @@
+PROPRIETARY LICENSE
+
+Copyright (c) 2025 ASCII Motion
+
+All rights reserved.
+
+This software and associated documentation files (the "Premium Features") are
+proprietary and confidential.
+
+NOTICE: This license applies ONLY to the following directories and files:
+  - packages/premium/
+  - Any files marked with "@license Proprietary" in the header comments
+
+Unauthorized copying, modification, distribution, or use of these Premium Features
+is strictly prohibited without explicit written permission from ASCII Motion.
+
+The Premium Features are provided "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+For licensing inquiries or permission requests, please contact:
+  Email: contact@ascii-motion.com
+  
+Grant of License:
+  Subject to the terms and conditions of this License, ASCII Motion grants you a
+  limited, non-exclusive, non-transferable, revocable license to use the Premium
+  Features solely in connection with the ASCII Motion application as deployed by
+  ASCII Motion or its authorized distributors.
+
+Restrictions:
+  1. You may NOT copy, modify, or distribute the Premium Features
+  2. You may NOT reverse engineer, decompile, or disassemble the Premium Features
+  3. You may NOT use the Premium Features to create derivative works
+  4. You may NOT remove or alter any proprietary notices or labels
+  5. You may NOT use the Premium Features for commercial purposes without written consent
+
+Termination:
+  This license is effective until terminated. ASCII Motion may terminate this license
+  at any time if you fail to comply with any term or condition. Upon termination, you
+  must cease all use and destroy all copies of the Premium Features.
+
+Governing Law:
+  This License shall be governed by and construed in accordance with the laws of the
+  jurisdiction in which ASCII Motion operates, without regard to its conflict of law
+  provisions.

@@ -467,7 +467,7 @@ export const useKeyboardShortcuts = () => {
   const { startPasteMode, commitPaste, pasteMode } = useCanvasContext();
   const { toggleOnionSkin, currentFrameIndex, frames, selectedFrameIndices } = useAnimationStore();
   const { zoomIn, zoomOut } = useZoomControls();
-  const { showSaveProjectDialog, showOpenProjectDialog } = useProjectFileActions();
+  const { showSaveProjectDialog, showSaveAsDialog, showOpenProjectDialog } = useProjectFileActions();
   
   // Frame navigation and management hooks
   const { navigateNext, navigatePrevious, navigateFirst, navigateLast, canNavigate } = useFrameNavigation();
@@ -730,6 +730,16 @@ export const useKeyboardShortcuts = () => {
     const isModifierPressed = event.metaKey || event.ctrlKey;
     const normalizedKey = typeof event.key === 'string' ? event.key.toLowerCase() : '';
 
+    // Handle Cmd/Ctrl+Shift+S for Save As
+    if (isModifierPressed && event.shiftKey && !event.altKey) {
+      if (normalizedKey === 's') {
+        blockBrowserShortcut(event);
+        showSaveAsDialog();
+        return;
+      }
+    }
+
+    // Handle Cmd/Ctrl+S for Save and Cmd/Ctrl+O for Open
     if (isModifierPressed && !event.altKey && !event.shiftKey) {
       if (normalizedKey === 's') {
         blockBrowserShortcut(event);
@@ -1223,6 +1233,7 @@ export const useKeyboardShortcuts = () => {
     flipHorizontal,
     flipVertical,
     showSaveProjectDialog,
+    showSaveAsDialog,
     showOpenProjectDialog,
     blockBrowserShortcut
   ]);

@@ -7,25 +7,34 @@ import {
   MenubarMenu,
   MenubarSeparator,
   MenubarTrigger,
-  MenubarShortcut,
 } from '../ui/menubar';
-import { Menu, Save, FolderOpen, Info, Keyboard } from 'lucide-react';
+import { Menu, Info, Keyboard, CloudUpload, CloudDownload, FilePlus2, Settings } from 'lucide-react';
 import { AboutDialog } from './AboutDialog';
 import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
+import { useAuth } from '@ascii-motion/premium';
+import { useCloudDialogState } from '../../hooks/useCloudDialogState';
+import { useProjectDialogState } from '../../hooks/useProjectDialogState';
 import { useProjectFileActions } from '../../hooks/useProjectFileActions';
-
-const isMacPlatform = () =>
-  typeof window !== 'undefined' && typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 
 /**
  * Hamburger menu button for the top header bar
- * Contains project file operations and app information
+ * Contains app information and cloud storage operations
  */
 export const HamburgerMenu: React.FC = () => {
   const [showAboutDialog, setShowAboutDialog] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
-  const { showSaveProjectDialog, showOpenProjectDialog } = useProjectFileActions();
-  const isMac = isMacPlatform();
+  
+  const { user } = useAuth();
+  const { 
+    setShowProjectsDialog,
+  } = useCloudDialogState();
+  
+  const {
+    setShowNewProjectDialog,
+    setShowProjectSettingsDialog,
+  } = useProjectDialogState();
+
+  const { showSaveProjectDialog, showSaveAsDialog } = useProjectFileActions();
 
   return (
     <>
@@ -43,15 +52,47 @@ export const HamburgerMenu: React.FC = () => {
             </Button>
           </MenubarTrigger>
           <MenubarContent align="start" className="border-border/50">
-            <MenubarItem onClick={showSaveProjectDialog} className="cursor-pointer">
-              <Save className="mr-2 h-4 w-4" />
-              <span>Save Project</span>
-              <MenubarShortcut>{isMac ? '⌘S' : 'Ctrl+S'}</MenubarShortcut>
+            {/* Project Management */}
+            <MenubarItem onClick={() => setShowNewProjectDialog(true)} className="cursor-pointer">
+              <FilePlus2 className="mr-2 h-4 w-4" />
+              <span>New Project</span>
             </MenubarItem>
-            <MenubarItem onClick={showOpenProjectDialog} className="cursor-pointer">
-              <FolderOpen className="mr-2 h-4 w-4" />
-              <span>Open Project</span>
-              <MenubarShortcut>{isMac ? '⌘O' : 'Ctrl+O'}</MenubarShortcut>
+            
+            <MenubarSeparator />
+            
+            {user && (
+              <>
+                <MenubarItem onClick={showSaveProjectDialog} className="cursor-pointer">
+                  <CloudUpload className="mr-2 h-4 w-4" />
+                  <span>Save Project</span>
+                  <span className="ml-auto pl-4 text-xs text-muted-foreground">
+                    {navigator.platform.includes('Mac') ? '⌘S' : 'Ctrl+S'}
+                  </span>
+                </MenubarItem>
+                
+                <MenubarItem onClick={showSaveAsDialog} className="cursor-pointer">
+                  <CloudUpload className="mr-2 h-4 w-4" />
+                  <span>Save As...</span>
+                  <span className="ml-auto pl-4 text-xs text-muted-foreground">
+                    {navigator.platform.includes('Mac') ? '⇧⌘S' : 'Ctrl+Shift+S'}
+                  </span>
+                </MenubarItem>
+                
+                <MenubarItem onClick={() => setShowProjectsDialog(true)} className="cursor-pointer">
+                  <CloudDownload className="mr-2 h-4 w-4" />
+                  <span>Open Project</span>
+                  <span className="ml-auto pl-4 text-xs text-muted-foreground">
+                    {navigator.platform.includes('Mac') ? '⌘O' : 'Ctrl+O'}
+                  </span>
+                </MenubarItem>
+                
+                <MenubarSeparator />
+              </>
+            )}
+            
+            <MenubarItem onClick={() => setShowProjectSettingsDialog(true)} className="cursor-pointer">
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Project Settings</span>
             </MenubarItem>
             
             <MenubarSeparator />

@@ -76,7 +76,7 @@ export const ManagePalettesDialog: React.FC<ManagePalettesDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[70vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[600px] max-h-[70vh] overflow-hidden flex flex-col border-border/50" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Palette className="h-4 w-4" />

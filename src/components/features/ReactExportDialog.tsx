@@ -173,8 +173,8 @@ export const ReactExportDialog: React.FC = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={setShowExportModal}>
-      <DialogContent className="max-w-xl p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b bg-background">
+      <DialogContent className="max-w-xl p-0 overflow-hidden border-border/50" aria-describedby={undefined}>
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border/50 bg-background">
           <DialogTitle className="flex items-center gap-2">
             <FileCode className="w-5 h-5" />
             Export React Component
@@ -183,7 +183,7 @@ export const ReactExportDialog: React.FC = () => {
 
         <div className="flex flex-col max-h-[80vh]">
           {/* Sticky Filename */}
-          <div className="sticky top-0 z-10 bg-background px-6 py-4 border-b space-y-2">
+          <div className="sticky top-0 z-10 bg-background px-6 py-4 border-b border-border/50 space-y-2">
             <Label htmlFor="react-filename">Component File Name</Label>
             <div className="flex">
               <Input
@@ -208,7 +208,7 @@ export const ReactExportDialog: React.FC = () => {
 
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-            <Card>
+            <Card className="border-border/50">
               <CardContent className="pt-4 space-y-4">
                 <div className="flex items-center gap-2">
                   <Settings className="w-4 h-4" />
@@ -258,7 +258,7 @@ export const ReactExportDialog: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-border/50">
               <CardContent className="pt-4 space-y-4">
                 <div className="flex items-center gap-2">
                   <Copy className="w-4 h-4" />
@@ -309,7 +309,7 @@ export const ReactExportDialog: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-border/50">
               <CardContent className="pt-4 space-y-3">
                 <span className="text-sm font-medium">Export Summary</span>
                 <Separator className="bg-border/50" />
@@ -333,7 +333,7 @@ export const ReactExportDialog: React.FC = () => {
           </div>
 
           {/* Sticky Actions */}
-          <div className="sticky bottom-0 z-10 bg-background px-6 py-4 border-t flex justify-end gap-2">
+          <div className="sticky bottom-0 z-10 bg-background px-6 py-4 border-t border-border/50 flex justify-end gap-2">
             <Button variant="outline" onClick={handleClose} disabled={isExporting}>
               Cancel
             </Button>
