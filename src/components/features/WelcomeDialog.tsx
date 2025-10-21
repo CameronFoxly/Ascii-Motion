@@ -23,21 +23,116 @@ import type { WelcomeTab } from '@/types/welcomeDialog';
 import type { Tool } from '@/types';
 
 /**
- * Vimeo embed component
- * Plays video inline with autoplay, loop, and muted
+ * Vimeo embed component with placeholder image
+ * Shows thumbnail immediately, loads iframe behind it, then fades thumbnail away
  */
-const VimeoEmbed: React.FC<{ embedId: string; title: string }> = ({ embedId, title }) => {
+const VimeoEmbed: React.FC<{ 
+  embedId: string; 
+  title: string;
+  preload?: boolean; // Preload iframe even if not visible
+  autoLoad?: boolean; // Auto-load iframe immediately (for active tab)
+}> = ({ embedId, title, preload = false, autoLoad = false }) => {
+  const [videoReady, setVideoReady] = useState(false);
+  const [shouldLoadIframe, setShouldLoadIframe] = useState(autoLoad);
+  const iframeRef = React.useRef<HTMLIFrameElement>(null);
+  
+  // Vimeo thumbnail URL (Vimeo provides thumbnails via their API)
+  // Using a static placeholder pattern that works for most Vimeo videos
+  const thumbnailUrl = `https://vumbnail.com/${embedId}.jpg`;
+  
+  // Preload iframe after a short delay if preload is enabled
+  React.useEffect(() => {
+    if (preload && !shouldLoadIframe) {
+      console.log(`[Preload] Starting preload for video ${embedId}`);
+      const timer = setTimeout(() => {
+        console.log(`[Preload] Loading iframe for video ${embedId}`);
+        setShouldLoadIframe(true);
+      }, 500); // Preload after 500ms
+      return () => clearTimeout(timer);
+    }
+  }, [preload, shouldLoadIframe, embedId]);
+  
+  // Auto-load if autoLoad prop changes to true
+  React.useEffect(() => {
+    if (autoLoad) {
+      console.log(`[AutoLoad] Loading active video ${embedId}`);
+      setShouldLoadIframe(true);
+    }
+  }, [autoLoad, embedId]);
+  
+  // Listen for Vimeo player events via postMessage
+  React.useEffect(() => {
+    if (!shouldLoadIframe) return;
+    
+    const handleMessage = (event: MessageEvent) => {
+      // Only accept messages from Vimeo
+      if (!event.origin.includes('vimeo.com')) return;
+      
+      try {
+        const data = JSON.parse(event.data);
+        
+        // Video is ready when it starts playing or buffering completes
+        if (data.event === 'play' || data.event === 'timeupdate') {
+          if (!videoReady) {
+            console.log(`[Video Ready] Video ${embedId} is playing`);
+            setVideoReady(true);
+          }
+        }
+      } catch (e) {
+        // Ignore parse errors from non-JSON messages
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    
+    // Fallback: if video events don't fire, fade in after 1 second
+    const fallbackTimer = setTimeout(() => {
+      if (!videoReady) {
+        console.log(`[Fallback] Video ${embedId} fallback timeout`);
+        setVideoReady(true);
+      }
+    }, 1000);
+    
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      clearTimeout(fallbackTimer);
+    };
+  }, [shouldLoadIframe, videoReady, embedId]);
+
   return (
     <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-      <iframe
-        src={`https://player.vimeo.com/video/${embedId}?h=&badge=0&autopause=0&autoplay=1&muted=1&loop=1&background=1`}
-        frameBorder="0"
-        allow="autoplay; fullscreen; picture-in-picture; clipboard-write"
-        className="absolute top-0 left-0 w-full h-full rounded-md border border-border/50"
-        title={title}
-        loading="lazy"
-        {...({ credentialless: 'true' } as any)}
-      />
+      {/* Iframe - render when needed, behind the thumbnail */}
+      {shouldLoadIframe && (
+        <iframe
+          ref={iframeRef}
+          src={`https://player.vimeo.com/video/${embedId}?h=&badge=0&autopause=0&autoplay=1&muted=1&loop=1&background=1`}
+          frameBorder="0"
+          allow="autoplay; fullscreen; picture-in-picture; clipboard-write"
+          className="absolute top-0 left-0 w-full h-full rounded-md border border-border/50"
+          title={title}
+          {...({ credentialless: 'true' } as any)}
+        />
+      )}
+      
+      {/* Placeholder thumbnail - overlay on top, fades out when video is ready */}
+      <div 
+        className={`absolute inset-0 transition-opacity duration-500 ${
+          videoReady ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
+      >
+        <img
+          src={thumbnailUrl}
+          alt={title}
+          className="absolute top-0 left-0 w-full h-full rounded-md border border-border/50 object-cover"
+          loading="eager" // Load thumbnail immediately
+        />
+        {/* Loading indicator overlay */}
+        {shouldLoadIframe && !videoReady && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-md">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -45,11 +140,22 @@ const VimeoEmbed: React.FC<{ embedId: string; title: string }> = ({ embedId, tit
 /**
  * Media display component that handles different media types
  */
-const MediaDisplay: React.FC<{ media: WelcomeTab['media'] }> = ({ media }) => {
+const MediaDisplay: React.FC<{ 
+  media: WelcomeTab['media'];
+  isActive?: boolean; // Is this the currently active tab?
+  shouldPreload?: boolean; // Should preload (adjacent to active tab)
+}> = ({ media, isActive = false, shouldPreload = false }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   
   if (media.type === 'vimeo' && media.embedId) {
-    return <VimeoEmbed embedId={media.embedId} title={media.alt} />;
+    return (
+      <VimeoEmbed 
+        embedId={media.embedId} 
+        title={media.alt}
+        autoLoad={isActive}
+        preload={shouldPreload}
+      />
+    );
   }
   
   if (media.type === 'image' && media.src) {
@@ -93,17 +199,13 @@ const createWelcomeTabs = (
   {
     id: 'create',
     title: 'Create ASCII Art',
-    description: 'Draw directly on the canvas with a variety of powerful tools including pencil, eraser, shapes, text, and paint bucket. Create pixel-perfect ASCII art with full color support and custom character palettes.',
+    description: 'Draw directly on the canvas with a variety tools including pencil, eraser, shapes, text, and paint bucket. Create pixel-perfect ASCII art with full color support and custom character palettes.',
     cta: {
-      text: 'Try the Pencil Tool',
+      text: 'Start drawing',
       action: () => {
         setActiveTool('pencil');
         closeDialog();
       },
-    },
-    secondaryCta: {
-      text: 'View All Drawing Tools',
-      href: 'https://github.com/cameronfoxly/Ascii-Motion#drawing-tools',
     },
     media: {
       type: 'vimeo',
@@ -114,17 +216,13 @@ const createWelcomeTabs = (
   {
     id: 'convert',
     title: 'Convert Images/Videos',
-    description: 'Import images and videos to automatically convert them into ASCII art. Adjust conversion settings like character density, contrast, and color mapping to achieve the perfect look for your project.',
+    description: 'Import images and videos to automatically convert them into ASCII art. Adjust settings like character and color mapping, pre-processing effects, and position/scaling for the perfect look for your project.',
     cta: {
       text: 'Import an Image',
       action: () => {
         // TODO: Trigger import dialog
         closeDialog();
       },
-    },
-    secondaryCta: {
-      text: 'Learn About Import Settings',
-      href: 'https://github.com/cameronfoxly/Ascii-Motion#media-import',
     },
     media: {
       type: 'vimeo',
@@ -164,10 +262,6 @@ const createWelcomeTabs = (
         closeDialog();
       },
     },
-    secondaryCta: {
-      text: 'View Export Options',
-      href: 'https://github.com/cameronfoxly/Ascii-Motion#export',
-    },
     media: {
       type: 'vimeo',
       embedId: '1129095779',
@@ -177,7 +271,7 @@ const createWelcomeTabs = (
   {
     id: 'opensource',
     title: 'Open Source',
-    description: 'ASCII Motion is completely open source and built with the help of GitHub Copilot. Contributions, bug reports, feature requests, and feedback are always welcome. Join our community and help make ASCII Motion even better!',
+    description: "ASCII Motion's core features are all open source. Contributions, bug reports, feature requests, and feedback are always welcome. Join our community and help make ASCII Motion even better!",
     cta: {
       text: 'View on GitHub',
       action: () => {
@@ -275,16 +369,26 @@ export const WelcomeDialog: React.FC = () => {
           {/* Right Content Area - pr-12 creates space for close button */}
           <div className="flex flex-col h-full pr-12 overflow-hidden">
             <Tabs value={activeTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              {welcomeTabs.map((tab) => (
-                <TabsContent
-                  key={tab.id}
-                  value={tab.id}
-                  className="flex-1 flex flex-col p-6 mt-0 min-h-0 overflow-y-auto data-[state=inactive]:hidden"
-                >
-                  {/* Media Display - Flexible but maintains aspect ratio */}
-                  <div className="flex-shrink-0 mb-4">
-                    <MediaDisplay media={tab.media} />
-                  </div>
+              {welcomeTabs.map((tab, index) => {
+                const isActive = tab.id === activeTab;
+                const activeIndex = welcomeTabs.findIndex(t => t.id === activeTab);
+                // Preload adjacent tabs (one before and one after)
+                const shouldPreload = Math.abs(index - activeIndex) === 1;
+                
+                return (
+                  <TabsContent
+                    key={tab.id}
+                    value={tab.id}
+                    className="flex-1 flex flex-col p-6 mt-0 min-h-0 overflow-y-auto data-[state=inactive]:hidden"
+                  >
+                    {/* Media Display - Flexible but maintains aspect ratio */}
+                    <div className="flex-shrink-0 mb-4">
+                      <MediaDisplay 
+                        media={tab.media}
+                        isActive={isActive}
+                        shouldPreload={shouldPreload}
+                      />
+                    </div>
 
                   {/* Content Card - Constrained to available space */}
                   <Card className="border-border/50 flex-shrink-0">
@@ -324,7 +428,8 @@ export const WelcomeDialog: React.FC = () => {
                     </CardContent>
                   </Card>
                 </TabsContent>
-              ))}
+                );
+              })}
             </Tabs>
           </div>
         </div>
