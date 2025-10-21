@@ -77,6 +77,7 @@ const VimeoEmbed: React.FC<{ embedId: string; title: string }> = ({ embedId, tit
         className="absolute top-0 left-0 w-full h-full rounded-md border border-border/50"
         title={title}
         loading="lazy"
+        {...({ credentialless: 'true' } as any)}
       />
     </div>
   );
