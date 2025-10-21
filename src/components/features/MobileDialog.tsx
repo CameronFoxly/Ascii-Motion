@@ -28,17 +28,29 @@ const isMobileDevice = (): boolean => {
 
 export const MobileDialog: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState(false);
+  const [isMobile, setIsMobile] = React.useState(false);
   
   // Check if mobile on mount
   React.useEffect(() => {
-    if (isMobileDevice()) {
+    const mobile = isMobileDevice();
+    setIsMobile(mobile);
+    if (mobile) {
       setIsOpen(true);
     }
   }, []);
   
+  // Don't render anything if not mobile
+  if (!isMobile) return null;
+  
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="w-[90vw] max-w-md p-6">
+    <Dialog open={isOpen} modal={true}>
+      <DialogContent 
+        className="w-[90vw] max-w-md p-6"
+        hideClose={true}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogTitle className="sr-only">Desktop Only</DialogTitle>
         
         <div className="flex flex-col gap-4">
