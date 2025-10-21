@@ -45,7 +45,7 @@ export const MobileDialog: React.FC = () => {
   return (
     <Dialog open={isOpen} modal={true}>
       <DialogContent 
-        className="w-[90vw] max-w-md p-6 max-h-[90vh] overflow-y-auto"
+        className="w-[95vw] max-w-md p-4 max-h-[90vh] overflow-y-auto focus:outline-none focus-visible:outline-none"
         hideClose={true}
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
@@ -53,18 +53,27 @@ export const MobileDialog: React.FC = () => {
       >
         <DialogTitle className="sr-only">Desktop Only</DialogTitle>
         
-        <div className="flex flex-col gap-6">
-          {/* ASCII Animation */}
-          <div className="w-full flex items-center justify-center">
-            <WelcomeAsciiAnimation />
+        <div className="flex flex-col gap-6 items-center">
+          {/* ASCII Animation - constrained to prevent overflow */}
+          <div className="w-full max-w-full overflow-hidden flex items-center justify-center">
+            <div className="max-w-full">
+              <WelcomeAsciiAnimation />
+            </div>
           </div>
           
           {/* Message */}
-          <p className="text-sm text-foreground leading-relaxed text-center px-2">
+          <p className="text-sm text-foreground leading-relaxed text-center">
             ASCII Motion is a web app for creating and animating ASCII art. 
             Currently, only desktop editing is supported. Please visit{' '}
-            <span className="font-semibold">ascii-motion.app</span> on a desktop 
-            computer to start making ASCII art.
+            <a 
+              href="https://ascii-motion.app" 
+              className="font-semibold text-primary hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              ascii-motion.app
+            </a>{' '}
+            on a desktop computer to start making ASCII art.
           </p>
         </div>
       </DialogContent>
