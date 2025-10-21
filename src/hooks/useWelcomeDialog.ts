@@ -111,10 +111,25 @@ export const useWelcomeDialog = () => {
     setIsOpen(open);
   };
 
+  /**
+   * Reset welcome dialog state
+   * Clears localStorage so welcome dialog will show again on next page load
+   */
+  const resetWelcomeState = () => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      // Optionally show the dialog immediately
+      setIsOpen(true);
+    } catch (error) {
+      console.error('Failed to reset welcome state:', error);
+    }
+  };
+
   return {
     isOpen,
     setIsOpen: handleClose,
     dontShowAgain,
     setDontShowAgain,
+    resetWelcomeState,
   };
 };
