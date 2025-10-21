@@ -4,13 +4,19 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": "vite",
+  "git": {
+    "deploymentEnabled": {
+      "main": false,
+      "welcome-experience-core": false
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
         {
           "key": "Cross-Origin-Embedder-Policy",
-          "value": "require-corp"
+          "value": "credentialless"
         },
         {
           "key": "Cross-Origin-Opener-Policy", 
@@ -18,7 +24,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' https://*.supabase.co https://unpkg.com; frame-src https://player.vimeo.com https://www.youtube.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; worker-src 'self' blob:"
         },
         {
           "key": "X-Frame-Options",

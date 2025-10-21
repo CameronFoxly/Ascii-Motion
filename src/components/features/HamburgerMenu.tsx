@@ -8,13 +8,14 @@ import {
   MenubarSeparator,
   MenubarTrigger,
 } from '../ui/menubar';
-import { Menu, Info, Keyboard, CloudUpload, CloudDownload, FilePlus2, Settings } from 'lucide-react';
+import { Menu, Info, Keyboard, CloudUpload, CloudDownload, FilePlus2, Settings, Sparkles } from 'lucide-react';
 import { AboutDialog } from './AboutDialog';
 import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
 import { useAuth } from '@ascii-motion/premium';
 import { useCloudDialogState } from '../../hooks/useCloudDialogState';
 import { useProjectDialogState } from '../../hooks/useProjectDialogState';
 import { useProjectFileActions } from '../../hooks/useProjectFileActions';
+import { useWelcomeDialog } from '../../hooks/useWelcomeDialog';
 
 /**
  * Hamburger menu button for the top header bar
@@ -35,6 +36,8 @@ export const HamburgerMenu: React.FC = () => {
   } = useProjectDialogState();
 
   const { showSaveProjectDialog, showSaveAsDialog } = useProjectFileActions();
+  
+  const { resetWelcomeState } = useWelcomeDialog();
 
   return (
     <>
@@ -96,6 +99,11 @@ export const HamburgerMenu: React.FC = () => {
             </MenubarItem>
             
             <MenubarSeparator />
+            
+            <MenubarItem onClick={resetWelcomeState} className="cursor-pointer">
+              <Sparkles className="mr-2 h-4 w-4" />
+              <span>Show Welcome Screen</span>
+            </MenubarItem>
             
             <MenubarItem onClick={() => setShowKeyboardShortcuts(true)} className="cursor-pointer">
               <Keyboard className="mr-2 h-4 w-4" />
