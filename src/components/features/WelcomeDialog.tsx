@@ -233,17 +233,13 @@ const createWelcomeTabs = (
   {
     id: 'animate',
     title: 'Animate Frame-by-Frame',
-    description: 'Create smooth animations with our powerful timeline system. Add, duplicate, and reorder frames with ease. Use onion skinning to see previous frames while drawing, making animation workflows intuitive and efficient.',
+    description: 'Create animations with a fully editable timeline equipped with onion skinning for frame by frame editing.',
     cta: {
       text: 'Add a New Frame',
       action: () => {
         // TODO: Trigger add frame action
         closeDialog();
       },
-    },
-    secondaryCta: {
-      text: 'View Animation Guide',
-      href: 'https://github.com/cameronfoxly/Ascii-Motion#animation',
     },
     media: {
       type: 'vimeo',
@@ -311,14 +307,14 @@ export const WelcomeDialog: React.FC = () => {
         aria-describedby="welcome-dialog-description"
       >
         <DialogTitle className="sr-only">Welcome to ASCII Motion</DialogTitle>
-        <div className="grid grid-cols-[280px_1fr] h-full overflow-hidden">
+        <div className="grid grid-cols-[300px_1fr] h-full overflow-hidden">
           {/* Left Navigation Panel */}
           <div className="flex flex-col border-r border-border/50 bg-muted/30 overflow-hidden">
             {/* Header - Fixed */}
-            <div className="flex-shrink-0 px-4 py-6 pb-4">
+            <div className="flex-shrink-0 px-6 py-6 pb-4">
               <div className="mb-2">
                 <p className="text-sm text-muted-foreground mb-2">Welcome to</p>
-                <div className="font-mono text-[7.2px] leading-[1.2] tracking-tighter select-none whitespace-pre">
+                <div className="font-mono text-[7.2px] leading-[1.2] tracking-tighter select-none whitespace-pre -ml-[1.2ch]">
                   <div className="text-purple-500">----▗▄▖  ▗▄▄▖ ▗▄▄▖▗▄▄▄▖▗▄▄▄▖    ▗▖  ▗▖ ▗▄▖▗▄▄▄▖▗▄▄▄▖ ▗▄▖ ▗▖  ▗▖</div>
                   <div className="text-purple-400"> --▐▌ ▐▌▐▌   ▐▌     █    █      ▐▛▚▞▜▌▐▌ ▐▌ █    █  ▐▌ ▐▌▐▛▚▖▐▌</div>
                   <div className="text-purple-400">  -▐▛▀▜▌ ▝▀▚▖▐▌     █    █      ▐▌  ▐▌▐▌ ▐▌ █    █  ▐▌ ▐▌▐▌ ▝▜▌</div>
@@ -366,8 +362,8 @@ export const WelcomeDialog: React.FC = () => {
             </Tabs>
           </div>
 
-          {/* Right Content Area - pr-12 creates space for close button */}
-          <div className="flex flex-col h-full pr-12 overflow-hidden">
+          {/* Right Content Area - pr-6 creates minimal space for close button */}
+          <div className="flex flex-col h-full pr-6 overflow-hidden">
             <Tabs value={activeTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
               {welcomeTabs.map((tab, index) => {
                 const isActive = tab.id === activeTab;
