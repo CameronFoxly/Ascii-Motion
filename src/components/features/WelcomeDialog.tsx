@@ -19,6 +19,7 @@ import { Separator } from '@/components/ui/separator';
 import { ExternalLink } from 'lucide-react';
 import { useWelcomeDialog } from '@/hooks/useWelcomeDialog';
 import { useToolStore } from '@/stores/toolStore';
+import { WelcomeAsciiAnimation } from './WelcomeAsciiAnimation';
 import type { WelcomeTab } from '@/types/welcomeDialog';
 import type { Tool } from '@/types';
 
@@ -147,6 +148,11 @@ const MediaDisplay: React.FC<{
 }> = ({ media, isActive = false, shouldPreload = false }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   
+  // Handle component type (for Welcome tab)
+  if (media.type === 'component' && media.component === 'welcome-ascii') {
+    return <WelcomeAsciiAnimation />;
+  }
+  
   if (media.type === 'vimeo' && media.embedId) {
     return (
       <VimeoEmbed 
@@ -194,8 +200,29 @@ const MediaDisplay: React.FC<{
  */
 const createWelcomeTabs = (
   setActiveTool: (tool: Tool) => void,
-  closeDialog: () => void
+  closeDialog: () => void,
+  setActiveTab: (tab: string) => void
 ): WelcomeTab[] => [
+  {
+    id: 'welcome',
+    title: 'Welcome',
+    description: "ASCII Motion is a browser-based tool for creating, animating, and exporting ASCII art. Draw text-based art from scratch, convert images & videos automatically, or build frame-by-frame animations in the timeline.",
+    cta: {
+      text: 'Explore Features',
+      action: () => {
+        setActiveTab('create');
+      },
+    },
+    secondaryCta: {
+      text: 'Start Creating',
+      href: '#start-creating',
+    },
+    media: {
+      type: 'component',
+      component: 'welcome-ascii',
+      alt: 'ASCII Motion animated logo',
+    },
+  },
   {
     id: 'create',
     title: 'Create ASCII Art',
@@ -292,12 +319,13 @@ const createWelcomeTabs = (
  */
 export const WelcomeDialog: React.FC = () => {
   const { isOpen, setIsOpen, dontShowAgain, setDontShowAgain } = useWelcomeDialog();
-  const [activeTab, setActiveTab] = useState('create');
+  const [activeTab, setActiveTab] = useState('welcome');
   const setActiveTool = useToolStore((state) => state.setActiveTool);
   
   const welcomeTabs = createWelcomeTabs(
     setActiveTool,
-    () => setIsOpen(false)
+    () => setIsOpen(false),
+    setActiveTab
   );
 
   return (
@@ -413,11 +441,19 @@ export const WelcomeDialog: React.FC = () => {
                             variant="outline"
                             className="w-full justify-start"
                             onClick={() => {
-                              window.open(tab.secondaryCta!.href, '_blank');
+                              // Handle special case for welcome tab
+                              if (tab.secondaryCta!.href === '#start-creating') {
+                                setActiveTool('pencil');
+                                setIsOpen(false);
+                              } else {
+                                window.open(tab.secondaryCta!.href, '_blank');
+                              }
                             }}
                           >
                             {tab.secondaryCta.text}
-                            <ExternalLink className="ml-auto h-3 w-3" />
+                            {tab.secondaryCta.href !== '#start-creating' && (
+                              <ExternalLink className="ml-auto h-3 w-3" />
+                            )}
                           </Button>
                         )}
                       </div>

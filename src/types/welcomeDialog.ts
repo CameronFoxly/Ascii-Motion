@@ -11,7 +11,7 @@ export interface WelcomeMedia {
   type: WelcomeMediaType;
   src?: string; // URL for image/video
   embedId?: string; // YouTube video ID or Vimeo video ID
-  component?: React.ComponentType; // React component for demos
+  component?: React.ComponentType | string; // React component for demos or component identifier
   placeholder?: string; // Placeholder image URL before loading
   alt: string; // Alt text for accessibility
 }

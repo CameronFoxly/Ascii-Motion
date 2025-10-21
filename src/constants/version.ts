@@ -1,12 +1,26 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.2.2";
-export const BUILD_DATE = "2025-10-21T05:39:12.221Z";
-export const BUILD_HASH = "871cdfa";
+export const VERSION = "0.2.3";
+export const BUILD_DATE = "2025-10-21T08:28:13.375Z";
+export const BUILD_HASH = "0dc4bd3";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.2.3",
+    "date": "2025-10-21T08:28:13.375Z",
+    "commits": [
+      "Added welcome screen to app",
+      "Added welcome dialog to hamburger menu.",
+      "Update descriptions in dialog again",
+      "Update descirptions  in welcome screen",
+      "Updated dialog witih all vimeo videos",
+      "Fix import bug with new security settings",
+      "Fixed vimeo playback and updated docs",
+      "Add credentialless attribute to Vimeo iframe for Chrome COEP compatibility"
+    ]
+  },
   {
     "version": "0.2.2",
     "date": "2025-10-21T05:39:12.221Z",
