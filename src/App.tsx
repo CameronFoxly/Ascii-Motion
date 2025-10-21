@@ -53,6 +53,7 @@ import { ProjectSettingsDialog } from './components/features/ProjectSettingsDial
 import { SilentSaveHandler } from './components/features/SilentSaveHandler'
 import { Toaster } from './components/ui/sonner'
 import { WelcomeDialog } from './components/features/WelcomeDialog'
+import { MobileDialog } from './components/features/MobileDialog'
 
 /**
  * Inner component that uses auth hooks
@@ -306,6 +307,9 @@ function AppContent() {
           
           {/* Welcome Dialog - Shows on first visit and major version updates */}
           <WelcomeDialog />
+          
+          {/* Mobile Dialog - Shows on mobile devices to inform about desktop-only support */}
+          <MobileDialog />
         </CanvasProvider>
         
         {/* Performance Overlay for Development */}
