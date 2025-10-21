@@ -258,6 +258,26 @@ The Welcome Dialog provides an engaging onboarding experience that automatically
 - Right panel: Media display (16:9 aspect ratio) + description card with CTAs
 - Total dialog size: max-width 5xl, height 600px
 
+#### **Security Headers & Cross-Origin Configuration**
+**📖 Full Documentation:** See `docs/COEP_CONFIGURATION_GUIDE.md` for complete details.
+
+**Quick Reference:**
+- **Production (vercel.json)**: `COEP: credentialless` + proper CSP configuration
+- **Development (vite.config.ts)**: No COEP headers (easier iframe testing)
+- **Critical**: Both `script-src` AND `connect-src` must include `https://unpkg.com` for FFmpeg
+- **Chrome**: Requires iframe `credentialless="true"` attribute for Vimeo embeds
+- **Safari**: More lenient, works without iframe attribute
+
+**Why This Matters:**
+- FFmpeg requires `SharedArrayBuffer` which needs COEP + COOP headers
+- Vimeo/YouTube embeds need special handling with `credentialless` policy
+- Browser compatibility varies (Chrome is stricter than Safari)
+
+**Testing Required:**
+- ✅ Test FFmpeg exports in both Chrome and Safari
+- ✅ Test Vimeo embeds in Welcome Dialog (both browsers)
+- ✅ Verify on both localhost AND preview deployments
+
 #### **Updating Content**
 Edit `createWelcomeTabs()` function in `WelcomeDialog.tsx` to add/modify tabs:
 ```typescript

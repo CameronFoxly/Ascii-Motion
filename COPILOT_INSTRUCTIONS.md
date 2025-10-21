@@ -161,6 +161,97 @@ Before submitting any architectural change, ask yourself:
 ## Project Context
 ASCII Motion is a React + TypeScript web application for creating and animating ASCII art. We use Vite for building, Shadcn/ui for components, Zustand for state management, and Tailwind CSS v3 for styling.
 
+## 🚨 **CRITICAL: Security Headers & Cross-Origin Configuration**
+
+### **⚠️ COEP/COOP REQUIREMENTS FOR FFMPEG**
+
+**📖 Full Documentation:** See `docs/COEP_CONFIGURATION_GUIDE.md` for comprehensive details.
+
+FFmpeg requires `SharedArrayBuffer` support, which mandates specific security headers:
+- `Cross-Origin-Embedder-Policy: credentialless`
+- `Cross-Origin-Opener-Policy: same-origin`
+
+### **Configuration Files**
+
+**Production (vercel.json):**
+```json
+{
+  "headers": [{
+    "source": "/(.*)",
+    "headers": [
+      { "key": "Cross-Origin-Embedder-Policy", "value": "credentialless" },
+      { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
+      { 
+        "key": "Content-Security-Policy", 
+        "value": "... script-src ... https://unpkg.com; connect-src ... https://unpkg.com; ..." 
+      }
+    ]
+  }]
+}
+```
+
+**Development (vite.config.ts):**
+```typescript
+// NO COEP headers in development
+// This allows Vimeo/YouTube iframes to work easily in localhost
+export default defineConfig({
+  server: {
+    // headers: { ... } // Commented out for development
+  },
+});
+```
+
+### **🚨 CRITICAL: CSP Directives for FFmpeg**
+
+FFmpeg loads from unpkg.com CDN and requires TWO CSP directives:
+
+1. **script-src** - Load JavaScript files
+   ```
+   script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com
+   ```
+
+2. **connect-src** - Fetch WASM files ⚠️ REQUIRED
+   ```
+   connect-src 'self' https://*.supabase.co https://unpkg.com
+   ```
+
+**Common Error:** Forgetting `unpkg.com` in `connect-src` causes:
+```
+Refused to connect to 'https://unpkg.com/@ffmpeg/core@0.12.9/dist/esm/ffmpeg-core.wasm'
+because it violates the following Content Security Policy directive: "connect-src 'self'"
+```
+
+### **🚨 CRITICAL: Chrome Iframe Compatibility**
+
+Chrome is stricter than Safari with `COEP: credentialless`. All cross-origin iframes MUST have the `credentialless` attribute:
+
+```tsx
+<iframe
+  src="https://player.vimeo.com/video/123456"
+  {...({ credentialless: 'true' } as any)} // Required for Chrome
+  allow="autoplay; fullscreen"
+/>
+```
+
+**Why the type assertion?** TypeScript doesn't recognize `credentialless` as a valid iframe attribute yet.
+
+### **Browser Compatibility Matrix**
+
+| Feature | Chrome (localhost) | Chrome (production) | Safari (localhost) | Safari (production) |
+|---------|-------------------|--------------------|--------------------|---------------------|
+| FFmpeg | ✅ | ✅ (with CSP) | ✅ | ✅ (with CSP) |
+| Vimeo iframe | ✅ | ✅ (with `credentialless`) | ✅ | ✅ (lenient) |
+
+### **Testing Requirements**
+
+When modifying security headers, test:
+- ✅ FFmpeg video export in Chrome (production)
+- ✅ FFmpeg video export in Safari (production)
+- ✅ Vimeo playback in Chrome (production)
+- ✅ Vimeo playback in Safari (production)
+- ✅ Both features work on localhost
+- ✅ Console has no COEP/CSP violations
+
 ## 🚨 **CRITICAL: Shadcn/UI Styling Requirements**
 
 ### **⚠️ TAILWIND CSS VERSION REQUIREMENT**
