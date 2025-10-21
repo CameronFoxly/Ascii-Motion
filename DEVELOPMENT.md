@@ -218,6 +218,66 @@ npm run build:prod && npm run deploy
 **Environment Variables:**
 No environment variables required for basic deployment. Future auth and database features will require additional configuration.
 
+### Welcome Dialog - First-Time User Experience ✅ **COMPLETE** (Oct 20, 2025)
+
+#### **Overview**
+The Welcome Dialog provides an engaging onboarding experience that automatically shows for new users and after major version updates.
+
+#### **Implementation**
+- **Component**: `src/components/features/WelcomeDialog.tsx`
+- **Hook**: `src/hooks/useWelcomeDialog.ts`
+- **Types**: `src/types/welcomeDialog.ts`
+- **Demo**: `src/components/demos/SimpleAsciiDemo.tsx`
+
+#### **Key Features**
+- ✅ Shows automatically on first visit (500ms delay for smooth page load)
+- ✅ Reappears after major version updates (e.g., 0.2.x → 0.3.x)
+- ✅ Vertical tab navigation with 5 feature categories
+- ✅ "Don't show again" checkbox with localStorage persistence
+- ✅ YouTube video embeds with lazy loading (no autoplay audio)
+- ✅ Live React component demos (SimpleAsciiDemo)
+- ✅ CTA buttons that activate tools automatically
+- ✅ Performance optimized with lazy loading and placeholders
+
+#### **Content Structure**
+```typescript
+5 Default Tabs:
+1. Create ASCII Art       → Activate pencil tool
+2. Convert Images/Videos  → Open import dialog
+3. Animate Frame-by-Frame → Add new frame
+4. Export Multiple Formats → Open export dialog
+5. Open Source            → Link to GitHub
+```
+
+#### **localStorage Key**
+- `ascii-motion-welcome-state` - Stores `{ hasSeenWelcome, lastSeenVersion, dismissedAt }`
+- Version comparison uses major.minor only (e.g., "0.2")
+
+#### **Layout**
+- Left panel: 260px with "Welcome to ASCII MOTION" header + vertical tabs
+- Right panel: Media display (16:9 aspect ratio) + description card with CTAs
+- Total dialog size: max-width 5xl, height 600px
+
+#### **Updating Content**
+Edit `createWelcomeTabs()` function in `WelcomeDialog.tsx` to add/modify tabs:
+```typescript
+const welcomeTabs: WelcomeTab[] = [
+  {
+    id: 'my-tab',
+    title: 'My Feature',
+    description: 'Description text...',
+    cta: { text: 'Try It', action: () => { /* activate tool */ } },
+    secondaryCta: { text: 'Learn More', href: 'https://...' },
+    media: { type: 'youtube', embedId: 'VIDEO_ID', alt: 'Demo' },
+  },
+];
+```
+
+#### **Testing**
+- Clear `localStorage.removeItem('ascii-motion-welcome-state')` to test first visit
+- Modify VERSION constant to test major version update detection
+- Verify "Don't show again" persists across refreshes
+
 ### Automated Versioning System
 
 #### **Overview**

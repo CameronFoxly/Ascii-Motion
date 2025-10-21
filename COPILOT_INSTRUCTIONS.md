@@ -637,6 +637,154 @@ SVG export provides scalable vector graphics output integrated into the Image ex
 - Text-to-path conversion uses simplified canvas-based approach (note in docs suggests opentype.js for production-quality paths)
 - Export dialog conditionally displays SVG-specific settings when format === 'svg'
 
+## 🎉 **Welcome Dialog - First-Time User Experience**
+
+**Location**: `src/components/features/WelcomeDialog.tsx`, `src/hooks/useWelcomeDialog.ts`, `src/types/welcomeDialog.ts`
+
+The Welcome Dialog provides an engaging onboarding experience for new users, showcasing key features and helping users get started with ASCII Motion.
+
+### **Key Features**:
+- **First Visit Detection**: Shows automatically on first visit to the site
+- **Version-Based Reset**: Reappears after major version updates (e.g., 0.2.x → 0.3.x)
+- **Vertical Tab Navigation**: Clean sidebar with feature categories
+- **Rich Media Support**: YouTube embeds, images, and live React component demos
+- **Smart Persistence**: "Don't show again" checkbox with localStorage
+- **Performance Optimized**: Lazy loading for media and demo components
+- **Tool Integration**: CTAs can automatically activate tools (e.g., "Try Pencil Tool")
+
+### **Architecture**:
+```typescript
+// Types - src/types/welcomeDialog.ts
+interface WelcomeTab {
+  id: string;
+  title: string;
+  description: string;
+  cta?: { text: string; action: () => void; };
+  secondaryCta?: { text: string; href: string; };
+  media: {
+    type: 'image' | 'video' | 'youtube' | 'component';
+    src?: string;
+    embedId?: string;      // YouTube video ID
+    component?: React.ComponentType;
+    placeholder?: string;  // Low-res placeholder for images
+    alt: string;
+  };
+}
+
+// Hook - src/hooks/useWelcomeDialog.ts
+const useWelcomeDialog = () => {
+  const { isOpen, setIsOpen, dontShowAgain, setDontShowAgain } = useWelcomeDialog();
+  // Manages localStorage: 'ascii-motion-welcome-state'
+  // Shows on first visit OR when major version changes
+};
+
+// Component - src/components/features/WelcomeDialog.tsx
+<WelcomeDialog /> // Auto-manages open state with hook
+```
+
+### **localStorage Strategy**:
+```typescript
+// Key: 'ascii-motion-welcome-state'
+interface WelcomeState {
+  hasSeenWelcome: boolean;
+  lastSeenVersion: string;  // "0.2" (major.minor only)
+  dismissedAt: string;       // ISO timestamp
+}
+
+// Show logic:
+// 1. First visit (no state) → Show
+// 2. Major version changed (0.2 → 0.3) → Show
+// 3. User checked "don't show again" → Don't show until version update
+// 4. User closed without checking → Show again next visit
+```
+
+### **Content Structure**:
+The dialog includes 5 default tabs:
+1. **Create ASCII Art** - Drawing tools overview
+2. **Convert Images/Videos** - Media import capabilities
+3. **Animate Frame-by-Frame** - Timeline and animation features
+4. **Export Multiple Formats** - Export options showcase
+5. **Open Source** - GitHub link and contribution info
+
+### **Adding/Updating Content**:
+```typescript
+// In WelcomeDialog.tsx - createWelcomeTabs function
+const welcomeTabs: WelcomeTab[] = [
+  {
+    id: 'my-new-tab',
+    title: 'New Feature',
+    description: 'Description of the new feature...',
+    cta: {
+      text: 'Try It Now',
+      action: () => {
+        // Activate tool or open dialog
+        setActiveTool('pencil');
+        closeDialog();
+      },
+    },
+    secondaryCta: {
+      text: 'Learn More',
+      href: 'https://github.com/...',
+    },
+    media: {
+      type: 'youtube',
+      embedId: 'VIDEO_ID_HERE',
+      alt: 'Feature demonstration',
+    },
+  },
+  // ... more tabs
+];
+```
+
+### **Performance Considerations**:
+- **Lazy Loading**: Demo components loaded only when tab is active
+- **Image Placeholders**: Low-res placeholders shown before full images load
+- **YouTube Embeds**: Use `loading="lazy"` to defer iframe loading
+- **500ms Delay**: Dialog appears 500ms after page load for smooth experience
+- **No Audio Autoplay**: YouTube embeds configured with `rel=0&modestbranding=1`
+
+### **Layout**:
+```
+┌─────────────────────────────────────────────────────┐
+│  Left Panel (260px)    │  Right Content Area        │
+│  ┌──────────────────┐  │  ┌──────────────────────┐  │
+│  │ "Welcome to"     │  │  │  Media Display       │  │
+│  │  ASCII MOTION    │  │  │  (16:9 aspect ratio) │  │
+│  ├──────────────────┤  │  └──────────────────────┘  │
+│  │ [Create Art]     │  │  ┌──────────────────────┐  │
+│  │ [ Convert ]      │  │  │ Description Card     │  │
+│  │ [ Animate ]      │  │  │ • Text content       │  │
+│  │ [ Export  ]      │  │  │ • CTA buttons        │  │
+│  │ [ Open Source ]  │  │  └──────────────────────┘  │
+│  ├──────────────────┤  │                            │
+│  │ □ Don't show     │  │                            │
+│  └──────────────────┘  │                            │
+└─────────────────────────────────────────────────────┘
+```
+
+### **Integration Points**:
+- Automatically renders in `App.tsx` after `UpdatePasswordDialog`
+- Uses `useToolStore` to activate tools from CTAs
+- Integrates with version system from `src/constants/version.ts`
+- Follows Shadcn dialog patterns for consistent styling
+
+### **Testing Checklist**:
+- [ ] Dialog appears on first visit (clear localStorage to test)
+- [ ] "Don't show again" persists across refreshes
+- [ ] Dialog reappears after major version update (modify VERSION constant)
+- [ ] All tabs switch smoothly without flashing
+- [ ] YouTube embeds load without audio autoplay
+- [ ] CTA buttons activate correct tools and close dialog
+- [ ] External links open in new tabs
+- [ ] Keyboard navigation works (Tab, Escape)
+- [ ] Mobile responsive (dialog scrolls properly)
+
+### **Maintenance Notes**:
+- Update tab content in `createWelcomeTabs()` function
+- Replace YouTube placeholder video ID with actual demos
+- Add real screenshots/images once captured
+- Consider adding analytics tracking for tab views (future enhancement)
+
 ## 🚨 **CRITICAL: Adding New Tools**
 **When adding ANY new drawing tool, ALWAYS follow the 8-step componentized pattern in Section 3 below.** This maintains architectural consistency and ensures all tools work seamlessly together. Do NOT add tool logic directly to CanvasGrid or mouse handlers.
 

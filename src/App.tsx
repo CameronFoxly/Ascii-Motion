@@ -52,6 +52,7 @@ import { NewProjectDialog } from './components/features/NewProjectDialog'
 import { ProjectSettingsDialog } from './components/features/ProjectSettingsDialog'
 import { SilentSaveHandler } from './components/features/SilentSaveHandler'
 import { Toaster } from './components/ui/sonner'
+import { WelcomeDialog } from './components/features/WelcomeDialog'
 
 /**
  * Inner component that uses auth hooks
@@ -302,6 +303,9 @@ function AppContent() {
             open={showUpdatePasswordDialog} 
             onOpenChange={handleUpdatePasswordClose}
           />
+          
+          {/* Welcome Dialog - Shows on first visit and major version updates */}
+          <WelcomeDialog />
         </CanvasProvider>
         
         {/* Performance Overlay for Development */}
