@@ -9,59 +9,18 @@
  * Shows on first visit and after major version updates.
  */
 
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { ExternalLink, Play } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { useWelcomeDialog } from '@/hooks/useWelcomeDialog';
 import { useToolStore } from '@/stores/toolStore';
 import type { WelcomeTab } from '@/types/welcomeDialog';
 import type { Tool } from '@/types';
-
-// Lazy load the demo component for better initial load performance
-const SimpleAsciiDemo = lazy(() => 
-  import('@/components/demos/SimpleAsciiDemo').then(module => ({ 
-    default: module.SimpleAsciiDemo 
-  }))
-);
-
-/**
- * YouTube placeholder component
- * Shows YouTube thumbnail with play button - opens in new tab
- * (Can't use iframe due to COEP headers required for FFmpeg)
- */
-const YouTubeEmbed: React.FC<{ embedId: string; title: string }> = ({ embedId, title }) => {
-  return (
-    <a
-      href={`https://www.youtube.com/watch?v=${embedId}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="relative w-full block group cursor-pointer"
-      style={{ paddingBottom: '56.25%' }}
-    >
-      <div className="absolute inset-0 bg-muted/30 rounded-md border border-border/50 flex items-center justify-center overflow-hidden">
-        {/* YouTube thumbnail */}
-        <img
-          src={`https://img.youtube.com/vi/${embedId}/maxresdefault.jpg`}
-          alt={title}
-          className="absolute inset-0 w-full h-full object-cover"
-          onError={(e) => {
-            // Fallback to medium quality thumbnail if maxres doesn't exist
-            e.currentTarget.src = `https://img.youtube.com/vi/${embedId}/hqdefault.jpg`;
-          }}
-        />
-        {/* Play button overlay */}
-        <div className="relative z-10 w-16 h-16 bg-red-600 rounded-full flex items-center justify-center group-hover:bg-red-700 transition-colors shadow-lg">
-          <Play className="w-8 h-8 text-white fill-white ml-1" />
-        </div>
-      </div>
-    </a>
-  );
-};
 
 /**
  * Vimeo embed component
@@ -89,27 +48,8 @@ const VimeoEmbed: React.FC<{ embedId: string; title: string }> = ({ embedId, tit
 const MediaDisplay: React.FC<{ media: WelcomeTab['media'] }> = ({ media }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   
-  if (media.type === 'youtube' && media.embedId) {
-    return <YouTubeEmbed embedId={media.embedId} title={media.alt} />;
-  }
-  
   if (media.type === 'vimeo' && media.embedId) {
     return <VimeoEmbed embedId={media.embedId} title={media.alt} />;
-  }
-  
-  if (media.type === 'component' && media.component) {
-    const Component = media.component;
-    return (
-      <div className="w-full bg-muted/30 rounded-md border border-border/50" style={{ aspectRatio: '16/9' }}>
-        <Suspense fallback={
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-            Loading demo...
-          </div>
-        }>
-          <Component />
-        </Suspense>
-      </div>
-    );
   }
   
   if (media.type === 'image' && media.src) {
@@ -208,8 +148,8 @@ const createWelcomeTabs = (
       href: 'https://github.com/cameronfoxly/Ascii-Motion#animation',
     },
     media: {
-      type: 'component',
-      component: SimpleAsciiDemo,
+      type: 'vimeo',
+      embedId: '1129091888',
       alt: 'ASCII animation demonstration',
     },
   },
@@ -229,8 +169,8 @@ const createWelcomeTabs = (
       href: 'https://github.com/cameronfoxly/Ascii-Motion#export',
     },
     media: {
-      type: 'youtube',
-      embedId: 'QMYfkOtYYlg',
+      type: 'vimeo',
+      embedId: '1129095779',
       alt: 'Export formats demonstration',
     },
   },
@@ -250,8 +190,8 @@ const createWelcomeTabs = (
       href: 'https://github.com/cameronfoxly/Ascii-Motion/issues/new',
     },
     media: {
-      type: 'youtube',
-      embedId: 'QMYfkOtYYlg',
+      type: 'vimeo',
+      embedId: '1129095901',
       alt: 'ASCII Motion on GitHub',
     },
   },
