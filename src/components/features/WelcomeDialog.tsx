@@ -292,6 +292,26 @@ const createWelcomeTabs = (
     },
   },
   {
+    id: 'cloud',
+    title: 'Cloud Storage',
+    description: 'Create a free account to store up to 3 projects for editing later. Coming soon: Paid accounts to allow for unlimited storage.',
+    cta: {
+      text: 'Create Free Account',
+      action: () => {
+        closeDialog();
+        // Dispatch custom event to trigger signup dialog
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('openSignUpDialog'));
+        }, 100); // Small delay to ensure dialog has closed
+      },
+    },
+    media: {
+      type: 'vimeo',
+      embedId: '1129275149',
+      alt: 'Cloud storage demonstration',
+    },
+  },
+  {
     id: 'opensource',
     title: 'Open Source',
     description: "ASCII Motion's core features are all open source. Contributions, bug reports, feature requests, and feedback are always welcome. Join our community and help make ASCII Motion even better!",

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LogIn, Crown, LogOut, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +25,21 @@ export function AccountButton() {
   const [showSignIn, setShowSignIn] = useState(false);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [showAccountSettings, setShowAccountSettings] = useState(false);
+
+  // Listen for custom event to open signup dialog
+  useEffect(() => {
+    const handleOpenSignUp = () => {
+      console.log('[AccountButton] Received openSignUpDialog event');
+      setShowSignUp(true);
+    };
+    
+    console.log('[AccountButton] Setting up event listener for openSignUpDialog');
+    window.addEventListener('openSignUpDialog', handleOpenSignUp);
+    return () => {
+      console.log('[AccountButton] Removing event listener for openSignUpDialog');
+      window.removeEventListener('openSignUpDialog', handleOpenSignUp);
+    };
+  }, []);
 
   // Handle sign out and reset dialog states
   const handleSignOut = async () => {
