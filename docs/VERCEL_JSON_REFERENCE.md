@@ -40,6 +40,13 @@ This file configures Vercel deployment settings, security headers, and routing f
 4. **frame-src**: `https://player.vimeo.com https://www.youtube.com`
    - Allows Vimeo and YouTube iframes in Welcome Dialog
 
+#### Directives for Media Import:
+
+5. **media-src**: `'self' blob:`
+   - ⚠️ CRITICAL: Allows video/image preview during import
+   - Blob URLs are created when users import media files
+   - Missing this blocks import preview functionality
+
 ## Common Issues
 
 ### Issue: FFmpeg fails to initialize
@@ -61,6 +68,18 @@ Refused to connect to 'https://unpkg.com/@ffmpeg/core@0.12.9/dist/esm/ffmpeg-cor
 ```
 
 See: `src/components/features/WelcomeDialog.tsx`
+
+### Issue: Video/Image import preview blocked
+**Error:**
+```
+Refused to load media from 'blob:https://...' because it violates the following 
+Content Security Policy directive: "default-src 'self'". 
+Note that 'media-src' was not explicitly set
+```
+
+**Solution:** Add `media-src 'self' blob:` to CSP
+
+**Why?** Import dialog creates blob URLs for video/image previews. Without `media-src blob:`, these are blocked.
 
 ## Git Deployment Settings
 

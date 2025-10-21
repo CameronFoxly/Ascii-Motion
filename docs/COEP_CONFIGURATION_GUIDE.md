@@ -164,6 +164,14 @@ frame-src https://player.vimeo.com https://www.youtube.com
 ```
 Allows Vimeo and YouTube embeds in Welcome Dialog
 
+### Media Files (media-src)
+```
+media-src 'self' blob:
+```
+**Critical:** Allows video/image previews during import
+
+**Why blob URLs?** When users import videos or images, the browser creates temporary blob URLs to display previews in the import dialog. Without `media-src blob:`, these previews will be blocked by CSP.
+
 ## Common Issues and Solutions
 
 ### Issue 1: FFmpeg Fails to Initialize
@@ -210,6 +218,24 @@ Failed to initialize FFmpeg: TypeError: Failed to fetch
 1. Use `COEP: credentialless` instead of `require-corp`
 2. Verify CSP includes all required directives
 3. Add `credentialless` attribute to iframes
+
+### Issue 4: Video/Image Import Fails
+
+**Symptoms:**
+```
+Refused to load media from 'blob:https://...' because it violates the following 
+Content Security Policy directive: "default-src 'self'". 
+Note that 'media-src' was not explicitly set, so 'default-src' is used as a fallback.
+```
+
+**Cause:** CSP missing `media-src` directive for blob URLs
+
+**Solution:** Add `media-src 'self' blob:` to CSP:
+```json
+"Content-Security-Policy": "... media-src 'self' blob:; ..."
+```
+
+**Impact:** Without this, video/image import previews won't display in the import dialog.
 
 ## Testing Checklist
 

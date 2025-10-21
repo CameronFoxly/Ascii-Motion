@@ -221,6 +221,20 @@ Refused to connect to 'https://unpkg.com/@ffmpeg/core@0.12.9/dist/esm/ffmpeg-cor
 because it violates the following Content Security Policy directive: "connect-src 'self'"
 ```
 
+3. **media-src** - Video/image preview during import ⚠️ REQUIRED
+   ```
+   media-src 'self' blob:
+   ```
+
+**Common Error:** Forgetting `media-src blob:` blocks import previews:
+```
+Refused to load media from 'blob:https://...' because it violates the following 
+Content Security Policy directive: "default-src 'self'". 
+Note that 'media-src' was not explicitly set
+```
+
+**Why blob URLs?** Import dialog creates temporary blob URLs to show video/image previews before processing.
+
 ### **🚨 CRITICAL: Chrome Iframe Compatibility**
 
 Chrome is stricter than Safari with `COEP: credentialless`. All cross-origin iframes MUST have the `credentialless` attribute:
@@ -249,7 +263,9 @@ When modifying security headers, test:
 - ✅ FFmpeg video export in Safari (production)
 - ✅ Vimeo playback in Chrome (production)
 - ✅ Vimeo playback in Safari (production)
-- ✅ Both features work on localhost
+- ✅ Video/image import preview in Chrome (production)
+- ✅ Video/image import preview in Safari (production)
+- ✅ All features work on localhost
 - ✅ Console has no COEP/CSP violations
 
 ## 🚨 **CRITICAL: Shadcn/UI Styling Requirements**

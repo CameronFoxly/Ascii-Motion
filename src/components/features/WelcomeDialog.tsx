@@ -187,8 +187,8 @@ const createWelcomeTabs = (
       href: 'https://github.com/cameronfoxly/Ascii-Motion#media-import',
     },
     media: {
-      type: 'youtube',
-      embedId: 'QMYfkOtYYlg',
+      type: 'vimeo',
+      embedId: '1129088419',
       alt: 'Image to ASCII conversion demonstration',
     },
   },

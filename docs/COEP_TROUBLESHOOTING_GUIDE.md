@@ -108,6 +108,40 @@ Failed to load FFmpeg: TypeError: Failed to fetch
 
 ---
 
+### Error: Video/Image Import Fails with Blob URL Blocked
+
+**Full Error:**
+```
+Refused to load media from 'blob:https://...' 
+because it violates the following Content Security Policy directive: "default-src 'self'". 
+Note that 'media-src' was not explicitly set, so 'default-src' is used as a fallback.
+```
+
+**Symptoms:**
+- Video/image import works on localhost
+- Import fails on production/preview
+- Preview video doesn't display in import dialog
+- Console shows CSP violation for blob URLs
+
+**Diagnosis:** CSP missing `media-src` directive, causing it to fall back to `default-src 'self'` which doesn't allow blob URLs.
+
+**Solution:**
+1. Open `vercel.json`
+2. Find `Content-Security-Policy` header
+3. Add `media-src 'self' blob:` directive
+
+**Example:**
+```json
+{
+  "key": "Content-Security-Policy",
+  "value": "default-src 'self'; ... img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src ..."
+}
+```
+
+**Why blob URLs?** When users import videos/images, the browser creates blob URLs for preview. Without `media-src blob:`, these previews are blocked.
+
+---
+
 ## Browser DevTools Checklist
 
 ### Network Tab Investigation
