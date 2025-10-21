@@ -45,7 +45,7 @@ export const MobileDialog: React.FC = () => {
   return (
     <Dialog open={isOpen} modal={true}>
       <DialogContent 
-        className="w-[90vw] max-w-md p-6"
+        className="w-[90vw] max-w-md p-6 max-h-[90vh] overflow-y-auto"
         hideClose={true}
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
@@ -53,14 +53,14 @@ export const MobileDialog: React.FC = () => {
       >
         <DialogTitle className="sr-only">Desktop Only</DialogTitle>
         
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6">
           {/* ASCII Animation */}
-          <div className="w-full">
+          <div className="w-full flex items-center justify-center">
             <WelcomeAsciiAnimation />
           </div>
           
           {/* Message */}
-          <p className="text-sm text-foreground leading-relaxed text-center">
+          <p className="text-sm text-foreground leading-relaxed text-center px-2">
             ASCII Motion is a web app for creating and animating ASCII art. 
             Currently, only desktop editing is supported. Please visit{' '}
             <span className="font-semibold">ascii-motion.app</span> on a desktop 

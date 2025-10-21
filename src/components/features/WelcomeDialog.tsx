@@ -321,6 +321,26 @@ export const WelcomeDialog: React.FC = () => {
   const { isOpen, setIsOpen, dontShowAgain, setDontShowAgain } = useWelcomeDialog();
   const [activeTab, setActiveTab] = useState('welcome');
   const setActiveTool = useToolStore((state) => state.setActiveTool);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Check if mobile on mount
+  React.useEffect(() => {
+    const checkMobile = () => {
+      if (typeof window === 'undefined') return false;
+      
+      const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const isSmallScreen = window.innerWidth < 768;
+      const mobileUserAgentRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+      const isMobileUserAgent = mobileUserAgentRegex.test(navigator.userAgent);
+      
+      return (hasTouchScreen && isSmallScreen) || isMobileUserAgent;
+    };
+    
+    setIsMobile(checkMobile());
+  }, []);
+  
+  // Don't render on mobile devices
+  if (isMobile) return null;
   
   const welcomeTabs = createWelcomeTabs(
     setActiveTool,
