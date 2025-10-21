@@ -29,16 +29,11 @@ export function AccountButton() {
   // Listen for custom event to open signup dialog
   useEffect(() => {
     const handleOpenSignUp = () => {
-      console.log('[AccountButton] Received openSignUpDialog event');
       setShowSignUp(true);
     };
     
-    console.log('[AccountButton] Setting up event listener for openSignUpDialog');
     window.addEventListener('openSignUpDialog', handleOpenSignUp);
-    return () => {
-      console.log('[AccountButton] Removing event listener for openSignUpDialog');
-      window.removeEventListener('openSignUpDialog', handleOpenSignUp);
-    };
+    return () => window.removeEventListener('openSignUpDialog', handleOpenSignUp);
   }, []);
 
   // Handle sign out and reset dialog states
