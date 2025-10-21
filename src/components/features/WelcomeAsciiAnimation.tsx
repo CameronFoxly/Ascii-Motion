@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
-import { FRAMES, type CellData, type Frame } from './WelcomeAsciiAnimationData';
+import { FRAMES, type CellData } from './WelcomeAsciiAnimationData';
 
 /**
  * ASCII Motion welcome animation component
