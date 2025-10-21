@@ -64,6 +64,25 @@ const YouTubeEmbed: React.FC<{ embedId: string; title: string }> = ({ embedId, t
 };
 
 /**
+ * Vimeo embed component
+ * Plays video inline with autoplay, loop, and muted
+ */
+const VimeoEmbed: React.FC<{ embedId: string; title: string }> = ({ embedId, title }) => {
+  return (
+    <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+      <iframe
+        src={`https://player.vimeo.com/video/${embedId}?h=&badge=0&autopause=0&autoplay=1&muted=1&loop=1&background=1`}
+        frameBorder="0"
+        allow="autoplay; fullscreen; picture-in-picture; clipboard-write"
+        className="absolute top-0 left-0 w-full h-full rounded-md border border-border/50"
+        title={title}
+        loading="lazy"
+      />
+    </div>
+  );
+};
+
+/**
  * Media display component that handles different media types
  */
 const MediaDisplay: React.FC<{ media: WelcomeTab['media'] }> = ({ media }) => {
@@ -71,6 +90,10 @@ const MediaDisplay: React.FC<{ media: WelcomeTab['media'] }> = ({ media }) => {
   
   if (media.type === 'youtube' && media.embedId) {
     return <YouTubeEmbed embedId={media.embedId} title={media.alt} />;
+  }
+  
+  if (media.type === 'vimeo' && media.embedId) {
+    return <VimeoEmbed embedId={media.embedId} title={media.alt} />;
   }
   
   if (media.type === 'component' && media.component) {
@@ -142,8 +165,8 @@ const createWelcomeTabs = (
       href: 'https://github.com/cameronfoxly/Ascii-Motion#drawing-tools',
     },
     media: {
-      type: 'youtube',
-      embedId: 'QMYfkOtYYlg',
+      type: 'vimeo',
+      embedId: '1129067336',
       alt: 'ASCII art creation demonstration',
     },
   },

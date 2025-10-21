@@ -33,8 +33,9 @@ export default defineConfig({
   },
   server: {
     headers: {
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-      'Cross-Origin-Opener-Policy': 'same-origin',
+      // No COEP in development - allows Vimeo/YouTube iframes to work
+      // FFmpeg video export won't work in dev, test in production instead
+      // Production uses COEP: credentialless which supports both
     },
   },
 })
