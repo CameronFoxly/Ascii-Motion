@@ -39,6 +39,9 @@ export const CanvasSettings: React.FC = () => {
   const { pushCanvasResizeHistory } = useToolStore();
   const { currentFrameIndex } = useAnimationStore();
 
+  // Store original canvas background color for cancel functionality
+  const [originalCanvasBackgroundColor, setOriginalCanvasBackgroundColor] = useState<string>('');
+
   // Canvas size mode state ('characters' or 'pixels')
   const [sizeMode, setSizeMode] = useState<'characters' | 'pixels'>('characters');
 
@@ -314,8 +317,14 @@ export const CanvasSettings: React.FC = () => {
     };
   }, [clearColorPickerTimeout, clearTypographyPickerTimeout]);
 
-  const handleColorChange = (color: string) => {
+  // Handle real-time color changes (for live preview)
+  const handleColorPickerChange = (color: string) => {
     setCanvasBackgroundColor(color);
+  };
+
+  // Handle color picker cancel - restore original color
+  const handleColorPickerCancel = () => {
+    setCanvasBackgroundColor(originalCanvasBackgroundColor);
   };
 
   // Removed preset color array (presets no longer shown in advanced dialog)
@@ -449,6 +458,8 @@ export const CanvasSettings: React.FC = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => {
+                      // Store original color before opening picker
+                      setOriginalCanvasBackgroundColor(canvasBackgroundColor);
                       closeTypographyPicker();
                       showColorPickerAnimated();
                     }}
@@ -634,10 +645,21 @@ export const CanvasSettings: React.FC = () => {
           onOpenChange={(open) => {
             setShowColorPicker(open);
           }}
-          onColorSelect={(color) => {
-            handleColorChange(color);
+          onColorSelect={() => {
+            // User confirmed - commit the color change
+            // Color is already applied via onColorChange live preview
+            setShowColorPicker(false);
           }}
-          initialColor={canvasBackgroundColor}
+          onColorChange={(color) => {
+            // Live preview - update canvas background as user drags/changes color
+            handleColorPickerChange(color);
+          }}
+          onCancel={() => {
+            // User canceled - restore original color
+            handleColorPickerCancel();
+            setShowColorPicker(false);
+          }}
+          initialColor={originalCanvasBackgroundColor}
           title="Edit Canvas Background Color"
           showTransparentOption
           triggerRef={colorPickerRef}

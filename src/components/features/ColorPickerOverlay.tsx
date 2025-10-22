@@ -187,20 +187,6 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
     }
   }, [isOpen, onOpenChange, triggerRef]);
 
-  // Close picker on escape key
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isOpen) {
-        onOpenChange(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      return () => document.removeEventListener('keydown', handleEscape);
-    }
-  }, [isOpen, onOpenChange]);
-
   // Position calculation
   const getPickerPosition = () => {
     const pickerWidth = 400;
@@ -631,20 +617,42 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
   };
 
   // Confirm color selection
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(() => {
     addRecentColor(previewColor);
     onColorSelect(previewColor);
     onOpenChange(false);
-  };
+  }, [previewColor, addRecentColor, onColorSelect, onOpenChange]);
 
   // Cancel selection
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     if (onCancel) {
       onCancel();
     } else {
       onOpenChange(false);
     }
-  };
+  }, [onCancel, onOpenChange]);
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!isOpen) return;
+      
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        handleCancel();
+      } else if (event.key === 'Enter') {
+        event.preventDefault();
+        event.stopPropagation();
+        handleConfirm();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, handleCancel, handleConfirm]);
 
   // Set preview state to transparent (without committing until confirm)
   const handleSetTransparent = () => {
