@@ -173,7 +173,7 @@ export const useFrameSynchronization = (
       
       lastFrameIndexRef.current = currentFrameIndex;
     }
-  }, [currentFrameIndex, setFrameData, getFrameData, loadFrameToCanvas, isPlaying, isDraggingFrame, isDeletingFrame, isImportingSession, isProcessingHistory, moveStateParam, setMoveStateParam, selection.active, lassoSelection.active, magicWandSelection.active, clearSelection, clearLassoSelection, clearMagicWandSelection, width, height, setCanvasData]);
+  }, [currentFrameIndex, cells, setFrameData, getFrameData, loadFrameToCanvas, isPlaying, isDraggingFrame, isDeletingFrame, isImportingSession, isProcessingHistory, moveStateParam, setMoveStateParam, selection.active, lassoSelection.active, magicWandSelection.active, clearSelection, clearLassoSelection, clearMagicWandSelection, width, height, setCanvasData]);
 
   // Auto-save canvas changes to current frame (debounced)
   useEffect(() => {

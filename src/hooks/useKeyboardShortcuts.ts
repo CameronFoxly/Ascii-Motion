@@ -496,7 +496,6 @@ export const useKeyboardShortcuts = () => {
     redo,
     canUndo,
     canRedo,
-    pushCanvasHistory,
     activeTool,
     setActiveTool,
     textToolState
@@ -1197,7 +1196,6 @@ export const useKeyboardShortcuts = () => {
     clearMagicWandSelection,
     startSelection,
     updateSelection,
-    pushCanvasHistory,
     setCanvasData,
     undo,
     redo,

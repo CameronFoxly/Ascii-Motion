@@ -421,7 +421,7 @@ export const useAsciiBoxTool = () => {
     if (isDrawing) {
       endDrawing();
     }
-  }, [activeTool, isDrawing, drawingMode, endDrawing]);
+  }, [activeTool, isDrawing, endDrawing]);
   
   // Handle mouse hover - show line preview when shift is held, or rectangle preview in rectangle mode
   const handleMouseHover = useCallback((x: number, y: number) => {

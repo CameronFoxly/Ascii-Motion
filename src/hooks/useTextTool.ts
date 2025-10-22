@@ -238,7 +238,7 @@ export const useTextTool = () => {
     } catch (error) {
       console.error('Failed to read clipboard:', error);
     }
-  }, [textToolState.cursorPosition, textToolState.lineStartX, width, height, commitCurrentWord, setCell, setCursorPosition, resetCursorBlink, pushCanvasHistory, cells, currentFrameIndex, createTextCellWithAllAttributes]);
+  }, [textToolState.cursorPosition, textToolState.lineStartX, width, height, commitCurrentWord, setCell, setCursorPosition, resetCursorBlink, pushCanvasHistory, cells, currentFrameIndex, createTextCellWithAllAttributes, finalizeCanvasHistory]);
 
   // Click to place cursor
   const handleTextToolClick = useCallback((x: number, y: number) => {

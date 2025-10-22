@@ -903,7 +903,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   finalizeCanvasHistory: (newCanvasData: Map<string, Cell>) => {
     set((state) => {
       const { historyStack, historyPosition } = state;
-      if (historyPosition < 0) return {} as any;
+      if (historyPosition < 0) return {};
       const action = historyStack[historyPosition];
       if (action && action.type === 'canvas_edit') {
         const canvasAction = action as CanvasHistoryAction;
@@ -911,7 +911,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
           canvasAction.data.newCanvasData = new Map(newCanvasData);
         }
       }
-      return { historyStack: [...historyStack] } as any;
+      return { historyStack: [...historyStack] };
     });
   },
 

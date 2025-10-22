@@ -108,33 +108,40 @@ When in doubt? → packages/premium/docs/ 🔒
 
 **Before considering your work "complete", you MUST complete this checklist:**
 
-✅ **1. UPDATE COPILOT_INSTRUCTIONS.md (THIS FILE):**
+✅ **1. RUN LINT AND FIX ALL WARNINGS** (DO THIS FIRST):
+   - [ ] Run `npm run lint` immediately after code changes
+   - [ ] Fix ALL warnings and errors (zero tolerance policy)
+   - [ ] Re-run lint to verify zero warnings
+   - [ ] Do NOT proceed until lint is clean
+
+✅ **2. UPDATE COPILOT_INSTRUCTIONS.md (THIS FILE):**
    - [ ] Update "Current Architecture Status" section (lines 150-200)
    - [ ] Update relevant code patterns and examples  
    - [ ] Update file structure if files were added/moved
    - [ ] Update component patterns if new patterns introduced
    - [ ] Add new development guidelines if applicable
 
-✅ **2. UPDATE DEVELOPMENT.md:**
+✅ **3. UPDATE DEVELOPMENT.md:**
    - [ ] Mark completed steps with ✅ **COMPLETE** status
    - [ ] Update current phase/step status
    - [ ] Add new architectural decisions to the log
    - [ ] Update timeline estimates and next steps
    - [ ] Document any breaking changes or migration steps
 
-✅ **3. VALIDATE DOCUMENTATION CONSISTENCY:**
+✅ **4. VALIDATE DOCUMENTATION CONSISTENCY:**
    - [ ] Search for outdated patterns that conflict with changes
    - [ ] Remove or update deprecated examples
    - [ ] Verify all code examples reflect current architecture
    - [ ] Update import statements and API references
 
-✅ **4. TEST DOCUMENTATION ACCURACY:**
+✅ **5. TEST DOCUMENTATION ACCURACY:**
    - [ ] Ensure new contributors could follow the updated docs
    - [ ] Verify code examples compile and work
    - [ ] Check that docs reflect actual codebase state
    - [ ] Test that documented patterns match implemented code
 
 ### **🎯 Documentation Update Triggers (NEVER SKIP):**
+- ✅ **FIRST: Run lint and achieve zero warnings** (non-negotiable, before proceeding)
 - ✅ Creating new hooks, components, or utilities
 - ✅ Modifying existing architectural patterns  
 - ✅ Completing any refactoring step or phase
@@ -148,9 +155,11 @@ When in doubt? → packages/premium/docs/ 🔒
 - **Future developers will be misled** - Outdated docs are worse than no docs
 - **Architecture will deteriorate** - Patterns won't be followed consistently
 - **Project velocity will slow** - Time wasted on confusion and rework
+- **Lint debt accumulates** - Warnings multiply exponentially if not fixed immediately
 
 ### **🎪 Quick Documentation Health Check:**
 Before submitting any architectural change, ask yourself:
+- ❓ Is `npm run lint` showing ZERO warnings and errors?
 - ❓ Could a new team member understand the current architecture from the docs?
 - ❓ Do all code examples in COPILOT_INSTRUCTIONS.md work with current code?
 - ❓ Does DEVELOPMENT.md accurately reflect what's been completed?
@@ -3784,25 +3793,62 @@ const useCanvasStore = create<CanvasState>((set) => ({
 
 ## Code Quality Standards
 
-### **🚨 MANDATORY: Zero-Tolerance Lint Policy**
+### **🚨 MANDATORY: Zero-Tolerance Lint Policy - CLEAN AS YOU GO**
 
-**Run `npm run lint` after EVERY coding session. Fix all warnings before committing.**
+**⚠️ CRITICAL RULE: Run `npm run lint` IMMEDIATELY after completing ANY code change. Fix ALL warnings before moving to the next task.**
+
+**This is NOT optional. This is NOT "clean up later". This is MANDATORY.**
 
 **Why This Matters:**
 - Lint warnings represent real bugs waiting to happen (stale closures, missing deps, infinite loops)
 - Accumulating warnings creates compounding technical debt
-- "Fix later" warnings NEVER get fixed—they multiply
-- Clean lint = Clean code = Fewer runtime bugs
+- "Fix later" warnings NEVER get fixed—they multiply exponentially
+- **Every lint warning left behind makes the next developer's job harder**
+- Clean lint = Clean code = Fewer runtime bugs = Happier team
+
+**The Clean-As-You-Go Workflow:**
+```bash
+# 1. Make your code changes
+# 2. IMMEDIATELY run lint (before doing anything else)
+npm run lint
+
+# 3. If you see ANY warnings or errors:
+#    - STOP what you're doing
+#    - FIX THEM NOW (not later, not tomorrow, NOW)
+#    - Re-run lint to verify
+npm run lint
+
+# 4. Only when lint shows ZERO warnings:
+#    - ✅ Move to next task
+#    - ✅ Make your commit
+#    - ✅ Consider your work complete
+```
 
 **Enforcement:**
-- ✅ Lint must pass with zero warnings before code review
+- ✅ Lint must pass with zero warnings before ANY commit
+- ✅ Lint must pass with zero warnings before ANY pull request
+- ✅ Lint must pass with zero warnings before moving to next task
 - ✅ Hook dependency warnings are blocking issues, not suggestions
 - ✅ TypeScript errors are non-negotiable blockers
 - ❌ DO NOT disable lint rules to "make it work"—fix the underlying issue
+- ❌ DO NOT accumulate warnings with the intention to "batch fix later"
+- ❌ DO NOT ignore warnings because "it works on my machine"
+
+**Common Excuses (All Invalid):**
+- ❌ "I'll fix it in a cleanup PR later" → No you won't, and it will multiply
+- ❌ "The warning doesn't affect functionality" → Yes it does, you just haven't hit the bug yet
+- ❌ "I'm just prototyping" → Prototypes become production code. Clean from the start.
+- ❌ "There's already lint debt" → Don't add more. Clean your portion.
+- ❌ "I'm not sure how to fix it" → ASK. Use the linting documentation above. Learn.
+
+**📖 Full Lint Guidance:** See "🚨 CRITICAL: React Hook Dependencies & ESLint Compliance" section above for detailed patterns and fixes.
 
 ### **Code Quality Checklist**
 
-- ✅ **Run lint after every session**: `npm run lint` → zero warnings required
+**🔥 PRIMARY RULE (NEVER SKIP):**
+- ✅ **Run `npm run lint` after EVERY code change session** → ZERO warnings required before continuing
+
+**Standard Quality Requirements:**
 - ✅ **Fix hook dependencies immediately**: Don't accumulate `react-hooks/exhaustive-deps` warnings
 - ✅ **Use ESLint + Prettier** for consistent formatting
 - ✅ **Prefer explicit over implicit** code
@@ -3820,17 +3866,18 @@ const useCanvasStore = create<CanvasState>((set) => ({
 - ✅ **Test your changes** - Verify functionality before marking work complete
 
 ## When Working on ASCII Motion:
-1. **Always consider performance** - App now supports large grids (200x100+) with optimized rendering
-2. **Use performance tools** - Leverage measureCanvasRender, PerformanceMonitor for development
-3. **Think in components** - Break down features into reusable, memoized pieces
-4. **Optimize for the user workflow** - Make common actions fast and intuitive
-5. **Plan for future features** - Design APIs that can be extended (Steps 5.2-5.3)
-6. **Test cross-browser** - Ensure compatibility with major browsers
-7. **Consider accessibility** - Use proper ARIA labels and keyboard navigation
-8. **Monitor render performance** - Use development tools to validate optimizations
-9. **📋 DOCUMENT EVERYTHING** - Complete the mandatory documentation protocol for ANY change
-10. **🎨 PRESERVE STYLING INTEGRITY** - Follow shadcn patterns, never override component styling
-11. **🔒 MAINTAIN DEPENDENCY COMPATIBILITY** - Test UI components when changing build tools
+1. **🚨 CLEAN LINT AS YOU GO** - Zero tolerance for accumulated warnings
+2. **Always consider performance** - App now supports large grids (200x100+) with optimized rendering
+3. **Use performance tools** - Leverage measureCanvasRender, PerformanceMonitor for development
+4. **Think in components** - Break down features into reusable, memoized pieces
+5. **Optimize for the user workflow** - Make common actions fast and intuitive
+6. **Plan for future features** - Design APIs that can be extended (Steps 5.2-5.3)
+7. **Test cross-browser** - Ensure compatibility with major browsers
+8. **Consider accessibility** - Use proper ARIA labels and keyboard navigation
+9. **Monitor render performance** - Use development tools to validate optimizations
+10. **📋 DOCUMENT EVERYTHING** - Complete the mandatory documentation protocol for ANY change
+11. **🎨 PRESERVE STYLING INTEGRITY** - Follow shadcn patterns, never override component styling
+12. **🔒 MAINTAIN DEPENDENCY COMPATIBILITY** - Test UI components when changing build tools
 
 **🚨 FINAL CHECKPOINT: Before considering ANY work "complete":**
 - [ ] Code implements the intended functionality

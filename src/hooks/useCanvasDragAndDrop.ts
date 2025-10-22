@@ -239,7 +239,7 @@ export const useCanvasDragAndDrop = () => {
     setMouseButtonDown(false);
     // Finalize rectangle edit
     finalizeCanvasHistory(new Map(useCanvasStore.getState().cells));
-  }, [selection, drawRectangle, clearSelection, setSelectionMode, setIsDrawing, setMouseButtonDown]);
+  }, [selection, drawRectangle, clearSelection, setSelectionMode, setIsDrawing, setMouseButtonDown, finalizeCanvasHistory]);
 
   // Handle ellipse tool mouse down (same as rectangle)
   const handleEllipseMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -278,7 +278,7 @@ export const useCanvasDragAndDrop = () => {
     setMouseButtonDown(false);
     // Finalize ellipse edit
     finalizeCanvasHistory(new Map(useCanvasStore.getState().cells));
-  }, [selection, drawEllipse, clearSelection, setSelectionMode, setIsDrawing, setMouseButtonDown]);
+  }, [selection, drawEllipse, clearSelection, setSelectionMode, setIsDrawing, setMouseButtonDown, finalizeCanvasHistory]);
 
   return {
     // Drawing tools

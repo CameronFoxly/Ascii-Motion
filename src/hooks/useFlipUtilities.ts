@@ -91,6 +91,7 @@ export const useFlipUtilities = () => {
     moveState,
     setMoveState,
     updateLassoSelectedCells,
+    finalizeCanvasHistory,
     setLassoPath,
     updateMagicWandSelectedCells
   ]);
@@ -150,6 +151,7 @@ export const useFlipUtilities = () => {
     magicWandSelection,
     setCanvasData,
     moveState,
+    finalizeCanvasHistory,
     setMoveState,
     updateLassoSelectedCells,
     setLassoPath,

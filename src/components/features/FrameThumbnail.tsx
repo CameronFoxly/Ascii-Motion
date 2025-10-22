@@ -91,9 +91,6 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
       setDurationInput(frame.duration.toString());
     }
   }, [frame.duration, isEditingDuration]);
-
-  // Create a stable serialized representation of frame data for memoization
-  const frameDataKey = `${frame.id}-${frame.data.size}-${[...frame.data.keys()].sort().join(',')}`;
   
   // Generate pixel-based thumbnail canvas
   const thumbnailCanvas = useMemo(() => {
@@ -168,7 +165,7 @@ export const FrameThumbnail: React.FC<FrameThumbnailProps> = ({
     }
 
     return canvas.toDataURL();
-  }, [frameDataKey, canvasWidth, canvasHeight, canvasBackgroundColor, scaledThumbnailWidth, scaledThumbnailHeight]);
+  }, [frame.data, canvasWidth, canvasHeight, canvasBackgroundColor, scaledThumbnailWidth, scaledThumbnailHeight]);
 
   // Handle duration input change (allow free typing)
   const handleDurationInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {

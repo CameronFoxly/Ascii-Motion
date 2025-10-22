@@ -110,7 +110,7 @@ export function useCloudProjectActions() {
       }
       return null;
     },
-    [saveToCloud, currentProjectId, createSessionData]
+    [saveToCloud, currentProjectId, createSessionData, setCurrentProjectId]
   );
 
   /**
@@ -140,7 +140,7 @@ export function useCloudProjectActions() {
         throw err;
       }
     },
-    [importSession]
+    [importSession, setCurrentProjectId]
   );
 
   /**
@@ -192,7 +192,7 @@ export function useCloudProjectActions() {
    */
   const clearCurrentProject = useCallback(() => {
     setCurrentProjectId(null);
-  }, []);
+  }, [setCurrentProjectId]);
 
   return {
     // State

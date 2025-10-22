@@ -111,6 +111,7 @@ export function ProjectsDialog({
     if (open) {
       loadProjectsList();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // Reset dialog state when closed

@@ -79,7 +79,7 @@ const VimeoEmbed: React.FC<{
             setVideoReady(true);
           }
         }
-      } catch (e) {
+      } catch {
         // Ignore parse errors from non-JSON messages
       }
     };
@@ -111,7 +111,8 @@ const VimeoEmbed: React.FC<{
           allow="autoplay; fullscreen; picture-in-picture; clipboard-write"
           className="absolute top-0 left-0 w-full h-full rounded-md border border-border/50"
           title={title}
-          {...({ credentialless: 'true' } as any)}
+          // @ts-expect-error - credentialless is a valid iframe attribute but not in React types yet
+          credentialless="true"
         />
       )}
       

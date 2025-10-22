@@ -5,7 +5,43 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import { useToolStore } from '@/stores/toolStore';
 import { useAnimationStore } from '@/stores/animationStore';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import type { AnyHistoryAction, ApplyEffectHistoryAction, CanvasHistoryAction } from '@/types';
+import type { 
+  AnyHistoryAction, 
+  ApplyEffectHistoryAction, 
+  CanvasHistoryAction, 
+  Cell, 
+  DeleteFrameRangeHistoryAction,
+  DuplicateFrameRangeHistoryAction,
+  DeleteAllFramesHistoryAction
+} from '@/types';
+
+interface ResizeHistoryAction {
+  type: 'canvas_resize';
+  data: {
+    frameIndex: number;
+    newWidth: number;
+    newHeight: number;
+    previousWidth: number;
+    previousHeight: number;
+    previousCanvasData: Map<string, Cell>;
+  };
+}
+
+interface TimeEffectHistoryAction {
+  type: 'apply_time_effect';
+  data: {
+    previousFramesData?: Array<{ frameIndex: number; data: Map<string, Cell> }>;
+  };
+}
+
+interface DurationHistoryAction {
+  type: 'set_frame_durations';
+  data: {
+    affectedFrameIndices: number[];
+    newDuration: number;
+    previousDurations: Array<{ frameIndex: number; duration: number }>;
+  };
+}
 
 /**
  * Canvas Action Buttons Component
@@ -57,7 +93,7 @@ export const CanvasActionButtons: React.FC = () => {
       }
       
       case 'canvas_resize': {
-        const resizeAction = action as any;
+        const resizeAction = action as ResizeHistoryAction;
         if (isRedo) {
           // Redo: Apply new size
           setCanvasSize(resizeAction.data.newWidth, resizeAction.data.newHeight);
@@ -234,14 +270,14 @@ export const CanvasActionButtons: React.FC = () => {
       }
 
       case 'apply_time_effect': {
-        const timeEffectAction = action as any;
+        const timeEffectAction = action as TimeEffectHistoryAction;
         if (isRedo) {
           // Redo: Re-apply the time effect (not yet implemented)
           console.warn('Redo for time effects is not yet implemented');
         } else {
           // Undo: Restore previous frame data
           if (timeEffectAction.data.previousFramesData) {
-            timeEffectAction.data.previousFramesData.forEach(({ frameIndex, data }: any) => {
+            timeEffectAction.data.previousFramesData.forEach(({ frameIndex, data }) => {
               animationStore.setFrameData(frameIndex, data);
             });
           }
@@ -250,7 +286,7 @@ export const CanvasActionButtons: React.FC = () => {
       }
 
       case 'set_frame_durations': {
-        const durationsAction = action as any;
+        const durationsAction = action as DurationHistoryAction;
         if (isRedo) {
           // Redo: Re-apply the new duration to all affected frames
           durationsAction.data.affectedFrameIndices.forEach((frameIndex: number) => {
@@ -258,7 +294,7 @@ export const CanvasActionButtons: React.FC = () => {
           });
         } else {
           // Undo: Restore previous durations
-          durationsAction.data.previousDurations.forEach(({ frameIndex, duration }: any) => {
+          durationsAction.data.previousDurations.forEach(({ frameIndex, duration }) => {
             animationStore.updateFrameDuration(frameIndex, duration);
           });
         }
@@ -266,7 +302,7 @@ export const CanvasActionButtons: React.FC = () => {
       }
 
       case 'delete_frame_range': {
-        const deleteRangeAction = action as any;
+        const deleteRangeAction = action as DeleteFrameRangeHistoryAction;
         if (isRedo) {
           // Redo: Re-delete the frames
           animationStore.removeFrameRange(deleteRangeAction.data.frameIndices);
@@ -283,7 +319,7 @@ export const CanvasActionButtons: React.FC = () => {
       }
 
       case 'duplicate_frame_range': {
-        const duplicateRangeAction = action as any;
+        const duplicateRangeAction = action as DuplicateFrameRangeHistoryAction;
         const {
           previousFrames,
           newFrames,
@@ -310,13 +346,13 @@ export const CanvasActionButtons: React.FC = () => {
       }
 
       case 'delete_all_frames': {
-        const deleteAllAction = action as any;
+        const deleteAllAction = action as DeleteAllFramesHistoryAction;
         if (isRedo) {
           // Redo: Clear all frames again
           animationStore.clearAllFrames();
         } else {
           // Undo: Restore all deleted frames
-          deleteAllAction.data.frames.forEach((frame: any, index: number) => {
+          deleteAllAction.data.frames.forEach((frame, index) => {
             if (index === 0) {
               // Replace the default frame created by clearAllFrames
               animationStore.setFrameData(0, frame.data);
