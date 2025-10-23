@@ -16,7 +16,7 @@ interface CanvasState extends Canvas {
   getCell: (x: number, y: number) => Cell | undefined;
   clearCell: (x: number, y: number) => void;
   clearCanvas: () => void;
-  fillArea: (x: number, y: number, cell: Cell, contiguous?: boolean, matchCriteria?: { char: boolean; color: boolean; bgColor: boolean }) => void;
+  fillArea: (x: number, y: number, cell: Cell, contiguous?: boolean, matchCriteria?: { char: boolean; color: boolean; bgColor: boolean }, affectsCriteria?: { char: boolean; color: boolean; bgColor: boolean }) => void;
   setCanvasData: (cells: Map<string, Cell>) => void;
   
   // Computed values
@@ -109,23 +109,37 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set({ cells: new Map() });
   },
 
-  fillArea: (startX: number, startY: number, newCell: Cell, contiguous: boolean = true, matchCriteria?: { char: boolean; color: boolean; bgColor: boolean }) => {
+  fillArea: (startX: number, startY: number, newCell: Cell, contiguous: boolean = true, matchCriteria?: { char: boolean; color: boolean; bgColor: boolean }, affectsCriteria?: { char: boolean; color: boolean; bgColor: boolean }) => {
     const { width, height, getCell } = get();
     const fillMatchChar = matchCriteria?.char ?? true;
     const fillMatchColor = matchCriteria?.color ?? true;
     const fillMatchBgColor = matchCriteria?.bgColor ?? true;
+    const affectsChar = affectsCriteria?.char ?? true;
+    const affectsColor = affectsCriteria?.color ?? true;
+    const affectsBgColor = affectsCriteria?.bgColor ?? true;
+    
     if (!fillMatchChar && !fillMatchColor && !fillMatchBgColor) return; // nothing to match
     if (startX < 0 || startX >= width || startY < 0 || startY >= height) return;
 
     const targetCell = getCell(startX, startY);
     if (!targetCell) return;
     
+    // Helper function to create cell respecting affects criteria
+    const createAffectedCell = (existingCell: Cell): Cell => {
+      return {
+        char: affectsChar ? newCell.char : existingCell.char,
+        color: affectsColor ? newCell.color : existingCell.color,
+        bgColor: affectsBgColor ? newCell.bgColor : existingCell.bgColor
+      };
+    };
+    
     // If applying all three properties and they match target, skip (optimization)
-    if (fillMatchChar && fillMatchColor && fillMatchBgColor) {
+    if (affectsChar && affectsColor && affectsBgColor && fillMatchChar && fillMatchColor && fillMatchBgColor) {
+      const affectedTarget = createAffectedCell(targetCell);
       if (
-        targetCell.char === newCell.char &&
-        targetCell.color === newCell.color &&
-        targetCell.bgColor === newCell.bgColor
+        affectedTarget.char === targetCell.char &&
+        affectedTarget.color === targetCell.color &&
+        affectedTarget.bgColor === targetCell.bgColor
       ) {
         return; // Same cell, no need to fill
       }
@@ -157,11 +171,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         
         if (!matchesTarget(currentCell)) continue;
 
+        // Create cell respecting affects criteria
+        const affectedCell = createAffectedCell(currentCell);
+
         // Set the new cell
-        if (newCell.char === ' ' && newCell.color === '#FFFFFF' && newCell.bgColor === get().canvasBackgroundColor) {
+        if (affectedCell.char === ' ' && affectedCell.color === '#FFFFFF' && affectedCell.bgColor === get().canvasBackgroundColor) {
           newCells.delete(key);
         } else {
-          newCells.set(key, { ...newCell });
+          newCells.set(key, affectedCell);
         }
         
         // Add adjacent cells
@@ -186,15 +203,18 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           const currentCell = getCell(x, y);
-      if (currentCell && matchesTarget(currentCell)) {
+          if (currentCell && matchesTarget(currentCell)) {
             
             const key = createCellKey(x, y);
             
+            // Create cell respecting affects criteria
+            const affectedCell = createAffectedCell(currentCell);
+            
             // Set the new cell
-            if (newCell.char === ' ' && newCell.color === '#FFFFFF' && newCell.bgColor === get().canvasBackgroundColor) {
+            if (affectedCell.char === ' ' && affectedCell.color === '#FFFFFF' && affectedCell.bgColor === get().canvasBackgroundColor) {
               newCells.delete(key);
             } else {
-              newCells.set(key, { ...newCell });
+              newCells.set(key, affectedCell);
             }
           }
         }

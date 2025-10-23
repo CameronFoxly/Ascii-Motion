@@ -168,8 +168,19 @@ export const useDrawingTool = () => {
         break;
       }
       case 'paintbucket': {
-        const newCell = createCellWithToggles(x, y);
-        fillArea(x, y, newCell, paintBucketContiguous, { char: fillMatchChar, color: fillMatchColor, bgColor: fillMatchBgColor });
+        const newCell = {
+          char: selectedChar,
+          color: selectedColor,
+          bgColor: selectedBgColor
+        };
+        fillArea(
+          x, 
+          y, 
+          newCell, 
+          paintBucketContiguous, 
+          { char: fillMatchChar, color: fillMatchColor, bgColor: fillMatchBgColor },
+          { char: toolAffectsChar, color: toolAffectsColor, bgColor: toolAffectsBgColor }
+        );
         break;
       }
     }
@@ -183,10 +194,15 @@ export const useDrawingTool = () => {
     setPencilLastPosition,
     applyBrushStroke,
     applyBrushLine,
-    createCellWithToggles,
     fillMatchChar,
     fillMatchColor,
-    fillMatchBgColor
+    fillMatchBgColor,
+    selectedChar,
+    selectedColor,
+    selectedBgColor,
+    toolAffectsChar,
+    toolAffectsColor,
+    toolAffectsBgColor
   ]);
 
   const drawRectangle = useCallback((startX: number, startY: number, endX: number, endY: number) => {
