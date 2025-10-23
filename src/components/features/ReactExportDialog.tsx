@@ -18,9 +18,13 @@ const sanitizeFileName = (value: string): string => {
     .replace(/\s+/g, '-') // spaces to dashes
     .replace(/[^a-zA-Z0-9\-_]/g, '') // allow alphanumeric, dash, underscore
     .replace(/-+/g, '-') // collapse multiple dashes
-    .replace(/_+/g, '_')
-    .replace(/^[-_]+|[-_]+$/g, '')
+    .replace(/_+/g, '_') // collapse multiple underscores
     .toLowerCase();
+};
+
+const finalizeFileName = (value: string): string => {
+  // Remove leading/trailing dashes and underscores only when finalizing for export
+  return value.replace(/^[-_]+|[-_]+$/g, '');
 };
 
 const toPascalCase = (value: string): string => {
@@ -58,7 +62,7 @@ export const ReactExportDialog: React.FC = () => {
 
   const isOpen = showExportModal && activeFormat === 'react';
 
-  const sanitizedFileName = useMemo(() => sanitizeFileName(reactSettings.fileName), [reactSettings.fileName]);
+  const sanitizedFileName = useMemo(() => finalizeFileName(sanitizeFileName(reactSettings.fileName)), [reactSettings.fileName]);
   const componentName = useMemo(() => toPascalCase(sanitizedFileName || reactSettings.fileName), [reactSettings.fileName, sanitizedFileName]);
   const fileExtension = reactSettings.typescript ? 'tsx' : 'jsx';
   const importSnippet = useMemo(() => {
@@ -199,7 +203,7 @@ export const ReactExportDialog: React.FC = () => {
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground">
-              Letters, numbers, dashes, and underscores only. Extension is added automatically.
+              Letters, numbers, dashes, and underscores only. Spaces will be converted to dashes.
             </p>
             {!sanitizedFileName && (
               <p className="text-xs text-destructive">Please enter a valid filename before exporting.</p>
