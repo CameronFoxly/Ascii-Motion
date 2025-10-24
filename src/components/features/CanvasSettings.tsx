@@ -666,7 +666,7 @@ export const CanvasSettings: React.FC = () => {
                     <>
                       {(() => {
                         const selectedFont = MONOSPACE_FONTS.find(f => f.id === selectedFontId);
-                        const requestedFontName = selectedFont?.displayName || 'Unknown';
+                        const requestedFontName = selectedFont?.name || 'Unknown';
                         const isFallback = actualFont !== requestedFontName && selectedFontId !== 'auto';
                         const message = selectedFontId === 'auto' 
                           ? `Using ${actualFont}`

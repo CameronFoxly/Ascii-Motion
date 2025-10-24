@@ -8,10 +8,12 @@
 const fontAvailabilityCache = new Map<string, boolean>();
 const detectedFontCache = new Map<string, string>();
 
+// Cache for the actual font used by the browser
+const actualUsedFontCache = new Map<string, string>();
+
 /**
  * Check if a specific font is available on the system
- * Uses canvas text measurement - if a font isn't available, the browser
- * will use a fallback font which will have different measurements
+ * Uses canvas measurement with serif AND sans-serif baselines for better accuracy
  */
 export async function isFontAvailable(fontName: string): Promise<boolean> {
   // Check cache first
@@ -19,41 +21,56 @@ export async function isFontAvailable(fontName: string): Promise<boolean> {
     return fontAvailabilityCache.get(fontName)!;
   }
 
-  // Create a canvas for measurement
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');
   
   if (!context) {
-    // Can't detect without canvas context - assume not available
     fontAvailabilityCache.set(fontName, false);
     return false;
   }
 
-  // Test string with varied characters
-  const testString = 'mmmmmmmmmmlli';
+  // Use multiple test strings and baseline fonts
+  const testStrings = ['mmmmmmmmmmlli', 'iIl1O0'];
+  const baselineFonts = ['monospace', 'sans-serif', 'serif'];
   const testSize = '72px';
+  
+  // Collect baseline measurements
+  const baselines = new Map<string, number[]>();
+  for (const baselineFont of baselineFonts) {
+    const widths: number[] = [];
+    for (const testString of testStrings) {
+      context.font = `${testSize} ${baselineFont}`;
+      widths.push(context.measureText(testString).width);
+    }
+    baselines.set(baselineFont, widths);
+  }
 
-  // Measure with a known fallback font (monospace)
-  context.font = `${testSize} monospace`;
-  const fallbackWidth = context.measureText(testString).width;
+  // Test the font against each baseline
+  for (const baselineFont of baselineFonts) {
+    const baselineWidths = baselines.get(baselineFont)!;
+    
+    for (let i = 0; i < testStrings.length; i++) {
+      const testString = testStrings[i];
+      context.font = `${testSize} "${fontName}", ${baselineFont}`;
+      const testWidth = context.measureText(testString).width;
+      
+      // If this width differs from the baseline, the font is available
+      if (testWidth !== baselineWidths[i]) {
+        console.log(`[Font Detection] "${fontName}" detected: differs from ${baselineFont} (${testWidth} vs ${baselineWidths[i]})`);
+        fontAvailabilityCache.set(fontName, true);
+        return true;
+      }
+    }
+  }
 
-  // Measure with the test font, falling back to monospace
-  context.font = `${testSize} "${fontName}", monospace`;
-  const testWidth = context.measureText(testString).width;
-
-  // If widths are different, the font is available
-  // (because it rendered instead of falling back to monospace)
-  const isAvailable = testWidth !== fallbackWidth;
-
-  // Cache the result
-  fontAvailabilityCache.set(fontName, isAvailable);
-
-  return isAvailable;
+  console.log(`[Font Detection] "${fontName}" NOT available: matches all baselines`);
+  fontAvailabilityCache.set(fontName, false);
+  return false;
 }
 
 /**
  * Parse a font stack string into individual font names
- * Handles quoted font names and removes 'monospace' generic
+ * Handles quoted font names and removes generic families
  */
 function parseFontStack(fontStack: string): string[] {
   return fontStack
@@ -63,8 +80,62 @@ function parseFontStack(fontStack: string): string[] {
 }
 
 /**
+ * Get the actual font being used by the browser for a given font stack
+ * Tests each font in order and returns the first available one
+ */
+async function getActualUsedFont(fontStack: string): Promise<string> {
+  // Check cache first
+  if (actualUsedFontCache.has(fontStack)) {
+    return actualUsedFontCache.get(fontStack)!;
+  }
+
+  const fonts = parseFontStack(fontStack);
+  console.log(`[Font Detection] Testing font stack: ${fontStack}`);
+  console.log(`[Font Detection] Parsed fonts:`, fonts);
+
+  // Test each font in order
+  for (const font of fonts) {
+    const isAvailable = await isFontAvailable(font);
+    if (isAvailable) {
+      console.log(`[Font Detection] ✓ Found available font: ${font}`);
+      actualUsedFontCache.set(fontStack, font);
+      return font;
+    }
+  }
+  
+  // If all fonts are unavailable, detect the system's default monospace font
+  console.log('[Font Detection] All requested fonts unavailable, detecting system default...');
+  
+  const commonSystemFonts = [
+    'Menlo',
+    'SF Mono',
+    'Monaco', 
+    'Consolas',
+    'Courier New',
+    'Courier'
+  ];
+  
+  for (const systemFont of commonSystemFonts) {
+    // Skip if already tested
+    if (fonts.includes(systemFont)) continue;
+    
+    const isAvailable = await isFontAvailable(systemFont);
+    if (isAvailable) {
+      console.log(`[Font Detection] ✓ System default is: ${systemFont}`);
+      actualUsedFontCache.set(fontStack, systemFont);
+      return systemFont;
+    }
+  }
+  
+  // Ultimate fallback - couldn't detect specific font
+  console.log('[Font Detection] Could not detect specific system font, using "monospace"');
+  actualUsedFontCache.set(fontStack, 'monospace');
+  return 'monospace';
+}
+
+/**
  * Detect which font from a font stack is actually being used
- * Returns the first available font name
+ * Returns the actual font name being rendered by the browser
  */
 export async function detectAvailableFont(fontStack: string): Promise<string> {
   // Check cache first
@@ -72,21 +143,13 @@ export async function detectAvailableFont(fontStack: string): Promise<string> {
     return detectedFontCache.get(fontStack)!;
   }
 
-  const fonts = parseFontStack(fontStack);
-
-  // Test each font in order
-  for (const font of fonts) {
-    const isAvailable = await isFontAvailable(font);
-    if (isAvailable) {
-      detectedFontCache.set(fontStack, font);
-      return font;
-    }
-  }
-
-  // If no fonts are available, return 'monospace' as ultimate fallback
-  const fallback = 'monospace';
-  detectedFontCache.set(fontStack, fallback);
-  return fallback;
+  // Get the actual font being used (await the promise)
+  const actualFont = await getActualUsedFont(fontStack);
+  
+  // Cache the result
+  detectedFontCache.set(fontStack, actualFont);
+  
+  return actualFont;
 }
 
 /**
@@ -107,6 +170,7 @@ export async function isFallbackActive(
 export function clearFontCache(): void {
   fontAvailabilityCache.clear();
   detectedFontCache.clear();
+  actualUsedFontCache.clear();
 }
 
 /**
@@ -120,17 +184,22 @@ export function getFontFallbackMessage(
     return `Using ${actualFont}`;
   }
 
+  // If actualFont is generic or empty, try to be more helpful
+  if (!actualFont || actualFont === 'monospace') {
+    return `${requestedFont} not available. Using system default monospace font.`;
+  }
+
   // Provide OS-specific hints
   let hint = '';
   const userAgent = navigator.userAgent.toLowerCase();
   
   if (requestedFont === 'Consolas' && userAgent.includes('mac')) {
-    hint = ' Consolas is a Windows font.';
+    hint = ' (Windows font)';
   } else if (requestedFont === 'SF Mono' && userAgent.includes('win')) {
-    hint = ' SF Mono is a macOS/iOS font.';
+    hint = ' (macOS font)';
   } else if (requestedFont === 'Cascadia Code') {
-    hint = ' Install Cascadia Code from Microsoft.';
+    hint = ' (install from Microsoft)';
   }
 
-  return `${requestedFont} not available.${hint} Using ${actualFont} instead.`;
+  return `${requestedFont} not available${hint}. Using ${actualFont}.`;
 }
