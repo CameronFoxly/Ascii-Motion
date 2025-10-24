@@ -20,6 +20,7 @@ export interface CanvasState {
   characterSpacing: number;
   lineSpacing: number;
   fontSize: number;
+  selectedFontId: string;
 
   fontMetrics: FontMetrics;
   cellWidth: number;
@@ -61,6 +62,7 @@ export interface CanvasActions {
   setCharacterSpacing: (spacing: number) => void;
   setLineSpacing: (spacing: number) => void;
   setFontSize: (size: number) => void;
+  setSelectedFontId: (fontId: string) => void;
 
   setIsDrawing: (drawing: boolean) => void;
   setMouseButtonDown: (down: boolean) => void;

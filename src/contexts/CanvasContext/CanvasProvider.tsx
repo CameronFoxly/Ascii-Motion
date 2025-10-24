@@ -8,6 +8,7 @@ import type {
 import { usePasteMode } from '@/hooks/usePasteMode';
 import { useFrameSynchronization } from '@/hooks/useFrameSynchronization';
 import { calculateCellDimensions, calculateFontMetrics, DEFAULT_SPACING } from '@/utils/fontMetrics';
+import { DEFAULT_FONT_ID, getFontStack } from '@/constants/fonts';
 
 export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   children,
@@ -16,13 +17,21 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [cellSize, setCellSize] = useState(initialCellSize);
+  const [selectedFontId, setSelectedFontId] = useState(DEFAULT_FONT_ID);
   const [zoom, setZoom] = useState(1.0);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
 
   const [characterSpacing, setCharacterSpacing] = useState(DEFAULT_SPACING.characterSpacing);
   const [lineSpacing, setLineSpacing] = useState(DEFAULT_SPACING.lineSpacing);
 
-  const fontMetrics = useMemo(() => calculateFontMetrics(cellSize), [cellSize]);
+  // Calculate font metrics with selected font
+  const fontMetrics = useMemo(
+    () => {
+      const fontStack = getFontStack(selectedFontId);
+      return calculateFontMetrics(cellSize, fontStack);
+    },
+    [cellSize, selectedFontId]
+  );
 
   const { cellWidth, cellHeight } = useMemo(
     () => calculateCellDimensions(fontMetrics, { characterSpacing, lineSpacing }),
@@ -78,6 +87,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     characterSpacing,
     lineSpacing,
     fontSize: cellSize,
+    selectedFontId,
     fontMetrics,
     cellWidth,
     cellHeight,
@@ -99,6 +109,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     setCharacterSpacing,
     setLineSpacing,
     setFontSize: setCellSize,
+    setSelectedFontId,
     setIsDrawing,
     setMouseButtonDown,
     setShiftKeyDown,
