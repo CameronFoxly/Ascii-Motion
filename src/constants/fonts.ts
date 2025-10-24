@@ -53,22 +53,6 @@ export const MONOSPACE_FONTS: MonospaceFont[] = [
     description: 'Modern Windows terminal font with ligatures'
   },
   {
-    id: 'roboto-mono',
-    name: 'Roboto Mono',
-    displayName: 'Roboto Mono (Google)',
-    cssStack: 'Roboto Mono, monospace',
-    category: 'web',
-    description: 'Google\'s monospace - clean and modern'
-  },
-  {
-    id: 'inconsolata',
-    name: 'Inconsolata',
-    displayName: 'Inconsolata (Web)',
-    cssStack: 'Inconsolata, monospace',
-    category: 'web',
-    description: 'Popular web font with good character spacing'
-  },
-  {
     id: 'courier-new',
     name: 'Courier New',
     displayName: 'Courier New (Universal)',
@@ -100,7 +84,7 @@ export const MONOSPACE_FONTS: MonospaceFont[] = [
     id: 'auto',
     name: 'Auto',
     displayName: 'Auto (Best Available)',
-    cssStack: 'SF Mono, Monaco, Cascadia Code, Consolas, Roboto Mono, Inconsolata, Courier New, monospace',
+    cssStack: 'SF Mono, Monaco, Cascadia Code, Consolas, Courier New, monospace',
     category: 'system',
     description: 'Automatically selects the best available monospace font for your system'
   }

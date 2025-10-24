@@ -1,12 +1,27 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.2.12";
-export const BUILD_DATE = "2025-10-23T15:31:53.590Z";
-export const BUILD_HASH = "2e5de2d";
+export const VERSION = "0.2.13";
+export const BUILD_DATE = "2025-10-24T15:22:01.412Z";
+export const BUILD_HASH = "4c122a2";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.2.13",
+    "date": "2025-10-24T15:22:01.412Z",
+    "commits": [
+      "More log cleanup",
+      "fixed typography menyu layout and cleaned up console logs",
+      "Update docs",
+      "Added bundled fonts",
+      "Fixed font dedection system bugs",
+      "Added font detection system",
+      "Font 2 of font system complete",
+      "Phase one complete of font system",
+      "Setup plan for fonts"
+    ]
+  },
   {
     "version": "0.2.12",
     "date": "2025-10-23T15:31:53.590Z",
