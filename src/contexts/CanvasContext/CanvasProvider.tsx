@@ -99,11 +99,9 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
         
         // If this is a bundled font and it's not loaded yet, load it
         if (font.isBundled && !isFontLoaded(font.name)) {
-          console.log(`[CanvasProvider] Loading bundled font: ${font.name}`);
           setIsFontLoading(true);
           try {
             await loadBundledFont(font.name);
-            console.log(`[CanvasProvider] ✓ Font loaded: ${font.name}`);
           } catch (error) {
             console.error(`[CanvasProvider] Failed to load font ${font.name}:`, error);
             setFontLoadError(`Failed to load ${font.name}`);
@@ -116,7 +114,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
         const detected = await detectAvailableFont(fontStack);
         setActualFont(detected);
       } catch (error) {
-        console.error('Font detection failed:', error);
+        console.error('[CanvasProvider] Font detection failed:', error);
         setActualFont(null);
       } finally {
         setIsFontDetecting(false);

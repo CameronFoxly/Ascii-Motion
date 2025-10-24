@@ -28,13 +28,11 @@ const BUNDLED_FONT_FILES: Record<string, { url: string; weight?: number; style?:
 export async function loadBundledFont(fontName: string): Promise<void> {
   // Check if already loaded
   if (loadedFonts.has(fontName)) {
-    console.log(`[Font Loader] Font "${fontName}" already loaded`);
     return;
   }
 
   // Check if currently loading
   if (loadingPromises.has(fontName)) {
-    console.log(`[Font Loader] Font "${fontName}" is already loading, waiting...`);
     return loadingPromises.get(fontName)!;
   }
 
@@ -43,8 +41,6 @@ export async function loadBundledFont(fontName: string): Promise<void> {
   if (!fontFiles) {
     throw new Error(`No bundled font definition found for "${fontName}"`);
   }
-
-  console.log(`[Font Loader] Loading font "${fontName}"...`);
 
   // Create loading promise
   const loadingPromise = (async () => {
@@ -65,15 +61,12 @@ export async function loadBundledFont(fontName: string): Promise<void> {
         
         // Add to document fonts
         document.fonts.add(fontFace);
-        
-        console.log(`[Font Loader] Loaded ${fontName} (${file.weight || 400}/${file.style || 'normal'})`);
       });
 
       await Promise.all(loadPromises);
       
       // Mark as loaded
       loadedFonts.add(fontName);
-      console.log(`[Font Loader] ✓ Font "${fontName}" fully loaded`);
     } catch (error) {
       console.error(`[Font Loader] Failed to load font "${fontName}":`, error);
       throw error;
@@ -110,8 +103,6 @@ export function isFontLoading(fontName: string): boolean {
 export function preloadBundledFonts(): void {
   if ('requestIdleCallback' in window) {
     requestIdleCallback(() => {
-      console.log('[Font Loader] Preloading bundled fonts during idle time...');
-      
       Object.keys(BUNDLED_FONT_FILES).forEach(fontName => {
         if (!loadedFonts.has(fontName)) {
           loadBundledFont(fontName).catch(err => {

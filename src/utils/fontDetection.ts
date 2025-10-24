@@ -63,7 +63,6 @@ export async function isFontAvailable(fontName: string): Promise<boolean> {
         
         // If this width differs from the baseline, the font is available
         if (testWidth !== baselineWidths[i]) {
-          console.log(`[Font Detection] "${fontName}" detected: differs from ${baselineFont} (${testWidth} vs ${baselineWidths[i]}) using variant: ${fontVariation}`);
           fontAvailabilityCache.set(fontName, true);
           return true;
         }
@@ -71,7 +70,6 @@ export async function isFontAvailable(fontName: string): Promise<boolean> {
     }
   }
 
-  console.log(`[Font Detection] "${fontName}" NOT available: matches all baselines`);
   fontAvailabilityCache.set(fontName, false);
   return false;
 }
@@ -103,14 +101,11 @@ async function getActualUsedFont(fontStack: string): Promise<string> {
   }
 
   const fonts = parseFontStack(fontStack);
-  console.log(`[Font Detection] Testing font stack: ${fontStack}`);
-  console.log(`[Font Detection] Parsed fonts:`, fonts);
 
   // Test each font in order
   for (const font of fonts) {
     const isAvailable = await isFontAvailable(font);
     if (isAvailable) {
-      console.log(`[Font Detection] ✓ Found available font: ${font}`);
       actualUsedFontCache.set(fontStack, font);
       return font;
     }
@@ -137,14 +132,12 @@ async function getActualUsedFont(fontStack: string): Promise<string> {
     );
     
     if (isKnownIdentical) {
-      console.log(`[Font Detection] ⚠️ "${firstFont}" has identical metrics to system default on this platform, trusting browser`);
       actualUsedFontCache.set(fontStack, firstFont);
       return firstFont;
     }
   }
   
   // For "auto" mode or if detection failed, try to detect the system's default
-  console.log('[Font Detection] Detecting system default monospace font...');
   
   const commonSystemFonts = [
     'Menlo',
@@ -161,14 +154,12 @@ async function getActualUsedFont(fontStack: string): Promise<string> {
     
     const isAvailable = await isFontAvailable(systemFont);
     if (isAvailable) {
-      console.log(`[Font Detection] ✓ System default is: ${systemFont}`);
       actualUsedFontCache.set(fontStack, systemFont);
       return systemFont;
     }
   }
   
   // Ultimate fallback - couldn't detect specific font
-  console.log('[Font Detection] Could not detect specific system font, using "monospace"');
   actualUsedFontCache.set(fontStack, 'monospace');
   return 'monospace';
 }
