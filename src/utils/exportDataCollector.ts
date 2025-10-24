@@ -111,7 +111,8 @@ export class ExportDataCollector {
       typography: {
         fontSize: 16,
         characterSpacing: 1.0,
-        lineSpacing: 1.0
+        lineSpacing: 1.0,
+        selectedFontId: 'auto'
       },
       
       // Tool state
@@ -209,7 +210,8 @@ export const useExportDataCollector = (): ExportDataBundle => {
     fontMetrics,
     fontSize,
     characterSpacing,
-    lineSpacing
+    lineSpacing,
+    selectedFontId
   } = useCanvasContext();
 
   // Get theme context
@@ -246,7 +248,8 @@ export const useExportDataCollector = (): ExportDataBundle => {
     typography: {
       fontSize,
       characterSpacing,
-      lineSpacing
+      lineSpacing,
+      selectedFontId
     },
     
     // Tool state

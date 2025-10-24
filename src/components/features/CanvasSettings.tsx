@@ -4,12 +4,16 @@ import { ColorPickerOverlay } from './ColorPickerOverlay';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
-import { Grid3X3, Palette, Type } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Grid3X3, Palette, Type, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useCanvasContext } from '@/contexts/CanvasContext';
 import { ZoomControls } from './ZoomControls';
 import { useToolStore } from '@/stores/toolStore';
 import { useAnimationStore } from '@/stores/animationStore';
+import { MONOSPACE_FONTS, DEFAULT_FONT_ID } from '@/constants/fonts';
+import { getFontFallbackMessage } from '@/utils/fontDetection';
 import { 
   charactersToPixels, 
   validatePixelInput,
@@ -31,9 +35,13 @@ export const CanvasSettings: React.FC = () => {
     characterSpacing,
     lineSpacing,
     fontSize,
+    selectedFontId,
+    actualFont,
+    isFontDetecting,
     setCharacterSpacing,
     setLineSpacing,
-    setFontSize
+    setFontSize,
+    setSelectedFontId
   } = useCanvasContext();
 
   const { pushCanvasResizeHistory } = useToolStore();
@@ -619,6 +627,74 @@ export const CanvasSettings: React.FC = () => {
                 </div>
               </div>
 
+              {/* Font Family Selector */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Font Family
+                </label>
+                <Select
+                  value={selectedFontId}
+                  onValueChange={setSelectedFontId}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONOSPACE_FONTS.map(font => (
+                      <SelectItem key={font.id} value={font.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{font.displayName}</span>
+                          {font.isBundled && (
+                            <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
+                              Bundled
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {/* Font Status Indicator */}
+                <div className="flex items-start gap-2 text-xs">
+                  {isFontDetecting ? (
+                    <>
+                      <Loader2 className="w-3 h-3 mt-0.5 animate-spin text-muted-foreground" />
+                      <span className="text-muted-foreground">Detecting font...</span>
+                    </>
+                  ) : actualFont ? (
+                    <>
+                      {(() => {
+                        const selectedFont = MONOSPACE_FONTS.find(f => f.id === selectedFontId);
+                        const requestedFontName = selectedFont?.displayName || 'Unknown';
+                        const isFallback = actualFont !== requestedFontName && selectedFontId !== 'auto';
+                        const message = selectedFontId === 'auto' 
+                          ? `Using ${actualFont}`
+                          : getFontFallbackMessage(requestedFontName, actualFont);
+                        
+                        return isFallback ? (
+                          <>
+                            <AlertTriangle className="w-3 h-3 mt-0.5 text-yellow-500" />
+                            <div className="flex-1">
+                              <span className="text-yellow-600 dark:text-yellow-500">{message}</span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-3 h-3 mt-0.5 text-green-500" />
+                            <span className="text-muted-foreground">{message}</span>
+                          </>
+                        );
+                      })()}
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      {MONOSPACE_FONTS.find(f => f.id === selectedFontId)?.description}
+                    </span>
+                  )}
+                </div>
+              </div>
+
               {/* Reset Button */}
               <div className="pt-2 border-t border-border">
                 <Button
@@ -628,6 +704,7 @@ export const CanvasSettings: React.FC = () => {
                     setFontSize(18);
                     setCharacterSpacing(1.0);
                     setLineSpacing(1.0);
+                    setSelectedFontId(DEFAULT_FONT_ID);
                   }}
                   className="w-full h-7 text-xs"
                 >

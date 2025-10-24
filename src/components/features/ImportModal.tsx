@@ -18,7 +18,7 @@ export const ImportModal: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Get typography setters from CanvasContext
-  const { setFontSize, setCharacterSpacing, setLineSpacing } = useCanvasContext();
+  const { setFontSize, setCharacterSpacing, setLineSpacing, setSelectedFontId } = useCanvasContext();
   
   const { importSession } = useSessionImporter();
   const [isImporting, setIsImporting] = useState(false);
@@ -36,7 +36,8 @@ export const ImportModal: React.FC = () => {
       await importSession(file, {
         setFontSize,
         setCharacterSpacing,
-        setLineSpacing
+        setLineSpacing,
+        setSelectedFontId
       });
       
       // Reset input and close modal

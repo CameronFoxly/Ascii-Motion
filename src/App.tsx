@@ -1,8 +1,8 @@
 import './App.css'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Analytics } from '@vercel/analytics/react'
 import { CanvasWithShortcuts } from './components/features/CanvasWithShortcuts'
-import { CanvasProvider } from './contexts/CanvasContext'
+import { CanvasProvider, useCanvasContext } from './contexts/CanvasContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { AuthProvider } from '@ascii-motion/premium'
 import { ThemeToggle } from './components/common/ThemeToggle'
@@ -63,6 +63,9 @@ import { MobileDialog } from './components/features/MobileDialog'
 function AppContent() {
   const { layout, toggleLeftPanel, toggleRightPanel, toggleBottomPanel, toggleFullscreen } = useLayoutState()
   
+  // Get typography callbacks from CanvasContext
+  const { setFontSize, setCharacterSpacing, setLineSpacing, setSelectedFontId } = useCanvasContext()
+  
   // Cloud storage state and actions
   const { user } = useAuth()
   const { 
@@ -72,9 +75,22 @@ function AppContent() {
     setShowProjectsDialog,
   } = useCloudDialogState()
   const {
-    handleLoadFromCloud,
+    handleLoadFromCloud: loadFromCloudBase,
     handleDownloadProject,
   } = useCloudProjectActions()
+
+  // Wrapper that includes typography callbacks
+  const handleLoadFromCloud = useCallback(
+    async (projectId: string, sessionData: unknown) => {
+      await loadFromCloudBase(projectId, sessionData, {
+        setFontSize,
+        setCharacterSpacing,
+        setLineSpacing,
+        setSelectedFontId,
+      });
+    },
+    [loadFromCloudBase, setFontSize, setCharacterSpacing, setLineSpacing, setSelectedFontId]
+  );
 
   // Password recovery callback detection
   const { isRecovery, resetRecovery } = usePasswordRecoveryCallback()
@@ -123,10 +139,9 @@ function AppContent() {
         </header>
 
         {/* Main Content Grid */}
-        <CanvasProvider>
-          <div className="relative flex-1 overflow-hidden">
-            {/* Left Panel - matches canvas height */}
-            <div className={cn(
+        <div className="relative flex-1 overflow-hidden">
+          {/* Left Panel - matches canvas height */}
+          <div className={cn(
               "absolute top-0 left-0 z-10 transition-all duration-300 ease-out",
               layout.bottomPanelOpen ? "bottom-[var(--bottom-panel-height,20rem)]" : "bottom-4", // Use dynamic height or fallback
               !layout.leftPanelOpen && "pointer-events-none" // Allow mouse events to pass through when collapsed
@@ -310,7 +325,6 @@ function AppContent() {
           
           {/* Mobile Dialog - Shows on mobile devices to inform about desktop-only support */}
           <MobileDialog />
-        </CanvasProvider>
         
         {/* Performance Overlay for Development */}
         <PerformanceOverlay />
@@ -332,7 +346,9 @@ function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <AppContent />
+        <CanvasProvider>
+          <AppContent />
+        </CanvasProvider>
       </ThemeProvider>
     </AuthProvider>
   )

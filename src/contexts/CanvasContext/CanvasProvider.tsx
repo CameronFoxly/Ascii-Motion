@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { CanvasContext } from './context';
 import type {
   CanvasContextValue,
@@ -9,6 +9,7 @@ import { usePasteMode } from '@/hooks/usePasteMode';
 import { useFrameSynchronization } from '@/hooks/useFrameSynchronization';
 import { calculateCellDimensions, calculateFontMetrics, DEFAULT_SPACING } from '@/utils/fontMetrics';
 import { DEFAULT_FONT_ID, getFontStack } from '@/constants/fonts';
+import { detectAvailableFont } from '@/utils/fontDetection';
 
 export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   children,
@@ -18,6 +19,8 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
 
   const [cellSize, setCellSize] = useState(initialCellSize);
   const [selectedFontId, setSelectedFontId] = useState(DEFAULT_FONT_ID);
+  const [actualFont, setActualFont] = useState<string | null>(null);
+  const [isFontDetecting, setIsFontDetecting] = useState(false);
   const [zoom, setZoom] = useState(1.0);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
 
@@ -80,6 +83,25 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
 
   useFrameSynchronization(moveState, setMoveState);
 
+  // Detect actual font being rendered when selected font changes
+  useEffect(() => {
+    const detectFont = async () => {
+      setIsFontDetecting(true);
+      try {
+        const fontStack = getFontStack(selectedFontId);
+        const detected = await detectAvailableFont(fontStack);
+        setActualFont(detected);
+      } catch (error) {
+        console.error('Font detection failed:', error);
+        setActualFont(null);
+      } finally {
+        setIsFontDetecting(false);
+      }
+    };
+    
+    detectFont();
+  }, [selectedFontId]);
+
   const contextValue: CanvasContextValue = {
     cellSize,
     zoom,
@@ -88,6 +110,8 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     lineSpacing,
     fontSize: cellSize,
     selectedFontId,
+    actualFont,
+    isFontDetecting,
     fontMetrics,
     cellWidth,
     cellHeight,

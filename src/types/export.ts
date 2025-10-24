@@ -137,6 +137,7 @@ export interface ExportDataBundle {
     fontSize: number;
     characterSpacing: number;
     lineSpacing: number;
+    selectedFontId: string;
   };
   
   // Tool state (for session saves)

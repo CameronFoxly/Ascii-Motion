@@ -11,6 +11,8 @@ export interface MonospaceFont {
   category: 'system' | 'web' | 'fallback';
   platforms?: ('macos' | 'windows' | 'linux')[];
   description: string;
+  isBundled?: boolean; // True for bundled web fonts (lazy loaded)
+  fileSize?: string; // e.g., "~120KB" for bundled fonts
 }
 
 export const MONOSPACE_FONTS: MonospaceFont[] = [

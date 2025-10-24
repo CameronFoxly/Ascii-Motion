@@ -380,7 +380,8 @@ export class ExportRenderer {
         typography: {
           fontSize: data.typography.fontSize,
           characterSpacing: data.typography.characterSpacing,
-          lineSpacing: data.typography.lineSpacing
+          lineSpacing: data.typography.lineSpacing,
+          selectedFontId: data.typography.selectedFontId
         },
         palettes: data.paletteState ? {
           activePaletteId: data.paletteState.activePaletteId,

@@ -21,6 +21,8 @@ export interface CanvasState {
   lineSpacing: number;
   fontSize: number;
   selectedFontId: string;
+  actualFont: string | null; // Detected font actually being rendered
+  isFontDetecting: boolean; // Loading state for font detection
 
   fontMetrics: FontMetrics;
   cellWidth: number;
