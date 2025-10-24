@@ -140,6 +140,13 @@
     user-select: text;
   }
 
+  /* Force consistent font for ASCII logos across platforms */
+  .ascii-logo,
+  .ascii-logo * {
+    font-family: 'Courier New', Courier, monospace !important;
+    /* Courier New has the most consistent metrics across platforms */
+  }
+
   /* Prevent zoom on input focus on mobile */
   @media screen and (max-width: 768px) {
     input, select, textarea {
