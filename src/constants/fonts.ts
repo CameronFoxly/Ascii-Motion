@@ -77,6 +77,26 @@ export const MONOSPACE_FONTS: MonospaceFont[] = [
     description: 'Universal fallback - available on all systems'
   },
   {
+    id: 'jetbrains-mono',
+    name: 'JetBrains Mono',
+    displayName: 'JetBrains Mono',
+    cssStack: 'JetBrains Mono, monospace',
+    category: 'web',
+    description: 'Popular coding font with excellent readability',
+    isBundled: true,
+    fileSize: '~90KB'
+  },
+  {
+    id: 'fira-code',
+    name: 'Fira Code',
+    displayName: 'Fira Code',
+    cssStack: 'Fira Code, monospace',
+    category: 'web',
+    description: 'Modern font with programming ligatures',
+    isBundled: true,
+    fileSize: '~101KB'
+  },
+  {
     id: 'auto',
     name: 'Auto',
     displayName: 'Auto (Best Available)',

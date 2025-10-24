@@ -8,8 +8,9 @@ import type {
 import { usePasteMode } from '@/hooks/usePasteMode';
 import { useFrameSynchronization } from '@/hooks/useFrameSynchronization';
 import { calculateCellDimensions, calculateFontMetrics, DEFAULT_SPACING } from '@/utils/fontMetrics';
-import { DEFAULT_FONT_ID, getFontStack } from '@/constants/fonts';
+import { DEFAULT_FONT_ID, getFontStack, getFontById } from '@/constants/fonts';
 import { detectAvailableFont } from '@/utils/fontDetection';
+import { loadBundledFont, isFontLoaded } from '@/utils/fontLoader';
 
 export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   children,
@@ -21,6 +22,8 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   const [selectedFontId, setSelectedFontId] = useState(DEFAULT_FONT_ID);
   const [actualFont, setActualFont] = useState<string | null>(null);
   const [isFontDetecting, setIsFontDetecting] = useState(false);
+  const [isFontLoading, setIsFontLoading] = useState(false);
+  const [fontLoadError, setFontLoadError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1.0);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
 
@@ -84,11 +87,32 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   useFrameSynchronization(moveState, setMoveState);
 
   // Detect actual font being rendered when selected font changes
+  // Also load bundled fonts if needed
   useEffect(() => {
     const detectFont = async () => {
       setIsFontDetecting(true);
+      setFontLoadError(null);
+      
       try {
+        const font = getFontById(selectedFontId);
         const fontStack = getFontStack(selectedFontId);
+        
+        // If this is a bundled font and it's not loaded yet, load it
+        if (font.isBundled && !isFontLoaded(font.name)) {
+          console.log(`[CanvasProvider] Loading bundled font: ${font.name}`);
+          setIsFontLoading(true);
+          try {
+            await loadBundledFont(font.name);
+            console.log(`[CanvasProvider] ✓ Font loaded: ${font.name}`);
+          } catch (error) {
+            console.error(`[CanvasProvider] Failed to load font ${font.name}:`, error);
+            setFontLoadError(`Failed to load ${font.name}`);
+          } finally {
+            setIsFontLoading(false);
+          }
+        }
+        
+        // Detect which font is actually being rendered
         const detected = await detectAvailableFont(fontStack);
         setActualFont(detected);
       } catch (error) {
@@ -112,6 +136,8 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     selectedFontId,
     actualFont,
     isFontDetecting,
+    isFontLoading,
+    fontLoadError,
     fontMetrics,
     cellWidth,
     cellHeight,

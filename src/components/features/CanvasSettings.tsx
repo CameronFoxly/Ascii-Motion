@@ -38,6 +38,8 @@ export const CanvasSettings: React.FC = () => {
     selectedFontId,
     actualFont,
     isFontDetecting,
+    isFontLoading,
+    fontLoadError,
     setCharacterSpacing,
     setLineSpacing,
     setFontSize,
@@ -657,7 +659,17 @@ export const CanvasSettings: React.FC = () => {
                 
                 {/* Font Status Indicator */}
                 <div className="flex items-start gap-2 text-xs">
-                  {isFontDetecting ? (
+                  {isFontLoading ? (
+                    <>
+                      <Loader2 className="w-3 h-3 mt-0.5 animate-spin text-blue-500" />
+                      <span className="text-blue-600 dark:text-blue-400">Downloading font...</span>
+                    </>
+                  ) : fontLoadError ? (
+                    <>
+                      <AlertTriangle className="w-3 h-3 mt-0.5 text-red-500" />
+                      <span className="text-red-600 dark:text-red-400">{fontLoadError}</span>
+                    </>
+                  ) : isFontDetecting ? (
                     <>
                       <Loader2 className="w-3 h-3 mt-0.5 animate-spin text-muted-foreground" />
                       <span className="text-muted-foreground">Detecting font...</span>
@@ -682,7 +694,12 @@ export const CanvasSettings: React.FC = () => {
                         ) : (
                           <>
                             <CheckCircle2 className="w-3 h-3 mt-0.5 text-green-500" />
-                            <span className="text-muted-foreground">{message}</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-muted-foreground">{message}</span>
+                              {selectedFont?.isBundled && selectedFont.fileSize && (
+                                <span className="text-xs text-muted-foreground/60">({selectedFont.fileSize})</span>
+                              )}
+                            </div>
                           </>
                         );
                       })()}

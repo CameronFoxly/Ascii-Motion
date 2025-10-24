@@ -23,6 +23,8 @@ export interface CanvasState {
   selectedFontId: string;
   actualFont: string | null; // Detected font actually being rendered
   isFontDetecting: boolean; // Loading state for font detection
+  isFontLoading: boolean; // Loading state for bundled font download
+  fontLoadError: string | null; // Error message if font loading fails
 
   fontMetrics: FontMetrics;
   cellWidth: number;

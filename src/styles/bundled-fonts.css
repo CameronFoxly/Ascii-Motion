@@ -1,0 +1,23 @@
+/**
+ * Bundled Font Declarations
+ * These fonts are lazy-loaded via JavaScript using the CSS Font Loading API
+ * The @font-face rules here serve as a fallback and documentation
+ */
+
+/* JetBrains Mono - ~90KB */
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/JetBrainsMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Fira Code - ~101KB */
+@font-face {
+  font-family: 'Fira Code';
+  src: url('/fonts/FiraCode-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
