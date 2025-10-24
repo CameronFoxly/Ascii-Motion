@@ -1,7 +1,8 @@
 # Font Selection & Export Fix Implementation Plan
 
 **Created**: October 23, 2025  
-**Status**: 🚧 **IN PROGRESS** (Phase 1 complete, testing in progress)  
+**Completed**: October 24, 2025  
+**Status**: ✅ **COMPLETE** (Phases 1-4 complete, Phase 5 testing in progress)  
 **Priority**: High - Fixes critical export bug + adds user-requested feature
 
 ---
@@ -597,29 +598,56 @@ For EACH export format test:
 - [x] Fix `src/hooks/useCanvasRenderer.ts:138` (canvas rendering)
 - [x] Test: Lint passes with ZERO errors
 - [x] Test: Dev server starts successfully
-- [ ] Test: Canvas renders correctly with new font system (visual verification needed)
-- [ ] Test: All exports use correct font (export testing needed)
+- [x] Test: Canvas renders correctly with new font system
+- [x] Test: All exports use correct font
 
-### **Session 2: UI & Session Format**
-- [ ] Update `src/components/features/CanvasSettings.tsx` (add font selector)
-- [ ] Update `src/utils/exportRenderer.ts:330` (session export with selectedFontId)
-- [ ] Update `src/utils/sessionImporter.ts` (types with optional selectedFontId)
-- [ ] Add migration function `migrateLegacyFontFamily()` to sessionImporter
-- [ ] Update typography callbacks to include `setSelectedFontId`
-- [ ] Test: Font selector UI works and updates canvas
-- [ ] Test: New session files include font selection
-- [ ] Test: Old session files migrate correctly
+### **Session 2: UI & Session Format** ✅ COMPLETE
+- [x] Update `src/components/features/CanvasSettings.tsx` (add font selector with shadcn)
+- [x] Update `src/utils/exportRenderer.ts:330` (session export with selectedFontId)
+- [x] Update `src/utils/sessionImporter.ts` (types with optional selectedFontId)
+- [x] Add migration function for backwards compatibility
+- [x] Update typography callbacks to include `setSelectedFontId`
+- [x] Test: Font selector UI works and updates canvas
+- [x] Test: New session files include font selection
+- [x] Test: Old session files migrate correctly
+- [x] Test: Cloud project integration working
 
-### **Session 3: Testing & Documentation**
-- [ ] Test all export formats (PNG, JPEG, WebM, MP4, SVG, HTML)
-- [ ] Test backwards compatibility with old .asciimtn files
-- [ ] Test cloud project loading (if premium features enabled)
+### **Session 3: Font Detection & Feedback** ✅ COMPLETE
+- [x] Create `src/utils/fontDetection.ts` utility
+- [x] Implement canvas-based font availability detection
+- [x] Add `actualFont` and `isFontDetecting` to CanvasContext
+- [x] Integrate detection with CanvasProvider
+- [x] Add status indicator with checkmark/warning/spinner states
+- [x] Implement platform-specific font warnings
+- [x] Special case handling for SF Mono on macOS
+- [x] Test: Detection accuracy across system fonts
+- [x] Test: Fallback warnings display correctly
+
+### **Session 4: Bundled Web Fonts** ✅ COMPLETE
+- [x] Download JetBrains Mono and Fira Code (woff2 format)
+- [x] Create `public/fonts/` directory
+- [x] Create `src/styles/bundled-fonts.css` with @font-face rules
+- [x] Create `src/utils/fontLoader.ts` with lazy loading
+- [x] Add `isBundled` and `fileSize` properties to font definitions
+- [x] Extend CanvasContext with `isFontLoading` and `fontLoadError`
+- [x] Integrate font loading with CanvasProvider
+- [x] Update UI with 5-state indicator (loading/error/detecting/fallback/available)
+- [x] Add "Bundled" badges in font selector
+- [x] Implement `preloadBundledFonts()` with requestIdleCallback
+- [x] Test: Bundled fonts download on selection
+- [x] Test: Loading states display correctly
+- [x] Test: Font caching works (no re-download)
+
+### **Session 5: Testing & Documentation** 🔄 IN PROGRESS
+- [x] Test bundled font loading and rendering
+- [ ] Test all export formats with bundled fonts (PNG, JPEG, WebM, MP4, SVG, HTML)
+- [x] Test backwards compatibility with old .asciimtn files
+- [x] Test cloud project loading
 - [ ] Test cross-browser (Chrome, Firefox, Safari)
-- [ ] Test cross-platform (macOS, Windows if available)
-- [ ] Update `docs/TYPOGRAPHY_IMPLEMENTATION.md`
-- [ ] Update `COPILOT_INSTRUCTIONS.md` with font selection patterns
-- [ ] Update `DEVELOPMENT.md` with completion status
-- [ ] Create before/after screenshots for documentation
+- [ ] Test cross-platform (Windows if available)
+- [x] Update `docs/FONT_SYSTEM_IMPLEMENTATION_PLAN.md`
+- [ ] Update user documentation
+- [ ] Create screenshots for documentation
 
 ---
 
@@ -635,16 +663,27 @@ For EACH export format test:
 
 ### **Feature Completion**
 - ✅ Font selector visible in typography settings
-- ✅ All 8 fonts listed and selectable
+- ✅ All 10 fonts listed and selectable (8 system + 2 bundled)
 - ✅ Live preview when changing fonts
 - ✅ Font selection persists across sessions
 - ✅ Default "Auto" works for all platforms
+- ✅ Real-time font detection with status indicator
+- ✅ Bundled fonts with lazy loading
+- ✅ Professional shadcn UI components
 
 ### **Backwards Compatibility**
 - ✅ All old .asciimtn files load without errors
-- ✅ Old files automatically migrate to new format
+- ✅ Old files automatically migrate to 'auto'
 - ✅ No data loss during migration
 - ✅ Cloud projects work unchanged
+
+### **Implementation Quality**
+- ✅ Zero TypeScript compilation errors
+- ✅ Canvas-based font detection (accurate)
+- ✅ Platform-specific font warnings
+- ✅ 5-state loading indicator (detecting/loading/error/fallback/available)
+- ✅ Lazy font loading (191KB bundled fonts, 0KB initial impact)
+- ✅ Font caching (no redundant downloads)
 
 ---
 
@@ -697,6 +736,7 @@ If issues are discovered post-deployment:
 
 ---
 
-**Implementation Status**: 🚧 **NOT STARTED**  
-**Next Session**: Begin with Phase 1 (Core Font System & Export Fixes)  
-**Estimated Time**: 6-7 hours total (split across 2-3 sessions)
+**Implementation Status**: ✅ **COMPLETE** (Phases 1-4)  
+**Completed**: October 24, 2025  
+**Total Implementation Time**: ~14 hours across 4 sessions  
+**Next Steps**: Final export testing and user documentation (Phase 5 - ~2-3 hours remaining)
