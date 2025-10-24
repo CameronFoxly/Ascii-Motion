@@ -20,7 +20,7 @@ export const MONOSPACE_FONTS: MonospaceFont[] = [
     id: 'sf-mono',
     name: 'SF Mono',
     displayName: 'SF Mono (macOS)',
-    cssStack: 'SF Mono, monospace',
+    cssStack: 'SF Mono, SFMono-Regular, ui-monospace, monospace',
     category: 'system',
     platforms: ['macos'],
     description: 'Apple\'s system monospace font - excellent rendering quality'

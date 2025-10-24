@@ -45,20 +45,28 @@ export async function isFontAvailable(fontName: string): Promise<boolean> {
     baselines.set(baselineFont, widths);
   }
 
-  // Test the font against each baseline
-  for (const baselineFont of baselineFonts) {
-    const baselineWidths = baselines.get(baselineFont)!;
-    
-    for (let i = 0; i < testStrings.length; i++) {
-      const testString = testStrings[i];
-      context.font = `${testSize} "${fontName}", ${baselineFont}`;
-      const testWidth = context.measureText(testString).width;
+  // Test the font both with and without quotes (SF Mono behaves differently)
+  const fontVariations = [
+    `"${fontName}"`,
+    fontName
+  ];
+
+  for (const fontVariation of fontVariations) {
+    // Test against each baseline
+    for (const baselineFont of baselineFonts) {
+      const baselineWidths = baselines.get(baselineFont)!;
       
-      // If this width differs from the baseline, the font is available
-      if (testWidth !== baselineWidths[i]) {
-        console.log(`[Font Detection] "${fontName}" detected: differs from ${baselineFont} (${testWidth} vs ${baselineWidths[i]})`);
-        fontAvailabilityCache.set(fontName, true);
-        return true;
+      for (let i = 0; i < testStrings.length; i++) {
+        const testString = testStrings[i];
+        context.font = `${testSize} ${fontVariation}, ${baselineFont}`;
+        const testWidth = context.measureText(testString).width;
+        
+        // If this width differs from the baseline, the font is available
+        if (testWidth !== baselineWidths[i]) {
+          console.log(`[Font Detection] "${fontName}" detected: differs from ${baselineFont} (${testWidth} vs ${baselineWidths[i]}) using variant: ${fontVariation}`);
+          fontAvailabilityCache.set(fontName, true);
+          return true;
+        }
       }
     }
   }
@@ -76,7 +84,12 @@ function parseFontStack(fontStack: string): string[] {
   return fontStack
     .split(',')
     .map(font => font.trim())
-    .filter(font => font !== 'monospace' && font !== 'sans-serif' && font !== 'serif');
+    .filter(font => 
+      font !== 'monospace' && 
+      font !== 'sans-serif' && 
+      font !== 'serif' &&
+      font !== 'ui-monospace' // Generic CSS keyword for system monospace
+    );
 }
 
 /**
@@ -103,8 +116,35 @@ async function getActualUsedFont(fontStack: string): Promise<string> {
     }
   }
   
-  // If all fonts are unavailable, detect the system's default monospace font
-  console.log('[Font Detection] All requested fonts unavailable, detecting system default...');
+  // Special case: Some fonts (like SF Mono on macOS) have identical metrics to generic monospace
+  // and can't be detected via measurement, but ARE available. Check if we should trust the first font.
+  if (fonts.length > 0 && fonts.length <= 2) { // Only for specific font selections (not auto)
+    const firstFont = fonts[0];
+    
+    // List of fonts known to have identical metrics to system defaults on certain platforms
+    const platformIdenticalFonts = [
+      { font: 'SF Mono', platform: 'mac' },
+      { font: 'SFMono-Regular', platform: 'mac' }
+    ];
+    
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isMac = userAgent.includes('mac');
+    
+    // Check if this font is known to be identical to system default on this platform
+    const isKnownIdentical = platformIdenticalFonts.some(
+      item => item.font === firstFont && 
+              ((item.platform === 'mac' && isMac))
+    );
+    
+    if (isKnownIdentical) {
+      console.log(`[Font Detection] ⚠️ "${firstFont}" has identical metrics to system default on this platform, trusting browser`);
+      actualUsedFontCache.set(fontStack, firstFont);
+      return firstFont;
+    }
+  }
+  
+  // For "auto" mode or if detection failed, try to detect the system's default
+  console.log('[Font Detection] Detecting system default monospace font...');
   
   const commonSystemFonts = [
     'Menlo',
