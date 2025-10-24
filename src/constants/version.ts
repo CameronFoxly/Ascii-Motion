@@ -1,12 +1,30 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.2.10";
-export const BUILD_DATE = "2025-10-21T18:01:43.169Z";
-export const BUILD_HASH = "f9e524f";
+export const VERSION = "0.2.12";
+export const BUILD_DATE = "2025-10-23T15:31:53.590Z";
+export const BUILD_HASH = "2e5de2d";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.2.12",
+    "date": "2025-10-23T15:31:53.590Z",
+    "commits": [
+      "Update premium package with fixed type definitions"
+    ]
+  },
+  {
+    "version": "0.2.11",
+    "date": "2025-10-23T05:27:06.839Z",
+    "commits": [
+      "fixed text sanitation on react export dialog",
+      "Fixed fill tool select/affect same bug",
+      "Update premium package",
+      "Fixed lint error backlog",
+      "Fixed canvas color picker live preview and keyboard shortcuts"
+    ]
+  },
   {
     "version": "0.2.10",
     "date": "2025-10-21T18:01:43.169Z",
