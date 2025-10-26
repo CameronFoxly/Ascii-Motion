@@ -31,14 +31,14 @@ export const LassoToolStatus: React.FC = () => {
   const { moveState } = useCanvasState();
 
   if (!lassoSelection.active) {
-    return <span className="text-gray-500">Click and drag to draw a freeform selection</span>;
+    return <span className="text-muted-foreground">Drag to draw freeform selection</span>;
   }
 
   if (lassoSelection.isDrawing) {
     const pathLength = lassoSelection.path.length;
     return (
       <span className="text-muted-foreground">
-        Drawing lasso path ({pathLength} points) - Release to complete selection
+        Drawing path ({pathLength} points) - Release to complete
       </span>
     );
   }
@@ -48,14 +48,14 @@ export const LassoToolStatus: React.FC = () => {
   if (moveState) {
     return (
       <span className="text-muted-foreground">
-        Moving lasso selection ({selectedCount} cells) - Click to place, Escape to cancel
+        Moving ({selectedCount} cells) - Click to place, Esc to cancel
       </span>
     );
   }
 
   return (
     <span className="text-muted-foreground">
-      Lasso selected: {selectedCount} cells - Click inside to move, outside to deselect
+      Selected {selectedCount} cells - Click inside to move, outside to deselect
     </span>
   );
 };

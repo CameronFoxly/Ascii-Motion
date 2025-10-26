@@ -22,7 +22,7 @@ export const FlipVerticalToolStatus: React.FC = () => {
 
   return (
     <span className="text-muted-foreground">
-      Flip vertical: {description} - Click or press Shift+V to flip
+      Flip vertical: {description} - Click or Shift+V
     </span>
   );
 };

@@ -16,13 +16,13 @@ export const AsciiTypeToolStatus: React.FC = () => {
   } = useAsciiTypeTool();
 
   if (isRendering) {
-    return <span className="text-muted-foreground">ASCII Type: Rendering preview…</span>;
+    return <span className="text-muted-foreground">Rendering preview…</span>;
   }
 
   if (!previewDimensions) {
     return (
       <span className="text-muted-foreground">
-        ASCII Type: Enter text and pick a font to generate a preview.
+        Enter text and select font to preview
       </span>
     );
   }
@@ -30,14 +30,14 @@ export const AsciiTypeToolStatus: React.FC = () => {
   if (!isPreviewPlaced) {
     return (
       <span className="text-muted-foreground">
-        ASCII Type: Move the cursor to position the preview, then click to place it.
+        Move cursor to position, click to place
       </span>
     );
   }
 
   return (
     <span className="text-muted-foreground">
-      ASCII Type: Preview placed ({previewDimensions.width}×{previewDimensions.height}, {previewCellCount.toLocaleString()} cells). Use Apply or Cancel in the panel.
+      Preview placed ({previewDimensions.width}×{previewDimensions.height}, {previewCellCount.toLocaleString()} cells) - Apply or Cancel in panel
     </span>
   );
 };

@@ -18,10 +18,12 @@ import {
   AsciiTypeToolStatus,
   AsciiBoxToolStatus,
 } from '../tools';
+import { MouseCoordinates } from '../common/MouseCoordinates';
 
 /**
  * Tool Status Manager Component
  * Renders the appropriate tool status component based on the active tool
+ * Always displays mouse coordinates at the end
  */
 export const ToolStatusManager: React.FC = () => {
   const { activeTool } = useToolStore();
@@ -70,8 +72,9 @@ export const ToolStatusManager: React.FC = () => {
   })();
 
   return (
-    <div className="text-xs">
-      {statusContent}
+    <div className="text-xs flex flex-col items-end w-full">
+      <div>{statusContent}</div>
+      <MouseCoordinates />
     </div>
   );
 };

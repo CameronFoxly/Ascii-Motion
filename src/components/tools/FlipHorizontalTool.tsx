@@ -22,7 +22,7 @@ export const FlipHorizontalToolStatus: React.FC = () => {
 
   return (
     <span className="text-muted-foreground">
-      Flip horizontal: {description} - Click or press Shift+H to flip
+      Flip horizontal: {description} - Click or Shift+H
     </span>
   );
 };

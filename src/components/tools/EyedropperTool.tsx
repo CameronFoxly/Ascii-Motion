@@ -20,7 +20,7 @@ export const EyedropperTool: React.FC = () => {
 export const EyedropperToolStatus: React.FC = () => {
   return (
     <span className="text-muted-foreground">
-      Eyedropper: Click on any character to sample its color and character
+      Eyedropper: Click to sample character and color
     </span>
   );
 };
