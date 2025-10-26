@@ -207,9 +207,8 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
               </div>
             </CollapsibleHeader>
             <CollapsibleContent className="collapsible-content">
-              <Card className="bg-card/50 border-border/50 mt-2">
-                <CardContent className="p-2 space-y-2">
-                  {effectiveTool === 'rectangle' && (
+              <div className="mt-2 space-y-2">
+                {effectiveTool === 'rectangle' && (
                     <div className="flex items-center justify-between">
                       <Label htmlFor="filled-rectangle" className="text-xs cursor-pointer">
                         Filled
@@ -553,8 +552,7 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                       </div>
                     </>
                   )}
-                </CardContent>
-              </Card>
+              </div>
             </CollapsibleContent>
           </Collapsible>
           </div>
