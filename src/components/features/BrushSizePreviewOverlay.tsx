@@ -16,6 +16,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useToolStore } from '../../stores/toolStore';
+import { useCanvasContext } from '../../contexts/CanvasContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { BrushPreview } from './BrushPreview';
 import { getBrushShapeDisplayName } from '../../utils/brushUtils';
@@ -38,21 +39,62 @@ export const BrushSizePreviewOverlay: React.FC = () => {
   const shapeName = getBrushShapeDisplayName(shape);
   const toolLabel = tool === 'eraser' ? 'Eraser' : 'Brush';
   
-  // Calculate dynamic grid size based on brush size
-  // For sizes 1-6: use 11x7 grid
-  // For sizes 7-12: use 15x9 grid
-  // For sizes 13-20: use 21x13 grid
-  const getGridSize = (brushSize: number): { width: number; height: number } => {
-    if (brushSize <= 6) {
-      return { width: 11, height: 7 };
-    } else if (brushSize <= 12) {
-      return { width: 15, height: 9 };
-    } else {
-      return { width: 21, height: 13 };
+  // Calculate dynamic grid size based on brush size and shape
+  // Need to account for how each shape extends in space:
+  // - Circle: Uses aspect ratio compensation, extends more horizontally
+  // - Square: Compensates for aspect ratio, extends in both dimensions
+  // - Horizontal: Extends horizontally only
+  // - Vertical: Extends vertically only
+  const getGridSize = (brushSize: number, brushShape: string): { width: number; height: number } => {
+    const cellAspectRatio = 0.6; // Typical monospace ratio
+    const margin = 2; // Extra cells on each side for padding
+    
+    // Calculate max extents based on brush shape
+    if (brushShape === 'circle') {
+      const radius = brushSize / 2;
+      const radiusX = radius / cellAspectRatio; // Horizontal radius compensated for aspect ratio
+      const radiusY = radius; // Vertical radius
+      const maxX = Math.ceil(radiusX);
+      const maxY = Math.ceil(radiusY);
+      
+      return {
+        width: (maxX * 2) + margin * 2 + 1, // +1 for center cell
+        height: (maxY * 2) + margin * 2 + 1
+      };
+    } else if (brushShape === 'square') {
+      const halfSizeY = Math.floor((brushSize * cellAspectRatio) / 2);
+      const halfSizeX = Math.floor(brushSize / 2);
+      
+      return {
+        width: (halfSizeX * 2) + margin * 2 + 1,
+        height: (halfSizeY * 2) + margin * 2 + 1
+      };
+    } else if (brushShape === 'horizontal') {
+      const halfLength = Math.floor(brushSize / 2);
+      
+      return {
+        width: (halfLength * 2) + margin * 2 + 1,
+        height: 7 // Fixed height for horizontal lines
+      };
+    } else if (brushShape === 'vertical') {
+      const halfLength = Math.floor(brushSize / 2);
+      
+      return {
+        width: 7, // Fixed width for vertical lines
+        height: (halfLength * 2) + margin * 2 + 1
+      };
     }
+    
+    // Fallback for unknown shapes
+    return { width: 11, height: 7 };
   };
   
-  const gridSize = getGridSize(size);
+  const gridSize = getGridSize(size, shape);
+  
+  // Calculate card width based on grid size and cell dimensions
+  // Need to account for: grid width × cell width + padding (p-3 = 12px on each side = 24px total) + borders
+  const { cellWidth } = useCanvasContext();
+  const cardWidth = Math.max(200, gridSize.width * cellWidth + 24 + 4); // min 200px, +24 for padding, +4 for borders
   
   // Handle visibility state machine
   useEffect(() => {
@@ -114,6 +156,25 @@ export const BrushSizePreviewOverlay: React.FC = () => {
     };
   }, [overlayState, hideBrushSizePreview]);
   
+  // Close overlay when hovering over the canvas
+  useEffect(() => {
+    if (overlayState !== 'visible' && overlayState !== 'entering') return;
+    
+    const handleCanvasHover = () => {
+      hideBrushSizePreview();
+    };
+    
+    // Find the canvas element
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
+      canvas.addEventListener('mouseenter', handleCanvasHover);
+      
+      return () => {
+        canvas.removeEventListener('mouseenter', handleCanvasHover);
+      };
+    }
+  }, [overlayState, hideBrushSizePreview]);
+  
   // Don't render if hidden or tool doesn't support brush sizing
   if (overlayState === 'hidden' || (activeTool !== 'pencil' && activeTool !== 'eraser')) {
     return null;
@@ -165,7 +226,10 @@ export const BrushSizePreviewOverlay: React.FC = () => {
         className="fixed left-56 top-1/2 -translate-y-1/2 z-[99998]"
         style={getAnimationStyle()}
       >
-        <Card className="border-border/50 shadow-lg bg-background w-64">
+        <Card 
+          className="border-border/50 shadow-lg bg-background"
+          style={{ width: `${cardWidth}px` }}
+        >
           <CardContent className="p-3 space-y-2">
             {/* Header with size and shape info */}
             <div className="flex items-center justify-between">

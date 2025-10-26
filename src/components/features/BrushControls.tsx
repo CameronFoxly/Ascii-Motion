@@ -68,30 +68,6 @@ export const BrushControls: React.FC<BrushControlsProps> = ({ tool, className = 
   return (
     <TooltipProvider>
       <div className={`space-y-2 ${className}`}>
-        {/* Brush Shape Selection */}
-        <div className="space-y-2">
-          <div className="text-xs text-muted-foreground">{labelPrefix} Shape:</div>
-          <div className="grid grid-cols-4 gap-1">
-            {brushShapes.map((shape) => (
-              <Tooltip key={shape.id}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={brushShape === shape.id ? "default" : "outline"}
-                    size="sm"
-                    className="h-8 w-full p-0"
-                    onClick={() => setBrushShape(shape.id, tool)}
-                  >
-                    {shape.icon}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{shape.description}</p>
-                </TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        </div>
-        
         {/* Brush Size Controls */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -150,9 +126,30 @@ export const BrushControls: React.FC<BrushControlsProps> = ({ tool, className = 
               </TooltipContent>
             </Tooltip>
           </div>
-          <div className="flex justify-between text-xs text-muted-foreground/60">
-            <span>1</span>
-            <span>20</span>
+        </div>
+        
+        {/* Brush Shape Selection */}
+        <div className="space-y-2">
+          <div className="text-xs text-muted-foreground">{labelPrefix} Shape:</div>
+          <div className="grid grid-cols-4 gap-1">
+            {brushShapes.map((shape) => (
+              <Tooltip key={shape.id}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={brushShape === shape.id ? "default" : "outline"}
+                    size="sm"
+                    className="h-8 w-full p-0"
+                    data-brush-control="true"
+                    onClick={() => setBrushShape(shape.id, tool)}
+                  >
+                    {shape.icon}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{shape.description}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
           </div>
         </div>
       </div>
