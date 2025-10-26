@@ -54,6 +54,7 @@ import { SilentSaveHandler } from './components/features/SilentSaveHandler'
 import { Toaster } from './components/ui/sonner'
 import { WelcomeDialog } from './components/features/WelcomeDialog'
 import { MobileDialog } from './components/features/MobileDialog'
+import { BrushSizePreviewOverlay } from './components/features/BrushSizePreviewOverlay'
 
 /**
  * Inner component that uses auth hooks
@@ -325,6 +326,9 @@ function AppContent() {
           
           {/* Mobile Dialog - Shows on mobile devices to inform about desktop-only support */}
           <MobileDialog />
+          
+          {/* Brush Size Preview Overlay - Shows when adjusting brush size */}
+          <BrushSizePreviewOverlay />
         
         {/* Performance Overlay for Development */}
         <PerformanceOverlay />

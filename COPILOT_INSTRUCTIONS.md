@@ -419,6 +419,54 @@ button { /* This overrides shadcn button styling */ }
 ### **⚠️ TOOLTIP REQUIREMENT**
 All interactive buttons and elements must use the purple Radix tooltip system for consistency and professional UX.
 
+## 🎨 **Brush Size Preview Overlay**
+
+**The brush size preview overlay appears when adjusting brush size for pencil or eraser tools, providing real-time visual feedback without cluttering the side panel.**
+
+### **Features**
+- ✅ **Floating Overlay**: Appears to the right of the left tool panel
+- ✅ **Auto-Hide**: Disappears after 2 seconds of inactivity
+- ✅ **Multi-Trigger**: Activated by slider, +/- buttons, or [ ] keyboard shortcuts
+- ✅ **Smart Closing**: Closes on tool switch, canvas click, or click outside
+- ✅ **Smooth Animations**: Slide-in/fade-in on appear, quick fade-out on dismiss
+- ✅ **Z-Index Management**: Positioned at `z-[99998]` (below draggable pickers)
+
+### **Implementation Details**
+
+**Component**: `src/components/features/BrushSizePreviewOverlay.tsx`
+- Fixed positioning: `left-56` (right of left panel), `top-1/2` (vertically centered)
+- Shows brush preview grid, size number, and shape name
+- Read-only (no user interaction with preview itself)
+- Only renders when `brushSizePreviewVisible` is true
+
+**Store State**: `toolStore.ts`
+- `brushSizePreviewVisible: boolean` - Visibility state
+- `brushSizePreviewTimerRef: NodeJS.Timeout | null` - Auto-hide timer reference
+- `showBrushSizePreview()` - Shows overlay and starts/resets 2-second timer
+- `hideBrushSizePreview()` - Hides overlay and clears timer
+
+**Trigger Points**:
+1. `BrushControls.tsx` - Slider change, +/- button clicks
+2. `useKeyboardShortcuts.ts` - [ ] bracket key presses
+3. `setActiveTool()` - Automatically hides on tool switch
+
+**Usage Example**:
+```tsx
+// In any component that adjusts brush size
+const showBrushSizePreview = useToolStore((state) => state.showBrushSizePreview);
+
+const handleBrushSizeChange = (newSize: number) => {
+  setBrushSize(newSize, 'pencil');
+  showBrushSizePreview(); // Shows overlay for 2 seconds
+};
+```
+
+### **Design Rationale**
+- **Saves Panel Space**: Removed static preview from side panel, reducing scroll requirements
+- **Contextual Feedback**: Shows preview only when actively adjusting size
+- **Non-Intrusive**: Auto-hides to avoid blocking canvas workspace
+- **Consistent UX**: Matches animation timing of other panel interactions
+
 ## 🎨 **Draggable Picker Dialogs - Best Practices**
 
 **All character and color picker dialogs support drag-to-reposition functionality for improved workflow and visibility.**

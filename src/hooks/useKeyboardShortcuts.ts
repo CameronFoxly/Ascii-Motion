@@ -666,7 +666,7 @@ export const useKeyboardShortcuts = () => {
   }, []);
 
   const adjustBrushSize = useCallback((direction: 'decrease' | 'increase') => {
-    const { activeTool, brushSettings, setBrushSize } = useToolStore.getState();
+    const { activeTool, brushSettings, setBrushSize, showBrushSizePreview } = useToolStore.getState();
     if (activeTool !== 'pencil' && activeTool !== 'eraser') {
       return;
     }
@@ -677,6 +677,7 @@ export const useKeyboardShortcuts = () => {
 
     if (newSize !== currentSize) {
       setBrushSize(newSize, activeTool);
+      showBrushSizePreview();
     }
   }, []);
 

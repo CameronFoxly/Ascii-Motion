@@ -12,7 +12,6 @@ import { Slider } from '@/components/ui/slider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Circle, Square, Minus, MoreVertical, Plus } from 'lucide-react';
 import type { BrushShape } from '../../types';
-import { BrushPreview } from './BrushPreview';
 
 interface BrushControlsProps {
   tool: 'pencil' | 'eraser';
@@ -24,6 +23,7 @@ export const BrushControls: React.FC<BrushControlsProps> = ({ tool, className = 
   const brushShape = useToolStore((state) => state.brushSettings[tool].shape);
   const setBrushSize = useToolStore((state) => state.setBrushSize);
   const setBrushShape = useToolStore((state) => state.setBrushShape);
+  const showBrushSizePreview = useToolStore((state) => state.showBrushSizePreview);
 
   const labelPrefix = tool === 'eraser' ? 'Eraser' : 'Brush';
   const tooltipPrefix = tool === 'eraser' ? 'Eraser brush' : 'Brush';
@@ -62,14 +62,12 @@ export const BrushControls: React.FC<BrushControlsProps> = ({ tool, className = 
 
   const handleSliderChange = useCallback((value: number) => {
     setBrushSize(value, tool);
-  }, [setBrushSize, tool]);
+    showBrushSizePreview();
+  }, [setBrushSize, tool, showBrushSizePreview]);
 
   return (
     <TooltipProvider>
       <div className={`space-y-2 ${className}`}>
-        {/* Brush Preview */}
-        <BrushPreview tool={tool} className="mt-2" />
-        
         {/* Brush Shape Selection */}
         <div className="space-y-2">
           <div className="text-xs text-muted-foreground">{labelPrefix} Shape:</div>
@@ -107,7 +105,11 @@ export const BrushControls: React.FC<BrushControlsProps> = ({ tool, className = 
                   variant="outline"
                   size="sm"
                   className="h-6 w-6 p-0"
-                  onClick={() => setBrushSize(Math.max(1, brushSize - 1), tool)}
+                  data-brush-control="true"
+                  onClick={() => {
+                    setBrushSize(Math.max(1, brushSize - 1), tool);
+                    showBrushSizePreview();
+                  }}
                   disabled={brushSize <= 1}
                 >
                   <Minus className="h-3 w-3" />
@@ -117,7 +119,7 @@ export const BrushControls: React.FC<BrushControlsProps> = ({ tool, className = 
                 <p>Decrease {tooltipPrefix.toLowerCase()} size ([)</p>
               </TooltipContent>
             </Tooltip>
-            <div className="flex-1 px-1">
+            <div className="flex-1 px-1" data-brush-control="true">
               <Slider
                 value={brushSize}
                 onValueChange={handleSliderChange}
@@ -133,7 +135,11 @@ export const BrushControls: React.FC<BrushControlsProps> = ({ tool, className = 
                   variant="outline"
                   size="sm"
                   className="h-6 w-6 p-0"
-                  onClick={() => setBrushSize(Math.min(20, brushSize + 1), tool)}
+                  data-brush-control="true"
+                  onClick={() => {
+                    setBrushSize(Math.min(20, brushSize + 1), tool);
+                    showBrushSizePreview();
+                  }}
                   disabled={brushSize >= 20}
                 >
                   <Plus className="h-3 w-3" />
