@@ -1,12 +1,31 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.2.14";
-export const BUILD_DATE = "2025-10-24T16:15:40.331Z";
-export const BUILD_HASH = "fc16d6b";
+export const VERSION = "0.2.16";
+export const BUILD_DATE = "2025-10-26T20:57:14.473Z";
+export const BUILD_HASH = "441b8a2";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.2.16",
+    "date": "2025-10-26T20:57:14.473Z",
+    "commits": [
+      "Initial version"
+    ]
+  },
+  {
+    "version": "0.2.15",
+    "date": "2025-10-26T20:56:37.046Z",
+    "commits": [
+      "Dealt with layout bugs in status bar",
+      "Fixed up status bar formatting",
+      "Tightened up vertical spacing on tool palette",
+      "Fine tune brush prevew popover",
+      "Switched brush preview UI",
+      "Fixed fill tool layout"
+    ]
+  },
   {
     "version": "0.2.14",
     "date": "2025-10-24T16:15:40.331Z",
