@@ -24,8 +24,11 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { PANEL_ANIMATION } from '../../constants';
-import { useGeneratorPanel, useGeneratorUIState, useGeneratorStatus } from '../../stores/generatorsStore';
+import { useGeneratorPanel, useGeneratorUIState, useGeneratorStatus, useGeneratorsStore } from '../../stores/generatorsStore';
 import { GENERATOR_DEFINITIONS } from '../../constants/generators';
+import { GeneratorPreviewCanvas } from './preview/GeneratorPreviewCanvas';
+import { RadioWavesSettings } from './generators/RadioWavesSettings';
+import { PlaceholderGeneratorSettings } from './generators/PlaceholderGeneratorSettings';
 
 // Icon mapping for generator headers
 const GENERATOR_ICONS = {
@@ -45,6 +48,14 @@ export function GeneratorsPanel() {
   const { isOpen, activeGenerator, closeGenerator } = useGeneratorPanel();
   const { uiState, setActiveTab, outputMode, setOutputMode } = useGeneratorUIState();
   const { isGenerating } = useGeneratorStatus();
+  const { 
+    turbulentNoiseSettings,
+    particlePhysicsSettings,
+    rainDropsSettings,
+    updateTurbulentNoiseSettings,
+    updateParticlePhysicsSettings,
+    updateRainDropsSettings
+  } = useGeneratorsStore();
 
   const animationDurationMs = useMemo(
     () => parseTailwindDuration(PANEL_ANIMATION.DURATION) ?? 300,
@@ -142,18 +153,41 @@ export function GeneratorsPanel() {
         </div>
 
         <ScrollArea className="flex-1">
-          <TabsContent value="animation" className="p-3 space-y-3 mt-0">
-            {/* TODO: Phase 2 - Generator-specific settings */}
-            <div className="text-xs text-muted-foreground">
-              Animation settings for {generatorDef?.name}
-            </div>
+          <TabsContent value="animation" className="p-3 space-y-4 mt-0">
+            {/* Preview Canvas */}
+            <GeneratorPreviewCanvas />
             
-            {/* TODO: Phase 2 - Preview canvas with playback controls */}
+            {/* Generator-Specific Settings */}
+            {activeGenerator === 'radio-waves' && <RadioWavesSettings />}
             
-            {isGenerating && (
-              <div className="text-xs text-muted-foreground animate-pulse">
-                Generating preview...
-              </div>
+            {activeGenerator === 'turbulent-noise' && (
+              <PlaceholderGeneratorSettings
+                name="Turbulent Noise"
+                frameCount={turbulentNoiseSettings.frameCount}
+                frameRate={turbulentNoiseSettings.frameRate}
+                seed={turbulentNoiseSettings.seed}
+                onUpdateSettings={updateTurbulentNoiseSettings}
+              />
+            )}
+            
+            {activeGenerator === 'particle-physics' && (
+              <PlaceholderGeneratorSettings
+                name="Particle Physics"
+                frameCount={particlePhysicsSettings.frameCount}
+                frameRate={particlePhysicsSettings.frameRate}
+                seed={particlePhysicsSettings.seed}
+                onUpdateSettings={updateParticlePhysicsSettings}
+              />
+            )}
+            
+            {activeGenerator === 'rain-drops' && (
+              <PlaceholderGeneratorSettings
+                name="Rain Drops"
+                frameCount={rainDropsSettings.frameCount}
+                frameRate={rainDropsSettings.frameRate}
+                seed={rainDropsSettings.seed}
+                onUpdateSettings={updateRainDropsSettings}
+              />
             )}
           </TabsContent>
 

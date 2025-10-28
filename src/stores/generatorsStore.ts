@@ -18,7 +18,8 @@ import type {
   ParticlePhysicsSettings,
   RainDropsSettings,
   GeneratorMappingSettings,
-  GeneratorFrame
+  GeneratorFrame,
+  GeneratorSettings
 } from '../types/generators';
 import {
   DEFAULT_RADIO_WAVES_SETTINGS,
@@ -28,6 +29,7 @@ import {
 } from '../constants/generators';
 import { useCanvasStore } from './canvasStore';
 import { useAnimationStore } from './animationStore';
+import { generateFrames } from '../utils/generators/generatorEngine';
 // import { cloneFrames } from '../utils/frameUtils'; // TODO: Phase 5 - Use for history
 import type { Frame } from '../types';
 
@@ -297,7 +299,8 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
   
   // Preview Generation Actions
   regeneratePreview: async () => {
-    const { activeGenerator, isGenerating } = get();
+    const state = get();
+    const { activeGenerator, isGenerating } = state;
     
     if (!activeGenerator || isGenerating) {
       return;
@@ -306,24 +309,68 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
     set({ isGenerating: true, lastError: null });
     
     try {
-      // TODO: Phase 2 - Implement actual generator engines
-      // For now, create placeholder empty frames
-      console.log(`[Generators] Generating preview for: ${activeGenerator}`);
-      
       const canvasWidth = useCanvasStore.getState().width;
       const canvasHeight = useCanvasStore.getState().height;
       
-      // Placeholder: Create 10 empty frames
-      const placeholderFrames: GeneratorFrame[] = Array.from({ length: 10 }, () => ({
-        width: canvasWidth,
-        height: canvasHeight,
-        data: new Uint8ClampedArray(canvasWidth * canvasHeight * 4), // Empty RGBA
-        frameDuration: 100 // 100ms per frame
-      }));
+      // Get generator-specific settings
+      let settings: GeneratorSettings;
+      let frameCount: number;
+      let frameRate: number;
+      let seed: number;
+      
+      switch (activeGenerator) {
+        case 'radio-waves':
+          settings = state.radioWavesSettings;
+          frameCount = state.radioWavesSettings.frameCount;
+          frameRate = state.radioWavesSettings.frameRate;
+          seed = state.radioWavesSettings.seed;
+          break;
+        case 'turbulent-noise':
+          settings = state.turbulentNoiseSettings;
+          frameCount = state.turbulentNoiseSettings.frameCount;
+          frameRate = state.turbulentNoiseSettings.frameRate;
+          seed = state.turbulentNoiseSettings.seed;
+          break;
+        case 'particle-physics':
+          settings = state.particlePhysicsSettings;
+          frameCount = state.particlePhysicsSettings.frameCount;
+          frameRate = state.particlePhysicsSettings.frameRate;
+          seed = state.particlePhysicsSettings.seed;
+          break;
+        case 'rain-drops':
+          settings = state.rainDropsSettings;
+          frameCount = state.rainDropsSettings.frameCount;
+          frameRate = state.rainDropsSettings.frameRate;
+          seed = state.rainDropsSettings.seed;
+          break;
+        default:
+          throw new Error(`Unknown generator: ${activeGenerator}`);
+      }
+      
+      // Calculate frame duration from frame rate
+      const frameDuration = Math.floor(1000 / frameRate);
+      
+      // Generate frames using the generator engine
+      const result = await generateFrames(
+        activeGenerator,
+        settings,
+        canvasWidth,
+        canvasHeight,
+        frameCount,
+        frameDuration,
+        seed,
+        false // TODO: Phase 4 - Add loop smoothing toggle to UI state
+      );
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Frame generation failed');
+      }
+      
+      console.log(`[Generators] Generated ${result.frameCount} frames in ${result.processingTime.toFixed(2)}ms`);
       
       set({
-        previewFrames: placeholderFrames,
-        totalPreviewFrames: placeholderFrames.length,
+        previewFrames: result.frames,
+        totalPreviewFrames: result.frameCount,
         isPreviewDirty: false,
         isGenerating: false,
         uiState: {
@@ -332,7 +379,7 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
         }
       });
       
-      // TODO: Phase 2 - Convert RGBA frames to ASCII using mapping settings
+      // TODO: Phase 3 - Convert RGBA frames to ASCII using mapping settings
       
     } catch (error) {
       console.error('[Generators] Preview generation failed:', error);

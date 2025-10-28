@@ -204,6 +204,9 @@ export const GENERATOR_LIMITS = {
   PREVIEW_DEBOUNCE_MS: 200
 } as const;
 
+// Export debounce constant for easy access
+export const PREVIEW_DEBOUNCE_MS = GENERATOR_LIMITS.PREVIEW_DEBOUNCE_MS;
+
 // Loop smoothing configuration
 export const LOOP_SMOOTHING = {
   // Number of frames to blend at loop point
