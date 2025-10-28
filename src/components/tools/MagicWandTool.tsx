@@ -33,8 +33,8 @@ export const MagicWandToolStatus: React.FC = () => {
   if (!magicWandSelection.active) {
     const modeText = magicWandContiguous ? 'contiguous' : 'all matching';
     return (
-      <span className="text-gray-500">
-        Click to select {modeText} cells with same character and colors
+      <span className="text-muted-foreground">
+        Select {modeText} cells
       </span>
     );
   }
@@ -46,14 +46,14 @@ export const MagicWandToolStatus: React.FC = () => {
   if (moveState) {
     return (
       <span className="text-muted-foreground">
-        Moving {selectedCount} {modeText} {cellsText} - Click to place, Escape to cancel
+        Moving {selectedCount} {modeText} {cellsText} - Click to place, Esc to cancel
       </span>
     );
   }
 
   return (
     <span className="text-muted-foreground">
-      Selected: {selectedCount} {modeText} {cellsText} - Click inside to move, outside to deselect
+      Selected {selectedCount} {modeText} {cellsText} - Click inside to move, outside to deselect
     </span>
   );
 };

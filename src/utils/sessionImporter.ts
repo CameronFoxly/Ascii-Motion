@@ -83,6 +83,7 @@ export class SessionImporter {
       setFontSize: (size: number) => void;
       setCharacterSpacing: (spacing: number) => void;
       setLineSpacing: (spacing: number) => void;
+      setSelectedFontId?: (fontId: string) => void;
     }
   ): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -216,6 +217,7 @@ export class SessionImporter {
       setFontSize: (size: number) => void;
       setCharacterSpacing: (spacing: number) => void;
       setLineSpacing: (spacing: number) => void;
+      setSelectedFontId?: (fontId: string) => void;
     }
   ): void {
     const canvasStore = useCanvasStore.getState();
@@ -341,6 +343,11 @@ export class SessionImporter {
       if (sessionData.typography.lineSpacing !== undefined) {
         typographyCallbacks.setLineSpacing(sessionData.typography.lineSpacing);
       }
+      // Restore font selection - defaults to 'auto' for backwards compatibility
+      if (typographyCallbacks.setSelectedFontId) {
+        const fontId = sessionData.typography.selectedFontId ?? 'auto';
+        typographyCallbacks.setSelectedFontId(fontId);
+      }
     }
     
     // Clear importing flag after all frame operations are complete
@@ -378,6 +385,7 @@ export const useSessionImporter = () => {
       setFontSize: (size: number) => void;
       setCharacterSpacing: (spacing: number) => void;
       setLineSpacing: (spacing: number) => void;
+      setSelectedFontId?: (fontId: string) => void;
     }
   ): Promise<void> => {
     try {

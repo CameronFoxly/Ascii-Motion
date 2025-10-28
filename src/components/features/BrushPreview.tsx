@@ -13,9 +13,16 @@ import { calculateBrushCells } from '../../utils/brushUtils';
 interface BrushPreviewProps {
   tool?: 'pencil' | 'eraser';
   className?: string;
+  gridWidth?: number;  // Optional: custom grid width (default: 11)
+  gridHeight?: number; // Optional: custom grid height (default: 7)
 }
 
-export const BrushPreview: React.FC<BrushPreviewProps> = ({ tool = 'pencil', className = '' }) => {
+export const BrushPreview: React.FC<BrushPreviewProps> = ({ 
+  tool = 'pencil', 
+  className = '',
+  gridWidth,
+  gridHeight 
+}) => {
   const brushSize = useToolStore((state) => state.brushSettings[tool].size);
   const brushShape = useToolStore((state) => state.brushSettings[tool].shape);
   const selectedChar = useToolStore((state) => state.selectedChar);
@@ -24,9 +31,10 @@ export const BrushPreview: React.FC<BrushPreviewProps> = ({ tool = 'pencil', cla
   const { fontMetrics, cellWidth, cellHeight } = useCanvasContext();
   const isEraserPreview = tool === 'eraser';
   
-  // Fixed preview dimensions - use a grid size that accommodates largest brushes
-  const previewGridWidth = 11; // 11 cells wide
-  const previewGridHeight = 7; // 7 cells tall
+  // Use provided grid dimensions or defaults
+  // Default grid size accommodates brushes up to size 6
+  const previewGridWidth = gridWidth ?? 11;
+  const previewGridHeight = gridHeight ?? 7;
   const centerX = Math.floor(previewGridWidth / 2);
   const centerY = Math.floor(previewGridHeight / 2);
   

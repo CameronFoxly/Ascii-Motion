@@ -58,6 +58,10 @@ interface ToolStoreState extends ToolState {
   // Animation playback state
   isPlaybackMode: boolean;
   
+  // Brush size preview overlay state
+  brushSizePreviewVisible: boolean;
+  brushSizePreviewTimerRef: NodeJS.Timeout | null;
+  
   // Actions
   setActiveTool: (tool: Tool) => void;
   setSelectedChar: (char: string) => void;
@@ -69,6 +73,10 @@ interface ToolStoreState extends ToolState {
   setRectangleFilled: (filled: boolean) => void;
   setPaintBucketContiguous: (contiguous: boolean) => void;
   setMagicWandContiguous: (contiguous: boolean) => void;
+  
+  // Brush size preview overlay actions
+  showBrushSizePreview: () => void;
+  hideBrushSizePreview: () => void;
   
   // Tool behavior toggles
   toolAffectsChar: boolean;
@@ -243,6 +251,10 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   // Animation playback state
   isPlaybackMode: false,
   
+  // Brush size preview overlay state
+  brushSizePreviewVisible: false,
+  brushSizePreviewTimerRef: null,
+  
   // Pencil tool state
   pencilLastPosition: null,
   
@@ -310,6 +322,8 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     }
     // Clear line preview when switching tools
     get().clearLinePreview();
+    // Hide brush size preview when switching tools
+    get().hideBrushSizePreview();
     // Clear selections when switching tools (except select/lasso/magicwand tools)
     if (tool !== 'select') {
       get().clearSelection();
@@ -368,6 +382,44 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   setRectangleFilled: (filled: boolean) => set({ rectangleFilled: filled }),
   setPaintBucketContiguous: (contiguous: boolean) => set({ paintBucketContiguous: contiguous }),
   setMagicWandContiguous: (contiguous: boolean) => set({ magicWandContiguous: contiguous }),
+
+  // Brush size preview overlay actions
+  showBrushSizePreview: () => {
+    const state = get();
+    
+    // Clear existing timer if any
+    if (state.brushSizePreviewTimerRef) {
+      clearTimeout(state.brushSizePreviewTimerRef);
+    }
+    
+    // Only set visibility to true if it's not already visible
+    // This prevents re-triggering entrance animation
+    if (!state.brushSizePreviewVisible) {
+      set({ brushSizePreviewVisible: true });
+    }
+    
+    // Set new auto-hide timer (2 seconds)
+    const timerId = setTimeout(() => {
+      get().hideBrushSizePreview();
+    }, 2000);
+    
+    set({ brushSizePreviewTimerRef: timerId });
+  },
+  
+  hideBrushSizePreview: () => {
+    const state = get();
+    
+    // Clear timer if any
+    if (state.brushSizePreviewTimerRef) {
+      clearTimeout(state.brushSizePreviewTimerRef);
+    }
+    
+    // Hide the overlay
+    set({ 
+      brushSizePreviewVisible: false,
+      brushSizePreviewTimerRef: null 
+    });
+  },
 
   // Tool behavior toggle actions
   setToolAffectsChar: (enabled: boolean) => set({ toolAffectsChar: enabled }),

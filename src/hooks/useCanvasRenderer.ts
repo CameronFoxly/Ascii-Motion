@@ -135,7 +135,8 @@ export const useCanvasRenderer = () => {
   const drawingStyles = useMemo(() => {
     // Scale font size with zoom - keep original logic
     const scaledFontSize = fontMetrics.fontSize * zoom;
-    const scaledFontString = `${scaledFontSize}px '${fontMetrics.fontFamily}', monospace`;
+    // Font stack already includes fallback monospace, no need to wrap in quotes or add extra fallback
+    const scaledFontString = `${scaledFontSize}px ${fontMetrics.fontFamily}`;
     
     return {
       font: scaledFontString,

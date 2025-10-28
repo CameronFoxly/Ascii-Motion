@@ -1,7 +1,9 @@
 import React from 'react';
+import { Type } from 'lucide-react';
 import { useCanvasDragAndDrop } from '../../hooks/useCanvasDragAndDrop';
 import { useToolStore } from '../../stores/toolStore';
 import { getBrushShapeDisplayName } from '../../utils/brushUtils';
+import { ColorSwatch } from '../common/ColorSwatch';
 
 /**
  * Drawing Tool Component
@@ -26,9 +28,11 @@ export const DrawingToolStatus: React.FC = () => {
     const { size, shape } = brushSettings.pencil;
     const shapeDisplay = getBrushShapeDisplayName(shape);
     return (
-      <span className="text-muted-foreground">
-        Pencil: "{selectedChar}" with color {selectedColor}
-        {selectedBgColor !== '#FFFFFF' && ` on ${selectedBgColor}`} - {shapeDisplay} brush (size {size}) - Click to draw, hold Shift+click for lines
+      <span className="text-muted-foreground flex items-center gap-1.5">
+        Pencil: "{selectedChar}" <Type className="w-3 h-3 inline" /> <ColorSwatch color={selectedColor} />
+        {selectedBgColor !== '#FFFFFF' && (
+          <> BG: <ColorSwatch color={selectedBgColor} /></>
+        )} - {shapeDisplay}: {size} - Click to draw, Shift+click for lines
       </span>
     );
   }
@@ -38,7 +42,7 @@ export const DrawingToolStatus: React.FC = () => {
     const shapeDisplay = getBrushShapeDisplayName(shape);
     return (
       <span className="text-muted-foreground">
-        Eraser: {shapeDisplay} brush (size {size}) - Click to remove characters, hold Shift+click for clean lines
+        Eraser: {shapeDisplay}: {size} - Click to erase, Shift+click for lines
       </span>
     );
   }

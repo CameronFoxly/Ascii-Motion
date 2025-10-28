@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SF Mono Detection Test</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-font {
+            font-size: 24px;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>SF Mono Detection Test</h1>
+    
+    <div class="test-font" style="font-family: 'SF Mono', monospace;">
+        SF Mono: The quick brown fox jumps over the lazy dog 0O0 il1 
+    </div>
+    
+    <div class="test-font" style="font-family: SFMono-Regular, monospace;">
+        SFMono-Regular: The quick brown fox jumps over the lazy dog 0O0 il1
+    </div>
+    
+    <div class="test-font" style="font-family: Menlo, monospace;">
+        Menlo: The quick brown fox jumps over the lazy dog 0O0 il1
+    </div>
+    
+    <div class="test-font" style="font-family: Monaco, monospace;">
+        Monaco: The quick brown fox jumps over the lazy dog 0O0 il1
+    </div>
+    
+    <button onclick="runTest()">Run Detection Test</button>
+    
+    <div class="results" id="results"></div>
+    
+    <script>
+        function runTest() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const testString = 'mmmmmmmmmmlli';
+            const size = '72px';
+            const fonts = [
+                'SF Mono',
+                'SFMono-Regular', 
+                '"SF Mono"',
+                'Menlo',
+                'Monaco',
+                'monospace'
+            ];
+            
+            let results = 'Font Width Comparison:\n\n';
+            
+            fonts.forEach(font => {
+                ctx.font = `${size} ${font}`;
+                const width = ctx.measureText(testString).width;
+                results += `${font.padEnd(20)} : ${width}\n`;
+            });
+            
+            results += '\n\nWith Fallbacks:\n\n';
+            
+            const fallbackTests = [
+                '"SF Mono", monospace',
+                'SF Mono, monospace',
+                'SFMono-Regular, monospace',
+                '"SF Mono", Menlo, monospace'
+            ];
+            
+            fallbackTests.forEach(font => {
+                ctx.font = `${size} ${font}`;
+                const width = ctx.measureText(testString).width;
+                results += `${font.padEnd(40)} : ${width}\n`;
+            });
+            
+            // Also check computed styles
+            results += '\n\nComputed Font Families:\n\n';
+            const divs = document.querySelectorAll('.test-font');
+            divs.forEach((div, i) => {
+                const computed = window.getComputedStyle(div).fontFamily;
+                results += `Test ${i + 1}: ${computed}\n`;
+            });
+            
+            document.getElementById('results').textContent = results;
+        }
+    </script>
+</body>
+</html>

@@ -4,12 +4,16 @@ import { ColorPickerOverlay } from './ColorPickerOverlay';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
-import { Grid3X3, Palette, Type } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Grid3X3, Palette, Type, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useCanvasContext } from '@/contexts/CanvasContext';
 import { ZoomControls } from './ZoomControls';
 import { useToolStore } from '@/stores/toolStore';
 import { useAnimationStore } from '@/stores/animationStore';
+import { MONOSPACE_FONTS, DEFAULT_FONT_ID } from '@/constants/fonts';
+import { getFontFallbackMessage } from '@/utils/fontDetection';
 import { 
   charactersToPixels, 
   validatePixelInput,
@@ -31,9 +35,15 @@ export const CanvasSettings: React.FC = () => {
     characterSpacing,
     lineSpacing,
     fontSize,
+    selectedFontId,
+    actualFont,
+    isFontDetecting,
+    isFontLoading,
+    fontLoadError,
     setCharacterSpacing,
     setLineSpacing,
-    setFontSize
+    setFontSize,
+    setSelectedFontId
   } = useCanvasContext();
 
   const { pushCanvasResizeHistory } = useToolStore();
@@ -232,13 +242,13 @@ export const CanvasSettings: React.FC = () => {
 
   // Calculate dropdown position
   const calculatePosition = (buttonRef: HTMLDivElement | null) => {
-    if (!buttonRef) return { top: 0, left: 0, width: 200 };
+    if (!buttonRef) return { top: 0, left: 0, width: 280 };
     
     const rect = buttonRef.getBoundingClientRect();
     return {
       top: rect.bottom + 4,
       left: rect.left,
-      width: Math.max(200, rect.width)
+      width: 280  // Fixed width for typography dropdown
     };
   };
 
@@ -548,7 +558,7 @@ export const CanvasSettings: React.FC = () => {
             style={{
               top: `${dropdownPosition.top}px`,
               left: `${dropdownPosition.left}px`,
-              minWidth: `${dropdownPosition.width}px`
+              width: `${dropdownPosition.width}px`
             }}
             role="menu"
             aria-label="Typography settings menu"
@@ -619,6 +629,89 @@ export const CanvasSettings: React.FC = () => {
                 </div>
               </div>
 
+              {/* Font Family Selector */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Font Family
+                </label>
+                <Select
+                  value={selectedFontId}
+                  onValueChange={setSelectedFontId}
+                >
+                  <SelectTrigger className="h-8 text-xs w-full">
+                    <SelectValue className="truncate" />
+                  </SelectTrigger>
+                  <SelectContent className="w-auto min-w-[240px]">
+                    {MONOSPACE_FONTS.map(font => (
+                      <SelectItem key={font.id} value={font.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{font.displayName}</span>
+                          {font.isBundled && (
+                            <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
+                              Bundled
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {/* Font Status Indicator */}
+                <div className="flex items-start gap-2 text-xs min-h-[16px]">
+                  {isFontLoading ? (
+                    <>
+                      <Loader2 className="w-3 h-3 mt-0.5 flex-shrink-0 animate-spin text-blue-500" />
+                      <span className="text-blue-600 dark:text-blue-400 leading-tight">Downloading font...</span>
+                    </>
+                  ) : fontLoadError ? (
+                    <>
+                      <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0 text-red-500" />
+                      <span className="text-red-600 dark:text-red-400 leading-tight break-words">{fontLoadError}</span>
+                    </>
+                  ) : isFontDetecting ? (
+                    <>
+                      <Loader2 className="w-3 h-3 mt-0.5 flex-shrink-0 animate-spin text-muted-foreground" />
+                      <span className="text-muted-foreground leading-tight">Detecting font...</span>
+                    </>
+                  ) : actualFont ? (
+                    <>
+                      {(() => {
+                        const selectedFont = MONOSPACE_FONTS.find(f => f.id === selectedFontId);
+                        const requestedFontName = selectedFont?.name || 'Unknown';
+                        const isFallback = actualFont !== requestedFontName && selectedFontId !== 'auto';
+                        const message = selectedFontId === 'auto' 
+                          ? `Using ${actualFont}`
+                          : getFontFallbackMessage(requestedFontName, actualFont);
+                        
+                        return isFallback ? (
+                          <>
+                            <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0 text-yellow-500" />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-yellow-600 dark:text-yellow-500 leading-tight break-words">{message}</span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-3 h-3 mt-0.5 flex-shrink-0 text-green-500" />
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-muted-foreground leading-tight">{message}</span>
+                              {selectedFont?.isBundled && selectedFont.fileSize && (
+                                <span className="text-xs text-muted-foreground/60 leading-tight">({selectedFont.fileSize})</span>
+                              )}
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground leading-tight break-words">
+                      {MONOSPACE_FONTS.find(f => f.id === selectedFontId)?.description}
+                    </span>
+                  )}
+                </div>
+              </div>
+
               {/* Reset Button */}
               <div className="pt-2 border-t border-border">
                 <Button
@@ -628,6 +721,7 @@ export const CanvasSettings: React.FC = () => {
                     setFontSize(18);
                     setCharacterSpacing(1.0);
                     setLineSpacing(1.0);
+                    setSelectedFontId(DEFAULT_FONT_ID);
                   }}
                   className="w-full h-7 text-xs"
                 >

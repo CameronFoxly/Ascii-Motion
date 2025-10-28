@@ -76,6 +76,7 @@ export function useCloudProjectActions() {
         fontSize: data.typography.fontSize,
         characterSpacing: data.typography.characterSpacing,
         lineSpacing: data.typography.lineSpacing,
+        selectedFontId: data.typography.selectedFontId,
       },
       palettes: data.paletteState,
       characterPalettes: data.characterPaletteState,
@@ -118,7 +119,16 @@ export function useCloudProjectActions() {
    * Creates a File object and uses existing importSession
    */
   const handleLoadFromCloud = useCallback(
-    async (projectId: string, sessionData: unknown) => {
+    async (
+      projectId: string, 
+      sessionData: unknown,
+      typographyCallbacks?: {
+        setFontSize: (size: number) => void;
+        setCharacterSpacing: (spacing: number) => void;
+        setLineSpacing: (spacing: number) => void;
+        setSelectedFontId?: (fontId: string) => void;
+      }
+    ) => {
       try {
         // Create a blob from the session data
         const blob = new Blob([JSON.stringify(sessionData, null, 2)], {
@@ -130,8 +140,8 @@ export function useCloudProjectActions() {
           type: 'application/json',
         });
 
-        // Use existing session importer
-        await importSession(file);
+        // Use existing session importer with typography callbacks if provided
+        await importSession(file, typographyCallbacks);
 
         // Update current project tracking
         setCurrentProjectId(projectId);

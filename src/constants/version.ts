@@ -1,12 +1,72 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.2.10";
-export const BUILD_DATE = "2025-10-21T18:01:43.169Z";
-export const BUILD_HASH = "f9e524f";
+export const VERSION = "0.2.16";
+export const BUILD_DATE = "2025-10-26T20:57:14.473Z";
+export const BUILD_HASH = "441b8a2";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.2.16",
+    "date": "2025-10-26T20:57:14.473Z",
+    "commits": [
+      "Initial version"
+    ]
+  },
+  {
+    "version": "0.2.15",
+    "date": "2025-10-26T20:56:37.046Z",
+    "commits": [
+      "Dealt with layout bugs in status bar",
+      "Fixed up status bar formatting",
+      "Tightened up vertical spacing on tool palette",
+      "Fine tune brush prevew popover",
+      "Switched brush preview UI",
+      "Fixed fill tool layout"
+    ]
+  },
+  {
+    "version": "0.2.14",
+    "date": "2025-10-24T16:15:40.331Z",
+    "commits": [
+      "Switched logo to courior for universal support",
+      "Removed inconsolata and robotomono as system fonts"
+    ]
+  },
+  {
+    "version": "0.2.13",
+    "date": "2025-10-24T15:22:01.412Z",
+    "commits": [
+      "More log cleanup",
+      "fixed typography menyu layout and cleaned up console logs",
+      "Update docs",
+      "Added bundled fonts",
+      "Fixed font dedection system bugs",
+      "Added font detection system",
+      "Font 2 of font system complete",
+      "Phase one complete of font system",
+      "Setup plan for fonts"
+    ]
+  },
+  {
+    "version": "0.2.12",
+    "date": "2025-10-23T15:31:53.590Z",
+    "commits": [
+      "Update premium package with fixed type definitions"
+    ]
+  },
+  {
+    "version": "0.2.11",
+    "date": "2025-10-23T05:27:06.839Z",
+    "commits": [
+      "fixed text sanitation on react export dialog",
+      "Fixed fill tool select/affect same bug",
+      "Update premium package",
+      "Fixed lint error backlog",
+      "Fixed canvas color picker live preview and keyboard shortcuts"
+    ]
+  },
   {
     "version": "0.2.10",
     "date": "2025-10-21T18:01:43.169Z",

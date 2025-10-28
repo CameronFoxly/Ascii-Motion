@@ -2254,6 +2254,29 @@ const navigatePaletteColor = (direction: 'previous' | 'next') => {
 - [x] **Non-contiguous Fill** ✅ **COMPLETE** - Fill all matching cells regardless of connection
 - [x] **Active Cell Highlight** ✅ **COMPLETE** - Hover highlight for all drawing tools (Sept 5, 2025)
 - [x] **Hotkeys for All Tools** ✅ **COMPLETE** - Keyboard shortcuts for tool switching (Sept 5, 2025)
+- [x] **Brush Size Preview Overlay** ✅ **COMPLETE** - Floating overlay shows brush size preview when adjusting (Oct 25, 2025)
+
+#### Brush Size Preview Overlay ✅ **COMPLETE** (Oct 25, 2025)
+The brush size preview was moved from the side panel to a floating overlay for better space efficiency and contextual feedback.
+
+**Features:**
+- **Floating Overlay**: Appears to the right of the left tool panel when adjusting brush size
+- **Multi-Trigger Support**: Activated by slider, +/- buttons, or [ ] keyboard shortcuts
+- **Auto-Hide**: Disappears after 2 seconds of inactivity
+- **Smart Closing**: Closes on tool switch, canvas click, or click outside
+- **Smooth Animations**: Slide-in/fade-in on appear (200ms), quick fade-out on dismiss (150ms)
+- **Z-Index Management**: Positioned at z-[99998] (below draggable pickers at z-[99999])
+
+**Implementation:**
+- `BrushSizePreviewOverlay.tsx` - Overlay component with preview grid, size, and shape info
+- `toolStore.ts` - State management with auto-hide timer
+- `BrushControls.tsx` - Removed static preview, triggers overlay on interaction
+- `useKeyboardShortcuts.ts` - Triggers overlay on bracket key presses
+
+**Design Rationale:**
+- Saves vertical space in the tool panel (no scrolling required on most screens)
+- Provides contextual feedback only when actively adjusting
+- Non-intrusive auto-hide prevents blocking canvas workspace
 
 #### Typography & Character Rendering System ✅ **COMPLETE** (Sept 6, 2025)
 - [x] **Monospace Aspect Ratio** - Realistic character dimensions (~0.6 width/height ratio)

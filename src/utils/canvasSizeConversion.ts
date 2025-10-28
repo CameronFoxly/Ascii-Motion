@@ -8,6 +8,7 @@ export interface TypographySettings {
   fontSize: number;
   characterSpacing: number;
   lineSpacing: number;
+  selectedFontId?: string; // Optional for backwards compatibility
 }
 
 export interface CharacterDimensions {

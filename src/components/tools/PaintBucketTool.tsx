@@ -1,6 +1,8 @@
 import React from 'react';
+import { Type } from 'lucide-react';
 import { useDrawingTool } from '../../hooks/useDrawingTool';
 import { useToolStore } from '../../stores/toolStore';
+import { ColorSwatch } from '../common/ColorSwatch';
 
 /**
  * Paint Bucket Tool Component
@@ -21,12 +23,14 @@ export const PaintBucketTool: React.FC = () => {
 export const PaintBucketToolStatus: React.FC = () => {
   const { selectedChar, selectedColor, selectedBgColor, paintBucketContiguous } = useToolStore();
 
-  const fillMode = paintBucketContiguous ? 'connected areas' : 'all matching cells';
+  const fillMode = paintBucketContiguous ? 'connected areas' : 'all matching';
 
   return (
-    <span className="text-muted-foreground">
-      Paint Bucket: Click to fill {fillMode} with "{selectedChar}" and color {selectedColor}
-      {selectedBgColor !== '#FFFFFF' && ` on ${selectedBgColor}`}
+    <span className="text-muted-foreground flex items-center gap-1.5">
+      Paint Bucket: Fill {fillMode} with "{selectedChar}" <Type className="w-3 h-3 inline" /> <ColorSwatch color={selectedColor} />
+      {selectedBgColor !== '#FFFFFF' && (
+        <> BG: <ColorSwatch color={selectedBgColor} /></>
+      )}
     </span>
   );
 };

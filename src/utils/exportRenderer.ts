@@ -220,7 +220,8 @@ export class ExportRenderer {
       // Content group
       svg += '  <g id="content">\n';
 
-      const fontFamily = data.fontMetrics?.fontFamily || 'SF Mono, Monaco, Inconsolata, Roboto Mono, Consolas, Courier New';
+      // Font stack is already properly formatted (no quotes) from fontMetrics
+      const fontStack = data.fontMetrics?.fontFamily || 'SF Mono, Monaco, Cascadia Code, Consolas, Roboto Mono, Inconsolata, Courier New, monospace';
 
       // Render each cell
       let cellCount = 0;
@@ -239,7 +240,7 @@ export class ExportRenderer {
               cellWidth,
               cellHeight,
               actualFontSize,
-              fontFamily,
+              fontStack,
               font // Pass the loaded font for opentype.js conversion
             );
           } else {
@@ -251,7 +252,7 @@ export class ExportRenderer {
               cellWidth,
               cellHeight,
               actualFontSize,
-              fontFamily
+              fontStack
             );
           }
         }
@@ -379,7 +380,8 @@ export class ExportRenderer {
         typography: {
           fontSize: data.typography.fontSize,
           characterSpacing: data.typography.characterSpacing,
-          lineSpacing: data.typography.lineSpacing
+          lineSpacing: data.typography.lineSpacing,
+          selectedFontId: data.typography.selectedFontId
         },
         palettes: data.paletteState ? {
           activePaletteId: data.paletteState.activePaletteId,
@@ -1268,8 +1270,9 @@ export class ExportRenderer {
       });
 
       const framesJson = JSON.stringify(framesPayload, null, 2);
-      const fontFamily =
-        data.fontMetrics?.fontFamily || 'SF Mono, Monaco, Inconsolata, "Roboto Mono", Consolas, "Courier New"';
+      // Font stack is already properly formatted (no quotes) from fontMetrics
+      const fontStack =
+        data.fontMetrics?.fontFamily || 'SF Mono, Monaco, Cascadia Code, Consolas, Roboto Mono, Inconsolata, Courier New, monospace';
 
       this.updateProgress('Generating component code...', 60);
 
@@ -1283,7 +1286,7 @@ export class ExportRenderer {
         cellWidth,
         cellHeight,
         fontSize,
-        fontFamily,
+        fontFamily: fontStack,
         backgroundColor: settings.includeBackground ? data.canvasBackgroundColor : null
       });
 
@@ -1891,8 +1894,9 @@ export class ExportRenderer {
     
     // Setup font for text rendering using actual typography settings
     const exportFontSize = actualFontSize * sizeMultiplier;
-  const fontFamily = fontMetrics.fontFamily || 'SF Mono, Monaco, Inconsolata, "Roboto Mono", Consolas, "Courier New"';
-    ctx.font = `${exportFontSize}px '${fontFamily}', monospace`;
+    // Font stack is already properly formatted (no quotes) from fontMetrics
+    const fontStack = fontMetrics.fontFamily || 'SF Mono, Monaco, Cascadia Code, Consolas, Roboto Mono, Inconsolata, Courier New, monospace';
+    ctx.font = `${exportFontSize}px ${fontStack}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     

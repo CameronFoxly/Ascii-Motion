@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { CanvasContext } from './context';
 import type {
   CanvasContextValue,
@@ -8,6 +8,9 @@ import type {
 import { usePasteMode } from '@/hooks/usePasteMode';
 import { useFrameSynchronization } from '@/hooks/useFrameSynchronization';
 import { calculateCellDimensions, calculateFontMetrics, DEFAULT_SPACING } from '@/utils/fontMetrics';
+import { DEFAULT_FONT_ID, getFontStack, getFontById } from '@/constants/fonts';
+import { detectAvailableFont } from '@/utils/fontDetection';
+import { loadBundledFont, isFontLoaded } from '@/utils/fontLoader';
 
 export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   children,
@@ -16,13 +19,25 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [cellSize, setCellSize] = useState(initialCellSize);
+  const [selectedFontId, setSelectedFontId] = useState(DEFAULT_FONT_ID);
+  const [actualFont, setActualFont] = useState<string | null>(null);
+  const [isFontDetecting, setIsFontDetecting] = useState(false);
+  const [isFontLoading, setIsFontLoading] = useState(false);
+  const [fontLoadError, setFontLoadError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1.0);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
 
   const [characterSpacing, setCharacterSpacing] = useState(DEFAULT_SPACING.characterSpacing);
   const [lineSpacing, setLineSpacing] = useState(DEFAULT_SPACING.lineSpacing);
 
-  const fontMetrics = useMemo(() => calculateFontMetrics(cellSize), [cellSize]);
+  // Calculate font metrics with selected font
+  const fontMetrics = useMemo(
+    () => {
+      const fontStack = getFontStack(selectedFontId);
+      return calculateFontMetrics(cellSize, fontStack);
+    },
+    [cellSize, selectedFontId]
+  );
 
   const { cellWidth, cellHeight } = useMemo(
     () => calculateCellDimensions(fontMetrics, { characterSpacing, lineSpacing }),
@@ -71,6 +86,44 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
 
   useFrameSynchronization(moveState, setMoveState);
 
+  // Detect actual font being rendered when selected font changes
+  // Also load bundled fonts if needed
+  useEffect(() => {
+    const detectFont = async () => {
+      setIsFontDetecting(true);
+      setFontLoadError(null);
+      
+      try {
+        const font = getFontById(selectedFontId);
+        const fontStack = getFontStack(selectedFontId);
+        
+        // If this is a bundled font and it's not loaded yet, load it
+        if (font.isBundled && !isFontLoaded(font.name)) {
+          setIsFontLoading(true);
+          try {
+            await loadBundledFont(font.name);
+          } catch (error) {
+            console.error(`[CanvasProvider] Failed to load font ${font.name}:`, error);
+            setFontLoadError(`Failed to load ${font.name}`);
+          } finally {
+            setIsFontLoading(false);
+          }
+        }
+        
+        // Detect which font is actually being rendered
+        const detected = await detectAvailableFont(fontStack);
+        setActualFont(detected);
+      } catch (error) {
+        console.error('[CanvasProvider] Font detection failed:', error);
+        setActualFont(null);
+      } finally {
+        setIsFontDetecting(false);
+      }
+    };
+    
+    detectFont();
+  }, [selectedFontId]);
+
   const contextValue: CanvasContextValue = {
     cellSize,
     zoom,
@@ -78,6 +131,11 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     characterSpacing,
     lineSpacing,
     fontSize: cellSize,
+    selectedFontId,
+    actualFont,
+    isFontDetecting,
+    isFontLoading,
+    fontLoadError,
     fontMetrics,
     cellWidth,
     cellHeight,
@@ -99,6 +157,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     setCharacterSpacing,
     setLineSpacing,
     setFontSize: setCellSize,
+    setSelectedFontId,
     setIsDrawing,
     setMouseButtonDown,
     setShiftKeyDown,

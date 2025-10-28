@@ -400,7 +400,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       </div>
       
       {/* Action buttons and status info positioned outside canvas */}
-      <div className="my-2 flex justify-between items-center">
+      <div className="mt-2 mb-2 flex justify-between items-center gap-4">
         <CanvasActionButtons />
         {isPlaying ? <PlaybackStatusBar /> : <ToolStatusManager />}
       </div>

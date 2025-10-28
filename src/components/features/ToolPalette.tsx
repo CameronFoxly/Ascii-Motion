@@ -207,9 +207,8 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
               </div>
             </CollapsibleHeader>
             <CollapsibleContent className="collapsible-content">
-              <Card className="bg-card/50 border-border/50 mt-2">
-                <CardContent className="p-2 space-y-2">
-                  {effectiveTool === 'rectangle' && (
+              <div className="mt-2 space-y-2">
+                {effectiveTool === 'rectangle' && (
                     <div className="flex items-center justify-between">
                       <Label htmlFor="filled-rectangle" className="text-xs cursor-pointer">
                         Filled
@@ -437,62 +436,58 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                     </>
                   )}
 
-                  {/* Tool Affects Section - Separate inset container */}
+                  {/* Tool Affects Section */}
                   {(effectiveTool === 'pencil' || effectiveTool === 'eraser' || effectiveTool === 'paintbucket') && (
-                    <Card className="bg-card/50 border-border/50 mt-2">
-                      <CardContent className="p-3">
-                        <div className="space-y-2">
-                          <div className="text-xs text-muted-foreground">Affects:</div>
-                          <div className="flex gap-1">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant={toolAffectsChar ? "default" : "outline"}
-                                  size="sm"
-                                  className="h-6 w-6 p-0"
-                                  onClick={() => setToolAffectsChar(!toolAffectsChar)}
-                                >
-                                  <Type className="h-3 w-3" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Affect character</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant={toolAffectsColor ? "default" : "outline"}
-                                  size="sm"
-                                  className="h-6 w-6 p-0"
-                                  onClick={() => setToolAffectsColor(!toolAffectsColor)}
-                                >
-                                  <Palette className="h-3 w-3" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Affect text color</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant={toolAffectsBgColor ? "default" : "outline"}
-                                  size="sm"
-                                  className="h-6 w-6 p-0"
-                                  onClick={() => setToolAffectsBgColor(!toolAffectsBgColor)}
-                                >
-                                  <Square className="h-3 w-3 fill-current" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Affect background color</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <div className="space-y-2 mt-2">
+                      <div className="text-xs text-muted-foreground">Affects:</div>
+                      <div className="flex gap-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant={toolAffectsChar ? "default" : "outline"}
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={() => setToolAffectsChar(!toolAffectsChar)}
+                            >
+                              <Type className="h-3 w-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Affect character</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant={toolAffectsColor ? "default" : "outline"}
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={() => setToolAffectsColor(!toolAffectsColor)}
+                            >
+                              <Palette className="h-3 w-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Affect text color</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant={toolAffectsBgColor ? "default" : "outline"}
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={() => setToolAffectsBgColor(!toolAffectsBgColor)}
+                            >
+                              <Square className="h-3 w-3 fill-current" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Affect background color</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </div>
                   )}
                   
                   {/* Brush controls - Separate container */}
@@ -557,8 +552,7 @@ export const ToolPalette: React.FC<ToolPaletteProps> = ({ className = '' }) => {
                       </div>
                     </>
                   )}
-                </CardContent>
-              </Card>
+              </div>
             </CollapsibleContent>
           </Collapsible>
           </div>

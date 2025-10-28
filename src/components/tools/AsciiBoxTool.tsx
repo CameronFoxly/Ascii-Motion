@@ -20,28 +20,28 @@ export const AsciiBoxToolStatus: React.FC = () => {
   
   if (!isApplying) {
     const modeText = {
-      rectangle: 'Click start, then click end',
-      freedraw: 'Click/drag to draw, Shift+click for lines',
+      rectangle: 'Click start, then end',
+      freedraw: 'Click/drag, Shift+click for lines',
       erase: 'Click/drag to erase'
     }[drawingMode];
     
     return (
       <span className="text-muted-foreground">
-        ASCII Box: {modeText} • Style: {currentStyle.name}
+        {modeText} • {currentStyle.name}
       </span>
     );
   }
   
   let statusText = 'Drawing...';
   if (drawingMode === 'rectangle') {
-    statusText = rectangleStart ? 'Click end point' : 'Click start point';
+    statusText = rectangleStart ? 'Click end' : 'Click start';
   } else if (drawingMode === 'erase') {
     statusText = 'Erasing...';
   }
   
   return (
     <span className="text-muted-foreground">
-      ASCII Box: {statusText} • {currentStyle.name} • Enter to apply • Escape to cancel
+      {statusText} • {currentStyle.name} • Enter to apply • Esc to cancel
     </span>
   );
 };
