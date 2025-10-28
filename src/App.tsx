@@ -29,6 +29,7 @@ import { ImportModal } from './components/features/ImportModal'
 import { MediaImportPanel } from './components/features/MediaImportPanel'
 import { GradientPanel } from './components/features/GradientPanel'
 import { EffectsPanel } from './components/features/EffectsPanel'
+import { GeneratorsPanel } from './components/features/GeneratorsPanel'
 import { ImageExportDialog } from './components/features/ImageExportDialog'
 import { VideoExportDialog } from './components/features/VideoExportDialog'
 import { SessionExportDialog } from './components/features/SessionExportDialog'
@@ -277,6 +278,7 @@ function AppContent() {
           <MediaImportPanel />
           <GradientPanel />
           <EffectsPanel />
+          <GeneratorsPanel />
           <ImageExportDialog />
           <VideoExportDialog />
           <SessionExportDialog />

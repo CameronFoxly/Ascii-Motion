@@ -367,11 +367,23 @@ pushToHistory(historyAction);
 
 ## 11. Implementation Steps
 
-### Phase 1 – Foundation
-1. Add generator definitions (`constants/generators.ts`) with Lucide icon names.
-2. Implement `GeneratorsSection.tsx` and integrate into right sidebar next to effects.
-3. Scaffold `generatorsStore.ts` with panel open/close logic and default settings per generator.
-4. Create `GeneratorsPanel.tsx` shell with tabs and footer actions (no preview yet).
+### Phase 1 – Foundation ✅ **COMPLETE** (October 28, 2025)
+1. ✅ Add generator definitions (`constants/generators.ts`) with Lucide icon names.
+2. ✅ Implement `GeneratorsSection.tsx` and integrate into right sidebar next to effects.
+3. ✅ Scaffold `generatorsStore.ts` with panel open/close logic and default settings per generator.
+4. ✅ Create `GeneratorsPanel.tsx` shell with tabs and footer actions (no preview yet).
+
+**Files Created:**
+- `src/types/generators.ts` - Complete type definitions for all generators
+- `src/constants/generators.ts` - Generator metadata, icons, and default settings
+- `src/stores/generatorsStore.ts` - Full state management (placeholder preview generation)
+- `src/components/features/GeneratorsSection.tsx` - Right panel collapsible section
+- `src/components/features/GeneratorsPanel.tsx` - Slide-in panel with Animation/Mapping tabs
+
+**Files Modified:**
+- `src/components/features/ColorPicker.tsx` - Added GeneratorsSection and GeneratorsPanel
+
+**Status:** All Phase 1 tasks complete. Generators section appears in right panel (collapsed by default). Clicking a generator opens the panel with Animation/Mapping tabs and output mode controls. Preview generation returns placeholder frames.
 
 ### Phase 2 – Preview Infrastructure
 1. Build `generatorEngine.ts` interface and registry dispatch.

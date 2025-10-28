@@ -1,0 +1,193 @@
+/**
+ * Generators System Types - TypeScript definitions for procedural animation generators
+ * 
+ * Defines interfaces for all generators, settings, and state management
+ */
+
+// Core generator types
+export type GeneratorId = 'radio-waves' | 'turbulent-noise' | 'particle-physics' | 'rain-drops';
+
+// Noise type options for turbulent noise generator
+export type NoiseType = 'perlin' | 'simplex' | 'worley';
+
+// Scatter pattern options (if needed for visual variety)
+export type ScatterType = 'noise' | 'bayer-2x2' | 'bayer-4x4' | 'gaussian';
+
+// Timing configuration mode
+export type TimingMode = 'duration' | 'frameCount' | 'both';
+
+// Individual generator settings interfaces
+
+export interface RadioWavesSettings {
+  // Origin point
+  originX: number;          // 0 to canvas width
+  originY: number;          // 0 to canvas height
+  
+  // Wave properties
+  frequency: number;        // 0.1 - 5.0 waves per second
+  lineThickness: number;    // 1 - 5 pixel radius
+  propagationSpeed: number; // 0.5 - 5.0 characters per frame
+  
+  // Visual properties
+  amplitudeDecay: boolean;
+  decayRate: number;        // 0.0 - 1.0 (only relevant if amplitudeDecay enabled)
+  useGradient: boolean;
+  gradientStartColor: string; // Hex color
+  gradientEndColor: string;   // Hex color
+  
+  // Timing
+  duration: number;         // milliseconds
+  frameRate: number;        // fps
+  frameCount: number;       // explicit frame count
+  timingMode: TimingMode;   // which controls are active
+  
+  // Loop smoothing
+  loopSmoothingEnabled: boolean;
+  
+  // Random seed
+  seed: number;
+}
+
+export interface TurbulentNoiseSettings {
+  // Noise configuration
+  noiseType: NoiseType;     // 'perlin' | 'simplex' | 'worley'
+  baseFrequency: number;    // 0.1 - 8.0
+  amplitude: number;        // 0.0 - 1.0
+  
+  // Fractal noise properties
+  octaves: number;          // 1 - 6
+  persistence: number;      // 0.0 - 1.0 (amplitude falloff per octave)
+  lacunarity: number;       // 1.0 - 4.0 (frequency multiplier per octave)
+  
+  // Evolution
+  evolutionSpeed: number;   // Speed at which noise scrolls over time
+  offsetX: number;          // Phase offset in X direction
+  offsetY: number;          // Phase offset in Y direction
+  
+  // Timing
+  duration: number;         // milliseconds
+  frameRate: number;        // fps
+  frameCount: number;       // explicit frame count
+  timingMode: TimingMode;
+  
+  // Loop smoothing
+  loopSmoothingEnabled: boolean;
+  
+  // Random seed
+  seed: number;
+}
+
+export interface ParticlePhysicsSettings {
+  // Emitter properties
+  originX: number;          // 0 to canvas width
+  originY: number;          // 0 to canvas height
+  particleCount: number;    // 1 - 1000
+  
+  // Particle properties
+  particleSize: number;     // Base size in pixels
+  particleSizeRandomness: boolean;
+  particleSizeMin: number;  // Min size when randomness enabled
+  particleSizeMax: number;  // Max size when randomness enabled
+  lifespan: number;         // Frames before particle dies
+  
+  // Velocity
+  velocityMagnitude: number; // Speed
+  velocityAngle: number;     // Direction in degrees (0-360)
+  velocityRandomness: number; // 0.0 - 1.0 randomness factor
+  
+  // Physics
+  gravity: number;          // Positive = downward
+  drag: number;             // 0.0 - 1.0 friction/air resistance
+  
+  // Edge behavior
+  edgeBounce: boolean;
+  bounciness: number;       // 0.0 - 1.0 restitution coefficient
+  edgeFriction: number;     // 0.0 - 1.0 friction on bounce
+  
+  // Timing
+  duration: number;         // milliseconds
+  frameRate: number;        // fps
+  frameCount: number;       // explicit frame count
+  timingMode: TimingMode;
+  
+  // No loop smoothing for particles (free-running simulation)
+  
+  // Random seed
+  seed: number;
+}
+
+export interface RainDropsSettings {
+  // Drop spawn properties
+  dropFrequency: number;    // Drops per second
+  dropFrequencyRandomness: number; // 0.0 - 1.0
+  
+  // Ripple properties
+  rippleSpeed: number;      // Expansion rate
+  rippleRadiusMax: number;  // Maximum ripple radius
+  rippleAmplitude: number;  // Initial wave height
+  rippleDecay: number;      // 0.0 - 1.0 amplitude decay rate
+  
+  // Drop properties
+  dropSizeBase: number;     // Base drop size
+  dropSizeRandomness: boolean;
+  dropSizeMin: number;      // Min when randomness enabled
+  dropSizeMax: number;      // Max when randomness enabled
+  
+  // Wave interaction
+  interferenceEnabled: boolean; // Whether overlapping ripples add
+  
+  // Timing
+  duration: number;         // milliseconds
+  frameRate: number;        // fps
+  frameCount: number;       // explicit frame count
+  timingMode: TimingMode;
+  
+  // Loop smoothing
+  loopSmoothingEnabled: boolean;
+  
+  // Random seed
+  seed: number;
+}
+
+// Union type for all generator settings
+export type GeneratorSettings = 
+  | RadioWavesSettings 
+  | TurbulentNoiseSettings 
+  | ParticlePhysicsSettings 
+  | RainDropsSettings;
+
+// Mapping settings (mirrors import store structure)
+export interface GeneratorMappingSettings {
+  // Character mapping
+  enableCharacterMapping: boolean;
+  characterSet: string[];
+  characterMappingMode: 'brightness' | 'edge' | 'custom';
+  customCharacterMapping: { [brightness: string]: string };
+  
+  // Text color mapping
+  enableTextColorMapping: boolean;
+  textColorPaletteId: string | null;
+  textColorMappingMode: 'closest' | 'noise-dither' | 'bayer2x2' | 'bayer4x4' | 'by-index';
+  
+  // Background color mapping
+  enableBackgroundColorMapping: boolean;
+  backgroundColorPaletteId: string | null;
+  backgroundColorMappingMode: 'closest' | 'noise-dither' | 'bayer2x2' | 'bayer4x4' | 'by-index';
+}
+
+// Generator definition for UI display
+export interface GeneratorDefinition {
+  id: GeneratorId;
+  name: string;
+  description: string;
+  icon: string; // Lucide icon name
+  supportsLoopSmoothing: boolean;
+}
+
+// Preview frame data (RGBA pixel array)
+export interface GeneratorFrame {
+  width: number;
+  height: number;
+  data: Uint8ClampedArray; // RGBA pixel data
+  frameDuration: number;   // milliseconds
+}
