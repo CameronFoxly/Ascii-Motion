@@ -11,6 +11,7 @@ import { BackgroundColorMappingSection } from '../BackgroundColorMappingSection'
 import { PanelSeparator } from '../../common/PanelSeparator';
 import { useGeneratorsStore } from '../../../stores/generatorsStore';
 import { useImportStore } from '../../../stores/importStore';
+import { useCharacterPaletteStore } from '../../../stores/characterPaletteStore';
 import { useEffect } from 'react';
 
 /**
@@ -32,9 +33,10 @@ export function GeneratorsMappingTab() {
   const { mappingSettings, updateMappingSettings, markPreviewDirty } = useGeneratorsStore();
   const { updateSettings: updateImportSettings } = useImportStore();
 
-    // On mount, sync FROM generatorsStore TO importStore
+  // On mount, sync FROM generatorsStore TO importStore
   // This allows the mapping sections (which use useImportSettings) to work with generator settings
   useEffect(() => {
+    console.log('[GeneratorsMappingTab] Syncing TO importStore:', mappingSettings);
     updateImportSettings({
       enableCharacterMapping: mappingSettings.enableCharacterMapping,
       characterSet: mappingSettings.characterSet,
@@ -49,13 +51,42 @@ export function GeneratorsMappingTab() {
       backgroundColorPaletteId: mappingSettings.backgroundColorPaletteId,
       backgroundColorMappingMode: mappingSettings.backgroundColorMappingMode,
     });
+    
+    // On unmount, sync back FROM importStore TO generatorsStore
+    return () => {
+      const importSettings = useImportStore.getState().settings;
+      console.log('[GeneratorsMappingTab] Syncing FROM importStore on unmount:', {
+        characterSet: importSettings.characterSet,
+        textColorPaletteId: importSettings.textColorPaletteId
+      });
+      updateMappingSettings({
+        enableCharacterMapping: importSettings.enableCharacterMapping,
+        characterSet: importSettings.characterSet,
+        characterMappingMode: importSettings.characterMappingMode,
+        customCharacterMapping: importSettings.customCharacterMapping,
+        
+        enableTextColorMapping: importSettings.enableTextColorMapping,
+        textColorPaletteId: importSettings.textColorPaletteId,
+        textColorMappingMode: importSettings.textColorMappingMode,
+        
+        enableBackgroundColorMapping: importSettings.enableBackgroundColorMapping,
+        backgroundColorPaletteId: importSettings.backgroundColorPaletteId,
+        backgroundColorMappingMode: importSettings.backgroundColorMappingMode,
+      });
+      markPreviewDirty();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount - intentionally ignoring dependencies to sync once
+  }, []); // Only run on mount/unmount - intentionally ignoring dependencies
 
   // Handle settings changes from the mapping sections
   const handleSettingsChange = () => {
     // Sync FROM importStore back to generatorsStore
     const importSettings = useImportStore.getState().settings;
+    
+    console.log('[GeneratorsMappingTab] Settings changed, syncing:', {
+      characterSet: importSettings.characterSet,
+      textColorPaletteId: importSettings.textColorPaletteId
+    });
     
     updateMappingSettings({
       enableCharacterMapping: importSettings.enableCharacterMapping,

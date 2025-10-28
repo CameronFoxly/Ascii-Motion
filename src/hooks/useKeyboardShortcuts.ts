@@ -440,6 +440,30 @@ const processHistoryAction = (
       }
       break;
     }
+    
+    case 'apply_generator': {
+      const generatorAction = action as import('../types').ApplyGeneratorHistoryAction;
+      
+      // Generators always work with frames (not single canvas)
+      if (isRedo) {
+        if (generatorAction.data.newFrames) {
+          animationStore.replaceFrames(
+            generatorAction.data.newFrames,
+            generatorAction.data.newCurrentFrame || 0
+          );
+          console.log(`✅ Redo: Applied ${generatorAction.data.generatorId} generator (${generatorAction.data.frameCount} frames)`);
+        }
+      } else {
+        if (generatorAction.data.previousFrames) {
+          animationStore.replaceFrames(
+            generatorAction.data.previousFrames,
+            generatorAction.data.previousCurrentFrame || 0
+          );
+          console.log(`✅ Undo: Restored ${generatorAction.data.previousFrames.length} frame(s) before ${generatorAction.data.generatorId} generator`);
+        }
+      }
+      break;
+    }
       
     default:
       console.warn('Unknown history action type:', action);

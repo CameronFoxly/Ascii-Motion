@@ -29,9 +29,9 @@ import {
 } from '../constants/generators';
 import { useCanvasStore } from './canvasStore';
 import { useAnimationStore } from './animationStore';
+import { useToolStore } from './toolStore';
 import { generateFrames } from '../utils/generators/generatorEngine';
 import { ASCIIConverter, type ConversionSettings } from '../utils/asciiConverter';
-import { useCharacterPaletteStore } from './characterPaletteStore';
 import { usePaletteStore } from './paletteStore';
 // import { cloneFrames } from '../utils/frameUtils'; // TODO: Phase 5 - Use for history
 import type { Frame } from '../types';
@@ -43,15 +43,15 @@ export interface GeneratorUIState {
   currentPreviewFrame: number;
 }
 
-// Default mapping settings (mirrors import store defaults)
+// Default mapping settings - enable character and text color mapping for better defaults
 const DEFAULT_MAPPING_SETTINGS: GeneratorMappingSettings = {
-  enableCharacterMapping: false,
+  enableCharacterMapping: true,
   characterSet: [' ', '.', ':', '-', '=', '+', '*', '#', '%', '@'],
   characterMappingMode: 'brightness',
   customCharacterMapping: {},
   
-  enableTextColorMapping: false,
-  textColorPaletteId: null,
+  enableTextColorMapping: true,
+  textColorPaletteId: null, // Will be initialized on first open
   textColorMappingMode: 'closest',
   
   enableBackgroundColorMapping: false,
@@ -154,6 +154,17 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
   
   // Panel Management Actions
   openGenerator: (id: GeneratorId) => {
+    // Initialize palette IDs if not set
+    const currentSettings = get().mappingSettings;
+    const paletteStore = usePaletteStore.getState();
+    
+    // Set first available palette as default for text color if not already set
+    if (currentSettings.enableTextColorMapping && !currentSettings.textColorPaletteId && paletteStore.palettes.length > 0) {
+      get().updateMappingSettings({
+        textColorPaletteId: paletteStore.palettes[0].id
+      });
+    }
+    
     set({ 
       isOpen: true, 
       activeGenerator: id,
@@ -290,14 +301,23 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
   
   // Mapping Settings Actions
   updateMappingSettings: (settings: Partial<GeneratorMappingSettings>) => {
-    set(state => ({
-      mappingSettings: {
+    console.log('[Generators] updateMappingSettings called with:', settings);
+    set(state => {
+      const newSettings = {
         ...state.mappingSettings,
         ...settings
-      }
-      // Note: Mapping changes don't make preview dirty for RGBA frames,
-      // but will trigger ASCII re-conversion when applied
-    }));
+      };
+      console.log('[Generators] Updated mapping settings:', {
+        characterSet: newSettings.characterSet,
+        enableCharacterMapping: newSettings.enableCharacterMapping,
+        textColorPaletteId: newSettings.textColorPaletteId,
+        enableTextColorMapping: newSettings.enableTextColorMapping
+      });
+      return {
+        mappingSettings: newSettings,
+        isPreviewDirty: true // Mark dirty so preview regenerates with new mapping
+      };
+    });
   },
   
   // Preview Generation Actions
@@ -390,9 +410,18 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       const converter = new ASCIIConverter();
       const convertedFrames: Frame[] = [];
       
-      // Get active character palette
-      const characterPaletteStore = useCharacterPaletteStore.getState();
-      const activePalette = characterPaletteStore.activePalette;
+      // Get character set from mapping settings and create a temporary palette
+      const characterSet = state.mappingSettings.characterSet;
+      console.log('[Generators] Using character set for conversion:', characterSet);
+      
+      const tempCharacterPalette: import('../types/palette').CharacterPalette = {
+        id: 'temp-generator-palette',
+        name: 'Generator Palette',
+        characters: characterSet,
+        isPreset: false,
+        isCustom: true,
+        category: 'custom'
+      };
       
       // Get color palettes for text and background
       const paletteStore = usePaletteStore.getState();
@@ -407,11 +436,19 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       const textColors = textColorPalette?.colors.map(c => c.value) || [];
       const bgColors = backgroundColorPalette?.colors.map(c => c.value) || [];
       
+      console.log('[Generators] Conversion settings:', {
+        enableCharacterMapping: state.mappingSettings.enableCharacterMapping,
+        characterSet,
+        enableTextColorMapping: state.mappingSettings.enableTextColorMapping,
+        textColorPaletteId: state.mappingSettings.textColorPaletteId,
+        textColorsCount: textColors.length
+      });
+      
       // Build conversion settings from mapping settings
       const conversionSettings: ConversionSettings = {
         // Character mapping
         enableCharacterMapping: state.mappingSettings.enableCharacterMapping,
-        characterPalette: activePalette,
+        characterPalette: tempCharacterPalette,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         mappingMethod: state.mappingSettings.characterMappingMode as any, // Type compatibility
         invertDensity: false,
@@ -478,7 +515,10 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
         });
       }
       
-      console.log(`[Generators] Converted ${convertedFrames.length} frames to ASCII`);
+      // Log conversion details
+      const sampleFrame = convertedFrames[0];
+      const cellCount = sampleFrame ? sampleFrame.data.size : 0;
+      console.log(`[Generators] Converted ${convertedFrames.length} frames to ASCII (sample frame has ${cellCount} cells)`);
       
       set({
         previewFrames: result.frames,
@@ -511,12 +551,6 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       activeGenerator, 
       convertedFrames, 
       outputMode
-      // TODO: Phase 5 - Use these for history recording
-      // radioWavesSettings,
-      // turbulentNoiseSettings,
-      // particlePhysicsSettings,
-      // rainDropsSettings,
-      // mappingSettings
     } = get();
     
     if (!activeGenerator || convertedFrames.length === 0) {
@@ -528,11 +562,12 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       set({ lastError: null });
       
       // Get current animation state for history
-      const { currentFrameIndex, importFramesOverwrite, importFramesAppend } = useAnimationStore.getState();
+      const animationStore = useAnimationStore.getState();
+      const { currentFrameIndex, frames, importFramesOverwrite, importFramesAppend } = animationStore;
       
-      // TODO: Phase 5 - Capture before/after snapshots for history
-      // const previousFrames = cloneFrames(frames);
-      // const previousCurrentFrame = currentFrameIndex;
+      // Capture before state for history
+      const previousFrames = outputMode === 'overwrite' ? [...frames] : undefined;
+      const previousCurrentFrame = currentFrameIndex;
       
       // Prepare frame data for import
       const frameData = convertedFrames.map(frame => ({
@@ -547,11 +582,35 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
         importFramesAppend(frameData);
       }
       
-      // TODO: Phase 5 - Capture after state and record history
-      // const newFrames = cloneFrames(useAnimationStore.getState().frames);
-      // const newCurrentFrame = useAnimationStore.getState().currentFrameIndex;
-      // const historyAction: ApplyGeneratorHistoryAction = { ... }
-      // pushToHistory(historyAction);
+      // Capture after state and record history
+      const newFrames = [...useAnimationStore.getState().frames];
+      const newCurrentFrame = useAnimationStore.getState().currentFrameIndex;
+      
+      const historyAction: import('../types').ApplyGeneratorHistoryAction = {
+        type: 'apply_generator',
+        timestamp: Date.now(),
+        description: `Apply ${activeGenerator} generator (${outputMode})`,
+        data: {
+          mode: outputMode,
+          generatorId: activeGenerator,
+          previousFrames,
+          previousCurrentFrame,
+          newFrames,
+          newCurrentFrame,
+          frameCount: convertedFrames.length
+        }
+      };
+      
+      useToolStore.getState().pushToHistory(historyAction);
+      
+      // Sync canvas with the new current frame
+      const currentFrame = useAnimationStore.getState().frames[newCurrentFrame];
+      if (currentFrame) {
+        useCanvasStore.getState().setCanvasData(currentFrame.data);
+        console.log(`[Generators] Synced canvas with frame ${newCurrentFrame} (${currentFrame.data.size} cells)`);
+      } else {
+        console.warn(`[Generators] Could not sync canvas - frame ${newCurrentFrame} not found`);
+      }
       
       console.log(`[Generators] Applied ${convertedFrames.length} frames in ${outputMode} mode`);
       

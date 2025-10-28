@@ -261,7 +261,8 @@ export type HistoryActionType =
   | 'apply_effect'     // Apply effect to canvas or timeline
   | 'apply_time_effect'     // Apply time-based effect (wave warp, wiggle)
   | 'set_frame_durations'   // Bulk set frame durations
-  | 'import_media';         // Import image/video to canvas
+  | 'import_media'          // Import image/video to canvas
+  | 'apply_generator';      // Apply procedural generator to timeline
 
 export interface HistoryAction {
   type: HistoryActionType;
@@ -456,6 +457,21 @@ export interface ImportMediaHistoryAction extends HistoryAction {
   };
 }
 
+export interface ApplyGeneratorHistoryAction extends HistoryAction {
+  type: 'apply_generator';
+  data: {
+    mode: 'overwrite' | 'append';
+    generatorId: string;
+    // For overwrite mode
+    previousFrames?: Frame[];
+    previousCurrentFrame?: number;
+    // For both modes
+    newFrames?: Frame[];
+    newCurrentFrame?: number;
+    frameCount: number;
+  };
+}
+
 export type AnyHistoryAction = 
   | CanvasHistoryAction
   | CanvasResizeHistoryAction
@@ -473,4 +489,5 @@ export type AnyHistoryAction =
   | ApplyEffectHistoryAction
   | ApplyTimeEffectHistoryAction
   | SetFrameDurationsHistoryAction
-  | ImportMediaHistoryAction;
+  | ImportMediaHistoryAction
+  | ApplyGeneratorHistoryAction;

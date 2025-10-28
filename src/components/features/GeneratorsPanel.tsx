@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { PANEL_ANIMATION } from '../../constants';
-import { useGeneratorPanel, useGeneratorUIState, useGeneratorStatus, useGeneratorsStore } from '../../stores/generatorsStore';
+import { useGeneratorPanel, useGeneratorUIState, useGeneratorsStore } from '../../stores/generatorsStore';
 import { GENERATOR_DEFINITIONS } from '../../constants/generators';
 import { GeneratorPreviewCanvas } from './preview/GeneratorPreviewCanvas';
 import { RadioWavesSettings } from './generators/RadioWavesSettings';
@@ -50,7 +50,7 @@ const parseTailwindDuration = (token: string): number | null => {
 export function GeneratorsPanel() {
   const { isOpen, activeGenerator, closeGenerator } = useGeneratorPanel();
   const { uiState, setActiveTab, outputMode, setOutputMode } = useGeneratorUIState();
-  const { isGenerating } = useGeneratorStatus();
+  const { isGenerating, totalPreviewFrames, applyGenerator } = useGeneratorsStore();
   const { setPlaying } = useGeneratorsStore();
 
   const animationDurationMs = useMemo(
@@ -229,11 +229,11 @@ export function GeneratorsPanel() {
           <Button
             variant="default"
             size="sm"
-            disabled={isGenerating}
+            disabled={isGenerating || totalPreviewFrames === 0}
+            onClick={applyGenerator}
             className="flex-1 h-8 text-xs"
-            // TODO: Phase 5 - Connect to applyGenerator
           >
-            Apply Generator
+            {outputMode === 'overwrite' ? 'Apply to Canvas' : 'Generate Animation'}
           </Button>
         </div>
       </div>
