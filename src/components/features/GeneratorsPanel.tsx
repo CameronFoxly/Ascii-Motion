@@ -28,7 +28,9 @@ import { useGeneratorPanel, useGeneratorUIState, useGeneratorStatus, useGenerato
 import { GENERATOR_DEFINITIONS } from '../../constants/generators';
 import { GeneratorPreviewCanvas } from './preview/GeneratorPreviewCanvas';
 import { RadioWavesSettings } from './generators/RadioWavesSettings';
-import { PlaceholderGeneratorSettings } from './generators/PlaceholderGeneratorSettings';
+import { TurbulentNoiseSettings } from './generators/TurbulentNoiseSettings';
+import { ParticlePhysicsSettings } from './generators/ParticlePhysicsSettings';
+import { RainDropsSettings } from './generators/RainDropsSettings';
 import { GeneratorsMappingTab } from './generators/GeneratorsMappingTab';
 
 // Icon mapping for generator headers
@@ -49,15 +51,7 @@ export function GeneratorsPanel() {
   const { isOpen, activeGenerator, closeGenerator } = useGeneratorPanel();
   const { uiState, setActiveTab, outputMode, setOutputMode } = useGeneratorUIState();
   const { isGenerating } = useGeneratorStatus();
-  const { 
-    turbulentNoiseSettings,
-    particlePhysicsSettings,
-    rainDropsSettings,
-    updateTurbulentNoiseSettings,
-    updateParticlePhysicsSettings,
-    updateRainDropsSettings,
-    setPlaying
-  } = useGeneratorsStore();
+  const { setPlaying } = useGeneratorsStore();
 
   const animationDurationMs = useMemo(
     () => parseTailwindDuration(PANEL_ANIMATION.DURATION) ?? 300,
@@ -180,36 +174,9 @@ export function GeneratorsPanel() {
             
             {/* Generator-Specific Settings */}
             {activeGenerator === 'radio-waves' && <RadioWavesSettings />}
-            
-            {activeGenerator === 'turbulent-noise' && (
-              <PlaceholderGeneratorSettings
-                name="Turbulent Noise"
-                frameCount={turbulentNoiseSettings.frameCount}
-                frameRate={turbulentNoiseSettings.frameRate}
-                seed={turbulentNoiseSettings.seed}
-                onUpdateSettings={updateTurbulentNoiseSettings}
-              />
-            )}
-            
-            {activeGenerator === 'particle-physics' && (
-              <PlaceholderGeneratorSettings
-                name="Particle Physics"
-                frameCount={particlePhysicsSettings.frameCount}
-                frameRate={particlePhysicsSettings.frameRate}
-                seed={particlePhysicsSettings.seed}
-                onUpdateSettings={updateParticlePhysicsSettings}
-              />
-            )}
-            
-            {activeGenerator === 'rain-drops' && (
-              <PlaceholderGeneratorSettings
-                name="Rain Drops"
-                frameCount={rainDropsSettings.frameCount}
-                frameRate={rainDropsSettings.frameRate}
-                seed={rainDropsSettings.seed}
-                onUpdateSettings={updateRainDropsSettings}
-              />
-            )}
+            {activeGenerator === 'turbulent-noise' && <TurbulentNoiseSettings />}
+            {activeGenerator === 'particle-physics' && <ParticlePhysicsSettings />}
+            {activeGenerator === 'rain-drops' && <RainDropsSettings />}
           </TabsContent>
 
           <TabsContent value="mapping" className="p-3 space-y-3 mt-0">

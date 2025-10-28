@@ -9,6 +9,7 @@
  * - Canvas rendering of current preview frame
  */
 
+import { useEffect, useRef } from 'react';
 import { Play, Pause } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { Slider } from '../../ui/slider';
@@ -17,7 +18,8 @@ import { useGeneratorPreview } from '../../../hooks/useGeneratorPreview';
 import { useGeneratorsStore } from '../../../stores/generatorsStore';
 
 export function GeneratorPreviewCanvas() {
-  const { isGenerating } = useGeneratorsStore();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { isGenerating, previewFrames } = useGeneratorsStore();
   const { 
     isPlaying, 
     currentFrame, 
@@ -27,22 +29,47 @@ export function GeneratorPreviewCanvas() {
     canPlay 
   } = useGeneratorPreview();
 
-  // TODO: Phase 4 - Actually render the RGBA frame data to canvas
-  // For now, just show placeholder
+  // Render current preview frame to canvas
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || totalFrames === 0 || !previewFrames[currentFrame]) {
+      return;
+    }
+
+    const frame = previewFrames[currentFrame];
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set canvas size to match frame
+    canvas.width = frame.width;
+    canvas.height = frame.height;
+
+    // Create ImageData from frame data
+    const imageData = new ImageData(
+      new Uint8ClampedArray(frame.data),
+      frame.width,
+      frame.height
+    );
+
+    // Draw to canvas
+    ctx.putImageData(imageData, 0, 0);
+  }, [currentFrame, totalFrames, previewFrames]);
   
   return (
     <div className="space-y-3">
       {/* Preview Area */}
-      <div className="relative bg-muted/30 rounded border border-border aspect-video flex items-center justify-center">
+      <div className="relative bg-muted/30 rounded border border-border aspect-video flex items-center justify-center overflow-hidden w-full">
         {isGenerating ? (
           <div className="flex flex-col items-center gap-2">
             <Spinner size="sm" />
             <span className="text-xs text-muted-foreground">Generating preview...</span>
           </div>
         ) : totalFrames > 0 ? (
-          <div className="text-xs text-muted-foreground">
-            Preview: Frame {currentFrame + 1} of {totalFrames}
-          </div>
+          <canvas 
+            ref={canvasRef}
+            style={{ imageRendering: 'pixelated' }}
+            className="w-full h-full object-contain"
+          />
         ) : (
           <div className="text-xs text-muted-foreground">
             No preview available

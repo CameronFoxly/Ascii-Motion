@@ -6,6 +6,10 @@
  */
 
 import type { GeneratorId, GeneratorSettings, GeneratorFrame } from '../../types/generators';
+import { generateRadioWaves } from './radioWaves';
+import { generateTurbulentNoise } from './turbulentNoise';
+import { generateParticlePhysics } from './particlePhysics';
+import { generateRainDrops } from './rainDrops';
 
 /**
  * Result from generator processing
@@ -39,9 +43,7 @@ export async function generateFrames(
   frameCount: number,
   frameDuration: number,
   _seed: number, // TODO: Phase 4 - Use for deterministic generation
-  // TODO: Phase 4 - Use for loop smoothing
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _loopSmoothing: boolean = false
+  _loopSmoothing: boolean = false // TODO: Phase 4 - Use for loop smoothing
 ): Promise<GeneratorResult> {
   const startTime = performance.now();
   
@@ -50,30 +52,53 @@ export async function generateFrames(
 
     switch (generatorId) {
       case 'radio-waves': {
-        // TODO: Phase 4 - Implement radio waves generator
-        // Will use: settings, seed, loopSmoothing
-        frames = await generatePlaceholderFrames(width, height, frameCount, frameDuration);
+        frames = await generateRadioWaves(
+          _settings as import('../../types/generators').RadioWavesSettings,
+          width,
+          height,
+          frameCount,
+          frameDuration,
+          _seed,
+          _loopSmoothing
+        );
         break;
       }
         
       case 'turbulent-noise': {
-        // TODO: Phase 4 - Implement turbulent noise generator
-        // Will use: settings, seed, loopSmoothing
-        frames = await generatePlaceholderFrames(width, height, frameCount, frameDuration);
+        frames = await generateTurbulentNoise(
+          _settings as import('../../types/generators').TurbulentNoiseSettings,
+          width,
+          height,
+          frameCount,
+          frameDuration,
+          _seed,
+          _loopSmoothing
+        );
         break;
       }
         
       case 'particle-physics': {
-        // TODO: Phase 4 - Implement particle physics generator
-        // Will use: settings, seed (no loop smoothing for particles)
-        frames = await generatePlaceholderFrames(width, height, frameCount, frameDuration);
+        frames = await generateParticlePhysics(
+          _settings as import('../../types/generators').ParticlePhysicsSettings,
+          width,
+          height,
+          frameCount,
+          frameDuration,
+          _seed
+        );
         break;
       }
       
       case 'rain-drops': {
-        // TODO: Phase 4 - Implement rain drops generator
-        // Will use: settings, seed, loopSmoothing
-        frames = await generatePlaceholderFrames(width, height, frameCount, frameDuration);
+        frames = await generateRainDrops(
+          _settings as import('../../types/generators').RainDropsSettings,
+          width,
+          height,
+          frameCount,
+          frameDuration,
+          _seed,
+          _loopSmoothing
+        );
         break;
       }
         
@@ -105,46 +130,8 @@ export async function generateFrames(
 }
 
 /**
- * Placeholder frame generation for Phase 2
- * Returns empty RGBA frames until actual generators are implemented in Phase 4
+ * Parameter validation to ensure safe generator operation
  */
-async function generatePlaceholderFrames(
-  width: number,
-  height: number,
-  frameCount: number,
-  frameDuration: number
-): Promise<GeneratorFrame[]> {
-  const frames: GeneratorFrame[] = [];
-  
-  for (let i = 0; i < frameCount; i++) {
-    // Create empty RGBA buffer (all transparent black)
-    const data = new Uint8ClampedArray(width * height * 4);
-    
-    // Optional: Add a simple gradient or pattern for visual feedback during development
-    // Uncomment below to add a simple brightness gradient
-    /*
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const index = (y * width + x) * 4;
-        const brightness = Math.floor((x / width) * 255);
-        data[index] = brightness;     // R
-        data[index + 1] = brightness; // G
-        data[index + 2] = brightness; // B
-        data[index + 3] = 255;        // A (fully opaque)
-      }
-    }
-    */
-    
-    frames.push({
-      width,
-      height,
-      data,
-      frameDuration
-    });
-  }
-  
-  return frames;
-}
 
 /**
  * Validates generator settings and parameters before processing

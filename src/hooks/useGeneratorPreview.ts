@@ -48,7 +48,9 @@ export function useGeneratorPreview() {
    * Playback loop - advances frame based on frame duration
    */
   const playbackLoop = useCallback((timestamp: number) => {
-    if (!uiState.isPlaying || totalPreviewFrames === 0) {
+    const state = useGeneratorsStore.getState();
+    
+    if (!state.uiState.isPlaying || state.totalPreviewFrames === 0) {
       playbackRafRef.current = null;
       return;
     }
@@ -60,18 +62,18 @@ export function useGeneratorPreview() {
 
     const elapsed = timestamp - lastFrameTimeRef.current;
     
-    // Advance frame based on frame duration (assuming 100ms per frame for placeholder)
-    // TODO: Phase 4 - Use actual frame duration from generator frames
-    const frameDuration = 100;
+    // Get frame duration from the current preview frame
+    const currentPreviewFrame = state.previewFrames[state.uiState.currentPreviewFrame];
+    const frameDuration = currentPreviewFrame?.frameDuration || 100; // Default to 100ms if not available
     
     if (elapsed >= frameDuration) {
-      const nextFrame = (uiState.currentPreviewFrame + 1) % totalPreviewFrames;
-      setPreviewFrame(nextFrame);
+      const nextFrame = (state.uiState.currentPreviewFrame + 1) % state.totalPreviewFrames;
+      state.setPreviewFrame(nextFrame);
       lastFrameTimeRef.current = timestamp;
     }
 
     playbackRafRef.current = requestAnimationFrame(playbackLoop);
-  }, [uiState.isPlaying, uiState.currentPreviewFrame, totalPreviewFrames, setPreviewFrame]);
+  }, []); // Empty deps - we get fresh state each time via getState()
 
   /**
    * Start playback loop

@@ -30,6 +30,9 @@ import {
 import { useCanvasStore } from './canvasStore';
 import { useAnimationStore } from './animationStore';
 import { generateFrames } from '../utils/generators/generatorEngine';
+import { ASCIIConverter, type ConversionSettings } from '../utils/asciiConverter';
+import { useCharacterPaletteStore } from './characterPaletteStore';
+import { usePaletteStore } from './paletteStore';
 // import { cloneFrames } from '../utils/frameUtils'; // TODO: Phase 5 - Use for history
 import type { Frame } from '../types';
 
@@ -302,7 +305,10 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
     const state = get();
     const { activeGenerator, isGenerating } = state;
     
+    console.log('[Generators] regeneratePreview called', { activeGenerator, isGenerating });
+    
     if (!activeGenerator || isGenerating) {
+      console.log('[Generators] Skipping regeneration:', !activeGenerator ? 'no active generator' : 'already generating');
       return;
     }
     
@@ -311,6 +317,8 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
     try {
       const canvasWidth = useCanvasStore.getState().width;
       const canvasHeight = useCanvasStore.getState().height;
+      
+      console.log('[Generators] Canvas dimensions:', { canvasWidth, canvasHeight });
       
       // Get generator-specific settings
       let settings: GeneratorSettings;
@@ -350,6 +358,16 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       // Calculate frame duration from frame rate
       const frameDuration = Math.floor(1000 / frameRate);
       
+      console.log('[Generators] Starting generation:', { 
+        generator: activeGenerator, 
+        frameCount, 
+        frameRate, 
+        frameDuration,
+        seed,
+        canvasWidth,
+        canvasHeight
+      });
+      
       // Generate frames using the generator engine
       const result = await generateFrames(
         activeGenerator,
@@ -368,8 +386,103 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       
       console.log(`[Generators] Generated ${result.frameCount} frames in ${result.processingTime.toFixed(2)}ms`);
       
+      // Convert RGBA frames to ASCII using mapping settings
+      const converter = new ASCIIConverter();
+      const convertedFrames: Frame[] = [];
+      
+      // Get active character palette
+      const characterPaletteStore = useCharacterPaletteStore.getState();
+      const activePalette = characterPaletteStore.activePalette;
+      
+      // Get color palettes for text and background
+      const paletteStore = usePaletteStore.getState();
+      const textColorPalette = state.mappingSettings.textColorPaletteId
+        ? paletteStore.palettes.find(p => p.id === state.mappingSettings.textColorPaletteId)
+        : null;
+      const backgroundColorPalette = state.mappingSettings.backgroundColorPaletteId
+        ? paletteStore.palettes.find(p => p.id === state.mappingSettings.backgroundColorPaletteId)
+        : null;
+      
+      // Extract hex color strings from palette colors
+      const textColors = textColorPalette?.colors.map(c => c.value) || [];
+      const bgColors = backgroundColorPalette?.colors.map(c => c.value) || [];
+      
+      // Build conversion settings from mapping settings
+      const conversionSettings: ConversionSettings = {
+        // Character mapping
+        enableCharacterMapping: state.mappingSettings.enableCharacterMapping,
+        characterPalette: activePalette,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        mappingMethod: state.mappingSettings.characterMappingMode as any, // Type compatibility
+        invertDensity: false,
+        
+        // Text color mapping
+        enableTextColorMapping: state.mappingSettings.enableTextColorMapping,
+        textColorPalette: textColors,
+        textColorMappingMode: state.mappingSettings.textColorMappingMode,
+        defaultTextColor: '#ffffff',
+        
+        // Background color mapping
+        enableBackgroundColorMapping: state.mappingSettings.enableBackgroundColorMapping,
+        backgroundColorPalette: bgColors,
+        backgroundColorMappingMode: state.mappingSettings.backgroundColorMappingMode,
+        
+        // Legacy/unused settings (required by ConversionSettings interface)
+        useOriginalColors: false,
+        colorQuantization: 'none',
+        paletteSize: 16,
+        colorMappingMode: 'closest' as 'closest' | 'dithering',
+        blurAmount: 0,
+        sharpenAmount: 0,
+        brightnessAdjustment: 0,
+        contrastEnhancement: 1,
+        saturationAdjustment: 0,
+        highlightsAdjustment: 0,
+        shadowsAdjustment: 0,
+        midtonesAdjustment: 0,
+        ditherStrength: 0.5
+      };
+      
+      // Convert each RGBA frame to ASCII
+      for (let frameIdx = 0; frameIdx < result.frames.length; frameIdx++) {
+        const generatorFrame = result.frames[frameIdx];
+        const { width, height, data, frameDuration } = generatorFrame;
+        
+        // Create canvas for ProcessedFrame requirement
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Create ImageData from generator frame
+        const imageData = new ImageData(
+          new Uint8ClampedArray(data), // Clone the data
+          width,
+          height
+        );
+        
+        // Convert using ASCIIConverter
+        const conversionResult = converter.convertFrame(
+          { canvas, imageData }, // ProcessedFrame format
+          conversionSettings
+        );
+        
+        // Generate frame ID
+        const frameId = `generator-${activeGenerator}-${frameIdx}` as import('../types').FrameId;
+        
+        // Create Frame object for animation system
+        convertedFrames.push({
+          id: frameId,
+          name: `Frame ${frameIdx + 1}`,
+          duration: frameDuration,
+          data: conversionResult.cells
+        });
+      }
+      
+      console.log(`[Generators] Converted ${convertedFrames.length} frames to ASCII`);
+      
       set({
         previewFrames: result.frames,
+        convertedFrames,
         totalPreviewFrames: result.frameCount,
         isPreviewDirty: false,
         isGenerating: false,
@@ -378,8 +491,6 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
           currentPreviewFrame: 0
         }
       });
-      
-      // TODO: Phase 3 - Convert RGBA frames to ASCII using mapping settings
       
     } catch (error) {
       console.error('[Generators] Preview generation failed:', error);
