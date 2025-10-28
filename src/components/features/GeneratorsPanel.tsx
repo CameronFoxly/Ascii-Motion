@@ -29,6 +29,7 @@ import { GENERATOR_DEFINITIONS } from '../../constants/generators';
 import { GeneratorPreviewCanvas } from './preview/GeneratorPreviewCanvas';
 import { RadioWavesSettings } from './generators/RadioWavesSettings';
 import { PlaceholderGeneratorSettings } from './generators/PlaceholderGeneratorSettings';
+import { GeneratorsMappingTab } from './generators/GeneratorsMappingTab';
 
 // Icon mapping for generator headers
 const GENERATOR_ICONS = {
@@ -54,7 +55,8 @@ export function GeneratorsPanel() {
     rainDropsSettings,
     updateTurbulentNoiseSettings,
     updateParticlePhysicsSettings,
-    updateRainDropsSettings
+    updateRainDropsSettings,
+    setPlaying
   } = useGeneratorsStore();
 
   const animationDurationMs = useMemo(
@@ -65,6 +67,25 @@ export function GeneratorsPanel() {
   // Animation state to handle transitions properly (from EffectsPanel pattern)
   const [shouldRender, setShouldRender] = useState(isOpen);
   const [isAnimating, setIsAnimating] = useState(isOpen);
+  
+  // Track previous playing state for resuming after mapping tab
+  const [wasPlayingBeforeMapping, setWasPlayingBeforeMapping] = useState(false);
+
+  // Handle tab changes - pause playback when entering mapping tab
+  useEffect(() => {
+    if (uiState.activeTab === 'mapping') {
+      // Save current playing state
+      setWasPlayingBeforeMapping(uiState.isPlaying);
+      // Pause playback
+      if (uiState.isPlaying) {
+        setPlaying(false);
+      }
+    } else if (uiState.activeTab === 'animation' && wasPlayingBeforeMapping) {
+      // Resume playback when returning to animation tab
+      setPlaying(true);
+      setWasPlayingBeforeMapping(false);
+    }
+  }, [uiState.activeTab, uiState.isPlaying, wasPlayingBeforeMapping, setPlaying]);
 
   // Handle panel animation states
   useEffect(() => {
@@ -192,10 +213,7 @@ export function GeneratorsPanel() {
           </TabsContent>
 
           <TabsContent value="mapping" className="p-3 space-y-3 mt-0">
-            {/* TODO: Phase 3 - Mapping UI (duplicate from MediaImportPanel) */}
-            <div className="text-xs text-muted-foreground">
-              Mapping settings
-            </div>
+            <GeneratorsMappingTab />
           </TabsContent>
         </ScrollArea>
       </Tabs>
