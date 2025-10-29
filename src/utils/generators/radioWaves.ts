@@ -6,6 +6,7 @@
  */
 
 import type { RadioWavesSettings, GeneratorFrame } from '../../types/generators';
+import { CELL_ASPECT_RATIO } from '../fontMetrics';
 
 /**
  * Generate radio wave animation frames
@@ -57,8 +58,9 @@ export async function generateRadioWaves(
     // Render each pixel
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        // Calculate distance from origin
-        const dx = x - originX;
+        // Calculate distance from origin with aspect ratio correction
+        // Multiply x-distance by aspectRatio to compensate for narrow cells
+        const dx = (x - originX) * CELL_ASPECT_RATIO;
         const dy = y - originY;
         const distance = Math.sqrt(dx * dx + dy * dy);
         

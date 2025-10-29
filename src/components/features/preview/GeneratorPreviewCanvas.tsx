@@ -74,8 +74,17 @@ export function GeneratorPreviewCanvas({
         ) : totalFrames > 0 ? (
           <canvas 
             ref={canvasRef}
-            style={{ imageRendering: 'pixelated' }}
-            className="w-full h-full object-contain"
+            style={{ 
+              imageRendering: 'pixelated',
+              transform: 'scaleX(0.6)', // Match CELL_ASPECT_RATIO to compress width
+              transformOrigin: 'center',
+              backgroundColor: 'black',
+              // Compensate for the scaleX transform by making width larger
+              maxWidth: '166.67%', // 100% / 0.6 to compensate for scaleX
+              maxHeight: '100%',
+              width: 'auto',
+              height: '100%'
+            }}
           />
         ) : (
           <div className="text-xs text-muted-foreground">

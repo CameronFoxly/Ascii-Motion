@@ -19,6 +19,12 @@ export interface SpacingSettings {
 }
 
 /**
+ * Standard monospace aspect ratio (character width / character height)
+ * Used for font metrics and generator aspect ratio corrections
+ */
+export const CELL_ASPECT_RATIO = 0.6;
+
+/**
  * Calculate font metrics for a given font size
  * Monospace fonts typically have an aspect ratio of ~0.6 (width/height)
  * 
@@ -28,7 +34,7 @@ export interface SpacingSettings {
  */
 export const calculateFontMetrics = (fontSize: number, fontStack: string): FontMetrics => {
   // Standard monospace aspect ratio (character width / character height)
-  const MONOSPACE_ASPECT_RATIO = 0.6;
+  const MONOSPACE_ASPECT_RATIO = CELL_ASPECT_RATIO;
   
   // Calculate character dimensions
   const characterHeight = fontSize;

@@ -6,6 +6,7 @@
  */
 
 import type { RainDropsSettings, GeneratorFrame } from '../../types/generators';
+import { CELL_ASPECT_RATIO } from '../fontMetrics';
 
 interface Ripple {
   x: number;
@@ -115,8 +116,8 @@ export async function generateRainDrops(
         for (const ripple of ripples) {
           if (!ripple.active) continue;
           
-          // Calculate distance from ripple center
-          const dx = x - ripple.x;
+          // Calculate distance from ripple center with aspect ratio correction
+          const dx = (x - ripple.x) * CELL_ASPECT_RATIO;
           const dy = y - ripple.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
           

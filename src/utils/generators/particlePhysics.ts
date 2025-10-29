@@ -1,11 +1,12 @@
 /**
  * particlePhysics.ts - Particle Physics generator implementation
  * 
- * Generates particle system with Euler integration, gravity, drag, and bounce physics.
- * Particles spawn from an origin point with configurable velocity and lifespan.
+ * Generates particle system with physics simulation (gravity, velocity, bounce, friction).
+ * Particles emit from configurable origin with randomized velocities.
  */
 
 import type { ParticlePhysicsSettings, GeneratorFrame } from '../../types/generators';
+import { CELL_ASPECT_RATIO } from '../fontMetrics';
 
 interface Particle {
   x: number;
@@ -141,14 +142,16 @@ export async function generateParticlePhysics(
       const lifetimeRatio = particle.age / particle.lifespan;
       const alpha = 1.0 - lifetimeRatio; // Fade out as particle ages
       
-      // Render particle as a filled circle
+      // Render particle as a filled circle with aspect ratio correction
       const px = Math.floor(particle.x);
       const py = Math.floor(particle.y);
       const radius = Math.ceil(particle.size / 2);
       
       for (let dy = -radius; dy <= radius; dy++) {
         for (let dx = -radius; dx <= radius; dx++) {
-          const dist = Math.sqrt(dx * dx + dy * dy);
+          // Apply aspect ratio correction for circular particles
+          const correctedDx = dx * CELL_ASPECT_RATIO;
+          const dist = Math.sqrt(correctedDx * correctedDx + dy * dy);
           if (dist <= radius) {
             const x = px + dx;
             const y = py + dy;
