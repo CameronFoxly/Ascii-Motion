@@ -32,13 +32,13 @@ export async function generateParticlePhysics(
 ): Promise<GeneratorFrame[]> {
   const frames: GeneratorFrame[] = [];
   
-  // Calculate frame timing
+  // Calculate frame timing based on mode
   const actualFrameCount = settings.timingMode === 'frameCount' 
     ? settings.frameCount 
     : frameCount;
   
   const actualFrameDuration = settings.timingMode === 'duration'
-    ? settings.duration / actualFrameCount
+    ? Math.floor(settings.duration / actualFrameCount)
     : frameDuration;
   
   // Initialize seeded random

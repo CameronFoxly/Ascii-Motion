@@ -131,7 +131,7 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
   // Initial state
   isOpen: false,
   activeGenerator: null,
-  outputMode: 'append',  // Default to append mode (matches import store)
+  outputMode: 'overwrite',  // Default to overwrite mode
   uiState: { ...DEFAULT_UI_STATE },
   
   // Default generator settings

@@ -67,7 +67,7 @@ export const DEFAULT_RADIO_WAVES_SETTINGS: RadioWavesSettings = {
   duration: 3000,
   frameRate: 30,
   frameCount: 90,
-  timingMode: 'duration',
+  timingMode: 'frameCount',
   
   // Loop smoothing
   loopSmoothingEnabled: true,
@@ -96,7 +96,7 @@ export const DEFAULT_TURBULENT_NOISE_SETTINGS: TurbulentNoiseSettings = {
   duration: 3000,
   frameRate: 30,
   frameCount: 90,
-  timingMode: 'duration',
+  timingMode: 'frameCount',
   
   // Loop smoothing
   loopSmoothingEnabled: true,
@@ -136,7 +136,7 @@ export const DEFAULT_PARTICLE_PHYSICS_SETTINGS: ParticlePhysicsSettings = {
   duration: 5000,
   frameRate: 30,
   frameCount: 150,
-  timingMode: 'duration',
+  timingMode: 'frameCount',
   
   // Random seed
   seed: Math.floor(Math.random() * 10000)
@@ -166,7 +166,7 @@ export const DEFAULT_RAIN_DROPS_SETTINGS: RainDropsSettings = {
   duration: 4000,
   frameRate: 30,
   frameCount: 120,
-  timingMode: 'duration',
+  timingMode: 'frameCount',
   
   // Loop smoothing
   loopSmoothingEnabled: true,

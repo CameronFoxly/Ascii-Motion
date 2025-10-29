@@ -27,7 +27,7 @@ export async function generateRadioWaves(
     : frameCount;
   
   const actualFrameDuration = settings.timingMode === 'duration'
-    ? settings.duration / actualFrameCount
+    ? Math.floor(settings.duration / actualFrameCount)
     : frameDuration;
   
   // Parse gradient colors
