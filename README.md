@@ -117,7 +117,7 @@ src/
 
 ## 📋 Development Status
 
-This is currently maintained entirely by me, an animator and brand designer with next to no experience with building tools. This has been vibe-coded into existence using GitHub Copilot in VScode, using mostly Claude Sonnet 4, with the occaisional GPT-5 when Claude gets stumped. Please forgive any messy or unusal structure or vibe-code artifacts, I'm trying my best!
+This is currently maintained entirely by me, an animator and brand designer with next to no experience with building tools. This has been vibe-coded into existence using GitHub Copilot in VScode, using mostly Claude Sonnet 4, with the occasional GPT-5 when Claude gets stumped. Please forgive any messy or unusal structure or vibe-code artifacts, I'm trying my best!
 
 Where I'm at with the concept:
 <details>
