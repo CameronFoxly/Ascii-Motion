@@ -32,6 +32,7 @@ import { TurbulentNoiseSettings } from './generators/TurbulentNoiseSettings';
 import { ParticlePhysicsSettings } from './generators/ParticlePhysicsSettings';
 import { RainDropsSettings } from './generators/RainDropsSettings';
 import { GeneratorsMappingTab } from './generators/GeneratorsMappingTab';
+import { useGeneratorPreview } from '../../hooks/useGeneratorPreview';
 
 // Icon mapping for generator headers
 const GENERATOR_ICONS = {
@@ -52,6 +53,7 @@ export function GeneratorsPanel() {
   const { uiState, setActiveTab, outputMode, setOutputMode } = useGeneratorUIState();
   const { isGenerating, totalPreviewFrames, applyGenerator } = useGeneratorsStore();
   const { setPlaying } = useGeneratorsStore();
+  const previewControls = useGeneratorPreview();
 
   const animationDurationMs = useMemo(
     () => parseTailwindDuration(PANEL_ANIMATION.DURATION) ?? 300,
@@ -170,7 +172,7 @@ export function GeneratorsPanel() {
         <ScrollArea className="flex-1">
           <TabsContent value="animation" className="p-3 space-y-4 mt-0">
             {/* Preview Canvas */}
-            <GeneratorPreviewCanvas />
+            <GeneratorPreviewCanvas {...previewControls} />
             
             {/* Generator-Specific Settings */}
             {activeGenerator === 'radio-waves' && <RadioWavesSettings />}

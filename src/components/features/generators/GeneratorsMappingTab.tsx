@@ -9,6 +9,7 @@ import { CharacterMappingSection } from '../CharacterMappingSection';
 import { TextColorMappingSection } from '../TextColorMappingSection';
 import { BackgroundColorMappingSection } from '../BackgroundColorMappingSection';
 import { PanelSeparator } from '../../common/PanelSeparator';
+import { Slider } from '../../ui/slider';
 import { useGeneratorsStore } from '../../../stores/generatorsStore';
 import { useImportStore } from '../../../stores/importStore';
 import { useCharacterPaletteStore } from '../../../stores/characterPaletteStore';
@@ -32,6 +33,11 @@ import { useEffect } from 'react';
 export function GeneratorsMappingTab() {
   const { mappingSettings, updateMappingSettings, markPreviewDirty } = useGeneratorsStore();
   const { updateSettings: updateImportSettings } = useImportStore();
+  const activePalette = useCharacterPaletteStore((state) => state.activePalette);
+  const convertedFrames = useGeneratorsStore((state) => state.convertedFrames);
+  const currentPreviewFrame = useGeneratorsStore((state) => state.uiState.currentPreviewFrame);
+  const setPreviewFrame = useGeneratorsStore((state) => state.setPreviewFrame);
+  const isGenerating = useGeneratorsStore((state) => state.isGenerating);
 
   // On mount, sync FROM generatorsStore TO importStore
   // This allows the mapping sections (which use useImportSettings) to work with generator settings
@@ -78,6 +84,24 @@ export function GeneratorsMappingTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount/unmount - intentionally ignoring dependencies
 
+  // Sync active character palette's characters to mapping settings
+  useEffect(() => {
+    if (activePalette && activePalette.characters.length > 0) {
+      const newCharacterSet = activePalette.characters;
+      
+      console.log('[GeneratorsMappingTab] Active character palette changed:', {
+        paletteId: activePalette.id,
+        paletteName: activePalette.name,
+        characterCount: newCharacterSet.length,
+        characters: newCharacterSet
+      });
+      
+      // Update both stores so they stay in sync
+      updateImportSettings({ characterSet: newCharacterSet });
+      updateMappingSettings({ characterSet: newCharacterSet });
+    }
+  }, [activePalette, updateImportSettings, updateMappingSettings]);
+
   // Handle settings changes from the mapping sections
   const handleSettingsChange = () => {
     // Sync FROM importStore back to generatorsStore
@@ -85,7 +109,10 @@ export function GeneratorsMappingTab() {
     
     console.log('[GeneratorsMappingTab] Settings changed, syncing:', {
       characterSet: importSettings.characterSet,
-      textColorPaletteId: importSettings.textColorPaletteId
+      textColorPaletteId: importSettings.textColorPaletteId,
+      backgroundColorPaletteId: importSettings.backgroundColorPaletteId,
+      enableTextColorMapping: importSettings.enableTextColorMapping,
+      enableBackgroundColorMapping: importSettings.enableBackgroundColorMapping
     });
     
     updateMappingSettings({
@@ -109,6 +136,27 @@ export function GeneratorsMappingTab() {
 
   return (
     <div className="space-y-3">
+      {/* Frame Scrubber - allows previewing different frames while adjusting mapping */}
+      {convertedFrames.length > 0 && (
+        <div className="space-y-2 pb-3 border-b border-border">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-foreground">Preview Frame</span>
+            <span className="text-xs text-muted-foreground">
+              {currentPreviewFrame + 1} / {convertedFrames.length}
+            </span>
+          </div>
+          <Slider
+            value={currentPreviewFrame}
+            onValueChange={(value) => setPreviewFrame(value)}
+            min={0}
+            max={Math.max(0, convertedFrames.length - 1)}
+            step={1}
+            disabled={isGenerating || convertedFrames.length === 0}
+            className="flex-1"
+          />
+        </div>
+      )}
+      
       {/* Character Mapping */}
       <CharacterMappingSection onSettingsChange={handleSettingsChange} />
       

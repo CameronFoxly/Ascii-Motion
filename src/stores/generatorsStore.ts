@@ -33,6 +33,7 @@ import { useToolStore } from './toolStore';
 import { generateFrames } from '../utils/generators/generatorEngine';
 import { ASCIIConverter, type ConversionSettings } from '../utils/asciiConverter';
 import { usePaletteStore } from './paletteStore';
+import { usePreviewStore } from './previewStore';
 // import { cloneFrames } from '../utils/frameUtils'; // TODO: Phase 5 - Use for history
 import type { Frame } from '../types';
 
@@ -52,11 +53,11 @@ const DEFAULT_MAPPING_SETTINGS: GeneratorMappingSettings = {
   
   enableTextColorMapping: true,
   textColorPaletteId: null, // Will be initialized on first open
-  textColorMappingMode: 'closest',
+  textColorMappingMode: 'by-index', // Default to by-index for better gradient mapping
   
   enableBackgroundColorMapping: false,
   backgroundColorPaletteId: null,
-  backgroundColorMappingMode: 'closest'
+  backgroundColorMappingMode: 'by-index' // Default to by-index for better gradient mapping
 };
 
 export interface GeneratorsState {
@@ -189,6 +190,7 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       totalPreviewFrames: 0,
       isPreviewDirty: false
     });
+    usePreviewStore.getState().clearPreview();
     get().clearError();
   },
   
@@ -205,6 +207,20 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
         isPlaying: tab === 'animation' ? state.uiState.isPlaying : false
       }
     }));
+
+    const currentState = get();
+    const previewStore = usePreviewStore.getState();
+
+    if (tab === 'mapping') {
+      const frame = currentState.convertedFrames[currentState.uiState.currentPreviewFrame];
+      if (frame) {
+        previewStore.setPreviewData(frame.data);
+      } else {
+        previewStore.clearPreview();
+      }
+    } else {
+      previewStore.clearPreview();
+    }
   },
   
   // Playback Control Actions
@@ -227,6 +243,17 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
         currentPreviewFrame: clampedIndex
       }
     }));
+
+    const state = get();
+    if (state.uiState.activeTab === 'mapping') {
+      const frame = state.convertedFrames[clampedIndex];
+      const previewStore = usePreviewStore.getState();
+      if (frame) {
+        previewStore.setPreviewData(frame.data);
+      } else {
+        previewStore.clearPreview();
+      }
+    }
   },
   
   // Generator Settings Actions
@@ -332,7 +359,7 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       return;
     }
     
-    set({ isGenerating: true, lastError: null });
+  set({ isGenerating: true, lastError: null, isPreviewDirty: false });
     
     try {
       const canvasWidth = useCanvasStore.getState().width;
@@ -425,11 +452,13 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       
       // Get color palettes for text and background
       const paletteStore = usePaletteStore.getState();
+      // Look in both preset palettes and custom palettes (just like TextColorMappingSection does)
+      const allColorPalettes = [...paletteStore.palettes, ...paletteStore.customPalettes];
       const textColorPalette = state.mappingSettings.textColorPaletteId
-        ? paletteStore.palettes.find(p => p.id === state.mappingSettings.textColorPaletteId)
+        ? allColorPalettes.find(p => p.id === state.mappingSettings.textColorPaletteId)
         : null;
       const backgroundColorPalette = state.mappingSettings.backgroundColorPaletteId
-        ? paletteStore.palettes.find(p => p.id === state.mappingSettings.backgroundColorPaletteId)
+        ? allColorPalettes.find(p => p.id === state.mappingSettings.backgroundColorPaletteId)
         : null;
       
       // Extract hex color strings from palette colors
@@ -441,7 +470,14 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
         characterSet,
         enableTextColorMapping: state.mappingSettings.enableTextColorMapping,
         textColorPaletteId: state.mappingSettings.textColorPaletteId,
-        textColorsCount: textColors.length
+        textColorPaletteName: textColorPalette?.name,
+        textColorsCount: textColors.length,
+        textColors: textColors.slice(0, 5), // First 5 colors
+        enableBackgroundColorMapping: state.mappingSettings.enableBackgroundColorMapping,
+        backgroundColorPaletteId: state.mappingSettings.backgroundColorPaletteId,
+        backgroundColorPaletteName: backgroundColorPalette?.name,
+        bgColorsCount: bgColors.length,
+        bgColors: bgColors.slice(0, 5) // First 5 colors
       });
       
       // Build conversion settings from mapping settings
@@ -520,17 +556,41 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       const cellCount = sampleFrame ? sampleFrame.data.size : 0;
       console.log(`[Generators] Converted ${convertedFrames.length} frames to ASCII (sample frame has ${cellCount} cells)`);
       
-      set({
-        previewFrames: result.frames,
-        convertedFrames,
-        totalPreviewFrames: result.frameCount,
-        isPreviewDirty: false,
-        isGenerating: false,
-        uiState: {
-          ...get().uiState,
-          currentPreviewFrame: 0
-        }
+
+      let hadPendingDirtyChanges = false;
+      set((state) => {
+        hadPendingDirtyChanges = state.isPreviewDirty;
+        return {
+          previewFrames: result.frames,
+          convertedFrames,
+          totalPreviewFrames: result.frameCount,
+          isPreviewDirty: false,
+          isGenerating: false,
+          uiState: {
+            ...state.uiState,
+            currentPreviewFrame: 0
+          }
+        };
       });
+
+      if (hadPendingDirtyChanges) {
+        // Schedule another regeneration immediately to process pending mapping changes
+        setTimeout(() => {
+          const { regeneratePreview: rerunPreview } = useGeneratorsStore.getState();
+          rerunPreview();
+        }, 0);
+      }
+
+      const updatedState = get();
+      if (updatedState.uiState.activeTab === 'mapping') {
+        const frame = updatedState.convertedFrames[updatedState.uiState.currentPreviewFrame];
+        const previewStore = usePreviewStore.getState();
+        if (frame) {
+          previewStore.setPreviewData(frame.data);
+        } else {
+          previewStore.clearPreview();
+        }
+      }
       
     } catch (error) {
       console.error('[Generators] Preview generation failed:', error);
@@ -547,13 +607,36 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
   
   // Apply to Canvas Actions
   applyGenerator: async () => {
+    const state = get();
     const { 
       activeGenerator, 
       convertedFrames, 
-      outputMode
-    } = get();
+      outputMode,
+      isPreviewDirty
+    } = state;
     
-    if (!activeGenerator || convertedFrames.length === 0) {
+    if (!activeGenerator) {
+      set({ lastError: 'No active generator' });
+      return false;
+    }
+    
+    // If preview is dirty (mapping settings changed), regenerate before applying
+    if (isPreviewDirty) {
+      console.log('[Generators] Preview is dirty, regenerating before apply...');
+      await state.regeneratePreview();
+      
+      // Get updated frames after regeneration
+      const updatedState = get();
+      if (updatedState.convertedFrames.length === 0) {
+        set({ lastError: 'No frames to apply after regeneration' });
+        return false;
+      }
+    }
+    
+    // Use the latest converted frames
+    const framesToApply = get().convertedFrames;
+    
+    if (framesToApply.length === 0) {
       set({ lastError: 'No frames to apply' });
       return false;
     }
@@ -570,7 +653,7 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       const previousCurrentFrame = currentFrameIndex;
       
       // Prepare frame data for import
-      const frameData = convertedFrames.map(frame => ({
+      const frameData = framesToApply.map(frame => ({
         data: frame.data,
         duration: frame.duration
       }));

@@ -14,20 +14,27 @@ import { Play, Pause } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { Slider } from '../../ui/slider';
 import { Spinner } from '../../common/Spinner';
-import { useGeneratorPreview } from '../../../hooks/useGeneratorPreview';
 import { useGeneratorsStore } from '../../../stores/generatorsStore';
 
-export function GeneratorPreviewCanvas() {
+interface GeneratorPreviewCanvasProps {
+  isPlaying: boolean;
+  currentFrame: number;
+  totalFrames: number;
+  togglePlayback: () => void;
+  scrubToFrame: (frameIndex: number) => void;
+  canPlay: boolean;
+}
+
+export function GeneratorPreviewCanvas({
+  isPlaying,
+  currentFrame,
+  totalFrames,
+  togglePlayback,
+  scrubToFrame,
+  canPlay
+}: GeneratorPreviewCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { isGenerating, previewFrames } = useGeneratorsStore();
-  const { 
-    isPlaying, 
-    currentFrame, 
-    totalFrames, 
-    togglePlayback, 
-    scrubToFrame,
-    canPlay 
-  } = useGeneratorPreview();
 
   // Render current preview frame to canvas
   useEffect(() => {
