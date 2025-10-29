@@ -341,18 +341,11 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
   
   // Mapping Settings Actions
   updateMappingSettings: (settings: Partial<GeneratorMappingSettings>) => {
-    console.log('[Generators] updateMappingSettings called with:', settings);
     set(state => {
       const newSettings = {
         ...state.mappingSettings,
         ...settings
       };
-      console.log('[Generators] Updated mapping settings:', {
-        characterSet: newSettings.characterSet,
-        enableCharacterMapping: newSettings.enableCharacterMapping,
-        textColorPaletteId: newSettings.textColorPaletteId,
-        enableTextColorMapping: newSettings.enableTextColorMapping
-      });
       return {
         mappingSettings: newSettings,
         isPreviewDirty: true // Mark dirty so preview regenerates with new mapping
@@ -365,10 +358,7 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
     const state = get();
     const { activeGenerator, isGenerating } = state;
     
-    console.log('[Generators] regeneratePreview called', { activeGenerator, isGenerating });
-    
     if (!activeGenerator || isGenerating) {
-      console.log('[Generators] Skipping regeneration:', !activeGenerator ? 'no active generator' : 'already generating');
       return;
     }
     
@@ -377,8 +367,6 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
     try {
       const canvasWidth = useCanvasStore.getState().width;
       const canvasHeight = useCanvasStore.getState().height;
-      
-      console.log('[Generators] Canvas dimensions:', { canvasWidth, canvasHeight });
       
       // Get generator-specific settings
       let settings: GeneratorSettings;
@@ -418,16 +406,6 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       // Calculate frame duration from frame rate
       const frameDuration = Math.floor(1000 / frameRate);
       
-      console.log('[Generators] Starting generation:', { 
-        generator: activeGenerator, 
-        frameCount, 
-        frameRate, 
-        frameDuration,
-        seed,
-        canvasWidth,
-        canvasHeight
-      });
-      
       // Generate frames using the generator engine
       const result = await generateFrames(
         activeGenerator,
@@ -444,15 +422,12 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
         throw new Error(result.error || 'Frame generation failed');
       }
       
-      console.log(`[Generators] Generated ${result.frameCount} frames in ${result.processingTime.toFixed(2)}ms`);
-      
       // Convert RGBA frames to ASCII using mapping settings
       const converter = new ASCIIConverter();
       const convertedFrames: Frame[] = [];
       
       // Get character set from mapping settings and create a temporary palette
       const characterSet = state.mappingSettings.characterSet;
-      console.log('[Generators] Using character set for conversion:', characterSet);
       
       const tempCharacterPalette: import('../types/palette').CharacterPalette = {
         id: 'temp-generator-palette',
@@ -477,21 +452,6 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       // Extract hex color strings from palette colors
       const textColors = textColorPalette?.colors.map(c => c.value) || [];
       const bgColors = backgroundColorPalette?.colors.map(c => c.value) || [];
-      
-      console.log('[Generators] Conversion settings:', {
-        enableCharacterMapping: state.mappingSettings.enableCharacterMapping,
-        characterSet,
-        enableTextColorMapping: state.mappingSettings.enableTextColorMapping,
-        textColorPaletteId: state.mappingSettings.textColorPaletteId,
-        textColorPaletteName: textColorPalette?.name,
-        textColorsCount: textColors.length,
-        textColors: textColors.slice(0, 5), // First 5 colors
-        enableBackgroundColorMapping: state.mappingSettings.enableBackgroundColorMapping,
-        backgroundColorPaletteId: state.mappingSettings.backgroundColorPaletteId,
-        backgroundColorPaletteName: backgroundColorPalette?.name,
-        bgColorsCount: bgColors.length,
-        bgColors: bgColors.slice(0, 5) // First 5 colors
-      });
       
       // Build conversion settings from mapping settings
       const conversionSettings: ConversionSettings = {
@@ -563,12 +523,6 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
           data: conversionResult.cells
         });
       }
-      
-      // Log conversion details
-      const sampleFrame = convertedFrames[0];
-      const cellCount = sampleFrame ? sampleFrame.data.size : 0;
-      console.log(`[Generators] Converted ${convertedFrames.length} frames to ASCII (sample frame has ${cellCount} cells)`);
-      
 
       let hadPendingDirtyChanges = false;
       set((state) => {
@@ -637,7 +591,6 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
     
     // If preview is dirty (mapping settings changed), regenerate before applying
     if (isPreviewDirty) {
-      console.log('[Generators] Preview is dirty, regenerating before apply...');
       await state.regeneratePreview();
       
       // Get updated frames after regeneration
@@ -705,12 +658,7 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       const currentFrame = useAnimationStore.getState().frames[newCurrentFrame];
       if (currentFrame) {
         useCanvasStore.getState().setCanvasData(currentFrame.data);
-        console.log(`[Generators] Synced canvas with frame ${newCurrentFrame} (${currentFrame.data.size} cells)`);
-      } else {
-        console.warn(`[Generators] Could not sync canvas - frame ${newCurrentFrame} not found`);
       }
-      
-      console.log(`[Generators] Applied ${convertedFrames.length} frames in ${outputMode} mode`);
       
       // Close panel on success
       get().closeGenerator();

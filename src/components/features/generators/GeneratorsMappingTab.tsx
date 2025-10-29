@@ -42,7 +42,6 @@ export function GeneratorsMappingTab() {
   // On mount, sync FROM generatorsStore TO importStore
   // This allows the mapping sections (which use useImportSettings) to work with generator settings
   useEffect(() => {
-    console.log('[GeneratorsMappingTab] Syncing TO importStore:', mappingSettings);
     updateImportSettings({
       enableCharacterMapping: mappingSettings.enableCharacterMapping,
       characterSet: mappingSettings.characterSet,
@@ -61,10 +60,6 @@ export function GeneratorsMappingTab() {
     // On unmount, sync back FROM importStore TO generatorsStore
     return () => {
       const importSettings = useImportStore.getState().settings;
-      console.log('[GeneratorsMappingTab] Syncing FROM importStore on unmount:', {
-        characterSet: importSettings.characterSet,
-        textColorPaletteId: importSettings.textColorPaletteId
-      });
       updateMappingSettings({
         enableCharacterMapping: importSettings.enableCharacterMapping,
         characterSet: importSettings.characterSet,
@@ -89,13 +84,6 @@ export function GeneratorsMappingTab() {
     if (activePalette && activePalette.characters.length > 0) {
       const newCharacterSet = activePalette.characters;
       
-      console.log('[GeneratorsMappingTab] Active character palette changed:', {
-        paletteId: activePalette.id,
-        paletteName: activePalette.name,
-        characterCount: newCharacterSet.length,
-        characters: newCharacterSet
-      });
-      
       // Update both stores so they stay in sync
       updateImportSettings({ characterSet: newCharacterSet });
       updateMappingSettings({ characterSet: newCharacterSet });
@@ -106,14 +94,6 @@ export function GeneratorsMappingTab() {
   const handleSettingsChange = () => {
     // Sync FROM importStore back to generatorsStore
     const importSettings = useImportStore.getState().settings;
-    
-    console.log('[GeneratorsMappingTab] Settings changed, syncing:', {
-      characterSet: importSettings.characterSet,
-      textColorPaletteId: importSettings.textColorPaletteId,
-      backgroundColorPaletteId: importSettings.backgroundColorPaletteId,
-      enableTextColorMapping: importSettings.enableTextColorMapping,
-      enableBackgroundColorMapping: importSettings.enableBackgroundColorMapping
-    });
     
     updateMappingSettings({
       enableCharacterMapping: importSettings.enableCharacterMapping,
