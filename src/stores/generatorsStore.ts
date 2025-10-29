@@ -171,7 +171,7 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       activeGenerator: id,
       uiState: { 
         ...DEFAULT_UI_STATE,
-        isPlaying: true  // Auto-play on open
+        isPlaying: false  // Start paused for canvas preview tuning
       },
       isPreviewDirty: true
     });
@@ -202,25 +202,23 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
     set(state => ({
       uiState: {
         ...state.uiState,
-        activeTab: tab,
-        // Pause playback when entering mapping tab
-        isPlaying: tab === 'animation' ? state.uiState.isPlaying : false
+        activeTab: tab
       }
     }));
 
     const currentState = get();
     const previewStore = usePreviewStore.getState();
 
-    if (tab === 'mapping') {
+    // Update canvas preview with current frame when not playing
+    if (!currentState.uiState.isPlaying) {
       const frame = currentState.convertedFrames[currentState.uiState.currentPreviewFrame];
       if (frame) {
         previewStore.setPreviewData(frame.data);
       } else {
         previewStore.clearPreview();
       }
-    } else {
-      previewStore.clearPreview();
     }
+    // When playing, keep the last frame visible (don't clear on tab switch)
   },
   
   // Playback Control Actions
@@ -231,6 +229,19 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
         isPlaying: playing
       }
     }));
+
+    const currentState = get();
+    const previewStore = usePreviewStore.getState();
+
+    if (!playing) {
+      // When pausing, sync canvas with current frame for live preview
+      const frame = currentState.convertedFrames[currentState.uiState.currentPreviewFrame];
+      if (frame) {
+        previewStore.setPreviewData(frame.data);
+      }
+    }
+    // When playing, keep the last frame visible (don't clear canvas)
+    // This avoids blank canvas while still preventing updates during playback
   },
   
   setPreviewFrame: (frameIndex: number) => {
@@ -245,9 +256,11 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
     }));
 
     const state = get();
-    if (state.uiState.activeTab === 'mapping') {
+    const previewStore = usePreviewStore.getState();
+    
+    // Update canvas preview when not playing
+    if (!state.uiState.isPlaying) {
       const frame = state.convertedFrames[clampedIndex];
-      const previewStore = usePreviewStore.getState();
       if (frame) {
         previewStore.setPreviewData(frame.data);
       } else {
@@ -582,9 +595,11 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       }
 
       const updatedState = get();
-      if (updatedState.uiState.activeTab === 'mapping') {
+      const previewStore = usePreviewStore.getState();
+      
+      // Sync canvas with first frame when not playing (for live preview)
+      if (!updatedState.uiState.isPlaying) {
         const frame = updatedState.convertedFrames[updatedState.uiState.currentPreviewFrame];
-        const previewStore = usePreviewStore.getState();
         if (frame) {
           previewStore.setPreviewData(frame.data);
         } else {

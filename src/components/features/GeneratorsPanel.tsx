@@ -52,7 +52,6 @@ export function GeneratorsPanel() {
   const { isOpen, activeGenerator, closeGenerator } = useGeneratorPanel();
   const { uiState, setActiveTab, outputMode, setOutputMode } = useGeneratorUIState();
   const { isGenerating, totalPreviewFrames, applyGenerator } = useGeneratorsStore();
-  const { setPlaying } = useGeneratorsStore();
   const previewControls = useGeneratorPreview();
 
   const animationDurationMs = useMemo(
@@ -63,25 +62,6 @@ export function GeneratorsPanel() {
   // Animation state to handle transitions properly (from EffectsPanel pattern)
   const [shouldRender, setShouldRender] = useState(isOpen);
   const [isAnimating, setIsAnimating] = useState(isOpen);
-  
-  // Track previous playing state for resuming after mapping tab
-  const [wasPlayingBeforeMapping, setWasPlayingBeforeMapping] = useState(false);
-
-  // Handle tab changes - pause playback when entering mapping tab
-  useEffect(() => {
-    if (uiState.activeTab === 'mapping') {
-      // Save current playing state
-      setWasPlayingBeforeMapping(uiState.isPlaying);
-      // Pause playback
-      if (uiState.isPlaying) {
-        setPlaying(false);
-      }
-    } else if (uiState.activeTab === 'animation' && wasPlayingBeforeMapping) {
-      // Resume playback when returning to animation tab
-      setPlaying(true);
-      setWasPlayingBeforeMapping(false);
-    }
-  }, [uiState.activeTab, uiState.isPlaying, wasPlayingBeforeMapping, setPlaying]);
 
   // Handle panel animation states
   useEffect(() => {
