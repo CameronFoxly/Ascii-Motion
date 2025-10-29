@@ -166,6 +166,25 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       });
     }
     
+    // Get current canvas dimensions to center origin points
+    const canvasWidth = useCanvasStore.getState().width;
+    const canvasHeight = useCanvasStore.getState().height;
+    const centerX = Math.floor(canvasWidth / 2);
+    const centerY = Math.floor(canvasHeight / 2);
+    
+    // Update origin settings for generators that have origin points
+    if (id === 'radio-waves') {
+      get().updateRadioWavesSettings({
+        originX: centerX,
+        originY: centerY
+      });
+    } else if (id === 'particle-physics') {
+      get().updateParticlePhysicsSettings({
+        originX: centerX,
+        originY: centerY
+      });
+    }
+    
     set({ 
       isOpen: true, 
       activeGenerator: id,

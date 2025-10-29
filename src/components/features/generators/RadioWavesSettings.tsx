@@ -7,12 +7,21 @@ import { Input } from '../../ui/input';
 import { Button } from '../../ui/button';
 import { Slider } from '../../ui/slider';
 import { Checkbox } from '../../ui/checkbox';
-import { Dice5 } from 'lucide-react';
+import { Dice5, RotateCcw } from 'lucide-react';
 import { useGeneratorsStore } from '../../../stores/generatorsStore';
 import { useCanvasStore } from '../../../stores/canvasStore';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../ui/collapsible';
 import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
+import { DEFAULT_RADIO_WAVES_SETTINGS } from '../../../constants/generators';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../ui/select';
+import type { WaveShape, ProfileShape } from '../../../types/generators';
 
 export function RadioWavesSettings() {
   const { radioWavesSettings, updateRadioWavesSettings } = useGeneratorsStore();
@@ -26,8 +35,29 @@ export function RadioWavesSettings() {
     });
   };
 
+  const handleResetToDefaults = () => {
+    // Reset to defaults but preserve canvas-center origin
+    updateRadioWavesSettings({
+      ...DEFAULT_RADIO_WAVES_SETTINGS,
+      originX: Math.floor(canvasWidth / 2),
+      originY: Math.floor(canvasHeight / 2),
+      seed: Math.floor(Math.random() * 10000) // Keep seed random
+    });
+  };
+
   return (
     <div className="space-y-4">
+      {/* Reset to Defaults Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleResetToDefaults}
+        className="w-full h-8 text-xs"
+      >
+        <RotateCcw className="w-3 h-3 mr-2" />
+        Reset to Defaults
+      </Button>
+
       {/* Origin Point */}
       <div className="space-y-3">
         <Label className="text-xs font-semibold">Wave Origin</Label>
@@ -84,17 +114,71 @@ export function RadioWavesSettings() {
         
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-xs text-muted-foreground">Line Thickness</Label>
-            <span className="text-xs tabular-nums">{radioWavesSettings.lineThickness}</span>
+            <Label className="text-xs text-muted-foreground">Start Thickness</Label>
+            <span className="text-xs tabular-nums">{radioWavesSettings.startThickness}</span>
           </div>
           <Slider
-            value={radioWavesSettings.lineThickness}
-            onValueChange={(value) => updateRadioWavesSettings({ lineThickness: value })}
+            value={radioWavesSettings.startThickness}
+            onValueChange={(value) => updateRadioWavesSettings({ startThickness: value })}
             min={1}
-            max={5}
+            max={10}
             step={1}
             className="w-full"
           />
+        </div>
+        
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground">End Thickness</Label>
+            <span className="text-xs tabular-nums">{radioWavesSettings.endThickness}</span>
+          </div>
+          <Slider
+            value={radioWavesSettings.endThickness}
+            onValueChange={(value) => updateRadioWavesSettings({ endThickness: value })}
+            min={1}
+            max={10}
+            step={1}
+            className="w-full"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Wave Shape</Label>
+          <Select
+            value={radioWavesSettings.waveShape}
+            onValueChange={(value: WaveShape) => updateRadioWavesSettings({ waveShape: value })}
+          >
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="circle">Circle</SelectItem>
+              <SelectItem value="square">Square</SelectItem>
+              <SelectItem value="triangle">Triangle</SelectItem>
+              <SelectItem value="pentagon">Pentagon</SelectItem>
+              <SelectItem value="hexagon">Hexagon</SelectItem>
+              <SelectItem value="octagon">Octagon</SelectItem>
+              <SelectItem value="star">Star</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Profile Shape</Label>
+          <Select
+            value={radioWavesSettings.profileShape}
+            onValueChange={(value: ProfileShape) => updateRadioWavesSettings({ profileShape: value })}
+          >
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="solid">Solid</SelectItem>
+              <SelectItem value="fade-out">Fade Out</SelectItem>
+              <SelectItem value="fade-in">Fade In</SelectItem>
+              <SelectItem value="fade-in-out">Fade In and Out</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         
         <div className="space-y-2">
@@ -105,79 +189,82 @@ export function RadioWavesSettings() {
           <Slider
             value={radioWavesSettings.propagationSpeed}
             onValueChange={(value) => updateRadioWavesSettings({ propagationSpeed: value })}
-            min={0.5}
-            max={5.0}
+            min={-2.0}
+            max={2.0}
             step={0.1}
             className="w-full"
           />
         </div>
+        
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground">Wave Lifetime</Label>
+            <span className="text-xs tabular-nums">{(radioWavesSettings.lifetime * 100).toFixed(0)}%</span>
+          </div>
+          <Slider
+            value={radioWavesSettings.lifetime}
+            onValueChange={(value) => updateRadioWavesSettings({ lifetime: value })}
+            min={0.1}
+            max={1.0}
+            step={0.05}
+            className="w-full"
+          />
+        </div>
+        
+        {/* Rotation Controls - Only show for non-circle shapes */}
+        {radioWavesSettings.waveShape !== 'circle' && (
+          <>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Start Rotation</Label>
+                <span className="text-xs tabular-nums">{radioWavesSettings.startRotation}°</span>
+              </div>
+              <Slider
+                value={radioWavesSettings.startRotation}
+                onValueChange={(value) => updateRadioWavesSettings({ startRotation: value })}
+                min={0}
+                max={360}
+                step={1}
+                className="w-full"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">End Rotation</Label>
+                <span className="text-xs tabular-nums">{radioWavesSettings.endRotation}°</span>
+              </div>
+              <Slider
+                value={radioWavesSettings.endRotation}
+                onValueChange={(value) => updateRadioWavesSettings({ endRotation: value })}
+                min={0}
+                max={360}
+                step={1}
+                className="w-full"
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Visual Effects */}
       <div className="space-y-3">
         <Label className="text-xs font-semibold">Visual Effects</Label>
         
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="amplitudeDecay"
-            checked={radioWavesSettings.amplitudeDecay}
-            onCheckedChange={(checked) => updateRadioWavesSettings({ amplitudeDecay: checked as boolean })}
-          />
-          <Label htmlFor="amplitudeDecay" className="text-xs cursor-pointer">
-            Amplitude Decay
-          </Label>
-        </div>
-        
-        {radioWavesSettings.amplitudeDecay && (
-          <div className="space-y-2 pl-6">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs text-muted-foreground">Decay Rate</Label>
-              <span className="text-xs tabular-nums">{radioWavesSettings.decayRate.toFixed(2)}</span>
-            </div>
-            <Slider
-              value={radioWavesSettings.decayRate}
-              onValueChange={(value) => updateRadioWavesSettings({ decayRate: value })}
-              min={0.0}
-              max={1.0}
-              step={0.05}
-              className="w-full"
-            />
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs">Amplitude Decay</Label>
+            <span className="text-xs tabular-nums">{radioWavesSettings.decayRate.toFixed(2)}</span>
           </div>
-        )}
-        
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="useGradient"
-            checked={radioWavesSettings.useGradient}
-            onCheckedChange={(checked) => updateRadioWavesSettings({ useGradient: checked as boolean })}
+          <Slider
+            value={radioWavesSettings.decayRate}
+            onValueChange={(value) => updateRadioWavesSettings({ decayRate: value })}
+            min={0.0}
+            max={5.0}
+            step={0.1}
+            className="w-full"
           />
-          <Label htmlFor="useGradient" className="text-xs cursor-pointer">
-            Color Gradient
-          </Label>
         </div>
-        
-        {radioWavesSettings.useGradient && (
-          <div className="grid grid-cols-2 gap-2 pl-6">
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Start Color</Label>
-              <Input
-                type="color"
-                value={radioWavesSettings.gradientStartColor}
-                onChange={(e) => updateRadioWavesSettings({ gradientStartColor: e.target.value })}
-                className="h-8 w-full"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">End Color</Label>
-              <Input
-                type="color"
-                value={radioWavesSettings.gradientEndColor}
-                onChange={(e) => updateRadioWavesSettings({ gradientEndColor: e.target.value })}
-                className="h-8 w-full"
-              />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Animation Settings */}

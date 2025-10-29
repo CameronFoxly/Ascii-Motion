@@ -10,6 +10,12 @@ export type GeneratorId = 'radio-waves' | 'turbulent-noise' | 'particle-physics'
 // Noise type options for turbulent noise generator
 export type NoiseType = 'perlin' | 'simplex' | 'worley';
 
+// Wave shape options for radio waves generator
+export type WaveShape = 'circle' | 'square' | 'triangle' | 'pentagon' | 'hexagon' | 'octagon' | 'star';
+
+// Profile shape options for radio waves generator
+export type ProfileShape = 'solid' | 'fade-out' | 'fade-in' | 'fade-in-out';
+
 // Scatter pattern options (if needed for visual variety)
 export type ScatterType = 'noise' | 'bayer-2x2' | 'bayer-4x4' | 'gaussian';
 
@@ -25,15 +31,19 @@ export interface RadioWavesSettings {
   
   // Wave properties
   frequency: number;        // 0.1 - 5.0 waves per second
-  lineThickness: number;    // 1 - 5 pixel radius
-  propagationSpeed: number; // 0.5 - 5.0 characters per frame
+  startThickness: number;   // 1 - 10 pixel radius at origin
+  endThickness: number;     // 1 - 10 pixel radius at max distance
+  propagationSpeed: number; // -2.0 - 2.0 characters per frame
+  lifetime: number;         // 0.1 - 1.0 (fraction of max distance before wave fades out)
+  waveShape: WaveShape;     // Shape of the wave propagation
+  profileShape: ProfileShape; // Intensity profile of the wave
+  
+  // Rotation (for non-circle shapes)
+  startRotation: number;    // 0 - 360 degrees (rotation at origin)
+  endRotation: number;      // 0 - 360 degrees (rotation at max distance)
   
   // Visual properties
-  amplitudeDecay: boolean;
-  decayRate: number;        // 0.0 - 1.0 (only relevant if amplitudeDecay enabled)
-  useGradient: boolean;
-  gradientStartColor: string; // Hex color
-  gradientEndColor: string;   // Hex color
+  decayRate: number;        // 0.0 - 5.0 (0 = no decay, higher = faster decay)
   
   // Timing
   duration: number;         // milliseconds

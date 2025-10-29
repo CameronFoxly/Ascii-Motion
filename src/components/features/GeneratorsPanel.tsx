@@ -151,8 +151,10 @@ export function GeneratorsPanel() {
 
         <ScrollArea className="flex-1">
           <TabsContent value="animation" className="p-3 space-y-4 mt-0">
-            {/* Preview Canvas */}
-            <GeneratorPreviewCanvas {...previewControls} />
+            {/* Preview Canvas - Sticky */}
+            <div className="sticky top-0 z-10 bg-background pb-3">
+              <GeneratorPreviewCanvas {...previewControls} />
+            </div>
             
             {/* Generator-Specific Settings */}
             {activeGenerator === 'radio-waves' && <RadioWavesSettings />}

@@ -47,21 +47,25 @@ export const GENERATOR_DEFINITIONS: GeneratorDefinition[] = [
 // Default generator settings
 
 export const DEFAULT_RADIO_WAVES_SETTINGS: RadioWavesSettings = {
-  // Origin point (center of default 80x24 canvas)
+  // Origin point (center of default 80x24 canvas - will be updated dynamically)
   originX: 40,
   originY: 12,
   
   // Wave properties
   frequency: 1.0,           // 1 wave per second
-  lineThickness: 2,         // 2 pixel radius
-  propagationSpeed: 2.0,    // 2 characters per frame
+  startThickness: 2,        // 2 pixel radius at origin
+  endThickness: 2,          // 2 pixel radius at max distance
+  propagationSpeed: 0.3,    // -2.0 to 2.0 range
+  lifetime: 1.0,            // 0.1 to 1.0 (full distance by default)
+  waveShape: 'circle',      // Default to circular waves
+  profileShape: 'solid',    // Default to solid intensity profile
+  
+  // Rotation
+  startRotation: 0,         // No rotation at origin
+  endRotation: 0,           // No rotation at max distance
   
   // Visual properties
-  amplitudeDecay: true,
-  decayRate: 0.5,
-  useGradient: false,
-  gradientStartColor: '#ffffff',
-  gradientEndColor: '#000000',
+  decayRate: 0,             // 0-5 range (0 = no decay)
   
   // Timing (default: 3 seconds at 30fps = 90 frames)
   duration: 3000,
