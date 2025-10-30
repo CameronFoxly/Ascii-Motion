@@ -91,13 +91,23 @@ export function ParticlePhysicsSettings() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label className="text-xs text-muted-foreground">X Position</Label>
-            <span className="text-xs tabular-nums">{particlePhysicsSettings.originX}</span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={() => updateParticlePhysicsSettings({ originX: Math.floor(canvasWidth / 2) })}
+              >
+                Center
+              </Button>
+              <span className="text-xs tabular-nums">{particlePhysicsSettings.originX}</span>
+            </div>
           </div>
           <Slider
             value={particlePhysicsSettings.originX}
             onValueChange={(value) => updateParticlePhysicsSettings({ originX: value })}
-            min={0}
-            max={canvasWidth}
+            min={-canvasWidth}
+            max={canvasWidth * 2}
             step={1}
             className="w-full"
           />
@@ -106,13 +116,23 @@ export function ParticlePhysicsSettings() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label className="text-xs text-muted-foreground">Y Position</Label>
-            <span className="text-xs tabular-nums">{particlePhysicsSettings.originY}</span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={() => updateParticlePhysicsSettings({ originY: Math.floor(canvasHeight / 2) })}
+              >
+                Center
+              </Button>
+              <span className="text-xs tabular-nums">{particlePhysicsSettings.originY}</span>
+            </div>
           </div>
           <Slider
             value={particlePhysicsSettings.originY}
             onValueChange={(value) => updateParticlePhysicsSettings({ originY: value })}
-            min={0}
-            max={canvasHeight}
+            min={-canvasHeight}
+            max={canvasHeight * 2}
             step={1}
             className="w-full"
           />
@@ -323,7 +343,7 @@ export function ParticlePhysicsSettings() {
           <Slider
             value={particlePhysicsSettings.velocityMagnitude}
             onValueChange={(value) => updateParticlePhysicsSettings({ velocityMagnitude: value })}
-            min={0.1}
+            min={0.0}
             max={10.0}
             step={0.1}
             className="w-full"
@@ -512,6 +532,21 @@ export function ParticlePhysicsSettings() {
               <Slider
                 value={particlePhysicsSettings.bounciness}
                 onValueChange={(value) => updateParticlePhysicsSettings({ bounciness: value })}
+                min={0.0}
+                max={1.0}
+                step={0.05}
+                className="w-full"
+              />
+            </div>
+            
+            <div className="space-y-2 pl-6">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Bounciness Randomness</Label>
+                <span className="text-xs tabular-nums">{Math.round(particlePhysicsSettings.bouncinessRandomness * 100)}%</span>
+              </div>
+              <Slider
+                value={particlePhysicsSettings.bouncinessRandomness}
+                onValueChange={(value) => updateParticlePhysicsSettings({ bouncinessRandomness: value })}
                 min={0.0}
                 max={1.0}
                 step={0.05}

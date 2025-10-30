@@ -81,6 +81,8 @@ interface Particle {
   active: boolean;
   shape: 'circle' | 'square' | 'cloudlet';
   cloudletOffsets?: { x: number; y: number }[]; // For cloudlet shape
+  hasEnteredCanvas: boolean; // Track if particle has been inside canvas bounds
+  bounciness: number; // Per-particle bounciness value
 }
 
 /**
@@ -247,7 +249,9 @@ export async function generateParticlePhysics(
       lifespan: settings.lifespan,
       active: false,
       shape: settings.particleShape,
-      cloudletOffsets
+      cloudletOffsets,
+      hasEnteredCanvas: false,
+      bounciness: settings.bounciness
     });
   }
   
@@ -277,6 +281,7 @@ export async function generateParticlePhysics(
         particle.x = spawnPos.x;
         particle.y = spawnPos.y;
         particle.age = 0;
+        particle.hasEnteredCanvas = false; // Reset canvas entry tracking for new spawn
       
       // Calculate velocity with angle randomness
       const angleRad = (settings.velocityAngle * Math.PI) / 180;
@@ -304,6 +309,14 @@ export async function generateParticlePhysics(
         particle.lifespan = Math.max(1, Math.floor(settings.lifespan * variation));
       } else {
         particle.lifespan = settings.lifespan;
+      }
+
+      // Randomize bounciness if enabled
+      if (settings.bouncinessRandomness > 0) {
+        const variation = 1.0 + (seededRandom() - 0.5) * 2 * settings.bouncinessRandomness;
+        particle.bounciness = Math.max(0, Math.min(1, settings.bounciness * variation));
+      } else {
+        particle.bounciness = settings.bounciness;
       }
       }
     }
@@ -339,22 +352,34 @@ export async function generateParticlePhysics(
       particle.x += particle.vx;
       particle.y += particle.vy;
       
+      // Check if particle is inside canvas bounds
+      const isInsideCanvas = particle.x >= 0 && particle.x < width && particle.y >= 0 && particle.y < height;
+      
+      // Track if particle has entered canvas (once true, always true)
+      if (isInsideCanvas && !particle.hasEnteredCanvas) {
+        particle.hasEnteredCanvas = true;
+      }
+      
       // Handle edge behavior
       if (settings.edgeBounce) {
-        // Bounce off edges with friction and bounciness
-        if (particle.x < 0 || particle.x >= width) {
-          particle.vx *= -settings.bounciness;
-          particle.vy *= (1.0 - settings.edgeFriction);
-          particle.x = Math.max(0, Math.min(width - 1, particle.x));
-        }
-        if (particle.y < 0 || particle.y >= height) {
-          particle.vy *= -settings.bounciness;
-          particle.vx *= (1.0 - settings.edgeFriction);
-          particle.y = Math.max(0, Math.min(height - 1, particle.y));
+        // Only bounce if particle has entered canvas at least once
+        // This allows particles spawned off-canvas to enter without bouncing
+        if (particle.hasEnteredCanvas) {
+          // Bounce off edges with friction and per-particle bounciness
+          if (particle.x < 0 || particle.x >= width) {
+            particle.vx *= -particle.bounciness;
+            particle.vy *= (1.0 - settings.edgeFriction);
+            particle.x = Math.max(0, Math.min(width - 1, particle.x));
+          }
+          if (particle.y < 0 || particle.y >= height) {
+            particle.vy *= -particle.bounciness;
+            particle.vx *= (1.0 - settings.edgeFriction);
+            particle.y = Math.max(0, Math.min(height - 1, particle.y));
+          }
         }
       } else {
-        // Particles leave canvas when they reach the edge
-        if (particle.x < 0 || particle.x >= width || particle.y < 0 || particle.y >= height) {
+        // Particles leave canvas when they reach the edge (only after entering)
+        if (particle.hasEnteredCanvas && !isInsideCanvas) {
           particle.active = false;
           continue;
         }

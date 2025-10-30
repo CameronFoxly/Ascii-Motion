@@ -132,6 +132,7 @@ export const DEFAULT_PARTICLE_PHYSICS_SETTINGS: ParticlePhysicsSettings = {
   // Collisions
   edgeBounce: true,
   bounciness: 0.8,
+  bouncinessRandomness: 0.0,
   edgeFriction: 0.1,
   selfCollisions: false,
   

@@ -177,16 +177,23 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
     const centerY = Math.floor(canvasHeight / 2);
     
     // Update origin settings for generators that have origin points
+    // Only update if still at default values (40, 12) to preserve user settings
     if (id === 'radio-waves') {
-      get().updateRadioWavesSettings({
-        originX: centerX,
-        originY: centerY
-      });
+      const currentSettings = get().radioWavesSettings;
+      if (currentSettings.originX === 40 && currentSettings.originY === 12) {
+        get().updateRadioWavesSettings({
+          originX: centerX,
+          originY: centerY
+        });
+      }
     } else if (id === 'particle-physics') {
-      get().updateParticlePhysicsSettings({
-        originX: centerX,
-        originY: centerY
-      });
+      const currentSettings = get().particlePhysicsSettings;
+      if (currentSettings.originX === 40 && currentSettings.originY === 12) {
+        get().updateParticlePhysicsSettings({
+          originX: centerX,
+          originY: centerY
+        });
+      }
     }
     
     set({ 

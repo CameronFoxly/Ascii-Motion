@@ -117,6 +117,7 @@ export interface ParticlePhysicsSettings {
   // Collisions
   edgeBounce: boolean;
   bounciness: number;       // 0.0 - 1.0 restitution coefficient
+  bouncinessRandomness: number; // 0.0 - 1.0 randomness factor for bounciness
   edgeFriction: number;     // 0.0 - 1.0 friction on bounce
   selfCollisions: boolean;  // Enable particle-to-particle collisions
   
