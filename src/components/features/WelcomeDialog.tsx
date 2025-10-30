@@ -276,6 +276,23 @@ const createWelcomeTabs = (
     },
   },
   {
+    id: 'generators',
+    title: 'Generate Procedural Animation',
+    description: 'Generate procedural animations using Generators, like particle simulations, turbulent noise, and raindrops.',
+    cta: {
+      text: 'Use Generators',
+      action: () => {
+        // TODO: Trigger generators panel/dialog
+        closeDialog();
+      },
+    },
+    media: {
+      type: 'vimeo',
+      embedId: '1132319233',
+      alt: 'Procedural animation generators demonstration',
+    },
+  },
+  {
     id: 'export',
     title: 'Export Multiple Formats',
     description: 'Export your creations in various formats: PNG/JPEG images, MP4/WebM videos, interactive HTML, plain text, JSON data, or as React components. Each format is optimized for different use cases and platforms.',

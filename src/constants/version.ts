@@ -1,12 +1,41 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.2.17";
-export const BUILD_DATE = "2025-10-28T04:22:02.967Z";
-export const BUILD_HASH = "f8848d2";
+export const VERSION = "0.2.18";
+export const BUILD_DATE = "2025-10-30T22:52:36.949Z";
+export const BUILD_HASH = "c1e4eac";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.2.18",
+    "date": "2025-10-30T22:52:36.949Z",
+    "commits": [
+      "Fixed up UI some more",
+      "Fixed up UI",
+      "Fine tuned raindrops",
+      "More fine tuning of partcile physics sytem",
+      "Fixed mapping for particle system",
+      "Fine tune particle physics",
+      "Fine tune noise dithering",
+      "Added character dithering",
+      "Set up noise effects with dithering",
+      "REmove loop smoothing features",
+      "Fine tuned radio wave generator",
+      "Cleared out old console logs",
+      "Updated preview aspect ratio",
+      "Fixed framerate issues",
+      "Tightened up canvas preview conditions",
+      "Add docs about race condition bug",
+      "Fixed live preview",
+      "Got basic canvas application working",
+      "Set up basic generator for step 4",
+      "Phase 3 complete",
+      "Phase 2 of generators implemented",
+      "Phase 1 of generators plan implemented!",
+      "Created plan for generators"
+    ]
+  },
   {
     "version": "0.2.17",
     "date": "2025-10-28T04:22:02.967Z",
