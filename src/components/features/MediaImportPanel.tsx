@@ -154,6 +154,8 @@ export function MediaImportPanel() {
   // Character palette integration
   const activePalette = useCharacterPaletteStore(state => state.activePalette);
   const mappingMethod = useCharacterPaletteStore(state => state.mappingMethod);
+  const mappingMode = useCharacterPaletteStore(state => state.mappingMode);
+  const ditherStrength = useCharacterPaletteStore(state => state.ditherStrength);
   const invertDensity = useCharacterPaletteStore(state => state.invertDensity);
   const characterSpacing = useCharacterPaletteStore(state => state.characterSpacing);
   
@@ -494,6 +496,7 @@ export function MediaImportPanel() {
       enableCharacterMapping: settings.enableCharacterMapping,
       characterPalette: activePalette,
       mappingMethod: mappingMethod,
+      characterMappingMode: mappingMode,
       invertDensity: invertDensity,
       
       // Text color mapping 
@@ -522,7 +525,7 @@ export function MediaImportPanel() {
       midtonesAdjustment: settings.midtones,
       blurAmount: settings.blur,
       sharpenAmount: settings.sharpen,
-      ditherStrength: 0.5
+      ditherStrength: ditherStrength
     };
   }, [
     settings.enableCharacterMapping,
@@ -546,6 +549,8 @@ export function MediaImportPanel() {
     settings.sharpen,
     activePalette,
     mappingMethod,
+    mappingMode,
+    ditherStrength,
     invertDensity,
     selectedColor,
     palettes,

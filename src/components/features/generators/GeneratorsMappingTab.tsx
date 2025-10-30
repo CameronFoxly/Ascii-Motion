@@ -34,6 +34,8 @@ export function GeneratorsMappingTab() {
   const { mappingSettings, updateMappingSettings, markPreviewDirty } = useGeneratorsStore();
   const { updateSettings: updateImportSettings } = useImportStore();
   const activePalette = useCharacterPaletteStore((state) => state.activePalette);
+  const characterMappingMode = useCharacterPaletteStore((state) => state.mappingMode);
+  const characterDitherStrength = useCharacterPaletteStore((state) => state.ditherStrength);
   const convertedFrames = useGeneratorsStore((state) => state.convertedFrames);
   const currentPreviewFrame = useGeneratorsStore((state) => state.uiState.currentPreviewFrame);
   const setPreviewFrame = useGeneratorsStore((state) => state.setPreviewFrame);
@@ -89,6 +91,15 @@ export function GeneratorsMappingTab() {
       updateMappingSettings({ characterSet: newCharacterSet });
     }
   }, [activePalette, updateImportSettings, updateMappingSettings]);
+
+  // Sync character dithering settings from characterPaletteStore to generatorsStore
+  useEffect(() => {
+    updateMappingSettings({ 
+      characterDitherMode: characterMappingMode,
+      ditherStrength: characterDitherStrength 
+    });
+    markPreviewDirty();
+  }, [characterMappingMode, characterDitherStrength, updateMappingSettings, markPreviewDirty]);
 
   // Handle settings changes from the mapping sections
   const handleSettingsChange = () => {

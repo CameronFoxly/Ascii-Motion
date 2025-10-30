@@ -14,6 +14,7 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Card, CardContent } from '../ui/card';
 import { Input } from '../ui/input';
+import { Slider } from '../ui/slider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { 
   Select,
@@ -86,6 +87,10 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
   const allPalettes = useMemo(() => [...availablePalettes, ...customPalettes], [availablePalettes, customPalettes]);
   const activePalette = useCharacterPaletteStore(state => state.activePalette);
   const setActivePalette = useCharacterPaletteStore(state => state.setActivePalette);
+  const mappingMode = useCharacterPaletteStore(state => state.mappingMode);
+  const ditherStrength = useCharacterPaletteStore(state => state.ditherStrength);
+  const setMappingMode = useCharacterPaletteStore(state => state.setMappingMode);
+  const setDitherStrength = useCharacterPaletteStore(state => state.setDitherStrength);
 
 
   const startEditing = useCharacterPaletteStore(state => state.startEditing);
@@ -201,6 +206,17 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
         addCharInputRef.current?.focus();
       }
     }
+  };
+
+  // Handle mapping mode (dithering) change
+  const handleMappingModeChange = (mode: string) => {
+    setMappingMode(mode as 'by-index' | 'noise-dither' | 'bayer2x2' | 'bayer4x4');
+    onSettingsChange?.();
+  };
+
+  // Handle dither strength change
+  const handleDitherStrengthChange = (value: number) => {
+    setDitherStrength(value);
   };
 
   // Helper function to ensure we're working with a custom palette for editing
@@ -596,19 +612,37 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                 </div>
               </div>
 
-              {/* Palette Info */}
-              <div className="bg-muted/30 rounded p-2 text-xs space-y-1 w-full">
-                <div className="font-medium break-words">{activePalette.name}</div>
-                <div className="text-muted-foreground break-words">
-                  {activePalette.characters.length} characters • {activePalette.category.charAt(0).toUpperCase() + activePalette.category.slice(1)} category
+              {/* Character Dithering Controls */}
+              <div className="space-y-3 w-full">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Character Dithering</Label>
+                  <Select value={mappingMode} onValueChange={handleMappingModeChange}>
+                    <SelectTrigger className="h-8 text-xs w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="by-index" className="text-xs">None (By Index)</SelectItem>
+                      <SelectItem value="noise-dither" className="text-xs">Noise Dithering</SelectItem>
+                      <SelectItem value="bayer2x2" className="text-xs">Bayer 2x2 Dithering</SelectItem>
+                      <SelectItem value="bayer4x4" className="text-xs">Bayer 4x4 Dithering</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                {activePalette.isCustom ? (
-                  <div className="text-muted-foreground break-words">
-                    Custom palette - drag characters to reorder, click reverse to flip mapping
-                  </div>
-                ) : (
-                  <div className="text-muted-foreground break-words">
-                    Preset palette - click Edit to create an editable copy
+
+                {mappingMode !== 'by-index' && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-xs font-medium">Dither Strength</Label>
+                      <span className="text-xs text-muted-foreground">{Math.round(ditherStrength * 100)}%</span>
+                    </div>
+                    <Slider
+                      value={ditherStrength}
+                      onValueChange={handleDitherStrengthChange}
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      className="w-full"
+                    />
                   </div>
                 )}
               </div>

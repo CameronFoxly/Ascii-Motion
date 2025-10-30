@@ -21,6 +21,8 @@ export interface CharacterPaletteState {
   // Active mapping settings
   activePalette: CharacterPalette;
   mappingMethod: CharacterMappingSettings['mappingMethod'];
+  mappingMode: 'by-index' | 'noise-dither' | 'bayer2x2' | 'bayer4x4';
+  ditherStrength: number;
   invertDensity: boolean;
   characterSpacing: number;
   
@@ -37,6 +39,8 @@ export interface CharacterPaletteState {
   
   // Actions - Mapping Settings
   setMappingMethod: (method: CharacterMappingSettings['mappingMethod']) => void;
+  setMappingMode: (mode: 'by-index' | 'noise-dither' | 'bayer2x2' | 'bayer4x4') => void;
+  setDitherStrength: (strength: number) => void;
   setInvertDensity: (invert: boolean) => void;
   setCharacterSpacing: (spacing: number) => void;
   
@@ -63,6 +67,8 @@ export interface CharacterPaletteState {
     customPalettes: CharacterPalette[];
     activePaletteId?: string;
     mappingMethod?: CharacterMappingSettings['mappingMethod'];
+    mappingMode?: 'by-index' | 'noise-dither' | 'bayer2x2' | 'bayer4x4';
+    ditherStrength?: number;
     invertDensity?: boolean;
     characterSpacing?: number;
   }) => void;
@@ -74,6 +80,8 @@ export const useCharacterPaletteStore = create<CharacterPaletteState>((set, get)
   customPalettes: [],
   activePalette: MINIMAL_ASCII_PALETTE,
   mappingMethod: 'brightness',
+  mappingMode: 'by-index',
+  ditherStrength: 0.5,
   invertDensity: false,
   characterSpacing: 1.0,
   isEditing: false,
@@ -140,6 +148,14 @@ export const useCharacterPaletteStore = create<CharacterPaletteState>((set, get)
   // Mapping Settings Actions
   setMappingMethod: (method: CharacterMappingSettings['mappingMethod']) => {
     set({ mappingMethod: method });
+  },
+  
+  setMappingMode: (mode: 'by-index' | 'noise-dither' | 'bayer2x2' | 'bayer4x4') => {
+    set({ mappingMode: mode });
+  },
+  
+  setDitherStrength: (strength: number) => {
+    set({ ditherStrength: Math.max(0, Math.min(1, strength)) });
   },
   
   setInvertDensity: (invert: boolean) => {
@@ -236,7 +252,7 @@ export const useCharacterPaletteStore = create<CharacterPaletteState>((set, get)
     return newPalette;
   },
   
-  loadSessionCharacterPalettes: ({ customPalettes, activePaletteId, mappingMethod, invertDensity, characterSpacing }) => {
+  loadSessionCharacterPalettes: ({ customPalettes, activePaletteId, mappingMethod, mappingMode, ditherStrength, invertDensity, characterSpacing }) => {
     set(state => {
       const sanitizeCharacters = (characters: unknown): string[] => {
         if (!Array.isArray(characters)) {
@@ -303,6 +319,15 @@ export const useCharacterPaletteStore = create<CharacterPaletteState>((set, get)
         ? mappingMethod
         : state.mappingMethod;
 
+      const validMappingModes = ['by-index', 'noise-dither', 'bayer2x2', 'bayer4x4'] as const;
+      const resolvedMappingMode = mappingMode && validMappingModes.includes(mappingMode)
+        ? mappingMode
+        : state.mappingMode;
+
+      const resolvedDitherStrength = typeof ditherStrength === 'number'
+        ? Math.max(0, Math.min(1, ditherStrength))
+        : state.ditherStrength;
+
       const resolvedInvertDensity = typeof invertDensity === 'boolean' ? invertDensity : state.invertDensity;
 
       const resolvedCharacterSpacing = typeof characterSpacing === 'number'
@@ -313,6 +338,8 @@ export const useCharacterPaletteStore = create<CharacterPaletteState>((set, get)
         customPalettes: sanitizedCustomPalettes,
         activePalette: resolvedActivePalette,
         mappingMethod: resolvedMappingMethod,
+        mappingMode: resolvedMappingMode,
+        ditherStrength: resolvedDitherStrength,
         invertDensity: resolvedInvertDensity,
         characterSpacing: resolvedCharacterSpacing,
         isEditing: false,
@@ -328,6 +355,8 @@ export const useCharacterPaletteStore = create<CharacterPaletteState>((set, get)
       customPalettes: [],
       activePalette: MINIMAL_ASCII_PALETTE,
       mappingMethod: 'brightness',
+      mappingMode: 'by-index',
+      ditherStrength: 0.5,
       invertDensity: false,
       characterSpacing: 1.0,
       isEditing: false,
@@ -360,9 +389,13 @@ export const useActiveCharacterPalette = () => useCharacterPaletteStore(state =>
 
 export const useCharacterMappingSettings = () => useCharacterPaletteStore(state => ({
   mappingMethod: state.mappingMethod,
+  mappingMode: state.mappingMode,
+  ditherStrength: state.ditherStrength,
   invertDensity: state.invertDensity,
   characterSpacing: state.characterSpacing,
   setMappingMethod: state.setMappingMethod,
+  setMappingMode: state.setMappingMode,
+  setDitherStrength: state.setDitherStrength,
   setInvertDensity: state.setInvertDensity,
   setCharacterSpacing: state.setCharacterSpacing
 }));

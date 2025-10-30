@@ -163,6 +163,8 @@ export interface GeneratorMappingSettings {
   enableCharacterMapping: boolean;
   characterSet: string[];
   characterMappingMode: 'brightness' | 'edge' | 'custom';
+  characterDitherMode: 'by-index' | 'noise-dither' | 'bayer2x2' | 'bayer4x4';
+  ditherStrength: number; // 0-1 for both character and color dithering
   customCharacterMapping: { [brightness: string]: string };
   
   // Text color mapping

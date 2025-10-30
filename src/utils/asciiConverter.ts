@@ -25,6 +25,7 @@ export interface ConversionSettings {
   enableCharacterMapping: boolean;
   characterPalette: CharacterPalette;
   mappingMethod: CharacterMappingSettings['mappingMethod'];
+  characterMappingMode: 'by-index' | 'noise-dither' | 'bayer2x2' | 'bayer4x4'; // Dithering modes
   invertDensity: boolean;
   
   // Text (foreground) color mapping - NEW
@@ -64,6 +65,9 @@ export interface MappingAlgorithmOptions {
   gradientMagnitude?: number;
   sobelX?: number;
   sobelY?: number;
+  ditherStrength?: number;  // For dithering algorithms
+  x?: number;               // Pixel x coordinate for dithering
+  y?: number;               // Pixel y coordinate for dithering
 }
 
 export interface MappingAlgorithm {
@@ -597,6 +601,143 @@ export class ColorMatcher {
   }
 }
 
+/**
+ * CharacterMapper
+ * Maps RGB values to characters with optional gradient-aware dithering
+ */
+class CharacterMapper {
+  /**
+   * Direct character mapping by index (no dithering)
+   * Uses standard brightness calculation to map to character array by index
+   */
+  static mapCharacterByIndex(r: number, g: number, b: number, characters: string[]): string {
+    // Calculate brightness using Rec. 709 relative luminance
+    const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    
+    // Map brightness to character array
+    const continuousIndex = (brightness / 256) * characters.length;
+    const charIndex = Math.floor(continuousIndex);
+    const clampedIndex = Math.max(0, Math.min(characters.length - 1, charIndex));
+    
+    return characters[clampedIndex];
+  }
+
+  /**
+   * Character mapping with noise-based dithering
+   * Applies position-dependent noise dithering at palette boundaries
+   */
+  static mapCharacterByIndexNoise(
+    r: number,
+    g: number,
+    b: number,
+    characters: string[],
+    ditherStrength: number,
+    x: number,
+    y: number
+  ): string {
+    // Calculate brightness using Rec. 709 relative luminance
+    const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    
+    // Map brightness to continuous character index
+    const continuousIndex = (brightness / 256) * characters.length;
+    const fractionalPart = continuousIndex - Math.floor(continuousIndex);
+    
+    // Position-based pseudo-random noise
+    const noise = ((x * 12.9898 + y * 78.233) * 43758.5453) % 1.0;
+    const threshold = (noise - 0.5) * ditherStrength;
+    const shouldDitherUp = fractionalPart + threshold > 0.5;
+    
+    let charIndex = Math.floor(continuousIndex);
+    if (shouldDitherUp && charIndex < characters.length - 1) {
+      charIndex += 1;
+    }
+    
+    charIndex = Math.max(0, Math.min(characters.length - 1, charIndex));
+    
+    return characters[charIndex];
+  }
+
+  /**
+   * Character mapping with 2x2 Bayer matrix dithering
+   * Uses ordered dithering pattern for gradient-aware character selection
+   */
+  static mapCharacterByIndexBayer2x2(
+    r: number,
+    g: number,
+    b: number,
+    characters: string[],
+    ditherStrength: number,
+    x: number,
+    y: number
+  ): string {
+    // Calculate brightness using Rec. 709 relative luminance
+    const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    
+    // Map brightness to continuous character index
+    const continuousIndex = (brightness / 256) * characters.length;
+    const fractionalPart = continuousIndex - Math.floor(continuousIndex);
+    
+    // 2x2 Bayer matrix
+    const bayerMatrix = [
+      [0, 2],
+      [3, 1]
+    ];
+    
+    const threshold = (bayerMatrix[y % 2][x % 2] / 4.0 - 0.5) * ditherStrength;
+    const shouldDitherUp = fractionalPart + threshold > 0.5;
+    
+    let charIndex = Math.floor(continuousIndex);
+    if (shouldDitherUp && charIndex < characters.length - 1) {
+      charIndex += 1;
+    }
+    
+    charIndex = Math.max(0, Math.min(characters.length - 1, charIndex));
+    
+    return characters[charIndex];
+  }
+
+  /**
+   * Character mapping with 4x4 Bayer matrix dithering
+   * Uses larger ordered dithering pattern for smoother gradients
+   */
+  static mapCharacterByIndexBayer4x4(
+    r: number,
+    g: number,
+    b: number,
+    characters: string[],
+    ditherStrength: number,
+    x: number,
+    y: number
+  ): string {
+    // Calculate brightness using Rec. 709 relative luminance
+    const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    
+    // Map brightness to continuous character index
+    const continuousIndex = (brightness / 256) * characters.length;
+    const fractionalPart = continuousIndex - Math.floor(continuousIndex);
+    
+    // 4x4 Bayer matrix
+    const bayerMatrix = [
+      [0, 8, 2, 10],
+      [12, 4, 14, 6],
+      [3, 11, 1, 9],
+      [15, 7, 13, 5]
+    ];
+    
+    const threshold = (bayerMatrix[y % 4][x % 4] / 16.0 - 0.5) * ditherStrength;
+    const shouldDitherUp = fractionalPart + threshold > 0.5;
+    
+    let charIndex = Math.floor(continuousIndex);
+    if (shouldDitherUp && charIndex < characters.length - 1) {
+      charIndex += 1;
+    }
+    
+    charIndex = Math.max(0, Math.min(characters.length - 1, charIndex));
+    
+    return characters[charIndex];
+  }
+}
+
 export interface ConversionResult {
   cells: Map<string, Cell>;
   colorPalette: string[];
@@ -707,11 +848,17 @@ export class ASCIIConverter {
             }
           }
           
+          // Add pixel coordinates for character dithering
+          algorithmOptions.x = x;
+          algorithmOptions.y = y;
+          algorithmOptions.ditherStrength = settings.ditherStrength;
+          
           character = this.selectCharacterWithAlgorithm(
             adjustedR, adjustedG, adjustedB,
             settings.characterPalette,
             settings.mappingMethod,
             settings.invertDensity,
+            settings.characterMappingMode,
             algorithmOptions
           );
         } else {
@@ -1207,6 +1354,7 @@ export class ASCIIConverter {
     characterPalette: CharacterPalette,
     mappingMethod: CharacterMappingSettings['mappingMethod'],
     invertDensity: boolean,
+    characterMappingMode: 'by-index' | 'noise-dither' | 'bayer2x2' | 'bayer4x4',
     options?: MappingAlgorithmOptions
   ): string {
     const algorithm = MAPPING_ALGORITHMS[mappingMethod];
@@ -1222,7 +1370,21 @@ export class ASCIIConverter {
       characters = characters.reverse();
     }
     
-    // Use the algorithm to map pixel to character
+    // Check if dithering is enabled and we have the required coordinates
+    if (characterMappingMode !== 'by-index' && options?.x !== undefined && options?.y !== undefined) {
+      const ditherStrength = options.ditherStrength ?? 0.5;
+      
+      switch (characterMappingMode) {
+        case 'noise-dither':
+          return CharacterMapper.mapCharacterByIndexNoise(r, g, b, characters, ditherStrength, options.x, options.y);
+        case 'bayer2x2':
+          return CharacterMapper.mapCharacterByIndexBayer2x2(r, g, b, characters, ditherStrength, options.x, options.y);
+        case 'bayer4x4':
+          return CharacterMapper.mapCharacterByIndexBayer4x4(r, g, b, characters, ditherStrength, options.x, options.y);
+      }
+    }
+    
+    // Use the algorithm to map pixel to character (no dithering)
     return algorithm.mapPixelToCharacter(r, g, b, characters, options);
   }
   

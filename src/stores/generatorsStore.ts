@@ -49,6 +49,8 @@ const DEFAULT_MAPPING_SETTINGS: GeneratorMappingSettings = {
   enableCharacterMapping: true,
   characterSet: [' ', '.', ':', '-', '=', '+', '*', '#', '%', '@'],
   characterMappingMode: 'brightness',
+  characterDitherMode: 'by-index',
+  ditherStrength: 0.5,
   customCharacterMapping: {},
   
   enableTextColorMapping: true,
@@ -481,6 +483,7 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
         characterPalette: tempCharacterPalette,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         mappingMethod: state.mappingSettings.characterMappingMode as any, // Type compatibility
+        characterMappingMode: state.mappingSettings.characterDitherMode,
         invertDensity: false,
         
         // Text color mapping
@@ -507,7 +510,7 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
         highlightsAdjustment: 0,
         shadowsAdjustment: 0,
         midtonesAdjustment: 0,
-        ditherStrength: 0.5
+        ditherStrength: state.mappingSettings.ditherStrength
       };
       
       // Convert each RGBA frame to ASCII

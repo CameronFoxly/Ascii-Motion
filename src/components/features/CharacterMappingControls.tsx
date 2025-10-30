@@ -13,6 +13,7 @@
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
+import { Slider } from '../ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Card, CardContent } from '../ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
@@ -32,9 +33,13 @@ export function CharacterMappingControls({ onSettingsChange }: CharacterMappingC
   const activePalette = useCharacterPaletteStore(state => state.activePalette);
   const setActivePalette = useCharacterPaletteStore(state => state.setActivePalette);
   const mappingMethod = useCharacterPaletteStore(state => state.mappingMethod);
+  const mappingMode = useCharacterPaletteStore(state => state.mappingMode);
+  const ditherStrength = useCharacterPaletteStore(state => state.ditherStrength);
   const invertDensity = useCharacterPaletteStore(state => state.invertDensity);
   const characterSpacing = useCharacterPaletteStore(state => state.characterSpacing);
   const setMappingMethod = useCharacterPaletteStore(state => state.setMappingMethod);
+  const setMappingMode = useCharacterPaletteStore(state => state.setMappingMode);
+  const setDitherStrength = useCharacterPaletteStore(state => state.setDitherStrength);
   const setInvertDensity = useCharacterPaletteStore(state => state.setInvertDensity);
   const setCharacterSpacing = useCharacterPaletteStore(state => state.setCharacterSpacing);
 
@@ -59,6 +64,18 @@ export function CharacterMappingControls({ onSettingsChange }: CharacterMappingC
     onSettingsChange?.();
   };
 
+  // Handle mapping mode change
+  const handleMappingModeChange = (mode: string) => {
+    setMappingMode(mode as 'by-index' | 'noise-dither' | 'bayer2x2' | 'bayer4x4');
+    onSettingsChange?.();
+  };
+
+  // Handle dither strength change
+  const handleDitherStrengthChange = (value: number) => {
+    setDitherStrength(value);
+    onSettingsChange?.();
+  };
+
   // Handle character spacing change
   const handleCharacterSpacingChange = (spacing: number) => {
     setCharacterSpacing(spacing);
@@ -72,6 +89,8 @@ export function CharacterMappingControls({ onSettingsChange }: CharacterMappingC
       setActivePalette(minimalPalette);
     }
     setMappingMethod('brightness');
+    setMappingMode('by-index');
+    setDitherStrength(0.5);
     setInvertDensity(false);
     setCharacterSpacing(1.0);
     onSettingsChange?.();
@@ -175,6 +194,60 @@ export function CharacterMappingControls({ onSettingsChange }: CharacterMappingC
             <Settings className="w-3 h-3 text-muted-foreground" />
             <Label className="text-xs font-medium">Advanced Options</Label>
           </div>
+
+          {/* Character Mapping Mode (Dithering) */}
+          <div className="space-y-2" style={{ width: '272px', maxWidth: '272px' }}>
+            <Label className="text-xs font-medium">Character Dithering</Label>
+            <Select value={mappingMode} onValueChange={handleMappingModeChange}>
+              <SelectTrigger className="h-8 text-xs" style={{ width: '272px', maxWidth: '272px' }}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-w-72" style={{ maxWidth: '272px' }}>
+                <SelectItem value="by-index" className="text-xs">
+                  <div className="space-y-1 min-w-0">
+                    <div className="font-medium">By Index (No Dithering)</div>
+                    <div className="text-muted-foreground text-xs break-words">Direct brightness-to-character mapping</div>
+                  </div>
+                </SelectItem>
+                <SelectItem value="noise-dither" className="text-xs">
+                  <div className="space-y-1 min-w-0">
+                    <div className="font-medium">Noise Dithering</div>
+                    <div className="text-muted-foreground text-xs break-words">Position-based noise pattern at transitions</div>
+                  </div>
+                </SelectItem>
+                <SelectItem value="bayer2x2" className="text-xs">
+                  <div className="space-y-1 min-w-0">
+                    <div className="font-medium">Bayer 2×2 Dithering</div>
+                    <div className="text-muted-foreground text-xs break-words">2×2 ordered pattern for smooth gradients</div>
+                  </div>
+                </SelectItem>
+                <SelectItem value="bayer4x4" className="text-xs">
+                  <div className="space-y-1 min-w-0">
+                    <div className="font-medium">Bayer 4×4 Dithering</div>
+                    <div className="text-muted-foreground text-xs break-words">4×4 ordered pattern for finest detail</div>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Dither Strength - Only show when dithering is enabled */}
+          {mappingMode !== 'by-index' && (
+            <div className="space-y-2" style={{ width: '272px', maxWidth: '272px' }}>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium">Dither Strength</Label>
+                <span className="text-xs text-muted-foreground">{(ditherStrength * 100).toFixed(0)}%</span>
+              </div>
+              <Slider
+                value={ditherStrength}
+                onValueChange={handleDitherStrengthChange}
+                min={0}
+                max={1}
+                step={0.05}
+                className="w-full"
+              />
+            </div>
+          )}
 
           {/* Invert Density */}
           <div className="flex items-center justify-between" style={{ width: '272px', maxWidth: '272px' }}>

@@ -110,6 +110,8 @@ export interface CharacterPalette {
 export interface CharacterMappingSettings {
   activePalette: CharacterPalette;
   mappingMethod: 'brightness' | 'luminance' | 'contrast' | 'edge-detection' | 'saturation' | 'red-channel' | 'green-channel' | 'blue-channel';
+  mappingMode: 'by-index' | 'noise-dither' | 'bayer2x2' | 'bayer4x4'; // Dithering modes
+  ditherStrength: number;         // 0-1 strength for dithering algorithms
   invertDensity: boolean;         // Reverse light/dark mapping
   characterSpacing: number;       // Spacing between characters (1.0 = normal)
   useCustomOrder: boolean;        // Allow manual character reordering
