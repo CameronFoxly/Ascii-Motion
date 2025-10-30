@@ -85,28 +85,46 @@ export interface ParticlePhysicsSettings {
   // Emitter properties
   originX: number;          // 0 to canvas width
   originY: number;          // 0 to canvas height
+  emitterShape: 'point' | 'vertical-line' | 'horizontal-line' | 'square' | 'circle';
+  emitterSize: number;      // 1 to max canvas dimension
+  emitterMode: 'continuous' | 'burst'; // Continuous: spawn over time, Burst: all at once
   particleCount: number;    // 1 - 1000
   
   // Particle properties
+  particleShape: 'circle' | 'square' | 'cloudlet';
   particleSize: number;     // Base size in pixels
   particleSizeRandomness: boolean;
   particleSizeMin: number;  // Min size when randomness enabled
   particleSizeMax: number;  // Max size when randomness enabled
+  startSizeMultiplier: number; // 0.0 - 2.0 size multiplier at birth
+  endSizeMultiplier: number;   // 0.0 - 2.0 size multiplier at death
+  startOpacity: number;     // 0.0 - 1.0 opacity at birth
+  endOpacity: number;       // 0.0 - 1.0 opacity at death
   lifespan: number;         // Frames before particle dies
+  lifespanRandomness: boolean;
+  lifespanRandomnessAmount: number; // 0.0 - 1.0 variation factor
   
   // Velocity
   velocityMagnitude: number; // Speed
   velocityAngle: number;     // Direction in degrees (0-360)
-  velocityRandomness: number; // 0.0 - 1.0 randomness factor
+  velocityAngleRandomness: number; // 0.0 - 1.0 angle randomness factor
+  velocitySpeedRandomness: number; // 0.0 - 1.0 speed randomness factor
   
   // Physics
   gravity: number;          // Positive = downward
   drag: number;             // 0.0 - 1.0 friction/air resistance
   
-  // Edge behavior
+  // Collisions
   edgeBounce: boolean;
   bounciness: number;       // 0.0 - 1.0 restitution coefficient
   edgeFriction: number;     // 0.0 - 1.0 friction on bounce
+  selfCollisions: boolean;  // Enable particle-to-particle collisions
+  
+  // Turbulence Field
+  turbulenceEnabled: boolean;     // Enable turbulence field
+  turbulenceFrequency: number;    // 0.1 - 10.0 (affects noise octaves)
+  turbulenceAffectsPosition: number; // 0.0 - 10.0 force applied to position
+  turbulenceAffectsScale: number;    // 0.0 - 2.0 size variation multiplier
   
   // Timing
   duration: number;         // milliseconds

@@ -555,6 +555,11 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       let hadPendingDirtyChanges = false;
       set((state) => {
         hadPendingDirtyChanges = state.isPreviewDirty;
+        // Preserve current frame, but clamp to new frame count
+        const newFrameCount = result.frameCount;
+        const currentFrame = state.uiState.currentPreviewFrame;
+        const clampedFrame = Math.min(currentFrame, Math.max(0, newFrameCount - 1));
+        
         return {
           previewFrames: result.frames,
           convertedFrames,
@@ -563,7 +568,7 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
           isGenerating: false,
           uiState: {
             ...state.uiState,
-            currentPreviewFrame: 0
+            currentPreviewFrame: clampedFrame
           }
         };
       });

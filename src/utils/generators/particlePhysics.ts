@@ -8,6 +8,68 @@
 import type { ParticlePhysicsSettings, GeneratorFrame } from '../../types/generators';
 import { CELL_ASPECT_RATIO } from '../fontMetrics';
 
+/**
+ * Simple 3D Perlin noise function for turbulence field
+ * (Simplified version - uses basic gradient noise)
+ */
+function perlinNoise3D(x: number, y: number, z: number): number {
+  // Integer coordinates
+  const xi = Math.floor(x) & 255;
+  const yi = Math.floor(y) & 255;
+  const zi = Math.floor(z) & 255;
+  
+  // Fractional coordinates
+  const xf = x - Math.floor(x);
+  const yf = y - Math.floor(y);
+  const zf = z - Math.floor(z);
+  
+  // Fade curves
+  const u = fade(xf);
+  const v = fade(yf);
+  const w = fade(zf);
+  
+  // Hash coordinates
+  const aaa = hash(hash(hash(xi) + yi) + zi);
+  const aba = hash(hash(hash(xi) + yi + 1) + zi);
+  const aab = hash(hash(hash(xi) + yi) + zi + 1);
+  const abb = hash(hash(hash(xi) + yi + 1) + zi + 1);
+  const baa = hash(hash(hash(xi + 1) + yi) + zi);
+  const bba = hash(hash(hash(xi + 1) + yi + 1) + zi);
+  const bab = hash(hash(hash(xi + 1) + yi) + zi + 1);
+  const bbb = hash(hash(hash(xi + 1) + yi + 1) + zi + 1);
+  
+  // Interpolate
+  const x1 = lerp(grad(aaa, xf, yf, zf), grad(baa, xf - 1, yf, zf), u);
+  const x2 = lerp(grad(aba, xf, yf - 1, zf), grad(bba, xf - 1, yf - 1, zf), u);
+  const y1 = lerp(x1, x2, v);
+  
+  const x3 = lerp(grad(aab, xf, yf, zf - 1), grad(bab, xf - 1, yf, zf - 1), u);
+  const x4 = lerp(grad(abb, xf, yf - 1, zf - 1), grad(bbb, xf - 1, yf - 1, zf - 1), u);
+  const y2 = lerp(x3, x4, v);
+  
+  return lerp(y1, y2, w);
+}
+
+function hash(n: number): number {
+  n = (n << 13) ^ n;
+  return (n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff;
+}
+
+function fade(t: number): number {
+  return t * t * t * (t * (t * 6 - 15) + 10);
+}
+
+function lerp(a: number, b: number, t: number): number {
+  return a + t * (b - a);
+}
+
+function grad(hash: number, x: number, y: number, z: number): number {
+  const h = hash & 15;
+  const u = h < 8 ? x : y;
+  const v = h < 4 ? y : h === 12 || h === 14 ? x : z;
+  return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
+}
+
 interface Particle {
   x: number;
   y: number;
@@ -17,6 +79,114 @@ interface Particle {
   age: number;
   lifespan: number;
   active: boolean;
+  shape: 'circle' | 'square' | 'cloudlet';
+  cloudletOffsets?: { x: number; y: number }[]; // For cloudlet shape
+}
+
+/**
+ * Generate a spawn position based on emitter shape
+ */
+function getEmitterPosition(
+  settings: ParticlePhysicsSettings,
+  random: () => number
+): { x: number; y: number } {
+  const { originX, originY, emitterShape, emitterSize } = settings;
+  
+  switch (emitterShape) {
+    case 'point':
+      return { x: originX, y: originY };
+      
+    case 'vertical-line': {
+      const offset = (random() - 0.5) * emitterSize;
+      return { x: originX, y: originY + offset };
+    }
+      
+    case 'horizontal-line': {
+      const offset = (random() - 0.5) * emitterSize;
+      return { x: originX + offset, y: originY };
+    }
+      
+    case 'square': {
+      const offsetX = (random() - 0.5) * emitterSize;
+      const offsetY = (random() - 0.5) * emitterSize;
+      return { x: originX + offsetX, y: originY + offsetY };
+    }
+      
+    case 'circle': {
+      const angle = random() * Math.PI * 2;
+      const radius = random() * emitterSize / 2;
+      return {
+        x: originX + Math.cos(angle) * radius,
+        y: originY + Math.sin(angle) * radius
+      };
+    }
+      
+    default:
+      return { x: originX, y: originY };
+  }
+}
+
+/**
+ * Check collision between two particles
+ */
+function checkParticleCollision(
+  p1: Particle,
+  p2: Particle
+): boolean {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const minDist = (p1.size + p2.size) / 2;
+  return dist < minDist;
+}
+
+/**
+ * Resolve collision between two particles
+ */
+function resolveParticleCollision(
+  p1: Particle,
+  p2: Particle,
+  bounciness: number
+): void {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  
+  if (dist === 0) return;
+  
+  // Normal vector
+  const nx = dx / dist;
+  const ny = dy / dist;
+  
+  // Relative velocity
+  const dvx = p2.vx - p1.vx;
+  const dvy = p2.vy - p1.vy;
+  
+  // Relative velocity in normal direction
+  const dvn = dvx * nx + dvy * ny;
+  
+  // Don't resolve if particles are separating
+  if (dvn > 0) return;
+  
+  // Impulse magnitude (simplified, assuming equal mass)
+  const impulse = -(1 + bounciness) * dvn / 2;
+  
+  // Apply impulse
+  p1.vx -= impulse * nx;
+  p1.vy -= impulse * ny;
+  p2.vx += impulse * nx;
+  p2.vy += impulse * ny;
+  
+  // Separate particles
+  const overlap = (p1.size + p2.size) / 2 - dist;
+  if (overlap > 0) {
+    const separationX = nx * overlap / 2;
+    const separationY = ny * overlap / 2;
+    p1.x -= separationX;
+    p1.y -= separationY;
+    p2.x += separationX;
+    p2.y += separationY;
+  }
 }
 
 /**
@@ -52,6 +222,21 @@ export async function generateParticlePhysics(
   // Initialize particle pool
   const particles: Particle[] = [];
   for (let i = 0; i < settings.particleCount; i++) {
+    // Generate cloudlet offsets if using cloudlet shape
+    let cloudletOffsets: { x: number; y: number }[] | undefined;
+    if (settings.particleShape === 'cloudlet') {
+      cloudletOffsets = [];
+      const numPoints = 5 + Math.floor(seededRandom() * 5);
+      for (let j = 0; j < numPoints; j++) {
+        const angle = seededRandom() * Math.PI * 2;
+        const radius = seededRandom() * 0.5;
+        cloudletOffsets.push({
+          x: Math.cos(angle) * radius,
+          y: Math.sin(angle) * radius
+        });
+      }
+    }
+    
     particles.push({
       x: settings.originX,
       y: settings.originY,
@@ -60,31 +245,47 @@ export async function generateParticlePhysics(
       size: settings.particleSize,
       age: 0,
       lifespan: settings.lifespan,
-      active: false
+      active: false,
+      shape: settings.particleShape,
+      cloudletOffsets
     });
   }
   
-  // Spawn particles gradually over time
-  const spawnInterval = Math.max(1, Math.floor(actualFrameCount / settings.particleCount));
+  // Spawn particles gradually over time (or all at once in burst mode)
+  // Calculate how many particles to spawn per frame
+  const particlesPerFrame = settings.emitterMode === 'burst' 
+    ? settings.particleCount  // Spawn all on first frame
+    : settings.particleCount / actualFrameCount; // Spread over animation
   let nextParticleIndex = 0;
+  let particleDebt = 0; // Track fractional particles to spawn
   
   // Generate each frame
   for (let frameIdx = 0; frameIdx < actualFrameCount; frameIdx++) {
-    // Spawn new particles
-    if (frameIdx % spawnInterval === 0 && nextParticleIndex < particles.length) {
-      const particle = particles[nextParticleIndex++];
-      particle.active = true;
-      particle.x = settings.originX;
-      particle.y = settings.originY;
-      particle.age = 0;
+    // Spawn new particles - handle both whole and fractional amounts
+    // In burst mode, only spawn on first frame
+    if (settings.emitterMode === 'continuous' || frameIdx === 0) {
+      particleDebt += particlesPerFrame;
+      const particlesToSpawn = Math.floor(particleDebt);
+      particleDebt -= particlesToSpawn;
       
-      // Calculate velocity with randomness
+      for (let i = 0; i < particlesToSpawn && nextParticleIndex < particles.length; i++) {
+        const particle = particles[nextParticleIndex++];
+        particle.active = true;
+        
+        // Get spawn position based on emitter shape
+        const spawnPos = getEmitterPosition(settings, seededRandom);
+        particle.x = spawnPos.x;
+        particle.y = spawnPos.y;
+        particle.age = 0;
+      
+      // Calculate velocity with angle randomness
       const angleRad = (settings.velocityAngle * Math.PI) / 180;
-      const angleVariation = (seededRandom() - 0.5) * 2 * settings.velocityRandomness * Math.PI;
+      const angleVariation = (seededRandom() - 0.5) * 2 * settings.velocityAngleRandomness * Math.PI;
       const finalAngle = angleRad + angleVariation;
       
-      const magnitudeVariation = 1.0 + (seededRandom() - 0.5) * settings.velocityRandomness;
-      const finalMagnitude = settings.velocityMagnitude * magnitudeVariation;
+      // Calculate velocity with speed randomness
+      const speedVariation = 1.0 + (seededRandom() - 0.5) * 2 * settings.velocitySpeedRandomness;
+      const finalMagnitude = settings.velocityMagnitude * speedVariation;
       
       particle.vx = Math.cos(finalAngle) * finalMagnitude;
       particle.vy = Math.sin(finalAngle) * finalMagnitude;
@@ -95,6 +296,15 @@ export async function generateParticlePhysics(
           seededRandom() * (settings.particleSizeMax - settings.particleSizeMin);
       } else {
         particle.size = settings.particleSize;
+      }
+      
+      // Randomize lifespan if enabled
+      if (settings.lifespanRandomness) {
+        const variation = 1.0 + (seededRandom() - 0.5) * 2 * settings.lifespanRandomnessAmount;
+        particle.lifespan = Math.max(1, Math.floor(settings.lifespan * variation));
+      } else {
+        particle.lifespan = settings.lifespan;
+      }
       }
     }
     
@@ -109,24 +319,63 @@ export async function generateParticlePhysics(
       particle.vx *= (1.0 - settings.drag);
       particle.vy *= (1.0 - settings.drag);
       
+      // Apply turbulence field if enabled
+      if (settings.turbulenceEnabled) {
+        // Sample noise at particle position with frequency
+        const noiseX = particle.x * settings.turbulenceFrequency * 0.05;
+        const noiseY = particle.y * settings.turbulenceFrequency * 0.05;
+        const noiseZ = frameIdx * 0.1; // Time component for animation
+        
+        // Get turbulence force from noise (use derivatives for vector field)
+        const turbulenceX = perlinNoise3D(noiseX + 100, noiseY, noiseZ);
+        const turbulenceY = perlinNoise3D(noiseX, noiseY + 100, noiseZ);
+        
+        // Apply turbulence to position
+        particle.x += turbulenceX * settings.turbulenceAffectsPosition * 0.1;
+        particle.y += turbulenceY * settings.turbulenceAffectsPosition * 0.1;
+      }
+      
       // Update position (Euler integration)
       particle.x += particle.vx;
       particle.y += particle.vy;
       
-      // Bounce off edges
-      if (particle.x < 0 || particle.x >= width) {
-        particle.vx *= -1;
-        particle.x = Math.max(0, Math.min(width - 1, particle.x));
-      }
-      if (particle.y < 0 || particle.y >= height) {
-        particle.vy *= -1;
-        particle.y = Math.max(0, Math.min(height - 1, particle.y));
+      // Handle edge behavior
+      if (settings.edgeBounce) {
+        // Bounce off edges with friction and bounciness
+        if (particle.x < 0 || particle.x >= width) {
+          particle.vx *= -settings.bounciness;
+          particle.vy *= (1.0 - settings.edgeFriction);
+          particle.x = Math.max(0, Math.min(width - 1, particle.x));
+        }
+        if (particle.y < 0 || particle.y >= height) {
+          particle.vy *= -settings.bounciness;
+          particle.vx *= (1.0 - settings.edgeFriction);
+          particle.y = Math.max(0, Math.min(height - 1, particle.y));
+        }
+      } else {
+        // Particles leave canvas when they reach the edge
+        if (particle.x < 0 || particle.x >= width || particle.y < 0 || particle.y >= height) {
+          particle.active = false;
+          continue;
+        }
       }
       
       // Age particle
       particle.age++;
       if (particle.age >= particle.lifespan) {
         particle.active = false;
+      }
+    }
+    
+    // Handle self-collisions if enabled
+    if (settings.selfCollisions) {
+      const activeParticles = particles.filter(p => p.active);
+      for (let i = 0; i < activeParticles.length; i++) {
+        for (let j = i + 1; j < activeParticles.length; j++) {
+          if (checkParticleCollision(activeParticles[i], activeParticles[j])) {
+            resolveParticleCollision(activeParticles[i], activeParticles[j], settings.bounciness);
+          }
+        }
       }
     }
     
@@ -138,38 +387,118 @@ export async function generateParticlePhysics(
     for (const particle of particles) {
       if (!particle.active) continue;
       
-      // Calculate fade based on age
+      // Calculate interpolation factor based on lifetime
       const lifetimeRatio = particle.age / particle.lifespan;
-      const alpha = 1.0 - lifetimeRatio; // Fade out as particle ages
       
-      // Render particle as a filled circle with aspect ratio correction
+      // Interpolate opacity from start to end
+      const opacity = settings.startOpacity + (settings.endOpacity - settings.startOpacity) * lifetimeRatio;
+      
+      // Interpolate size multiplier from start to end
+      let sizeMultiplier = settings.startSizeMultiplier + (settings.endSizeMultiplier - settings.startSizeMultiplier) * lifetimeRatio;
+      
+      // Apply turbulence to scale if enabled
+      if (settings.turbulenceEnabled && settings.turbulenceAffectsScale > 0) {
+        const noiseX = particle.x * settings.turbulenceFrequency * 0.05;
+        const noiseY = particle.y * settings.turbulenceFrequency * 0.05;
+        const noiseZ = frameIdx * 0.1;
+        const scaleNoise = perlinNoise3D(noiseX + 200, noiseY + 200, noiseZ);
+        // Map noise from [-1, 1] to a multiplier around 1.0
+        const scaleVariation = 1.0 + scaleNoise * settings.turbulenceAffectsScale;
+        sizeMultiplier *= scaleVariation;
+      }
+      
+      const currentSize = particle.size * sizeMultiplier;
+      
       const px = Math.floor(particle.x);
       const py = Math.floor(particle.y);
-      const radius = Math.ceil(particle.size / 2);
+      // Keep radius as float for smoother interpolation
+      const radius = currentSize / 2;
+      const radiusCeil = Math.ceil(radius);
       
-      for (let dy = -radius; dy <= radius; dy++) {
-        for (let dx = -radius; dx <= radius; dx++) {
-          // Apply aspect ratio correction for circular particles
-          const correctedDx = dx * CELL_ASPECT_RATIO;
-          const dist = Math.sqrt(correctedDx * correctedDx + dy * dy);
-          if (dist <= radius) {
-            const x = px + dx;
-            const y = py + dy;
-            
-            if (x >= 0 && x < width && y >= 0 && y < height) {
-              const pixelIdx = (y * width + x) * 4;
-              
-              // Use distance for anti-aliasing
-              const edgeFade = radius - dist;
-              const finalAlpha = Math.min(1, edgeFade) * alpha;
-              
-              // White particles
-              data[pixelIdx] = 255;
-              data[pixelIdx + 1] = 255;
-              data[pixelIdx + 2] = 255;
-              data[pixelIdx + 3] = Math.max(data[pixelIdx + 3], Math.round(finalAlpha * 255));
+      // Render based on particle shape
+      switch (particle.shape) {
+        case 'circle': {
+          // Render as filled circle with aspect ratio correction
+          for (let dy = -radiusCeil; dy <= radiusCeil; dy++) {
+            for (let dx = -radiusCeil; dx <= radiusCeil; dx++) {
+              const correctedDx = dx * CELL_ASPECT_RATIO;
+              const dist = Math.sqrt(correctedDx * correctedDx + dy * dy);
+              if (dist <= radius) {
+                const x = px + dx;
+                const y = py + dy;
+                
+                if (x >= 0 && x < width && y >= 0 && y < height) {
+                  const pixelIdx = (y * width + x) * 4;
+                  const edgeFade = radius - dist;
+                  const finalAlpha = Math.min(1, edgeFade) * opacity;
+                  
+                  data[pixelIdx] = 255;
+                  data[pixelIdx + 1] = 255;
+                  data[pixelIdx + 2] = 255;
+                  data[pixelIdx + 3] = Math.max(data[pixelIdx + 3], Math.round(finalAlpha * 255));
+                }
+              }
             }
           }
+          break;
+        }
+        
+        case 'square': {
+          // Render as filled square
+          for (let dy = -radiusCeil; dy <= radiusCeil; dy++) {
+            for (let dx = -radiusCeil; dx <= radiusCeil; dx++) {
+              // Check if within the actual radius bounds
+              if (Math.abs(dx) <= radius && Math.abs(dy) <= radius) {
+                const x = px + dx;
+                const y = py + dy;
+                
+                if (x >= 0 && x < width && y >= 0 && y < height) {
+                  const pixelIdx = (y * width + x) * 4;
+                  
+                  data[pixelIdx] = 255;
+                  data[pixelIdx + 1] = 255;
+                  data[pixelIdx + 2] = 255;
+                  data[pixelIdx + 3] = Math.max(data[pixelIdx + 3], Math.round(opacity * 255));
+                }
+              }
+            }
+          }
+          break;
+        }
+        
+        case 'cloudlet': {
+          // Render as blob using cloudlet offsets
+          if (particle.cloudletOffsets) {
+            for (const offset of particle.cloudletOffsets) {
+              const cx = px + Math.floor(offset.x * currentSize);
+              const cy = py + Math.floor(offset.y * currentSize);
+              const blobRadius = radius / 2;
+              const blobRadiusCeil = Math.ceil(blobRadius);
+              
+              for (let dy = -blobRadiusCeil; dy <= blobRadiusCeil; dy++) {
+                for (let dx = -blobRadiusCeil; dx <= blobRadiusCeil; dx++) {
+                  const correctedDx = dx * CELL_ASPECT_RATIO;
+                  const dist = Math.sqrt(correctedDx * correctedDx + dy * dy);
+                  if (dist <= blobRadius) {
+                    const x = cx + dx;
+                    const y = cy + dy;
+                    
+                    if (x >= 0 && x < width && y >= 0 && y < height) {
+                      const pixelIdx = (y * width + x) * 4;
+                      const edgeFade = blobRadius - dist;
+                      const finalAlpha = Math.min(1, edgeFade) * opacity;
+                      
+                      data[pixelIdx] = 255;
+                      data[pixelIdx + 1] = 255;
+                      data[pixelIdx + 2] = 255;
+                      data[pixelIdx + 3] = Math.max(data[pixelIdx + 3], Math.round(finalAlpha * 255));
+                    }
+                  }
+                }
+              }
+            }
+          }
+          break;
         }
       }
     }

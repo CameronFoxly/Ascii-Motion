@@ -100,28 +100,46 @@ export const DEFAULT_PARTICLE_PHYSICS_SETTINGS: ParticlePhysicsSettings = {
   // Emitter properties (center of default canvas)
   originX: 40,
   originY: 12,
+  emitterShape: 'point',
+  emitterSize: 5,
+  emitterMode: 'continuous',
   particleCount: 100,
   
   // Particle properties
+  particleShape: 'circle',
   particleSize: 2,
   particleSizeRandomness: false,
   particleSizeMin: 1,
   particleSizeMax: 4,
+  startSizeMultiplier: 1.0,  // 100% of base size at birth
+  endSizeMultiplier: 1.0,    // 100% of base size at death
+  startOpacity: 1.0,         // Fully opaque at birth
+  endOpacity: 1.0,           // Fully opaque at death
   lifespan: 60,             // 60 frames at 30fps = 2 seconds
+  lifespanRandomness: false,
+  lifespanRandomnessAmount: 0.3,
   
   // Velocity
   velocityMagnitude: 2.0,
   velocityAngle: 270,       // Upward
-  velocityRandomness: 0.3,
+  velocityAngleRandomness: 0.3,
+  velocitySpeedRandomness: 0.2,
   
   // Physics
   gravity: 0.2,
   drag: 0.02,
   
-  // Edge behavior
+  // Collisions
   edgeBounce: true,
   bounciness: 0.8,
   edgeFriction: 0.1,
+  selfCollisions: false,
+  
+  // Turbulence Field
+  turbulenceEnabled: false,
+  turbulenceFrequency: 1.0,
+  turbulenceAffectsPosition: 2.0,
+  turbulenceAffectsScale: 0.5,
   
   // Timing (default: 5 seconds at 30fps)
   duration: 5000,
