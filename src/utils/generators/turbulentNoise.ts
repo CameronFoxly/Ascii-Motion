@@ -29,6 +29,10 @@ export async function generateTurbulentNoise(
     ? Math.floor(settings.duration / actualFrameCount)
     : frameDuration;
   
+  // Initialize noise with seed (affects the noise pattern)
+  // We'll use seed as an offset to the sample coordinates
+  const seedOffset = settings.seed * 0.01;
+  
   // Generate each frame
   for (let frameIdx = 0; frameIdx < actualFrameCount; frameIdx++) {
     const t = frameIdx / actualFrameCount; // 0 to 1
@@ -45,15 +49,15 @@ export async function generateTurbulentNoise(
       for (let x = 0; x < width; x++) {
         // Calculate noise value with octaves (fractal noise)
         let noiseValue = 0;
-        let amplitude = settings.amplitude;
+        let amplitude = 1.0; // Start with full amplitude
         let frequency = settings.baseFrequency;
         let maxValue = 0;
         
         for (let octave = 0; octave < settings.octaves; octave++) {
-          // Calculate sample position with offsets and frequency
-          const sampleX = (x + settings.offsetX) * frequency / width;
-          const sampleY = (y + settings.offsetY) * frequency / height;
-          const sampleZ = timeOffset * 0.01; // Time dimension for evolution
+          // Calculate sample position with frequency and seed
+          const sampleX = x * frequency / width + seedOffset;
+          const sampleY = y * frequency / height + seedOffset;
+          const sampleZ = timeOffset * 0.01 + seedOffset; // Time dimension for evolution
           
           // Get noise value based on type
           let octaveNoise = 0;
@@ -65,20 +69,30 @@ export async function generateTurbulentNoise(
               octaveNoise = simplexNoise3D(sampleX, sampleY, sampleZ);
               break;
             case 'worley':
-              octaveNoise = worleyNoise2D(sampleX, sampleY);
+              // Use 3D Worley noise with time dimension for evolution
+              octaveNoise = worleyNoise3D(sampleX, sampleY, sampleZ);
               break;
           }
           
           noiseValue += octaveNoise * amplitude;
           maxValue += amplitude;
           
-          // Update for next octave
-          amplitude *= settings.persistence;
-          frequency *= settings.lacunarity;
+          // Update for next octave (fixed values for consistent fractal behavior)
+          amplitude *= 0.5;  // Each octave has half the amplitude (persistence)
+          frequency *= 2.0;  // Each octave has double the frequency (lacunarity)
         }
         
         // Normalize to 0-1 range
         noiseValue = (noiseValue / maxValue) * 0.5 + 0.5;
+        
+        // Apply contrast (multiply around 0.5 midpoint)
+        noiseValue = (noiseValue - 0.5) * settings.contrast + 0.5;
+        
+        // Apply brightness (additive)
+        noiseValue = noiseValue + settings.brightness;
+        
+        // Clamp to 0-1 range
+        noiseValue = Math.max(0, Math.min(1, noiseValue));
         
         // Convert to grayscale color (0-255)
         const intensity = Math.round(noiseValue * 255);
@@ -154,32 +168,38 @@ function simplexNoise3D(x: number, y: number, z: number): number {
 }
 
 /**
- * Simple 2D Worley (cellular) noise
+ * Simple 3D Worley (cellular) noise with time evolution
  * Returns value in range [0, 1]
  */
-function worleyNoise2D(x: number, y: number): number {
+function worleyNoise3D(x: number, y: number, z: number): number {
   const xi = Math.floor(x);
   const yi = Math.floor(y);
+  const zi = Math.floor(z);
   
   let minDist = 999999;
   
-  // Check surrounding cells
-  for (let dy = -1; dy <= 1; dy++) {
-    for (let dx = -1; dx <= 1; dx++) {
-      const cellX = xi + dx;
-      const cellY = yi + dy;
-      
-      // Generate random point in cell
-      const hash = hash2D(cellX, cellY);
-      const pointX = cellX + (hash % 1000) / 1000;
-      const pointY = cellY + ((hash * 73) % 1000) / 1000;
-      
-      // Calculate distance
-      const distX = x - pointX;
-      const distY = y - pointY;
-      const dist = Math.sqrt(distX * distX + distY * distY);
-      
-      minDist = Math.min(minDist, dist);
+  // Check surrounding cells in 3D
+  for (let dz = -1; dz <= 1; dz++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const cellX = xi + dx;
+        const cellY = yi + dy;
+        const cellZ = zi + dz;
+        
+        // Generate random point in cell
+        const hash = hash3D(cellX, cellY, cellZ);
+        const pointX = cellX + (hash % 1000) / 1000;
+        const pointY = cellY + ((hash * 73) % 1000) / 1000;
+        const pointZ = cellZ + ((hash * 139) % 1000) / 1000;
+        
+        // Calculate 3D distance
+        const distX = x - pointX;
+        const distY = y - pointY;
+        const distZ = z - pointZ;
+        const dist = Math.sqrt(distX * distX + distY * distY + distZ * distZ);
+        
+        minDist = Math.min(minDist, dist);
+      }
     }
   }
   
@@ -191,13 +211,6 @@ function worleyNoise2D(x: number, y: number): number {
  */
 function hash3D(x: number, y: number, z: number): number {
   return ((x * 73856093) ^ (y * 19349663) ^ (z * 83492791)) & 0x7fffffff;
-}
-
-/**
- * Hash function for 2D coordinates
- */
-function hash2D(x: number, y: number): number {
-  return ((x * 73856093) ^ (y * 19349663)) & 0x7fffffff;
 }
 
 /**

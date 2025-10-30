@@ -433,8 +433,7 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
         canvasHeight,
         frameCount,
         frameDuration,
-        seed,
-        false // TODO: Phase 4 - Add loop smoothing toggle to UI state
+        seed
       );
       
       if (!result.success) {
@@ -474,6 +473,9 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       
       // Build conversion settings from mapping settings
       const conversionSettings: ConversionSettings = {
+        // Flag to indicate this is generator data (for dithering behavior)
+        isGenerator: true,
+        
         // Character mapping
         enableCharacterMapping: state.mappingSettings.enableCharacterMapping,
         characterPalette: tempCharacterPalette,

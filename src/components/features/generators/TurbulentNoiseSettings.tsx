@@ -9,14 +9,10 @@ import { Slider } from '../../ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Dice5 } from 'lucide-react';
 import { useGeneratorsStore } from '../../../stores/generatorsStore';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../ui/collapsible';
-import { ChevronDown } from 'lucide-react';
-import { useState } from 'react';
 import type { NoiseType } from '../../../types/generators';
 
 export function TurbulentNoiseSettings() {
   const { turbulentNoiseSettings, updateTurbulentNoiseSettings } = useGeneratorsStore();
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleSeedRandomize = () => {
     updateTurbulentNoiseSettings({
@@ -65,26 +61,6 @@ export function TurbulentNoiseSettings() {
         
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-xs text-muted-foreground">Amplitude</Label>
-            <span className="text-xs tabular-nums">{turbulentNoiseSettings.amplitude.toFixed(2)}</span>
-          </div>
-          <Slider
-            value={turbulentNoiseSettings.amplitude}
-            onValueChange={(value) => updateTurbulentNoiseSettings({ amplitude: value })}
-            min={0.0}
-            max={1.0}
-            step={0.05}
-            className="w-full"
-          />
-        </div>
-      </div>
-
-      {/* Fractal Properties */}
-      <div className="space-y-3">
-        <Label className="text-xs font-semibold">Fractal Properties</Label>
-        
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
             <Label className="text-xs text-muted-foreground">Octaves</Label>
             <span className="text-xs tabular-nums">{turbulentNoiseSettings.octaves}</span>
           </div>
@@ -99,14 +75,40 @@ export function TurbulentNoiseSettings() {
         </div>
         
         <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Random Seed</Label>
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              value={turbulentNoiseSettings.seed}
+              onChange={(e) => updateTurbulentNoiseSettings({ seed: parseInt(e.target.value) || 0 })}
+              className="h-8 text-xs flex-1"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSeedRandomize}
+              className="h-8 w-8 p-0"
+              title="Randomize seed"
+            >
+              <Dice5 className="w-3 h-3" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Visual Adjustments */}
+      <div className="space-y-3">
+        <Label className="text-xs font-semibold">Visual Adjustments</Label>
+        
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-xs text-muted-foreground">Persistence</Label>
-            <span className="text-xs tabular-nums">{turbulentNoiseSettings.persistence.toFixed(2)}</span>
+            <Label className="text-xs text-muted-foreground">Brightness</Label>
+            <span className="text-xs tabular-nums">{turbulentNoiseSettings.brightness.toFixed(2)}</span>
           </div>
           <Slider
-            value={turbulentNoiseSettings.persistence}
-            onValueChange={(value) => updateTurbulentNoiseSettings({ persistence: value })}
-            min={0.0}
+            value={turbulentNoiseSettings.brightness}
+            onValueChange={(value) => updateTurbulentNoiseSettings({ brightness: value })}
+            min={-1.0}
             max={1.0}
             step={0.05}
             className="w-full"
@@ -115,15 +117,15 @@ export function TurbulentNoiseSettings() {
         
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-xs text-muted-foreground">Lacunarity</Label>
-            <span className="text-xs tabular-nums">{turbulentNoiseSettings.lacunarity.toFixed(2)}</span>
+            <Label className="text-xs text-muted-foreground">Contrast</Label>
+            <span className="text-xs tabular-nums">{turbulentNoiseSettings.contrast.toFixed(2)}</span>
           </div>
           <Slider
-            value={turbulentNoiseSettings.lacunarity}
-            onValueChange={(value) => updateTurbulentNoiseSettings({ lacunarity: value })}
-            min={1.0}
+            value={turbulentNoiseSettings.contrast}
+            onValueChange={(value) => updateTurbulentNoiseSettings({ contrast: value })}
+            min={0.0}
             max={4.0}
-            step={0.1}
+            step={0.05}
             className="w-full"
           />
         </div>
@@ -144,36 +146,6 @@ export function TurbulentNoiseSettings() {
             min={0.1}
             max={10.0}
             step={0.1}
-            className="w-full"
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs text-muted-foreground">Offset X</Label>
-            <span className="text-xs tabular-nums">{turbulentNoiseSettings.offsetX.toFixed(1)}</span>
-          </div>
-          <Slider
-            value={turbulentNoiseSettings.offsetX}
-            onValueChange={(value) => updateTurbulentNoiseSettings({ offsetX: value })}
-            min={-100}
-            max={100}
-            step={1}
-            className="w-full"
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs text-muted-foreground">Offset Y</Label>
-            <span className="text-xs tabular-nums">{turbulentNoiseSettings.offsetY.toFixed(1)}</span>
-          </div>
-          <Slider
-            value={turbulentNoiseSettings.offsetY}
-            onValueChange={(value) => updateTurbulentNoiseSettings({ offsetY: value })}
-            min={-100}
-            max={100}
-            step={1}
             className="w-full"
           />
         </div>
@@ -207,36 +179,6 @@ export function TurbulentNoiseSettings() {
           />
         </div>
       </div>
-
-      {/* Advanced Settings */}
-      <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-        <CollapsibleTrigger className="flex items-center gap-2 text-xs font-semibold w-full">
-          <ChevronDown className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
-          Advanced
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-3 pt-3">
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Random Seed</Label>
-            <div className="flex gap-2">
-              <Input
-                type="number"
-                value={turbulentNoiseSettings.seed}
-                onChange={(e) => updateTurbulentNoiseSettings({ seed: parseInt(e.target.value) || 0 })}
-                className="h-8 text-xs flex-1"
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSeedRandomize}
-                className="h-8 w-8 p-0"
-                title="Randomize seed"
-              >
-                <Dice5 className="w-3 h-3" />
-              </Button>
-            </div>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
     </div>
   );
 }

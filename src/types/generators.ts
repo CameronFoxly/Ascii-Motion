@@ -10,6 +10,9 @@ export type GeneratorId = 'radio-waves' | 'turbulent-noise' | 'particle-physics'
 // Noise type options for turbulent noise generator
 export type NoiseType = 'perlin' | 'simplex' | 'worley';
 
+// Dithering options for turbulent noise generator
+export type DitherType = 'none' | '2x2' | '4x4' | 'noise' | 'animated-noise';
+
 // Wave shape options for radio waves generator
 export type WaveShape = 'circle' | 'square' | 'triangle' | 'pentagon' | 'hexagon' | 'octagon' | 'star';
 
@@ -59,26 +62,23 @@ export interface TurbulentNoiseSettings {
   // Noise configuration
   noiseType: NoiseType;     // 'perlin' | 'simplex' | 'worley'
   baseFrequency: number;    // 0.1 - 8.0
-  amplitude: number;        // 0.0 - 1.0
+  seed: number;             // Random seed for noise generation
   
   // Fractal noise properties
   octaves: number;          // 1 - 6
-  persistence: number;      // 0.0 - 1.0 (amplitude falloff per octave)
-  lacunarity: number;       // 1.0 - 4.0 (frequency multiplier per octave)
+  
+  // Visual adjustments
+  brightness: number;       // -1.0 to 1.0 (additive adjustment)
+  contrast: number;         // 0.0 to 4.0 (multiplier, 1.0 = normal)
   
   // Evolution
   evolutionSpeed: number;   // Speed at which noise scrolls over time
-  offsetX: number;          // Phase offset in X direction
-  offsetY: number;          // Phase offset in Y direction
   
   // Timing
   duration: number;         // milliseconds
   frameRate: number;        // fps
   frameCount: number;       // explicit frame count
   timingMode: TimingMode;
-  
-  // Random seed
-  seed: number;
 }
 
 export interface ParticlePhysicsSettings {

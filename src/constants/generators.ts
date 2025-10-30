@@ -74,29 +74,26 @@ export const DEFAULT_RADIO_WAVES_SETTINGS: RadioWavesSettings = {
 };
 
 export const DEFAULT_TURBULENT_NOISE_SETTINGS: TurbulentNoiseSettings = {
-  // Noise configuration (After Effects defaults)
+  // Noise configuration
   noiseType: 'perlin',
   baseFrequency: 1.0,
-  amplitude: 0.5,
+  seed: Math.floor(Math.random() * 10000),
   
   // Fractal noise properties
   octaves: 3,
-  persistence: 0.5,
-  lacunarity: 2.0,
+  
+  // Visual adjustments
+  brightness: 0,            // -1 to 1 (0 = no adjustment)
+  contrast: 1.0,            // 0 to 4 (1 = normal)
   
   // Evolution
   evolutionSpeed: 1.0,
-  offsetX: 0,
-  offsetY: 0,
   
   // Timing (default: 3 seconds at 30fps)
   duration: 3000,
   frameRate: 30,
   frameCount: 90,
-  timingMode: 'frameCount',
-  
-  // Random seed
-  seed: Math.floor(Math.random() * 10000)
+  timingMode: 'frameCount'
 };
 
 export const DEFAULT_PARTICLE_PHYSICS_SETTINGS: ParticlePhysicsSettings = {
