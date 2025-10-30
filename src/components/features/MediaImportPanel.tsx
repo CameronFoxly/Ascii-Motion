@@ -154,6 +154,8 @@ export function MediaImportPanel() {
   // Character palette integration
   const activePalette = useCharacterPaletteStore(state => state.activePalette);
   const mappingMethod = useCharacterPaletteStore(state => state.mappingMethod);
+  const mappingMode = useCharacterPaletteStore(state => state.mappingMode);
+  const ditherStrength = useCharacterPaletteStore(state => state.ditherStrength);
   const invertDensity = useCharacterPaletteStore(state => state.invertDensity);
   const characterSpacing = useCharacterPaletteStore(state => state.characterSpacing);
   
@@ -494,18 +496,21 @@ export function MediaImportPanel() {
       enableCharacterMapping: settings.enableCharacterMapping,
       characterPalette: activePalette,
       mappingMethod: mappingMethod,
+      characterMappingMode: mappingMode,
       invertDensity: invertDensity,
       
       // Text color mapping 
       enableTextColorMapping: settings.enableTextColorMapping,
       textColorPalette: textColorPalette,
       textColorMappingMode: settings.textColorMappingMode,
+      textColorDitherStrength: settings.textColorDitherStrength,
       defaultTextColor: selectedColor,
       
       // Background color mapping
       enableBackgroundColorMapping: settings.enableBackgroundColorMapping,
       backgroundColorPalette: backgroundColorPalette,
       backgroundColorMappingMode: settings.backgroundColorMappingMode,
+      backgroundColorDitherStrength: settings.backgroundColorDitherStrength,
       
       // Legacy settings
       useOriginalColors: settings.useOriginalColors,
@@ -522,16 +527,18 @@ export function MediaImportPanel() {
       midtonesAdjustment: settings.midtones,
       blurAmount: settings.blur,
       sharpenAmount: settings.sharpen,
-      ditherStrength: 0.5
+      ditherStrength: ditherStrength
     };
   }, [
     settings.enableCharacterMapping,
     settings.enableTextColorMapping, 
     settings.textColorPaletteId,
     settings.textColorMappingMode,
+    settings.textColorDitherStrength,
     settings.enableBackgroundColorMapping,
     settings.backgroundColorPaletteId,
     settings.backgroundColorMappingMode,
+    settings.backgroundColorDitherStrength,
     settings.useOriginalColors,
     settings.colorQuantization,
     settings.paletteSize,
@@ -546,6 +553,8 @@ export function MediaImportPanel() {
     settings.sharpen,
     activePalette,
     mappingMethod,
+    mappingMode,
+    ditherStrength,
     invertDensity,
     selectedColor,
     palettes,

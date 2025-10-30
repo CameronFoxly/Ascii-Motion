@@ -113,6 +113,7 @@ export function PreprocessingSection({ onSettingsChange }: PreprocessingSectionP
 
               {/* Mapping Algorithm Selection */}
               <div className="space-y-2">
+                <Label className="text-xs font-medium">Mapping Algorithm</Label>
                 <Select value={mappingMethod} onValueChange={handleMappingMethodChange}>
                   <SelectTrigger className="h-8 text-xs">
                     <SelectValue />

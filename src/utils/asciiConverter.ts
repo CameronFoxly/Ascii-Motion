@@ -18,22 +18,28 @@ export const DEFAULT_ASCII_CHARS = [
 ];
 
 export interface ConversionSettings {
+  // Source type flag
+  isGenerator?: boolean; // True for procedural generators, false/undefined for media imports
+  
   // Character mapping - Enhanced with palette support
   enableCharacterMapping: boolean;
   characterPalette: CharacterPalette;
   mappingMethod: CharacterMappingSettings['mappingMethod'];
+  characterMappingMode: 'by-index' | 'noise-dither' | 'bayer2x2' | 'bayer4x4'; // Dithering modes
   invertDensity: boolean;
   
   // Text (foreground) color mapping - NEW
   enableTextColorMapping: boolean;
   textColorPalette: string[]; // Array of hex colors from selected palette
   textColorMappingMode: 'closest' | 'noise-dither' | 'bayer2x2' | 'bayer4x4' | 'by-index';
+  textColorDitherStrength: number; // 0-1 for text color dithering
   defaultTextColor: string; // Default color when text color mapping is disabled
   
   // Background color mapping - NEW
   enableBackgroundColorMapping: boolean;
   backgroundColorPalette: string[]; // Array of hex colors from selected palette
   backgroundColorMappingMode: 'closest' | 'noise-dither' | 'bayer2x2' | 'bayer4x4' | 'by-index';
+  backgroundColorDitherStrength: number; // 0-1 for background color dithering
   
   // Legacy color settings (keep for backward compatibility)
   useOriginalColors: boolean;
@@ -61,6 +67,9 @@ export interface MappingAlgorithmOptions {
   gradientMagnitude?: number;
   sobelX?: number;
   sobelY?: number;
+  ditherStrength?: number;  // For dithering algorithms
+  x?: number;               // Pixel x coordinate for dithering
+  y?: number;               // Pixel y coordinate for dithering
 }
 
 export interface MappingAlgorithm {
@@ -461,6 +470,274 @@ export class ColorMatcher {
     
     return palette[paletteIndex];
   }
+
+  /**
+   * Index-based mapping with noise dithering
+   * Maps brightness to palette index, then applies noise to the brightness before mapping
+   * Uses fractional component to reduce dithering in smooth areas
+   */
+  static mapColorByIndexNoise(
+    r: number, g: number, b: number,
+    palette: string[],
+    ditherStrength: number,
+    x: number, y: number
+  ): string {
+    if (palette.length === 0) return '#000000';
+    
+    // Calculate base brightness
+    const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    
+    // Calculate continuous palette position (0 to palette.length)
+    const continuousIndex = (brightness / 256) * palette.length;
+    const fractionalPart = continuousIndex - Math.floor(continuousIndex);
+    
+    // Position-based noise
+    const noise1 = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+    const noise2 = Math.sin(x * 93.9898 + y * 47.233) * 25643.2831;
+    const noise = ((noise1 - Math.floor(noise1)) + (noise2 - Math.floor(noise2))) / 2;
+    
+    // Apply dithering threshold based on fractional part and noise
+    // This creates transitions at palette boundaries rather than uniform noise
+    const threshold = (noise - 0.5) * ditherStrength;
+    const shouldDitherUp = fractionalPart + threshold > 0.5;
+    
+    // Choose index based on dithering decision
+    let paletteIndex = Math.floor(continuousIndex);
+    if (shouldDitherUp && paletteIndex < palette.length - 1) {
+      paletteIndex += 1;
+    }
+    
+    paletteIndex = Math.max(0, Math.min(palette.length - 1, paletteIndex));
+    
+    return palette[paletteIndex];
+  }
+
+  /**
+   * Index-based mapping with Bayer 2x2 dithering
+   * Maps brightness to palette index using ordered dithering pattern
+   * Uses fractional component for gradient-aware dithering
+   */
+  static mapColorByIndexBayer2x2(
+    r: number, g: number, b: number,
+    palette: string[],
+    ditherStrength: number,
+    x: number, y: number
+  ): string {
+    if (palette.length === 0) return '#000000';
+    
+    // Calculate base brightness
+    const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    
+    // Calculate continuous palette position
+    const continuousIndex = (brightness / 256) * palette.length;
+    const fractionalPart = continuousIndex - Math.floor(continuousIndex);
+    
+    // Bayer 2x2 matrix
+    const bayer2x2 = [
+      [0, 2],
+      [3, 1]
+    ];
+    
+    const matrixX = Math.abs(x) % 2;
+    const matrixY = Math.abs(y) % 2;
+    const threshold = bayer2x2[matrixY][matrixX] / 4; // Normalize to 0-1
+    
+    // Apply Bayer threshold to fractional part
+    const adjustedThreshold = (threshold - 0.5) * ditherStrength;
+    const shouldDitherUp = fractionalPart + adjustedThreshold > 0.5;
+    
+    let paletteIndex = Math.floor(continuousIndex);
+    if (shouldDitherUp && paletteIndex < palette.length - 1) {
+      paletteIndex += 1;
+    }
+    
+    paletteIndex = Math.max(0, Math.min(palette.length - 1, paletteIndex));
+    
+    return palette[paletteIndex];
+  }
+
+  /**
+   * Index-based mapping with Bayer 4x4 dithering
+   * Maps brightness to palette index using finer ordered dithering pattern
+   * Uses fractional component for gradient-aware dithering
+   */
+  static mapColorByIndexBayer4x4(
+    r: number, g: number, b: number,
+    palette: string[],
+    ditherStrength: number,
+    x: number, y: number
+  ): string {
+    if (palette.length === 0) return '#000000';
+    
+    // Calculate base brightness
+    const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    
+    // Calculate continuous palette position
+    const continuousIndex = (brightness / 256) * palette.length;
+    const fractionalPart = continuousIndex - Math.floor(continuousIndex);
+    
+    // Bayer 4x4 matrix
+    const bayer4x4 = [
+      [0,  8,  2,  10],
+      [12, 4,  14, 6],
+      [3,  11, 1,  9],
+      [15, 7,  13, 5]
+    ];
+    
+    const matrixX = Math.abs(x) % 4;
+    const matrixY = Math.abs(y) % 4;
+    const threshold = bayer4x4[matrixY][matrixX] / 16; // Normalize to 0-1
+    
+    // Apply Bayer threshold to fractional part
+    const adjustedThreshold = (threshold - 0.5) * ditherStrength;
+    const shouldDitherUp = fractionalPart + adjustedThreshold > 0.5;
+    
+    let paletteIndex = Math.floor(continuousIndex);
+    if (shouldDitherUp && paletteIndex < palette.length - 1) {
+      paletteIndex += 1;
+    }
+    
+    paletteIndex = Math.max(0, Math.min(palette.length - 1, paletteIndex));
+    
+    return palette[paletteIndex];
+  }
+}
+
+/**
+ * CharacterMapper
+ * Maps RGB values to characters with optional gradient-aware dithering
+ */
+class CharacterMapper {
+  /**
+   * Direct character mapping by index (no dithering)
+   * Uses standard brightness calculation to map to character array by index
+   */
+  static mapCharacterByIndex(r: number, g: number, b: number, characters: string[]): string {
+    // Calculate brightness using Rec. 709 relative luminance
+    const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    
+    // Map brightness to character array
+    const continuousIndex = (brightness / 256) * characters.length;
+    const charIndex = Math.floor(continuousIndex);
+    const clampedIndex = Math.max(0, Math.min(characters.length - 1, charIndex));
+    
+    return characters[clampedIndex];
+  }
+
+  /**
+   * Character mapping with noise-based dithering
+   * Applies position-dependent noise dithering at palette boundaries
+   */
+  static mapCharacterByIndexNoise(
+    r: number,
+    g: number,
+    b: number,
+    characters: string[],
+    ditherStrength: number,
+    x: number,
+    y: number
+  ): string {
+    // Calculate brightness using Rec. 709 relative luminance
+    const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    
+    // Map brightness to continuous character index
+    const continuousIndex = (brightness / 256) * characters.length;
+    const fractionalPart = continuousIndex - Math.floor(continuousIndex);
+    
+    // Position-based pseudo-random noise
+    const noise = ((x * 12.9898 + y * 78.233) * 43758.5453) % 1.0;
+    const threshold = (noise - 0.5) * ditherStrength;
+    const shouldDitherUp = fractionalPart + threshold > 0.5;
+    
+    let charIndex = Math.floor(continuousIndex);
+    if (shouldDitherUp && charIndex < characters.length - 1) {
+      charIndex += 1;
+    }
+    
+    charIndex = Math.max(0, Math.min(characters.length - 1, charIndex));
+    
+    return characters[charIndex];
+  }
+
+  /**
+   * Character mapping with 2x2 Bayer matrix dithering
+   * Uses ordered dithering pattern for gradient-aware character selection
+   */
+  static mapCharacterByIndexBayer2x2(
+    r: number,
+    g: number,
+    b: number,
+    characters: string[],
+    ditherStrength: number,
+    x: number,
+    y: number
+  ): string {
+    // Calculate brightness using Rec. 709 relative luminance
+    const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    
+    // Map brightness to continuous character index
+    const continuousIndex = (brightness / 256) * characters.length;
+    const fractionalPart = continuousIndex - Math.floor(continuousIndex);
+    
+    // 2x2 Bayer matrix
+    const bayerMatrix = [
+      [0, 2],
+      [3, 1]
+    ];
+    
+    const threshold = (bayerMatrix[y % 2][x % 2] / 4.0 - 0.5) * ditherStrength;
+    const shouldDitherUp = fractionalPart + threshold > 0.5;
+    
+    let charIndex = Math.floor(continuousIndex);
+    if (shouldDitherUp && charIndex < characters.length - 1) {
+      charIndex += 1;
+    }
+    
+    charIndex = Math.max(0, Math.min(characters.length - 1, charIndex));
+    
+    return characters[charIndex];
+  }
+
+  /**
+   * Character mapping with 4x4 Bayer matrix dithering
+   * Uses larger ordered dithering pattern for smoother gradients
+   */
+  static mapCharacterByIndexBayer4x4(
+    r: number,
+    g: number,
+    b: number,
+    characters: string[],
+    ditherStrength: number,
+    x: number,
+    y: number
+  ): string {
+    // Calculate brightness using Rec. 709 relative luminance
+    const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    
+    // Map brightness to continuous character index
+    const continuousIndex = (brightness / 256) * characters.length;
+    const fractionalPart = continuousIndex - Math.floor(continuousIndex);
+    
+    // 4x4 Bayer matrix
+    const bayerMatrix = [
+      [0, 8, 2, 10],
+      [12, 4, 14, 6],
+      [3, 11, 1, 9],
+      [15, 7, 13, 5]
+    ];
+    
+    const threshold = (bayerMatrix[y % 4][x % 4] / 16.0 - 0.5) * ditherStrength;
+    const shouldDitherUp = fractionalPart + threshold > 0.5;
+    
+    let charIndex = Math.floor(continuousIndex);
+    if (shouldDitherUp && charIndex < characters.length - 1) {
+      charIndex += 1;
+    }
+    
+    charIndex = Math.max(0, Math.min(characters.length - 1, charIndex));
+    
+    return characters[charIndex];
+  }
 }
 
 export interface ConversionResult {
@@ -573,11 +850,17 @@ export class ASCIIConverter {
             }
           }
           
+          // Add pixel coordinates for character dithering
+          algorithmOptions.x = x;
+          algorithmOptions.y = y;
+          algorithmOptions.ditherStrength = settings.ditherStrength;
+          
           character = this.selectCharacterWithAlgorithm(
             adjustedR, adjustedG, adjustedB,
             settings.characterPalette,
             settings.mappingMethod,
             settings.invertDensity,
+            settings.characterMappingMode,
             algorithmOptions
           );
         } else {
@@ -591,28 +874,50 @@ export class ASCIIConverter {
           // Use palette-based color mapping
           switch (settings.textColorMappingMode) {
             case 'noise-dither':
-              color = ColorMatcher.ditherColorNoise(
-                adjustedR, adjustedG, adjustedB, 
-                settings.textColorPalette, 
-                settings.ditherStrength,
-                x, y
-              );
+              // Use index-based dithering for generators, closest-match for imports
+              color = settings.isGenerator
+                ? ColorMatcher.mapColorByIndexNoise(
+                    adjustedR, adjustedG, adjustedB, 
+                    settings.textColorPalette, 
+                    settings.textColorDitherStrength,
+                    x, y
+                  )
+                : ColorMatcher.ditherColorNoise(
+                    adjustedR, adjustedG, adjustedB, 
+                    settings.textColorPalette, 
+                    settings.textColorDitherStrength,
+                    x, y
+                  );
               break;
             case 'bayer2x2':
-              color = ColorMatcher.ditherColorBayer2x2(
-                adjustedR, adjustedG, adjustedB,
-                settings.textColorPalette,
-                settings.ditherStrength,
-                x, y
-              );
+              color = settings.isGenerator
+                ? ColorMatcher.mapColorByIndexBayer2x2(
+                    adjustedR, adjustedG, adjustedB,
+                    settings.textColorPalette,
+                    settings.textColorDitherStrength,
+                    x, y
+                  )
+                : ColorMatcher.ditherColorBayer2x2(
+                    adjustedR, adjustedG, adjustedB,
+                    settings.textColorPalette,
+                    settings.textColorDitherStrength,
+                    x, y
+                  );
               break;
             case 'bayer4x4':
-              color = ColorMatcher.ditherColorBayer4x4(
-                adjustedR, adjustedG, adjustedB,
-                settings.textColorPalette,
-                settings.ditherStrength,
-                x, y
-              );
+              color = settings.isGenerator
+                ? ColorMatcher.mapColorByIndexBayer4x4(
+                    adjustedR, adjustedG, adjustedB,
+                    settings.textColorPalette,
+                    settings.textColorDitherStrength,
+                    x, y
+                  )
+                : ColorMatcher.ditherColorBayer4x4(
+                    adjustedR, adjustedG, adjustedB,
+                    settings.textColorPalette,
+                    settings.textColorDitherStrength,
+                    x, y
+                  );
               break;
             case 'by-index':
               color = ColorMatcher.mapColorByIndex(adjustedR, adjustedG, adjustedB, settings.textColorPalette);
@@ -641,28 +946,49 @@ export class ASCIIConverter {
           // Use palette-based background color mapping
           switch (settings.backgroundColorMappingMode) {
             case 'noise-dither':
-              bgColor = ColorMatcher.ditherColorNoise(
-                adjustedR, adjustedG, adjustedB,
-                settings.backgroundColorPalette,
-                settings.ditherStrength,
-                x, y
-              );
+              bgColor = settings.isGenerator
+                ? ColorMatcher.mapColorByIndexNoise(
+                    adjustedR, adjustedG, adjustedB,
+                    settings.backgroundColorPalette,
+                    settings.backgroundColorDitherStrength,
+                    x, y
+                  )
+                : ColorMatcher.ditherColorNoise(
+                    adjustedR, adjustedG, adjustedB,
+                    settings.backgroundColorPalette,
+                    settings.backgroundColorDitherStrength,
+                    x, y
+                  );
               break;
             case 'bayer2x2':
-              bgColor = ColorMatcher.ditherColorBayer2x2(
-                adjustedR, adjustedG, adjustedB,
-                settings.backgroundColorPalette,
-                settings.ditherStrength,
-                x, y
-              );
+              bgColor = settings.isGenerator
+                ? ColorMatcher.mapColorByIndexBayer2x2(
+                    adjustedR, adjustedG, adjustedB,
+                    settings.backgroundColorPalette,
+                    settings.backgroundColorDitherStrength,
+                    x, y
+                  )
+                : ColorMatcher.ditherColorBayer2x2(
+                    adjustedR, adjustedG, adjustedB,
+                    settings.backgroundColorPalette,
+                    settings.backgroundColorDitherStrength,
+                    x, y
+                  );
               break;
             case 'bayer4x4':
-              bgColor = ColorMatcher.ditherColorBayer4x4(
-                adjustedR, adjustedG, adjustedB,
-                settings.backgroundColorPalette,
-                settings.ditherStrength,
-                x, y
-              );
+              bgColor = settings.isGenerator
+                ? ColorMatcher.mapColorByIndexBayer4x4(
+                    adjustedR, adjustedG, adjustedB,
+                    settings.backgroundColorPalette,
+                    settings.backgroundColorDitherStrength,
+                    x, y
+                  )
+                : ColorMatcher.ditherColorBayer4x4(
+                    adjustedR, adjustedG, adjustedB,
+                    settings.backgroundColorPalette,
+                    settings.backgroundColorDitherStrength,
+                    x, y
+                  );
               break;
             case 'by-index':
               bgColor = ColorMatcher.mapColorByIndex(adjustedR, adjustedG, adjustedB, settings.backgroundColorPalette);
@@ -1030,6 +1356,7 @@ export class ASCIIConverter {
     characterPalette: CharacterPalette,
     mappingMethod: CharacterMappingSettings['mappingMethod'],
     invertDensity: boolean,
+    characterMappingMode: 'by-index' | 'noise-dither' | 'bayer2x2' | 'bayer4x4',
     options?: MappingAlgorithmOptions
   ): string {
     const algorithm = MAPPING_ALGORITHMS[mappingMethod];
@@ -1045,7 +1372,21 @@ export class ASCIIConverter {
       characters = characters.reverse();
     }
     
-    // Use the algorithm to map pixel to character
+    // Check if dithering is enabled and we have the required coordinates
+    if (characterMappingMode !== 'by-index' && options?.x !== undefined && options?.y !== undefined) {
+      const ditherStrength = options.ditherStrength ?? 0.5;
+      
+      switch (characterMappingMode) {
+        case 'noise-dither':
+          return CharacterMapper.mapCharacterByIndexNoise(r, g, b, characters, ditherStrength, options.x, options.y);
+        case 'bayer2x2':
+          return CharacterMapper.mapCharacterByIndexBayer2x2(r, g, b, characters, ditherStrength, options.x, options.y);
+        case 'bayer4x4':
+          return CharacterMapper.mapCharacterByIndexBayer4x4(r, g, b, characters, ditherStrength, options.x, options.y);
+      }
+    }
+    
+    // Use the algorithm to map pixel to character (no dithering)
     return algorithm.mapPixelToCharacter(r, g, b, characters, options);
   }
   

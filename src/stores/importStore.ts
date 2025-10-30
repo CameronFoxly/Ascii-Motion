@@ -83,11 +83,13 @@ export interface ImportSettings {
   enableTextColorMapping: boolean;
   textColorPaletteId: string | null;     // Active palette ID from paletteStore
   textColorMappingMode: 'closest' | 'noise-dither' | 'bayer2x2' | 'bayer4x4' | 'by-index';
+  textColorDitherStrength: number;       // 0-1 range for dithering intensity
   
   // Background Color Mapping settings (NEW)  
   enableBackgroundColorMapping: boolean;
   backgroundColorPaletteId: string | null; // Active palette ID from paletteStore
   backgroundColorMappingMode: 'closest' | 'noise-dither' | 'bayer2x2' | 'bayer4x4' | 'by-index';
+  backgroundColorDitherStrength: number; // 0-1 range for dithering intensity
   
   // Legacy color palette settings (Phase 4.3 - Session 3) 
   useOriginalColors: boolean;
@@ -148,11 +150,13 @@ const DEFAULT_IMPORT_SETTINGS: ImportSettings = {
   enableTextColorMapping: true,
   textColorPaletteId: null, // Will be set to active palette on first load
   textColorMappingMode: 'closest',
+  textColorDitherStrength: 0.5,
   
   // Background Color Mapping (NEW)
   enableBackgroundColorMapping: false,
   backgroundColorPaletteId: null, // Will be set to active palette on first load
   backgroundColorMappingMode: 'closest',
+  backgroundColorDitherStrength: 0.5,
   
   // Legacy color palette (simplified for Session 1)
   useOriginalColors: true,
