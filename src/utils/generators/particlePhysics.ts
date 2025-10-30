@@ -432,10 +432,14 @@ export async function generateParticlePhysics(
                   const edgeFade = radius - dist;
                   const finalAlpha = Math.min(1, edgeFade) * opacity;
                   
-                  data[pixelIdx] = 255;
-                  data[pixelIdx + 1] = 255;
-                  data[pixelIdx + 2] = 255;
-                  data[pixelIdx + 3] = Math.max(data[pixelIdx + 3], Math.round(finalAlpha * 255));
+                  // Convert opacity to grayscale luminosity (0-255)
+                  const luminosity = Math.round(finalAlpha * 255);
+                  
+                  // Use max to handle overlapping particles
+                  data[pixelIdx] = Math.max(data[pixelIdx], luminosity);
+                  data[pixelIdx + 1] = Math.max(data[pixelIdx + 1], luminosity);
+                  data[pixelIdx + 2] = Math.max(data[pixelIdx + 2], luminosity);
+                  data[pixelIdx + 3] = 255; // Full opacity - intensity is in RGB
                 }
               }
             }
@@ -455,10 +459,14 @@ export async function generateParticlePhysics(
                 if (x >= 0 && x < width && y >= 0 && y < height) {
                   const pixelIdx = (y * width + x) * 4;
                   
-                  data[pixelIdx] = 255;
-                  data[pixelIdx + 1] = 255;
-                  data[pixelIdx + 2] = 255;
-                  data[pixelIdx + 3] = Math.max(data[pixelIdx + 3], Math.round(opacity * 255));
+                  // Convert opacity to grayscale luminosity (0-255)
+                  const luminosity = Math.round(opacity * 255);
+                  
+                  // Use max to handle overlapping particles
+                  data[pixelIdx] = Math.max(data[pixelIdx], luminosity);
+                  data[pixelIdx + 1] = Math.max(data[pixelIdx + 1], luminosity);
+                  data[pixelIdx + 2] = Math.max(data[pixelIdx + 2], luminosity);
+                  data[pixelIdx + 3] = 255; // Full opacity - intensity is in RGB
                 }
               }
             }
@@ -488,10 +496,14 @@ export async function generateParticlePhysics(
                       const edgeFade = blobRadius - dist;
                       const finalAlpha = Math.min(1, edgeFade) * opacity;
                       
-                      data[pixelIdx] = 255;
-                      data[pixelIdx + 1] = 255;
-                      data[pixelIdx + 2] = 255;
-                      data[pixelIdx + 3] = Math.max(data[pixelIdx + 3], Math.round(finalAlpha * 255));
+                      // Convert opacity to grayscale luminosity (0-255)
+                      const luminosity = Math.round(finalAlpha * 255);
+                      
+                      // Use max to handle overlapping particles
+                      data[pixelIdx] = Math.max(data[pixelIdx], luminosity);
+                      data[pixelIdx + 1] = Math.max(data[pixelIdx + 1], luminosity);
+                      data[pixelIdx + 2] = Math.max(data[pixelIdx + 2], luminosity);
+                      data[pixelIdx + 3] = 255; // Full opacity - intensity is in RGB
                     }
                   }
                 }
