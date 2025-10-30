@@ -146,18 +146,20 @@ export interface RainDropsSettings {
   
   // Ripple properties
   rippleSpeed: number;      // Expansion rate
-  rippleRadiusMax: number;  // Maximum ripple radius
+  rippleBirthSize: number;  // Initial radius (0 = point)
   rippleAmplitude: number;  // Initial wave height
+  rippleAmplitudeRandomness: number; // 0.0 - 1.0
   rippleDecay: number;      // 0.0 - 1.0 amplitude decay rate
-  
-  // Drop properties
-  dropSizeBase: number;     // Base drop size
-  dropSizeRandomness: boolean;
-  dropSizeMin: number;      // Min when randomness enabled
-  dropSizeMax: number;      // Max when randomness enabled
+  rippleDecayRandomness: number; // 0.0 - 1.0
+  rippleWavelength: number; // Distance between wave peaks
+  rippleFalloffWidth: number; // Width of visible wave band
   
   // Wave interaction
   interferenceEnabled: boolean; // Whether overlapping ripples add
+  
+  // Visual adjustments
+  brightness: number;       // -1.0 to 1.0 brightness adjustment
+  contrast: number;         // 0.0 to 2.0 contrast multiplier
   
   // Timing
   duration: number;         // milliseconds

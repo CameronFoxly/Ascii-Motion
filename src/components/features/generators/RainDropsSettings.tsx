@@ -73,7 +73,7 @@ export function RainDropsSettings() {
             value={rainDropsSettings.rippleSpeed}
             onValueChange={(value) => updateRainDropsSettings({ rippleSpeed: value })}
             min={0.1}
-            max={10.0}
+            max={1.5}
             step={0.1}
             className="w-full"
           />
@@ -81,15 +81,15 @@ export function RainDropsSettings() {
         
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-xs text-muted-foreground">Max Radius</Label>
-            <span className="text-xs tabular-nums">{rainDropsSettings.rippleRadiusMax.toFixed(1)}</span>
+            <Label className="text-xs text-muted-foreground">Birth Size</Label>
+            <span className="text-xs tabular-nums">{rainDropsSettings.rippleBirthSize.toFixed(1)}</span>
           </div>
           <Slider
-            value={rainDropsSettings.rippleRadiusMax}
-            onValueChange={(value) => updateRainDropsSettings({ rippleRadiusMax: value })}
-            min={5.0}
-            max={100.0}
-            step={1.0}
+            value={rainDropsSettings.rippleBirthSize}
+            onValueChange={(value) => updateRainDropsSettings({ rippleBirthSize: value })}
+            min={0.0}
+            max={5.0}
+            step={0.1}
             className="w-full"
           />
         </div>
@@ -111,6 +111,21 @@ export function RainDropsSettings() {
         
         <div className="space-y-2">
           <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground">Amplitude Randomness</Label>
+            <span className="text-xs tabular-nums">{Math.round(rainDropsSettings.rippleAmplitudeRandomness * 100)}%</span>
+          </div>
+          <Slider
+            value={rainDropsSettings.rippleAmplitudeRandomness}
+            onValueChange={(value) => updateRainDropsSettings({ rippleAmplitudeRandomness: value })}
+            min={0.0}
+            max={1.0}
+            step={0.05}
+            className="w-full"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
             <Label className="text-xs text-muted-foreground">Amplitude Decay</Label>
             <span className="text-xs tabular-nums">{rainDropsSettings.rippleDecay.toFixed(3)}</span>
           </div>
@@ -118,69 +133,91 @@ export function RainDropsSettings() {
             value={rainDropsSettings.rippleDecay}
             onValueChange={(value) => updateRainDropsSettings({ rippleDecay: value })}
             min={0.001}
-            max={0.1}
+            max={1.0}
             step={0.001}
+            className="w-full"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground">Decay Randomness</Label>
+            <span className="text-xs tabular-nums">{Math.round(rainDropsSettings.rippleDecayRandomness * 100)}%</span>
+          </div>
+          <Slider
+            value={rainDropsSettings.rippleDecayRandomness}
+            onValueChange={(value) => updateRainDropsSettings({ rippleDecayRandomness: value })}
+            min={0.0}
+            max={1.0}
+            step={0.05}
+            className="w-full"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground">Wavelength</Label>
+            <span className="text-xs tabular-nums">{rainDropsSettings.rippleWavelength.toFixed(1)}</span>
+          </div>
+          <Slider
+            value={rainDropsSettings.rippleWavelength}
+            onValueChange={(value) => updateRainDropsSettings({ rippleWavelength: value })}
+            min={0.5}
+            max={10.0}
+            step={0.1}
+            className="w-full"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground">Falloff Width</Label>
+            <span className="text-xs tabular-nums">{rainDropsSettings.rippleFalloffWidth.toFixed(1)}</span>
+          </div>
+          <Slider
+            value={rainDropsSettings.rippleFalloffWidth}
+            onValueChange={(value) => updateRainDropsSettings({ rippleFalloffWidth: value })}
+            min={0.5}
+            max={10.0}
+            step={0.1}
             className="w-full"
           />
         </div>
       </div>
 
-      {/* Drop Size Properties */}
+      {/* Visual Adjustments */}
       <div className="space-y-3">
-        <Label className="text-xs font-semibold">Drop Size</Label>
+        <Label className="text-xs font-semibold">Visual Adjustments</Label>
         
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-xs text-muted-foreground">Base Size</Label>
-            <span className="text-xs tabular-nums">{rainDropsSettings.dropSizeBase}</span>
+            <Label className="text-xs text-muted-foreground">Brightness</Label>
+            <span className="text-xs tabular-nums">{rainDropsSettings.brightness.toFixed(2)}</span>
           </div>
           <Slider
-            value={rainDropsSettings.dropSizeBase}
-            onValueChange={(value) => updateRainDropsSettings({ dropSizeBase: Math.round(value) })}
-            min={1}
-            max={10}
-            step={1}
+            value={rainDropsSettings.brightness}
+            onValueChange={(value) => updateRainDropsSettings({ brightness: value })}
+            min={-1.0}
+            max={1.0}
+            step={0.05}
             className="w-full"
           />
         </div>
         
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="dropSizeRandomness"
-            checked={rainDropsSettings.dropSizeRandomness}
-            onCheckedChange={(checked) => updateRainDropsSettings({ dropSizeRandomness: checked as boolean })}
-          />
-          <Label htmlFor="dropSizeRandomness" className="text-xs cursor-pointer">
-            Size Randomness
-          </Label>
-        </div>
-        
-        {rainDropsSettings.dropSizeRandomness && (
-          <div className="grid grid-cols-2 gap-2 pl-6">
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Min Size</Label>
-              <Input
-                type="number"
-                value={rainDropsSettings.dropSizeMin}
-                onChange={(e) => updateRainDropsSettings({ dropSizeMin: parseInt(e.target.value) || 1 })}
-                min={1}
-                max={10}
-                className="h-8 text-xs"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Max Size</Label>
-              <Input
-                type="number"
-                value={rainDropsSettings.dropSizeMax}
-                onChange={(e) => updateRainDropsSettings({ dropSizeMax: parseInt(e.target.value) || 1 })}
-                min={1}
-                max={10}
-                className="h-8 text-xs"
-              />
-            </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground">Contrast</Label>
+            <span className="text-xs tabular-nums">{rainDropsSettings.contrast.toFixed(2)}</span>
           </div>
-        )}
+          <Slider
+            value={rainDropsSettings.contrast}
+            onValueChange={(value) => updateRainDropsSettings({ contrast: value })}
+            min={0.0}
+            max={2.0}
+            step={0.05}
+            className="w-full"
+          />
+        </div>
       </div>
 
       {/* Wave Interaction */}

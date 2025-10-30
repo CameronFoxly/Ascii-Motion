@@ -158,19 +158,21 @@ export const DEFAULT_RAIN_DROPS_SETTINGS: RainDropsSettings = {
   dropFrequencyRandomness: 0.3,
   
   // Ripple properties
-  rippleSpeed: 1.5,
-  rippleRadiusMax: 10,
+  rippleSpeed: 0.7,
+  rippleBirthSize: 0.0,     // Start as a point
   rippleAmplitude: 1.0,
+  rippleAmplitudeRandomness: 0.3,
   rippleDecay: 0.05,
-  
-  // Drop properties
-  dropSizeBase: 2,
-  dropSizeRandomness: true,
-  dropSizeMin: 1,
-  dropSizeMax: 3,
+  rippleDecayRandomness: 0.3,
+  rippleWavelength: 2.0,
+  rippleFalloffWidth: 3.0,  // Multiple of wavelength for trailing ripples
   
   // Wave interaction
   interferenceEnabled: true,
+  
+  // Visual adjustments
+  brightness: 0.0,          // No brightness adjustment by default
+  contrast: 1.0,            // No contrast adjustment by default
   
   // Timing (default: 4 seconds at 30fps)
   duration: 4000,

@@ -12,8 +12,8 @@ interface Ripple {
   x: number;
   y: number;
   radius: number;
-  maxRadius: number;
   amplitude: number;
+  decayRate: number;  // Per-ripple decay rate
   active: boolean;
 }
 
@@ -62,37 +62,22 @@ export async function generateRainDrops(
     
     // Spawn new ripples randomly
     if (seededRandom() < spawnChance && ripples.length < maxRipples) {
+      // Randomize initial amplitude
+      const amplitudeVariation = 1.0 + (seededRandom() - 0.5) * 2 * settings.rippleAmplitudeRandomness;
+      const initialAmplitude = settings.rippleAmplitude * amplitudeVariation;
+      
+      // Randomize decay rate
+      const decayVariation = 1.0 + (seededRandom() - 0.5) * 2 * settings.rippleDecayRandomness;
+      const decayRate = settings.rippleDecay * decayVariation;
+      
       ripples.push({
         x: seededRandom() * width,
         y: seededRandom() * height,
-        radius: 0,
-        maxRadius: settings.rippleRadiusMax,
-        amplitude: settings.rippleAmplitude,
+        radius: settings.rippleBirthSize,
+        amplitude: initialAmplitude,
+        decayRate: decayRate,
         active: true
       });
-    }
-    
-    // Update existing ripples
-    for (const ripple of ripples) {
-      if (!ripple.active) continue;
-      
-      // Expand ripple
-      ripple.radius += settings.rippleSpeed;
-      
-      // Apply amplitude decay
-      ripple.amplitude *= (1.0 - settings.rippleDecay);
-      
-      // Deactivate if reached max radius or faded out
-      if (ripple.radius >= ripple.maxRadius || ripple.amplitude < 0.01) {
-        ripple.active = false;
-      }
-    }
-    
-    // Remove inactive ripples
-    for (let i = ripples.length - 1; i >= 0; i--) {
-      if (!ripples[i].active) {
-        ripples.splice(i, 1);
-      }
     }
     
     // Create RGBA buffer
@@ -103,8 +88,9 @@ export async function generateRainDrops(
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         let totalIntensity = 0;
+        let maxIntensity = 0;
         
-        // Sum contributions from all ripples
+        // Sum contributions from all ripples (or find max)
         for (const ripple of ripples) {
           if (!ripple.active) continue;
           
@@ -114,25 +100,54 @@ export async function generateRainDrops(
           const distance = Math.sqrt(dx * dx + dy * dy);
           
           // Calculate ripple intensity at this distance
-          // Use sine wave that propagates outward
-          const wavelength = 5; // Distance between wave peaks
-          const distanceFromPeak = Math.abs(distance - ripple.radius);
+          // Show one wavelength ahead of radius (leading edge) and falloff behind (trailing)
+          const distanceFromRadius = distance - ripple.radius;
           
-          if (distanceFromPeak < wavelength * 2) {
-            const waveValue = Math.cos((distance - ripple.radius) * (2 * Math.PI / wavelength));
-            const falloff = Math.max(0, 1 - distanceFromPeak / (wavelength * 2));
+          // Render from -falloffWidth (trailing) to +wavelength (leading edge)
+          if (distanceFromRadius >= -settings.rippleFalloffWidth && distanceFromRadius <= settings.rippleWavelength) {
+            // Wave pattern is based on distance FROM the ripple radius, not from center
+            // This makes the wave move outward with the ripple
+            const waveValue = Math.cos(distanceFromRadius * (2 * Math.PI / settings.rippleWavelength));
+            
+            // Apply falloff only to trailing edge (negative distanceFromRadius)
+            let falloff = 1.0;
+            if (distanceFromRadius < 0) {
+              falloff = Math.max(0, 1 + distanceFromRadius / settings.rippleFalloffWidth);
+            }
+            
             const intensity = waveValue * ripple.amplitude * falloff;
             
-            totalIntensity += intensity;
+            if (settings.interferenceEnabled) {
+              // Add intensities (constructive/destructive interference)
+              totalIntensity += intensity;
+            } else {
+              // Only keep the strongest ripple
+              if (Math.abs(intensity) > Math.abs(maxIntensity)) {
+                maxIntensity = intensity;
+              }
+            }
           }
         }
         
+        // Use interference sum or max intensity
+        const finalIntensity = settings.interferenceEnabled ? totalIntensity : maxIntensity;
+        
         // Clamp and normalize intensity
-        totalIntensity = Math.max(-1, Math.min(1, totalIntensity));
-        const normalizedIntensity = (totalIntensity + 1) * 0.5; // Map -1..1 to 0..1
+        const clampedIntensity = Math.max(-1, Math.min(1, finalIntensity));
+        const normalizedIntensity = (clampedIntensity + 1) * 0.5; // Map -1..1 to 0..1
+        
+        // Apply contrast and brightness adjustments
+        // Contrast: Scale around midpoint (0.5)
+        let adjustedIntensity = (normalizedIntensity - 0.5) * settings.contrast + 0.5;
+        
+        // Brightness: Simple addition
+        adjustedIntensity += settings.brightness;
+        
+        // Clamp to valid range
+        adjustedIntensity = Math.max(0, Math.min(1, adjustedIntensity));
         
         // Convert to grayscale
-        const value = Math.round(normalizedIntensity * 255);
+        const value = Math.round(adjustedIntensity * 255);
         
         // Set pixel
         const pixelIdx = (y * width + x) * 4;
@@ -149,6 +164,29 @@ export async function generateRainDrops(
       data,
       frameDuration: actualFrameDuration
     });
+    
+    // Update existing ripples (after rendering)
+    for (const ripple of ripples) {
+      if (!ripple.active) continue;
+      
+      // Expand ripple
+      ripple.radius += settings.rippleSpeed;
+      
+      // Apply per-ripple amplitude decay
+      ripple.amplitude *= (1.0 - ripple.decayRate);
+      
+      // Deactivate if faded out
+      if (ripple.amplitude < 0.01) {
+        ripple.active = false;
+      }
+    }
+    
+    // Remove inactive ripples
+    for (let i = ripples.length - 1; i >= 0; i--) {
+      if (!ripples[i].active) {
+        ripples.splice(i, 1);
+      }
+    }
   }
   
   return frames;
