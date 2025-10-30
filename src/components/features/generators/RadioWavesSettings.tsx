@@ -265,65 +265,6 @@ export function RadioWavesSettings() {
           />
         </div>
       </div>
-
-      {/* Animation Settings */}
-      <div className="space-y-3">
-        <Label className="text-xs font-semibold">Animation</Label>
-        
-        <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">Frame Count</Label>
-          <Input
-            type="number"
-            value={radioWavesSettings.frameCount}
-            onChange={(e) => updateRadioWavesSettings({ frameCount: parseInt(e.target.value) || 1 })}
-            min={1}
-            max={500}
-            className="h-8 text-xs"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">Frame Rate (FPS)</Label>
-          <Input
-            type="number"
-            value={radioWavesSettings.frameRate}
-            onChange={(e) => updateRadioWavesSettings({ frameRate: parseInt(e.target.value) || 1 })}
-            min={1}
-            max={60}
-            className="h-8 text-xs"
-          />
-        </div>
-      </div>
-
-      {/* Advanced Settings */}
-      <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-        <CollapsibleTrigger className="flex items-center gap-2 text-xs font-semibold w-full">
-          <ChevronDown className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
-          Advanced
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-3 pt-3">
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Random Seed</Label>
-            <div className="flex gap-2">
-              <Input
-                type="number"
-                value={radioWavesSettings.seed}
-                onChange={(e) => updateRadioWavesSettings({ seed: parseInt(e.target.value) || 0 })}
-                className="h-8 text-xs flex-1"
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSeedRandomize}
-                className="h-8 w-8 p-0"
-                title="Randomize seed"
-              >
-                <Dice5 className="w-3 h-3" />
-              </Button>
-            </div>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
     </div>
   );
 }

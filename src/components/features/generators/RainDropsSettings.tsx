@@ -7,8 +7,9 @@ import { Input } from '../../ui/input';
 import { Button } from '../../ui/button';
 import { Slider } from '../../ui/slider';
 import { Checkbox } from '../../ui/checkbox';
-import { Dice5 } from 'lucide-react';
+import { Dice5, RotateCcw } from 'lucide-react';
 import { useGeneratorsStore } from '../../../stores/generatorsStore';
+import { DEFAULT_RAIN_DROPS_SETTINGS } from '../../../constants/generators';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../ui/collapsible';
 import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
@@ -23,8 +24,24 @@ export function RainDropsSettings() {
     });
   };
 
+  const handleResetToDefaults = () => {
+    updateRainDropsSettings({
+      ...DEFAULT_RAIN_DROPS_SETTINGS,
+      seed: Math.floor(Math.random() * 10000)
+    });
+  };
+
   return (
     <div className="space-y-4">
+      {/* Reset to Defaults */}
+      <Button 
+        variant="outline" 
+        onClick={handleResetToDefaults}
+        className="w-full h-8 text-xs"
+      >
+        <RotateCcw className="mr-1.5 h-3 w-3" />
+        Reset to Defaults
+      </Button>
       {/* Drop Spawn Properties */}
       <div className="space-y-3">
         <Label className="text-xs font-semibold">Drop Spawning</Label>
@@ -233,35 +250,6 @@ export function RainDropsSettings() {
           <Label htmlFor="interferenceEnabled" className="text-xs cursor-pointer">
             Enable Interference (overlapping ripples combine)
           </Label>
-        </div>
-      </div>
-
-      {/* Animation Settings */}
-      <div className="space-y-3">
-        <Label className="text-xs font-semibold">Animation</Label>
-        
-        <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">Frame Count</Label>
-          <Input
-            type="number"
-            value={rainDropsSettings.frameCount}
-            onChange={(e) => updateRainDropsSettings({ frameCount: parseInt(e.target.value) || 1 })}
-            min={1}
-            max={500}
-            className="h-8 text-xs"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">Frame Rate (FPS)</Label>
-          <Input
-            type="number"
-            value={rainDropsSettings.frameRate}
-            onChange={(e) => updateRainDropsSettings({ frameRate: parseInt(e.target.value) || 1 })}
-            min={1}
-            max={60}
-            className="h-8 text-xs"
-          />
         </div>
       </div>
 

@@ -7,8 +7,9 @@ import { Input } from '../../ui/input';
 import { Button } from '../../ui/button';
 import { Slider } from '../../ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-import { Dice5 } from 'lucide-react';
+import { Dice5, RotateCcw } from 'lucide-react';
 import { useGeneratorsStore } from '../../../stores/generatorsStore';
+import { DEFAULT_TURBULENT_NOISE_SETTINGS } from '../../../constants/generators';
 import type { NoiseType } from '../../../types/generators';
 
 export function TurbulentNoiseSettings() {
@@ -20,8 +21,24 @@ export function TurbulentNoiseSettings() {
     });
   };
 
+  const handleResetToDefaults = () => {
+    updateTurbulentNoiseSettings({
+      ...DEFAULT_TURBULENT_NOISE_SETTINGS,
+      seed: Math.floor(Math.random() * 10000)
+    });
+  };
+
   return (
     <div className="space-y-4">
+      {/* Reset to Defaults */}
+      <Button 
+        variant="outline" 
+        onClick={handleResetToDefaults}
+        className="w-full h-8 text-xs"
+      >
+        <RotateCcw className="mr-1.5 h-3 w-3" />
+        Reset to Defaults
+      </Button>
       {/* Noise Type */}
       <div className="space-y-2">
         <Label className="text-xs font-semibold">Noise Type</Label>
@@ -147,35 +164,6 @@ export function TurbulentNoiseSettings() {
             max={10.0}
             step={0.1}
             className="w-full"
-          />
-        </div>
-      </div>
-
-      {/* Animation Settings */}
-      <div className="space-y-3">
-        <Label className="text-xs font-semibold">Animation</Label>
-        
-        <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">Frame Count</Label>
-          <Input
-            type="number"
-            value={turbulentNoiseSettings.frameCount}
-            onChange={(e) => updateTurbulentNoiseSettings({ frameCount: parseInt(e.target.value) || 1 })}
-            min={1}
-            max={500}
-            className="h-8 text-xs"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">Frame Rate (FPS)</Label>
-          <Input
-            type="number"
-            value={turbulentNoiseSettings.frameRate}
-            onChange={(e) => updateTurbulentNoiseSettings({ frameRate: parseInt(e.target.value) || 1 })}
-            min={1}
-            max={60}
-            className="h-8 text-xs"
           />
         </div>
       </div>

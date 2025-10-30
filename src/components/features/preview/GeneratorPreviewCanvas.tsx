@@ -13,6 +13,8 @@ import { useEffect, useRef } from 'react';
 import { Play, Pause } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { Slider } from '../../ui/slider';
+import { Input } from '../../ui/input';
+import { Label } from '../../ui/label';
 import { Spinner } from '../../common/Spinner';
 import { useGeneratorsStore } from '../../../stores/generatorsStore';
 
@@ -34,7 +36,30 @@ export function GeneratorPreviewCanvas({
   canPlay
 }: GeneratorPreviewCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { isGenerating, previewFrames } = useGeneratorsStore();
+  const { 
+    isGenerating, 
+    previewFrames,
+    activeGenerator,
+    radioWavesSettings,
+    updateRadioWavesSettings,
+    turbulentNoiseSettings,
+    updateTurbulentNoiseSettings,
+    particlePhysicsSettings,
+    updateParticlePhysicsSettings,
+    rainDropsSettings,
+    updateRainDropsSettings
+  } = useGeneratorsStore();
+
+  // Get current generator settings
+  const currentSettings = activeGenerator === 'radio-waves' ? radioWavesSettings
+    : activeGenerator === 'turbulent-noise' ? turbulentNoiseSettings
+    : activeGenerator === 'particle-physics' ? particlePhysicsSettings
+    : rainDropsSettings;
+
+  const updateCurrentSettings = activeGenerator === 'radio-waves' ? updateRadioWavesSettings
+    : activeGenerator === 'turbulent-noise' ? updateTurbulentNoiseSettings
+    : activeGenerator === 'particle-physics' ? updateParticlePhysicsSettings
+    : updateRainDropsSettings;
 
   // Render current preview frame to canvas
   useEffect(() => {
@@ -131,6 +156,36 @@ export function GeneratorPreviewCanvas({
           </div>
         </div>
       )}
+
+      {/* Frame Count and Frame Rate Controls */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Frame Count</Label>
+          <Input
+            type="number"
+            value={currentSettings.frameCount}
+            onChange={(e) => updateCurrentSettings({ frameCount: parseInt(e.target.value) || 1 })}
+            min={1}
+            max={500}
+            className="h-8 text-xs"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Frame Rate (FPS)</Label>
+          <Input
+            type="number"
+            value={currentSettings.frameRate}
+            onChange={(e) => updateCurrentSettings({ frameRate: parseInt(e.target.value) || 1 })}
+            min={1}
+            max={60}
+            className="h-8 text-xs"
+          />
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-border" />
     </div>
   );
 }

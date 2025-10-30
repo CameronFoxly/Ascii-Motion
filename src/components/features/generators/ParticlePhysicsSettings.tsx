@@ -8,9 +8,10 @@ import { Button } from '../../ui/button';
 import { Slider } from '../../ui/slider';
 import { Checkbox } from '../../ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-import { Dice5 } from 'lucide-react';
+import { Dice5, RotateCcw } from 'lucide-react';
 import { useGeneratorsStore } from '../../../stores/generatorsStore';
 import { useCanvasStore } from '../../../stores/canvasStore';
+import { DEFAULT_PARTICLE_PHYSICS_SETTINGS } from '../../../constants/generators';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../ui/collapsible';
 import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
@@ -26,8 +27,26 @@ export function ParticlePhysicsSettings() {
     });
   };
 
+  const handleResetToDefaults = () => {
+    updateParticlePhysicsSettings({
+      ...DEFAULT_PARTICLE_PHYSICS_SETTINGS,
+      originX: Math.floor(canvasWidth / 2),
+      originY: Math.floor(canvasHeight / 2),
+      seed: Math.floor(Math.random() * 10000)
+    });
+  };
+
   return (
     <div className="space-y-4">
+      {/* Reset to Defaults */}
+      <Button 
+        variant="outline" 
+        onClick={handleResetToDefaults}
+        className="w-full h-8 text-xs"
+      >
+        <RotateCcw className="mr-1.5 h-3 w-3" />
+        Reset to Defaults
+      </Button>
       {/* Emitter Properties */}
       <div className="space-y-3">
         <Label className="text-xs font-semibold">Emitter</Label>
@@ -570,35 +589,6 @@ export function ParticlePhysicsSettings() {
             </div>
           </>
         )}
-      </div>
-
-      {/* Animation Settings */}
-      <div className="space-y-3">
-        <Label className="text-xs font-semibold">Animation</Label>
-        
-        <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">Frame Count</Label>
-          <Input
-            type="number"
-            value={particlePhysicsSettings.frameCount}
-            onChange={(e) => updateParticlePhysicsSettings({ frameCount: parseInt(e.target.value) || 1 })}
-            min={1}
-            max={500}
-            className="h-8 text-xs"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">Frame Rate (FPS)</Label>
-          <Input
-            type="number"
-            value={particlePhysicsSettings.frameRate}
-            onChange={(e) => updateParticlePhysicsSettings({ frameRate: parseInt(e.target.value) || 1 })}
-            min={1}
-            max={60}
-            className="h-8 text-xs"
-          />
-        </div>
       </div>
 
       {/* Advanced Settings */}
