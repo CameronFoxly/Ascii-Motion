@@ -10,13 +10,9 @@ import { Checkbox } from '../../ui/checkbox';
 import { Dice5, RotateCcw } from 'lucide-react';
 import { useGeneratorsStore } from '../../../stores/generatorsStore';
 import { DEFAULT_RAIN_DROPS_SETTINGS } from '../../../constants/generators';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../ui/collapsible';
-import { ChevronDown } from 'lucide-react';
-import { useState } from 'react';
 
 export function RainDropsSettings() {
   const { rainDropsSettings, updateRainDropsSettings } = useGeneratorsStore();
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleSeedRandomize = () => {
     updateRainDropsSettings({
@@ -253,35 +249,27 @@ export function RainDropsSettings() {
         </div>
       </div>
 
-      {/* Advanced Settings */}
-      <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-        <CollapsibleTrigger className="flex items-center gap-2 text-xs font-semibold w-full">
-          <ChevronDown className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
-          Advanced
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-3 pt-3">
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Random Seed</Label>
-            <div className="flex gap-2">
-              <Input
-                type="number"
-                value={rainDropsSettings.seed}
-                onChange={(e) => updateRainDropsSettings({ seed: parseInt(e.target.value) || 0 })}
-                className="h-8 text-xs flex-1"
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSeedRandomize}
-                className="h-8 w-8 p-0"
-                title="Randomize seed"
-              >
-                <Dice5 className="w-3 h-3" />
-              </Button>
-            </div>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
+      {/* Random Seed */}
+      <div className="space-y-2">
+        <Label className="text-xs text-muted-foreground">Random Seed</Label>
+        <div className="flex gap-2">
+          <Input
+            type="number"
+            value={rainDropsSettings.seed}
+            onChange={(e) => updateRainDropsSettings({ seed: parseInt(e.target.value) || 0 })}
+            className="h-8 text-xs flex-1"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSeedRandomize}
+            className="h-8 w-8 p-0"
+            title="Randomize seed"
+          >
+            <Dice5 className="w-3 h-3" />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

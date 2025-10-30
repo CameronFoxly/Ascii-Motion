@@ -3,15 +3,11 @@
  */
 
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
 import { Button } from '../../ui/button';
 import { Slider } from '../../ui/slider';
-import { Dice5, RotateCcw } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import { useGeneratorsStore } from '../../../stores/generatorsStore';
 import { useCanvasStore } from '../../../stores/canvasStore';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../ui/collapsible';
-import { ChevronDown } from 'lucide-react';
-import { useState } from 'react';
 import { DEFAULT_RADIO_WAVES_SETTINGS } from '../../../constants/generators';
 import {
   Select,
@@ -25,14 +21,6 @@ import type { WaveShape, ProfileShape } from '../../../types/generators';
 export function RadioWavesSettings() {
   const { radioWavesSettings, updateRadioWavesSettings } = useGeneratorsStore();
   const { width: canvasWidth, height: canvasHeight } = useCanvasStore();
-  
-  const [showAdvanced, setShowAdvanced] = useState(false);
-
-  const handleSeedRandomize = () => {
-    updateRadioWavesSettings({
-      seed: Math.floor(Math.random() * 10000)
-    });
-  };
 
   const handleResetToDefaults = () => {
     // Reset to defaults but preserve canvas-center origin
