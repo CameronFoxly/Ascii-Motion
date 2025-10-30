@@ -56,10 +56,12 @@ const DEFAULT_MAPPING_SETTINGS: GeneratorMappingSettings = {
   enableTextColorMapping: true,
   textColorPaletteId: null, // Will be initialized on first open
   textColorMappingMode: 'by-index', // Default to by-index for better gradient mapping
+  textColorDitherStrength: 0.5,
   
   enableBackgroundColorMapping: false,
   backgroundColorPaletteId: null,
-  backgroundColorMappingMode: 'by-index' // Default to by-index for better gradient mapping
+  backgroundColorMappingMode: 'by-index', // Default to by-index for better gradient mapping
+  backgroundColorDitherStrength: 0.5
 };
 
 export interface GeneratorsState {
@@ -490,12 +492,14 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
         enableTextColorMapping: state.mappingSettings.enableTextColorMapping,
         textColorPalette: textColors,
         textColorMappingMode: state.mappingSettings.textColorMappingMode,
+        textColorDitherStrength: state.mappingSettings.textColorDitherStrength,
         defaultTextColor: '#ffffff',
         
         // Background color mapping
         enableBackgroundColorMapping: state.mappingSettings.enableBackgroundColorMapping,
         backgroundColorPalette: bgColors,
         backgroundColorMappingMode: state.mappingSettings.backgroundColorMappingMode,
+        backgroundColorDitherStrength: state.mappingSettings.backgroundColorDitherStrength,
         
         // Legacy/unused settings (required by ConversionSettings interface)
         useOriginalColors: false,

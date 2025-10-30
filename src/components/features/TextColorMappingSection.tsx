@@ -12,6 +12,7 @@ import { useState, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Card, CardContent } from '../ui/card';
+import { Slider } from '../ui/slider';
 import { 
   Select,
   SelectContent,
@@ -70,7 +71,8 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
   const {
     enableTextColorMapping,
     textColorPaletteId,
-    textColorMappingMode
+    textColorMappingMode,
+    textColorDitherStrength
   } = settings;
   
   // Color palette store integration
@@ -106,6 +108,11 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
   
   const handleMappingModeChange = (mode: 'closest' | 'noise-dither' | 'bayer2x2' | 'bayer4x4' | 'by-index') => {
     updateSettings({ textColorMappingMode: mode });
+    onSettingsChange?.();
+  };
+
+  const handleDitherStrengthChange = (value: number) => {
+    updateSettings({ textColorDitherStrength: value });
     onSettingsChange?.();
   };
 
@@ -751,6 +758,25 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Dither Strength Slider - shown for dithering modes */}
+                {textColorMappingMode !== 'closest' && textColorMappingMode !== 'by-index' && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-xs font-medium">Dither Strength</Label>
+                      <span className="text-xs text-muted-foreground">{Math.round(textColorDitherStrength * 100)}%</span>
+                    </div>
+                    <Slider
+                      value={textColorDitherStrength}
+                      onValueChange={handleDitherStrengthChange}
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      disabled={!enableTextColorMapping}
+                      className="w-full"
+                    />
+                  </div>
+                )}
 
                 </CardContent>
               </Card>

@@ -503,12 +503,14 @@ export function MediaImportPanel() {
       enableTextColorMapping: settings.enableTextColorMapping,
       textColorPalette: textColorPalette,
       textColorMappingMode: settings.textColorMappingMode,
+      textColorDitherStrength: settings.textColorDitherStrength,
       defaultTextColor: selectedColor,
       
       // Background color mapping
       enableBackgroundColorMapping: settings.enableBackgroundColorMapping,
       backgroundColorPalette: backgroundColorPalette,
       backgroundColorMappingMode: settings.backgroundColorMappingMode,
+      backgroundColorDitherStrength: settings.backgroundColorDitherStrength,
       
       // Legacy settings
       useOriginalColors: settings.useOriginalColors,
@@ -532,9 +534,11 @@ export function MediaImportPanel() {
     settings.enableTextColorMapping, 
     settings.textColorPaletteId,
     settings.textColorMappingMode,
+    settings.textColorDitherStrength,
     settings.enableBackgroundColorMapping,
     settings.backgroundColorPaletteId,
     settings.backgroundColorMappingMode,
+    settings.backgroundColorDitherStrength,
     settings.useOriginalColors,
     settings.colorQuantization,
     settings.paletteSize,

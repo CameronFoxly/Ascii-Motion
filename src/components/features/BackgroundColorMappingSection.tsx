@@ -12,6 +12,7 @@ import { useState, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Card, CardContent } from '../ui/card';
+import { Slider } from '../ui/slider';
 import { 
   Select,
   SelectContent,
@@ -70,7 +71,8 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
   const {
     enableBackgroundColorMapping,
     backgroundColorPaletteId,
-    backgroundColorMappingMode
+    backgroundColorMappingMode,
+    backgroundColorDitherStrength
   } = settings;
   
   // Color palette store integration
@@ -106,6 +108,11 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
   
   const handleMappingModeChange = (mode: 'closest' | 'noise-dither' | 'bayer2x2' | 'bayer4x4' | 'by-index') => {
     updateSettings({ backgroundColorMappingMode: mode });
+    onSettingsChange?.();
+  };
+
+  const handleDitherStrengthChange = (value: number) => {
+    updateSettings({ backgroundColorDitherStrength: value });
     onSettingsChange?.();
   };
 
@@ -742,6 +749,25 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Dither Strength Slider - shown for dithering modes */}
+                {backgroundColorMappingMode !== 'closest' && backgroundColorMappingMode !== 'by-index' && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-xs font-medium">Dither Strength</Label>
+                      <span className="text-xs text-muted-foreground">{Math.round(backgroundColorDitherStrength * 100)}%</span>
+                    </div>
+                    <Slider
+                      value={backgroundColorDitherStrength}
+                      onValueChange={handleDitherStrengthChange}
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      disabled={!enableBackgroundColorMapping}
+                      className="w-full"
+                    />
+                  </div>
+                )}
 
                 </CardContent>
               </Card>

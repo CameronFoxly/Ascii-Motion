@@ -32,12 +32,14 @@ export interface ConversionSettings {
   enableTextColorMapping: boolean;
   textColorPalette: string[]; // Array of hex colors from selected palette
   textColorMappingMode: 'closest' | 'noise-dither' | 'bayer2x2' | 'bayer4x4' | 'by-index';
+  textColorDitherStrength: number; // 0-1 for text color dithering
   defaultTextColor: string; // Default color when text color mapping is disabled
   
   // Background color mapping - NEW
   enableBackgroundColorMapping: boolean;
   backgroundColorPalette: string[]; // Array of hex colors from selected palette
   backgroundColorMappingMode: 'closest' | 'noise-dither' | 'bayer2x2' | 'bayer4x4' | 'by-index';
+  backgroundColorDitherStrength: number; // 0-1 for background color dithering
   
   // Legacy color settings (keep for backward compatibility)
   useOriginalColors: boolean;
@@ -877,13 +879,13 @@ export class ASCIIConverter {
                 ? ColorMatcher.mapColorByIndexNoise(
                     adjustedR, adjustedG, adjustedB, 
                     settings.textColorPalette, 
-                    settings.ditherStrength,
+                    settings.textColorDitherStrength,
                     x, y
                   )
                 : ColorMatcher.ditherColorNoise(
                     adjustedR, adjustedG, adjustedB, 
                     settings.textColorPalette, 
-                    settings.ditherStrength,
+                    settings.textColorDitherStrength,
                     x, y
                   );
               break;
@@ -892,13 +894,13 @@ export class ASCIIConverter {
                 ? ColorMatcher.mapColorByIndexBayer2x2(
                     adjustedR, adjustedG, adjustedB,
                     settings.textColorPalette,
-                    settings.ditherStrength,
+                    settings.textColorDitherStrength,
                     x, y
                   )
                 : ColorMatcher.ditherColorBayer2x2(
                     adjustedR, adjustedG, adjustedB,
                     settings.textColorPalette,
-                    settings.ditherStrength,
+                    settings.textColorDitherStrength,
                     x, y
                   );
               break;
@@ -907,13 +909,13 @@ export class ASCIIConverter {
                 ? ColorMatcher.mapColorByIndexBayer4x4(
                     adjustedR, adjustedG, adjustedB,
                     settings.textColorPalette,
-                    settings.ditherStrength,
+                    settings.textColorDitherStrength,
                     x, y
                   )
                 : ColorMatcher.ditherColorBayer4x4(
                     adjustedR, adjustedG, adjustedB,
                     settings.textColorPalette,
-                    settings.ditherStrength,
+                    settings.textColorDitherStrength,
                     x, y
                   );
               break;
@@ -948,13 +950,13 @@ export class ASCIIConverter {
                 ? ColorMatcher.mapColorByIndexNoise(
                     adjustedR, adjustedG, adjustedB,
                     settings.backgroundColorPalette,
-                    settings.ditherStrength,
+                    settings.backgroundColorDitherStrength,
                     x, y
                   )
                 : ColorMatcher.ditherColorNoise(
                     adjustedR, adjustedG, adjustedB,
                     settings.backgroundColorPalette,
-                    settings.ditherStrength,
+                    settings.backgroundColorDitherStrength,
                     x, y
                   );
               break;
@@ -963,13 +965,13 @@ export class ASCIIConverter {
                 ? ColorMatcher.mapColorByIndexBayer2x2(
                     adjustedR, adjustedG, adjustedB,
                     settings.backgroundColorPalette,
-                    settings.ditherStrength,
+                    settings.backgroundColorDitherStrength,
                     x, y
                   )
                 : ColorMatcher.ditherColorBayer2x2(
                     adjustedR, adjustedG, adjustedB,
                     settings.backgroundColorPalette,
-                    settings.ditherStrength,
+                    settings.backgroundColorDitherStrength,
                     x, y
                   );
               break;
@@ -978,13 +980,13 @@ export class ASCIIConverter {
                 ? ColorMatcher.mapColorByIndexBayer4x4(
                     adjustedR, adjustedG, adjustedB,
                     settings.backgroundColorPalette,
-                    settings.ditherStrength,
+                    settings.backgroundColorDitherStrength,
                     x, y
                   )
                 : ColorMatcher.ditherColorBayer4x4(
                     adjustedR, adjustedG, adjustedB,
                     settings.backgroundColorPalette,
-                    settings.ditherStrength,
+                    settings.backgroundColorDitherStrength,
                     x, y
                   );
               break;

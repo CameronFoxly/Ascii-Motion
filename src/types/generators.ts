@@ -164,18 +164,20 @@ export interface GeneratorMappingSettings {
   characterSet: string[];
   characterMappingMode: 'brightness' | 'edge' | 'custom';
   characterDitherMode: 'by-index' | 'noise-dither' | 'bayer2x2' | 'bayer4x4';
-  ditherStrength: number; // 0-1 for both character and color dithering
+  ditherStrength: number; // 0-1 for character dithering
   customCharacterMapping: { [brightness: string]: string };
   
   // Text color mapping
   enableTextColorMapping: boolean;
   textColorPaletteId: string | null;
   textColorMappingMode: 'closest' | 'noise-dither' | 'bayer2x2' | 'bayer4x4' | 'by-index';
+  textColorDitherStrength: number; // 0-1 for text color dithering
   
   // Background color mapping
   enableBackgroundColorMapping: boolean;
   backgroundColorPaletteId: string | null;
   backgroundColorMappingMode: 'closest' | 'noise-dither' | 'bayer2x2' | 'bayer4x4' | 'by-index';
+  backgroundColorDitherStrength: number; // 0-1 for background color dithering
 }
 
 // Generator definition for UI display

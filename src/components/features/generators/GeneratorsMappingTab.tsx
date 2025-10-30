@@ -53,10 +53,12 @@ export function GeneratorsMappingTab() {
       enableTextColorMapping: mappingSettings.enableTextColorMapping,
       textColorPaletteId: mappingSettings.textColorPaletteId,
       textColorMappingMode: mappingSettings.textColorMappingMode,
+      textColorDitherStrength: mappingSettings.textColorDitherStrength,
       
       enableBackgroundColorMapping: mappingSettings.enableBackgroundColorMapping,
       backgroundColorPaletteId: mappingSettings.backgroundColorPaletteId,
       backgroundColorMappingMode: mappingSettings.backgroundColorMappingMode,
+      backgroundColorDitherStrength: mappingSettings.backgroundColorDitherStrength,
     });
     
     // On unmount, sync back FROM importStore TO generatorsStore
@@ -71,10 +73,12 @@ export function GeneratorsMappingTab() {
         enableTextColorMapping: importSettings.enableTextColorMapping,
         textColorPaletteId: importSettings.textColorPaletteId,
         textColorMappingMode: importSettings.textColorMappingMode,
+        textColorDitherStrength: importSettings.textColorDitherStrength,
         
         enableBackgroundColorMapping: importSettings.enableBackgroundColorMapping,
         backgroundColorPaletteId: importSettings.backgroundColorPaletteId,
         backgroundColorMappingMode: importSettings.backgroundColorMappingMode,
+        backgroundColorDitherStrength: importSettings.backgroundColorDitherStrength,
       });
       markPreviewDirty();
     };
@@ -115,10 +119,12 @@ export function GeneratorsMappingTab() {
       enableTextColorMapping: importSettings.enableTextColorMapping,
       textColorPaletteId: importSettings.textColorPaletteId,
       textColorMappingMode: importSettings.textColorMappingMode,
+      textColorDitherStrength: importSettings.textColorDitherStrength,
       
       enableBackgroundColorMapping: importSettings.enableBackgroundColorMapping,
       backgroundColorPaletteId: importSettings.backgroundColorPaletteId,
       backgroundColorMappingMode: importSettings.backgroundColorMappingMode,
+      backgroundColorDitherStrength: importSettings.backgroundColorDitherStrength,
     });
     
     // Mark preview as dirty to trigger regeneration
