@@ -226,17 +226,6 @@ export function RainDropsSettings() {
             className="h-8 text-xs"
           />
         </div>
-        
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="loopSmoothing"
-            checked={rainDropsSettings.loopSmoothingEnabled}
-            onCheckedChange={(checked) => updateRainDropsSettings({ loopSmoothingEnabled: checked as boolean })}
-          />
-          <Label htmlFor="loopSmoothing" className="text-xs cursor-pointer">
-            Loop Smoothing
-          </Label>
-        </div>
       </div>
 
       {/* Advanced Settings */}

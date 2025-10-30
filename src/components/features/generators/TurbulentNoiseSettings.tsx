@@ -6,7 +6,6 @@ import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { Button } from '../../ui/button';
 import { Slider } from '../../ui/slider';
-import { Checkbox } from '../../ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Dice5 } from 'lucide-react';
 import { useGeneratorsStore } from '../../../stores/generatorsStore';
@@ -206,17 +205,6 @@ export function TurbulentNoiseSettings() {
             max={60}
             className="h-8 text-xs"
           />
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="loopSmoothing"
-            checked={turbulentNoiseSettings.loopSmoothingEnabled}
-            onCheckedChange={(checked) => updateTurbulentNoiseSettings({ loopSmoothingEnabled: checked as boolean })}
-          />
-          <Label htmlFor="loopSmoothing" className="text-xs cursor-pointer">
-            Loop Smoothing
-          </Label>
         </div>
       </div>
 

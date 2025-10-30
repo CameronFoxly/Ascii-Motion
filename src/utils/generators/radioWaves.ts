@@ -146,8 +146,7 @@ export async function generateRadioWaves(
   height: number,
   frameCount: number,
   frameDuration: number,
-  _seed: number, // Reserved for future deterministic randomness
-  loopSmoothing: boolean
+  _seed: number // Reserved for future deterministic randomness
 ): Promise<GeneratorFrame[]> {
   const frames: GeneratorFrame[] = [];
   
@@ -168,13 +167,8 @@ export async function generateRadioWaves(
   for (let frameIdx = 0; frameIdx < actualFrameCount; frameIdx++) {
     const t = frameIdx / actualFrameCount; // 0 to 1
     
-    // Apply loop smoothing if enabled
-    const phase = loopSmoothing && settings.loopSmoothingEnabled
-      ? Math.sin(t * Math.PI * 2) * 0.5 + 0.5 // Smooth loop using sine wave
-      : t;
-    
     // Calculate wave phase offset for this frame
-    const waveOffset = phase * 100 * settings.propagationSpeed; // Offset in "pixels"
+    const waveOffset = t * 100 * settings.propagationSpeed; // Offset in "pixels"
     
     // Calculate wavelength from frequency
     const wavelength = (2 * Math.PI) / settings.frequency;

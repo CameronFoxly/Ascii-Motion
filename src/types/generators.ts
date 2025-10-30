@@ -51,9 +51,6 @@ export interface RadioWavesSettings {
   frameCount: number;       // explicit frame count
   timingMode: TimingMode;   // which controls are active
   
-  // Loop smoothing
-  loopSmoothingEnabled: boolean;
-  
   // Random seed
   seed: number;
 }
@@ -79,9 +76,6 @@ export interface TurbulentNoiseSettings {
   frameRate: number;        // fps
   frameCount: number;       // explicit frame count
   timingMode: TimingMode;
-  
-  // Loop smoothing
-  loopSmoothingEnabled: boolean;
   
   // Random seed
   seed: number;
@@ -152,9 +146,6 @@ export interface RainDropsSettings {
   frameCount: number;       // explicit frame count
   timingMode: TimingMode;
   
-  // Loop smoothing
-  loopSmoothingEnabled: boolean;
-  
   // Random seed
   seed: number;
 }
@@ -191,7 +182,6 @@ export interface GeneratorDefinition {
   name: string;
   description: string;
   icon: string; // Lucide icon name
-  supportsLoopSmoothing: boolean;
 }
 
 // Preview frame data (RGBA pixel array)

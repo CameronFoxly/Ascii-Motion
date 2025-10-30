@@ -32,7 +32,6 @@ export interface GeneratorResult {
  * @param frameCount - Number of frames to generate
  * @param frameDuration - Duration of each frame in milliseconds
  * @param seed - Random seed for deterministic generation (Phase 4: currently unused)
- * @param loopSmoothing - Whether to apply loop smoothing (Phase 4: currently unused)
  * @returns Promise<GeneratorResult> with generated RGBA frames
  */
 export async function generateFrames(
@@ -42,8 +41,7 @@ export async function generateFrames(
   height: number,
   frameCount: number,
   frameDuration: number,
-  _seed: number, // TODO: Phase 4 - Use for deterministic generation
-  _loopSmoothing: boolean = false // TODO: Phase 4 - Use for loop smoothing
+  _seed: number // TODO: Phase 4 - Use for deterministic generation
 ): Promise<GeneratorResult> {
   const startTime = performance.now();
   
@@ -58,8 +56,7 @@ export async function generateFrames(
           height,
           frameCount,
           frameDuration,
-          _seed,
-          _loopSmoothing
+          _seed
         );
         break;
       }
@@ -71,8 +68,7 @@ export async function generateFrames(
           height,
           frameCount,
           frameDuration,
-          _seed,
-          _loopSmoothing
+          _seed
         );
         break;
       }
@@ -96,8 +92,7 @@ export async function generateFrames(
           height,
           frameCount,
           frameDuration,
-          _seed,
-          _loopSmoothing
+          _seed
         );
         break;
       }

@@ -18,29 +18,25 @@ export const GENERATOR_DEFINITIONS: GeneratorDefinition[] = [
     id: 'radio-waves',
     name: 'Radio Waves',
     description: 'Concentric wave propagation from a selectable origin',
-    icon: 'Radio',
-    supportsLoopSmoothing: true
+    icon: 'Radio'
   },
   {
     id: 'turbulent-noise',
     name: 'Turbulent Noise',
     description: 'Animated fractal noise field with configurable parameters',
-    icon: 'Wind',
-    supportsLoopSmoothing: true
+    icon: 'Wind'
   },
   {
     id: 'particle-physics',
     name: 'Particle Physics',
     description: 'Particle emitter with velocity, gravity, bounce, and friction',
-    icon: 'Sparkles',
-    supportsLoopSmoothing: false
+    icon: 'Sparkles'
   },
   {
     id: 'rain-drops',
     name: 'Rain Drops',
     description: 'Rippling raindrop interactions with interference',
-    icon: 'Droplets',
-    supportsLoopSmoothing: true
+    icon: 'Droplets'
   }
 ];
 
@@ -73,9 +69,6 @@ export const DEFAULT_RADIO_WAVES_SETTINGS: RadioWavesSettings = {
   frameCount: 90,
   timingMode: 'frameCount',
   
-  // Loop smoothing
-  loopSmoothingEnabled: true,
-  
   // Random seed
   seed: Math.floor(Math.random() * 10000)
 };
@@ -101,9 +94,6 @@ export const DEFAULT_TURBULENT_NOISE_SETTINGS: TurbulentNoiseSettings = {
   frameRate: 30,
   frameCount: 90,
   timingMode: 'frameCount',
-  
-  // Loop smoothing
-  loopSmoothingEnabled: true,
   
   // Random seed
   seed: Math.floor(Math.random() * 10000)
@@ -171,9 +161,6 @@ export const DEFAULT_RAIN_DROPS_SETTINGS: RainDropsSettings = {
   frameRate: 30,
   frameCount: 120,
   timingMode: 'frameCount',
-  
-  // Loop smoothing
-  loopSmoothingEnabled: true,
   
   // Random seed
   seed: Math.floor(Math.random() * 10000)

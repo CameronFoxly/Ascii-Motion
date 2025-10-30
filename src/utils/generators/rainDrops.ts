@@ -26,8 +26,7 @@ export async function generateRainDrops(
   height: number,
   frameCount: number,
   frameDuration: number,
-  seed: number,
-  loopSmoothing: boolean
+  seed: number
 ): Promise<GeneratorFrame[]> {
   const frames: GeneratorFrame[] = [];
   
@@ -53,20 +52,13 @@ export async function generateRainDrops(
   
   // Generate each frame
   for (let frameIdx = 0; frameIdx < actualFrameCount; frameIdx++) {
-    const t = frameIdx / actualFrameCount;
-    
     // Calculate spawn probability per frame
     // dropFrequency is drops per second, convert to probability per frame
     const baseSpawnProbability = settings.dropFrequency / (1000 / actualFrameDuration);
     
     // Apply randomness to spawn rate
     const randomnessFactor = 1.0 + (seededRandom() - 0.5) * 2 * settings.dropFrequencyRandomness;
-    let spawnChance = baseSpawnProbability * randomnessFactor;
-    
-    // Apply loop smoothing if enabled
-    if (loopSmoothing && settings.loopSmoothingEnabled) {
-      spawnChance *= Math.sin(t * Math.PI * 2) * 0.5 + 0.5;
-    }
+    const spawnChance = baseSpawnProbability * randomnessFactor;
     
     // Spawn new ripples randomly
     if (seededRandom() < spawnChance && ripples.length < maxRipples) {

@@ -16,8 +16,7 @@ export async function generateTurbulentNoise(
   height: number,
   frameCount: number,
   frameDuration: number,
-  _seed: number, // Reserved for deterministic seeding
-  loopSmoothing: boolean
+  _seed: number // Reserved for deterministic seeding
 ): Promise<GeneratorFrame[]> {
   const frames: GeneratorFrame[] = [];
   
@@ -34,13 +33,8 @@ export async function generateTurbulentNoise(
   for (let frameIdx = 0; frameIdx < actualFrameCount; frameIdx++) {
     const t = frameIdx / actualFrameCount; // 0 to 1
     
-    // Apply loop smoothing if enabled
-    const phase = loopSmoothing && settings.loopSmoothingEnabled
-      ? Math.sin(t * Math.PI * 2) * 0.5 + 0.5
-      : t;
-    
     // Calculate time offset for evolution
-    const timeOffset = phase * settings.evolutionSpeed * 100;
+    const timeOffset = t * settings.evolutionSpeed * 100;
     
     // Create RGBA buffer
     const pixelCount = width * height;

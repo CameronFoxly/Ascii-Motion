@@ -6,7 +6,6 @@ import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { Button } from '../../ui/button';
 import { Slider } from '../../ui/slider';
-import { Checkbox } from '../../ui/checkbox';
 import { Dice5, RotateCcw } from 'lucide-react';
 import { useGeneratorsStore } from '../../../stores/generatorsStore';
 import { useCanvasStore } from '../../../stores/canvasStore';
@@ -293,17 +292,6 @@ export function RadioWavesSettings() {
             max={60}
             className="h-8 text-xs"
           />
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="loopSmoothing"
-            checked={radioWavesSettings.loopSmoothingEnabled}
-            onCheckedChange={(checked) => updateRadioWavesSettings({ loopSmoothingEnabled: checked as boolean })}
-          />
-          <Label htmlFor="loopSmoothing" className="text-xs cursor-pointer">
-            Loop Smoothing
-          </Label>
         </div>
       </div>
 
