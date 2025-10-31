@@ -115,10 +115,8 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
       setPickerTriggerSource('palette-icon');
     } else {
       // Add new character
-      if (!activePalette.characters.includes(character)) {
-        const targetPalette = ensureCustomPalette();
-        addCharacterToPalette(targetPalette.id, character);
-      }
+      const targetPalette = ensureCustomPalette();
+      addCharacterToPalette(targetPalette.id, character);
     }
     
     // Always close the picker and reset states
@@ -127,7 +125,7 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
   };
 
   const handleAddCurrentCharacter = () => {
-    if (selectedChar && !activePalette.characters.includes(selectedChar)) {
+    if (selectedChar) {
       const targetPalette = ensureCustomPalette();
       addCharacterToPalette(targetPalette.id, selectedChar);
       setSelectedIndex(null);  // Clear selection after adding
@@ -405,7 +403,7 @@ export function MainCharacterPaletteSection({ className = '' }: MainCharacterPal
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={handleAddCurrentCharacter} disabled={!selectedChar || activePalette.characters.includes(selectedChar)}>
+                        <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={handleAddCurrentCharacter} disabled={!selectedChar}>
                           <Plus className="w-3 h-3" />
                         </Button>
                       </TooltipTrigger>

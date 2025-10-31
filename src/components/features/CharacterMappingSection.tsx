@@ -13,7 +13,6 @@ import React, { useState, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Card, CardContent } from '../ui/card';
-import { Input } from '../ui/input';
 import { Slider } from '../ui/slider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { 
@@ -39,7 +38,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Settings,
-  Palette,
   Edit,
   ChevronDown
 } from 'lucide-react';
@@ -51,6 +49,7 @@ import { EnhancedCharacterPicker } from './EnhancedCharacterPicker';
 import { 
   useCharacterPaletteStore
 } from '../../stores/characterPaletteStore';
+import { useToolStore } from '../../stores/toolStore';
 import { useImportSettings } from '../../stores/importStore';
 import type { CharacterPalette } from '../../types/palette';
 
@@ -61,7 +60,6 @@ interface CharacterMappingSectionProps {
 
 export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [newCharacterInput, setNewCharacterInput] = useState('');
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -70,10 +68,8 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isCharacterPickerOpen, setIsCharacterPickerOpen] = useState(false);
-  const [pickerTriggerSource, setPickerTriggerSource] = useState<'edit-button' | 'palette-icon'>('palette-icon');
+  const [pickerTriggerSource, setPickerTriggerSource] = useState<'edit-button' | 'palette-icon' | 'palette-swatch'>('palette-icon');
   const [editingCharacterIndex, setEditingCharacterIndex] = useState<number | null>(null);
-  const addCharInputRef = React.useRef<HTMLInputElement | null>(null);
-  const characterPickerTriggerRef = React.useRef<HTMLButtonElement>(null);
   const editButtonRef = React.useRef<HTMLButtonElement>(null);
   const paletteContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -101,6 +97,9 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
   const updateCustomPalette = useCharacterPaletteStore(state => state.updateCustomPalette);
   const createCustomPalette = useCharacterPaletteStore(state => state.createCustomPalette);
   const duplicatePalette = useCharacterPaletteStore(state => state.duplicatePalette);
+
+  // Get selected character from tool store
+  const selectedChar = useToolStore(state => state.selectedChar);
 
 
   // Handle palette selection
@@ -175,16 +174,12 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
 
   // Character editing handlers
 
-
-  const handleAddCharacter = () => {
-    if (newCharacterInput.trim()) {
-      const character = newCharacterInput.trim()[0]; // Take only first character
-      if (!activePalette.characters.includes(character)) {
-        const targetPalette = ensureCustomPalette();
-        addCharacterToPalette(targetPalette.id, character);
-        setNewCharacterInput('');
-        addCharInputRef.current?.focus();
-      }
+  const handleAddCurrentCharacter = () => {
+    if (selectedChar) {
+      const targetPalette = ensureCustomPalette();
+      addCharacterToPalette(targetPalette.id, selectedChar);
+      setSelectedIndex(null);  // Clear selection after adding
+      onSettingsChange?.();
     }
   };
 
@@ -199,12 +194,17 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
       setEditingCharacterIndex(null);
       setIsCharacterPickerOpen(false);
       onSettingsChange?.();
-    } else {
-      // Add mode: add to input field
-      if (!activePalette.characters.includes(character)) {
-        setNewCharacterInput(character);
-        addCharInputRef.current?.focus();
-      }
+    } else if (pickerTriggerSource === 'palette-swatch' && editingCharacterIndex !== null) {
+      // Double-click edit mode: replace the character at the editing index
+      const targetPalette = ensureCustomPalette();
+      const newCharacters = [...targetPalette.characters];
+      newCharacters[editingCharacterIndex] = character;
+      
+      updateCustomPalette(targetPalette.id, { characters: newCharacters });
+      setEditingCharacterIndex(null);
+      setPickerTriggerSource('palette-icon');
+      setIsCharacterPickerOpen(false);
+      onSettingsChange?.();
     }
   };
 
@@ -432,6 +432,12 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                                   } cursor-pointer`}
                                 draggable={true}
                                 onClick={() => handleSelectCharacter(index)}
+                                onDoubleClick={() => {
+                                  setSelectedIndex(index);
+                                  setEditingCharacterIndex(index);
+                                  setPickerTriggerSource('palette-swatch');
+                                  setIsCharacterPickerOpen(true);
+                                }}
                                 onDragStart={(e) => handleDragStart(e, index)}
                                 onDragOver={(e) => handleDragOver(e, index)}
                                 onDrop={(e) => handleDrop(e, index)}
@@ -500,6 +506,16 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleAddCurrentCharacter} disabled={!selectedChar}>
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Add current character</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
                             <Button ref={editButtonRef} size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleEditCharacters}>
                               <Edit className="w-3 h-3" />
                             </Button>
@@ -547,68 +563,12 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                     isOpen={isCharacterPickerOpen}
                     onClose={() => setIsCharacterPickerOpen(false)}
                     onSelectCharacter={handleCharacterSelect}
-                    triggerRef={pickerTriggerSource === 'edit-button' ? editButtonRef : characterPickerTriggerRef}
-                    anchorPosition={pickerTriggerSource === 'edit-button' ? 'left-bottom-aligned' : 'left-bottom'}
+                    triggerRef={editButtonRef}
+                    anchorPosition="left-bottom-aligned"
                     initialValue=""
                     title="Select Character for Mapping"
                   />
 
-                </div>
-              </div>
-              
-              {/* Add Character */}
-              <div className="space-y-2 w-full">
-                <Label className="text-xs font-medium">Add Character</Label>
-                <div className="flex gap-2 w-full relative">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          ref={characterPickerTriggerRef}
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            if (isCharacterPickerOpen && pickerTriggerSource === 'palette-icon') {
-                              // If already open from palette button, close it
-                              setIsCharacterPickerOpen(false);
-                            } else {
-                              // Open it from palette button
-                              setPickerTriggerSource('palette-icon');
-                              setIsCharacterPickerOpen(true);
-                            }
-                          }}
-                          className="h-8 w-8 p-0 flex-shrink-0"
-                        >
-                          <Palette className="w-3 h-3" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Character picker</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <div className="flex flex-1 min-w-0">
-                    <Input
-                      ref={(el) => { addCharInputRef.current = el; }}
-                      value={newCharacterInput}
-                      onChange={(e) => setNewCharacterInput(e.target.value)}
-                      placeholder="Enter character"
-                      className="h-8 text-xs font-mono flex-1 min-w-0 rounded-r-none border-r-0"
-                      maxLength={1}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleAddCharacter();
-                      }}
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAddCharacter}
-                      disabled={!newCharacterInput.trim() || activePalette.characters.includes(newCharacterInput.trim()[0])}
-                      className="h-8 px-3 flex-shrink-0 rounded-l-none"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </Button>
-                  </div>
                 </div>
               </div>
 
