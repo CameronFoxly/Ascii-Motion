@@ -10,6 +10,7 @@ import { generateRadioWaves } from './radioWaves';
 import { generateTurbulentNoise } from './turbulentNoise';
 import { generateParticlePhysics } from './particlePhysics';
 import { generateRainDrops } from './rainDrops';
+import { generateDigitalRain } from './digitalRain';
 
 /**
  * Result from generator processing
@@ -88,6 +89,18 @@ export async function generateFrames(
       case 'rain-drops': {
         frames = await generateRainDrops(
           _settings as import('../../types/generators').RainDropsSettings,
+          width,
+          height,
+          frameCount,
+          frameDuration,
+          _seed
+        );
+        break;
+      }
+      
+      case 'digital-rain': {
+        frames = await generateDigitalRain(
+          _settings as import('../../types/generators').DigitalRainSettings,
           width,
           height,
           frameCount,

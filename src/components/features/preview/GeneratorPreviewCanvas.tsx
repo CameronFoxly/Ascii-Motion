@@ -47,19 +47,23 @@ export function GeneratorPreviewCanvas({
     particlePhysicsSettings,
     updateParticlePhysicsSettings,
     rainDropsSettings,
-    updateRainDropsSettings
+    updateRainDropsSettings,
+    digitalRainSettings,
+    updateDigitalRainSettings
   } = useGeneratorsStore();
 
   // Get current generator settings
   const currentSettings = activeGenerator === 'radio-waves' ? radioWavesSettings
     : activeGenerator === 'turbulent-noise' ? turbulentNoiseSettings
     : activeGenerator === 'particle-physics' ? particlePhysicsSettings
-    : rainDropsSettings;
+    : activeGenerator === 'rain-drops' ? rainDropsSettings
+    : digitalRainSettings;
 
   const updateCurrentSettings = activeGenerator === 'radio-waves' ? updateRadioWavesSettings
     : activeGenerator === 'turbulent-noise' ? updateTurbulentNoiseSettings
     : activeGenerator === 'particle-physics' ? updateParticlePhysicsSettings
-    : updateRainDropsSettings;
+    : activeGenerator === 'rain-drops' ? updateRainDropsSettings
+    : updateDigitalRainSettings;
 
   // Render current preview frame to canvas
   useEffect(() => {

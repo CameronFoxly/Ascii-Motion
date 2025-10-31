@@ -5,7 +5,7 @@
  */
 
 // Core generator types
-export type GeneratorId = 'radio-waves' | 'turbulent-noise' | 'particle-physics' | 'rain-drops';
+export type GeneratorId = 'radio-waves' | 'turbulent-noise' | 'particle-physics' | 'rain-drops' | 'digital-rain';
 
 // Noise type options for turbulent noise generator
 export type NoiseType = 'perlin' | 'simplex' | 'worley';
@@ -171,12 +171,48 @@ export interface RainDropsSettings {
   seed: number;
 }
 
+export interface DigitalRainSettings {
+  // Trail properties
+  trailLength: number;          // 1 - 50 characters
+  trailLengthRandomness: number; // 0.0 - 1.0 (0% - 100%)
+  fadeAmount: number;           // 0.0 - 1.0 (0% - 100% of trail that fades)
+  trailWidth: number;           // 1 - 10 pixels (width of each trail)
+  widthRandomness: boolean;     // Enable variable width per trail
+  widthMin: number;             // 1 - 10 minimum width when randomness enabled
+  widthMax: number;             // 1 - 10 maximum width when randomness enabled
+  
+  // Spawn properties
+  frequency: number;            // 1 - 20 trails per second
+  preRun: boolean;              // Start with trails already running (not blank screen)
+  
+  // Movement properties
+  speed: number;                // 0.1 - 5.0 characters per frame
+  speedRandomness: number;      // 0.0 - 1.0 (0% - 100%)
+  directionAngle: number;       // 0 - 360 degrees (compass: 0°=up, 90°=right, 180°=down, 270°=left)
+  
+  // Noise properties
+  noiseAmount: number;          // 0 - 200 (brightness variation strength, allows extreme effects)
+  noiseScale: number;           // 0.01 - 2.0 (frequency/detail of noise pattern, lower = larger features)
+  animatedNoise: boolean;       // Enable noise evolution over time
+  noiseSpeed: number;           // 0 - 100 (evolution rate when animated)
+  
+  // Timing
+  duration: number;             // milliseconds
+  frameRate: number;            // fps
+  frameCount: number;           // explicit frame count
+  timingMode: TimingMode;
+  
+  // Random seed
+  seed: number;
+}
+
 // Union type for all generator settings
 export type GeneratorSettings = 
   | RadioWavesSettings 
   | TurbulentNoiseSettings 
   | ParticlePhysicsSettings 
-  | RainDropsSettings;
+  | RainDropsSettings
+  | DigitalRainSettings;
 
 // Mapping settings (mirrors import store structure)
 export interface GeneratorMappingSettings {

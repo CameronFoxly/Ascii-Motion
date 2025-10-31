@@ -9,7 +9,8 @@ import type {
   RadioWavesSettings,
   TurbulentNoiseSettings,
   ParticlePhysicsSettings,
-  RainDropsSettings
+  RainDropsSettings,
+  DigitalRainSettings
 } from '../types/generators';
 
 // Generator definitions for UI rendering
@@ -37,6 +38,12 @@ export const GENERATOR_DEFINITIONS: GeneratorDefinition[] = [
     name: 'Rain Drops',
     description: 'Rippling raindrop interactions with interference',
     icon: 'Droplets'
+  },
+  {
+    id: 'digital-rain',
+    name: 'Digital Rain (Matrix)',
+    description: 'Vertical falling trails with luminosity fade',
+    icon: 'CloudHail'
   }
 ];
 
@@ -178,6 +185,41 @@ export const DEFAULT_RAIN_DROPS_SETTINGS: RainDropsSettings = {
   duration: 4000,
   frameRate: 30,
   frameCount: 120,
+  timingMode: 'frameCount',
+  
+  // Random seed
+  seed: Math.floor(Math.random() * 10000)
+};
+
+export const DEFAULT_DIGITAL_RAIN_SETTINGS: DigitalRainSettings = {
+  // Trail properties
+  trailLength: 10,              // 10 characters default
+  trailLengthRandomness: 0.3,   // 30% randomness
+  fadeAmount: 0.95,             // 95% of trail fades
+  trailWidth: 1,                // 1 pixel width (single character)
+  widthRandomness: false,       // No width variation by default
+  widthMin: 1,                  // Minimum width when randomness enabled
+  widthMax: 3,                  // Maximum width when randomness enabled
+  
+  // Spawn properties
+  frequency: 5,                 // 5 trails per second
+  preRun: true,                 // Start with trails already running by default
+  
+  // Movement properties
+  speed: 0.8,                   // 0.8 characters per frame
+  speedRandomness: 0,           // 0% speed randomness
+  directionAngle: 180,          // 180° = downward (compass)
+  
+  // Noise properties
+  noiseAmount: 20,              // 20% noise intensity
+  noiseScale: 0.1,              // 0.1 scale (medium detail)
+  animatedNoise: false,         // Static noise by default
+  noiseSpeed: 10,               // Moderate evolution speed
+  
+  // Timing (default: 3 seconds at 30fps = 90 frames)
+  duration: 3000,
+  frameRate: 30,
+  frameCount: 90,
   timingMode: 'frameCount',
   
   // Random seed

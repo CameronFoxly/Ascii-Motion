@@ -23,7 +23,8 @@ import {
   Radio,
   Wind,
   Sparkles,
-  Droplets
+  Droplets,
+  CloudHail
 } from 'lucide-react';
 
 // Icon mapping for generator buttons
@@ -31,7 +32,8 @@ const GENERATOR_ICONS = {
   'Radio': Radio,
   'Wind': Wind,
   'Sparkles': Sparkles,
-  'Droplets': Droplets
+  'Droplets': Droplets,
+  'CloudHail': CloudHail
 } as const;
 
 interface GeneratorsSectionProps {

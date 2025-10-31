@@ -17,6 +17,7 @@ import type {
   TurbulentNoiseSettings,
   ParticlePhysicsSettings,
   RainDropsSettings,
+  DigitalRainSettings,
   GeneratorMappingSettings,
   GeneratorFrame,
   GeneratorSettings
@@ -25,7 +26,8 @@ import {
   DEFAULT_RADIO_WAVES_SETTINGS,
   DEFAULT_TURBULENT_NOISE_SETTINGS,
   DEFAULT_PARTICLE_PHYSICS_SETTINGS,
-  DEFAULT_RAIN_DROPS_SETTINGS
+  DEFAULT_RAIN_DROPS_SETTINGS,
+  DEFAULT_DIGITAL_RAIN_SETTINGS
 } from '../constants/generators';
 import { useCanvasStore } from './canvasStore';
 import { useAnimationStore } from './animationStore';
@@ -76,6 +78,7 @@ export interface GeneratorsState {
   turbulentNoiseSettings: TurbulentNoiseSettings;
   particlePhysicsSettings: ParticlePhysicsSettings;
   rainDropsSettings: RainDropsSettings;
+  digitalRainSettings: DigitalRainSettings;
   
   // Mapping Settings (shared across all generators)
   mappingSettings: GeneratorMappingSettings;
@@ -105,6 +108,7 @@ export interface GeneratorsState {
   updateTurbulentNoiseSettings: (settings: Partial<TurbulentNoiseSettings>) => void;
   updateParticlePhysicsSettings: (settings: Partial<ParticlePhysicsSettings>) => void;
   updateRainDropsSettings: (settings: Partial<RainDropsSettings>) => void;
+  updateDigitalRainSettings: (settings: Partial<DigitalRainSettings>) => void;
   resetGeneratorSettings: (id: GeneratorId) => void;
   
   // Actions - Mapping Settings
@@ -143,6 +147,7 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
   turbulentNoiseSettings: { ...DEFAULT_TURBULENT_NOISE_SETTINGS },
   particlePhysicsSettings: { ...DEFAULT_PARTICLE_PHYSICS_SETTINGS },
   rainDropsSettings: { ...DEFAULT_RAIN_DROPS_SETTINGS },
+  digitalRainSettings: { ...DEFAULT_DIGITAL_RAIN_SETTINGS },
   
   // Default mapping settings
   mappingSettings: { ...DEFAULT_MAPPING_SETTINGS },
@@ -340,6 +345,16 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
     }));
   },
   
+  updateDigitalRainSettings: (settings: Partial<DigitalRainSettings>) => {
+    set(state => ({
+      digitalRainSettings: {
+        ...state.digitalRainSettings,
+        ...settings
+      },
+      isPreviewDirty: true
+    }));
+  },
+  
   resetGeneratorSettings: (id: GeneratorId) => {
     switch (id) {
       case 'radio-waves':
@@ -363,6 +378,12 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       case 'rain-drops':
         set({ 
           rainDropsSettings: { ...DEFAULT_RAIN_DROPS_SETTINGS },
+          isPreviewDirty: true
+        });
+        break;
+      case 'digital-rain':
+        set({ 
+          digitalRainSettings: { ...DEFAULT_DIGITAL_RAIN_SETTINGS },
           isPreviewDirty: true
         });
         break;
@@ -428,6 +449,12 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
           frameCount = state.rainDropsSettings.frameCount;
           frameRate = state.rainDropsSettings.frameRate;
           seed = state.rainDropsSettings.seed;
+          break;
+        case 'digital-rain':
+          settings = state.digitalRainSettings;
+          frameCount = state.digitalRainSettings.frameCount;
+          frameRate = state.digitalRainSettings.frameRate;
+          seed = state.digitalRainSettings.seed;
           break;
         default:
           throw new Error(`Unknown generator: ${activeGenerator}`);
@@ -731,6 +758,7 @@ export const useGeneratorsStore = create<GeneratorsState>((set, get) => ({
       turbulentNoiseSettings: { ...DEFAULT_TURBULENT_NOISE_SETTINGS },
       particlePhysicsSettings: { ...DEFAULT_PARTICLE_PHYSICS_SETTINGS },
       rainDropsSettings: { ...DEFAULT_RAIN_DROPS_SETTINGS },
+      digitalRainSettings: { ...DEFAULT_DIGITAL_RAIN_SETTINGS },
       mappingSettings: { ...DEFAULT_MAPPING_SETTINGS },
       isGenerating: false,
       previewFrames: [],

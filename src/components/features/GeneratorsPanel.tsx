@@ -19,6 +19,7 @@ import {
   Wind,
   Sparkles,
   Droplets,
+  CloudHail,
   Wand2,
   Palette as PaletteIcon
 } from 'lucide-react';
@@ -31,6 +32,7 @@ import { RadioWavesSettings } from './generators/RadioWavesSettings';
 import { TurbulentNoiseSettings } from './generators/TurbulentNoiseSettings';
 import { ParticlePhysicsSettings } from './generators/ParticlePhysicsSettings';
 import { RainDropsSettings } from './generators/RainDropsSettings';
+import { DigitalRainSettings } from './generators/DigitalRainSettings';
 import { GeneratorsMappingTab } from './generators/GeneratorsMappingTab';
 import { useGeneratorPreview } from '../../hooks/useGeneratorPreview';
 
@@ -39,7 +41,8 @@ const GENERATOR_ICONS = {
   'radio-waves': Radio,
   'turbulent-noise': Wind,
   'particle-physics': Sparkles,
-  'rain-drops': Droplets
+  'rain-drops': Droplets,
+  'digital-rain': CloudHail
 } as const;
 
 // Parse Tailwind duration for animation timing
@@ -161,6 +164,7 @@ export function GeneratorsPanel() {
             {activeGenerator === 'turbulent-noise' && <TurbulentNoiseSettings />}
             {activeGenerator === 'particle-physics' && <ParticlePhysicsSettings />}
             {activeGenerator === 'rain-drops' && <RainDropsSettings />}
+            {activeGenerator === 'digital-rain' && <DigitalRainSettings />}
           </TabsContent>
 
           <TabsContent value="mapping" className="p-3 space-y-3 mt-0">
