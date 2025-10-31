@@ -68,7 +68,7 @@ export function TransparencySection({ onSettingsChange, onEyedropperClick }: Tra
   return (
     <>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <div className="flex items-center gap-2 px-3">
+        <div className="flex items-center justify-between gap-2">
           <CollapsibleTrigger asChild>
             <Button
               variant="ghost"
