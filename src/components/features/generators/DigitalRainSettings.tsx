@@ -337,47 +337,6 @@ export function DigitalRainSettings() {
         )}
       </div>
 
-      {/* Timing Controls */}
-      <div className="space-y-3">
-        <Label className="text-xs font-semibold">Timing</Label>
-        
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Frame Count</Label>
-            <Input
-              type="number"
-              value={digitalRainSettings.frameCount}
-              onChange={(e) => {
-                const value = parseInt(e.target.value);
-                if (!isNaN(value) && value > 0) {
-                  updateDigitalRainSettings({ frameCount: value });
-                }
-              }}
-              min={1}
-              max={500}
-              className="h-8 text-xs"
-            />
-          </div>
-          
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Frame Rate (FPS)</Label>
-            <Input
-              type="number"
-              value={digitalRainSettings.frameRate}
-              onChange={(e) => {
-                const value = parseInt(e.target.value);
-                if (!isNaN(value) && value > 0) {
-                  updateDigitalRainSettings({ frameRate: value });
-                }
-              }}
-              min={1}
-              max={60}
-              className="h-8 text-xs"
-            />
-          </div>
-        </div>
-      </div>
-
       {/* Random Seed */}
       <div className="space-y-2">
         <Label className="text-xs font-semibold">Random Seed</Label>
