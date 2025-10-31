@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
-import { Palette, Type, Settings, Plus, Trash2, ChevronLeft, ChevronRight, Upload, Download } from 'lucide-react';
+import { Palette, Type, Settings, Plus, Trash2, ChevronLeft, ChevronRight, Upload, Download, X } from 'lucide-react';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
 import { PanelSeparator } from '../common/PanelSeparator';
 import { ColorPickerOverlay } from './ColorPickerOverlay';
@@ -355,6 +355,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                           
                           <Tooltip>
                             <TooltipTrigger asChild>
+                              <div className="relative">
                               <button
                                 draggable={!!activePalette}
                                 className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 relative ${
@@ -377,6 +378,22 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                                 onDragOver={(e) => handleDragOver(e, color.id)}
                                 onDrop={(e) => handleDrop(e, color.id)}
                               />
+                              
+                              {/* Remove button - appears on hover */}
+                              {activePalette?.isCustom && foregroundColors.length > 1 && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeColor(activePaletteId, color.id);
+                                  }}
+                                  className="absolute -top-1 -right-1 h-3 w-3 p-0 bg-destructive text-destructive-foreground hover:bg-destructive/80 rounded-full opacity-0 hover:opacity-100 transition-opacity"
+                                >
+                                  <X className="w-2 h-2" />
+                                </Button>
+                              )}
+                              </div>
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>
@@ -416,6 +433,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                             
                             <Tooltip>
                               <TooltipTrigger asChild>
+                                <div className="relative">
                                 <button
                                   draggable={!!activePalette && !isTransparent}
                                   className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 relative overflow-hidden ${
@@ -459,6 +477,22 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                               </svg>
                             )}
                                 </button>
+                                
+                                {/* Remove button - appears on hover (not for transparent) */}
+                                {!isTransparent && activePalette?.isCustom && backgroundColors.length > 2 && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeColor(activePaletteId, color.id);
+                                    }}
+                                    className="absolute -top-1 -right-1 h-3 w-3 p-0 bg-destructive text-destructive-foreground hover:bg-destructive/80 rounded-full opacity-0 hover:opacity-100 transition-opacity"
+                                  >
+                                    <X className="w-2 h-2" />
+                                  </Button>
+                                )}
+                                </div>
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p>

@@ -40,7 +40,8 @@ import {
   Upload,
   Download,
   Edit,
-  ChevronDown
+  ChevronDown,
+  X
 } from 'lucide-react';
 import { usePaletteStore } from '../../stores/paletteStore';
 import { useImportSettings } from '../../stores/importStore';
@@ -88,6 +89,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
     moveColorRight,
     reversePalette,
     createCustomCopy,
+    createCustomPalette,
   } = usePaletteStore();
   
   // Get the currently selected palette for text color mapping
@@ -430,7 +432,11 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                                 size="sm"
                                 variant="outline"
                                 className="h-6 w-6 p-0"
-                                onClick={() => setIsManagePalettesOpen(true)}
+                                onClick={() => {
+                                  const newPaletteId = createCustomPalette('New Palette');
+                                  updateSettings({ textColorPaletteId: newPaletteId });
+                                  onSettingsChange?.();
+                                }}
                               >
                                 <Plus className="h-3 w-3" />
                               </Button>
@@ -566,6 +572,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                               
                               <Tooltip>
                                 <TooltipTrigger asChild>
+                                  <div className="relative">
                                   <div
                                     className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 cursor-pointer ${
                                       draggedColorId === color.id ? 'opacity-50 scale-95' : ''
@@ -582,6 +589,22 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                                     onDragOver={(e) => handleDragOver(e, color.id)}
                                     onDrop={(e) => handleDrop(e, color.id)}
                                   />
+                                  
+                                  {/* Remove button - appears on hover */}
+                                  {!selectedPalette.isPreset && selectedPalette.colors.length > 1 && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemoveColor(color.id);
+                                      }}
+                                      className="absolute -top-1 -right-1 h-3 w-3 p-0 bg-destructive text-destructive-foreground hover:bg-destructive/80 rounded-full opacity-0 hover:opacity-100 transition-opacity"
+                                    >
+                                      <X className="w-2 h-2" />
+                                    </Button>
+                                  )}
+                                  </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <p>

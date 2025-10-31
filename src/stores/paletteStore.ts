@@ -141,7 +141,7 @@ export const usePaletteStore = create<PaletteStore>()((set, get) => ({
         set({ activePaletteId: paletteId, selectedColorId: null });
       },
 
-      createCustomPalette: (name: string, colors: string[] = ['#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff']) => {
+      createCustomPalette: (name: string, colors: string[] = ['#ffffff']) => {
         const paletteId = generatePaletteId();
         const paletteColors: PaletteColor[] = colors.map(color => ({
           id: generateColorId(),
@@ -291,19 +291,43 @@ export const usePaletteStore = create<PaletteStore>()((set, get) => ({
         }
 
         set(state => {
-          const updatedCustomPalettes = state.customPalettes.map(palette => {
-            if (palette.id === targetPaletteId) {
-              const updatedColors = palette.colors.filter(color => color.id !== colorId);
-              // Don't allow removing the last color
-              if (updatedColors.length === 0) return palette;
-              return { ...palette, colors: updatedColors };
+          const palette = state.customPalettes.find(p => p.id === targetPaletteId);
+          if (!palette) return state;
+
+          const colorIndex = palette.colors.findIndex(c => c.id === colorId);
+          if (colorIndex === -1) return state;
+
+          const updatedColors = palette.colors.filter(color => color.id !== colorId);
+          
+          // Don't allow removing the last color
+          if (updatedColors.length === 0) return state;
+
+          // Determine which color to select next
+          let newSelectedColorId: string | null = null;
+          if (state.selectedColorId === colorId) {
+            // If we're deleting the selected color, select the next one (or previous if last)
+            if (colorIndex < updatedColors.length) {
+              // Select the color that's now at the same index (was next in line)
+              newSelectedColorId = updatedColors[colorIndex].id;
+            } else {
+              // We deleted the last item, select the new last item
+              newSelectedColorId = updatedColors[updatedColors.length - 1].id;
             }
-            return palette;
+          } else {
+            // Keep the current selection
+            newSelectedColorId = state.selectedColorId;
+          }
+
+          const updatedCustomPalettes = state.customPalettes.map(p => {
+            if (p.id === targetPaletteId) {
+              return { ...p, colors: updatedColors };
+            }
+            return p;
           });
 
           return {
             customPalettes: updatedCustomPalettes,
-            selectedColorId: state.selectedColorId === colorId ? null : state.selectedColorId
+            selectedColorId: newSelectedColorId
           };
         });
       },

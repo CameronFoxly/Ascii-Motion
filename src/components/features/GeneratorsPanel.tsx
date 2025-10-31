@@ -112,7 +112,7 @@ export function GeneratorsPanel() {
 
   return (
     <div className={cn(
-      "fixed inset-y-0 right-0 w-80 bg-background border-l border-border shadow-lg z-[100]",
+      "fixed inset-y-0 right-0 w-80 bg-background border-l border-border shadow-lg z-50",
       "flex flex-col overflow-hidden",
       PANEL_ANIMATION.TRANSITION,
       isAnimating ? "translate-x-0" : "translate-x-full"

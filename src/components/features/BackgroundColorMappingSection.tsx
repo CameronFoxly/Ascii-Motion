@@ -40,7 +40,8 @@ import {
   Upload,
   Download,
   Edit,
-  ChevronDown
+  ChevronDown,
+  X
 } from 'lucide-react';
 import { usePaletteStore } from '../../stores/paletteStore';
 import { useImportSettings } from '../../stores/importStore';
@@ -88,6 +89,7 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
     moveColorRight,
     reversePalette,
     createCustomCopy,
+    createCustomPalette,
   } = usePaletteStore();
   
   // Get the currently selected palette for background color mapping
@@ -430,7 +432,11 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
                                 size="sm"
                                 variant="outline"
                                 className="h-6 w-6 p-0"
-                                onClick={() => setIsManagePalettesOpen(true)}
+                                onClick={() => {
+                                  const newPaletteId = createCustomPalette('New Palette');
+                                  updateSettings({ backgroundColorPaletteId: newPaletteId });
+                                  onSettingsChange?.();
+                                }}
                               >
                                 <Plus className="h-3 w-3" />
                               </Button>
@@ -563,27 +569,53 @@ export function BackgroundColorMappingSection({ onSettingsChange }: BackgroundCo
                                 <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-primary z-10 rounded-full"></div>
                               )}
                               
-                              <div
-                                className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 cursor-pointer ${
-                                  draggedColorId === color.id ? 'opacity-50 scale-95' : ''
-                                } ${
-                                  selectedColorId === color.id
-                                    ? 'border-primary ring-2 ring-primary/20 shadow-lg'
-                                    : 'border-border hover:border-border/80'
-                                } cursor-move`}
-                                style={{ backgroundColor: color.value }}
-                                draggable={!selectedPalette.isPreset}
-                                onClick={() => setSelectedColor(color.id)}
-                                onDoubleClick={() => handleColorDoubleClick(color.value)}
-                                onDragStart={(e) => handleDragStart(e, color.id)}
-                                onDragOver={(e) => handleDragOver(e, color.id)}
-                                onDrop={(e) => handleDrop(e, color.id)}
-                                title={
-                                  selectedPalette.isPreset 
-                                    ? `${color.name || 'Unnamed'}: ${color.value} (double-click to edit)` 
-                                    : `${color.name || 'Unnamed'}: ${color.value} (drag to reorder, double-click to edit)`
-                                }
-                              />
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="relative">
+                                    <div
+                                      className={`w-6 h-6 rounded border-2 transition-all hover:scale-105 cursor-pointer ${
+                                        draggedColorId === color.id ? 'opacity-50 scale-95' : ''
+                                      } ${
+                                        selectedColorId === color.id
+                                          ? 'border-primary ring-2 ring-primary/20 shadow-lg'
+                                          : 'border-border hover:border-border/80'
+                                      } cursor-move`}
+                                      style={{ backgroundColor: color.value }}
+                                      draggable={!selectedPalette.isPreset}
+                                      onClick={() => setSelectedColor(color.id)}
+                                      onDoubleClick={() => handleColorDoubleClick(color.value)}
+                                      onDragStart={(e) => handleDragStart(e, color.id)}
+                                      onDragOver={(e) => handleDragOver(e, color.id)}
+                                      onDrop={(e) => handleDrop(e, color.id)}
+                                    />
+                                    
+                                    {/* Remove button - appears on hover */}
+                                    {!selectedPalette.isPreset && selectedPalette.colors.length > 1 && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleRemoveColor(color.id);
+                                        }}
+                                        className="absolute -top-1 -right-1 h-3 w-3 p-0 bg-destructive text-destructive-foreground hover:bg-destructive/80 rounded-full opacity-0 hover:opacity-100 transition-opacity"
+                                      >
+                                        <X className="w-2 h-2" />
+                                      </Button>
+                                    )}
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>
+                                      {color.name || 'Unnamed'}: {color.value}
+                                      {selectedPalette.isPreset 
+                                        ? ' (double-click to edit)' 
+                                        : ' (drag to reorder, double-click to edit)'}
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                               
                               {/* Drop indicator line after last item */}
                               {dropIndicatorIndex === index + 1 && (
