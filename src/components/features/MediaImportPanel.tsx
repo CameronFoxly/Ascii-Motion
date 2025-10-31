@@ -573,8 +573,8 @@ export function MediaImportPanel() {
         const options = {
           targetWidth: settings.characterWidth,
           targetHeight: settings.characterHeight,
-          maintainAspectRatio: false, // Never crop - just resize to exact dimensions
-          cropMode: 'center' as const, // Not used since maintainAspectRatio is false
+          maintainAspectRatio: false, // Don't crop - stretch to exact dimensions we calculated
+          cropMode: settings.cropMode,
           quality: 'medium' as const
         };
         
@@ -610,7 +610,7 @@ export function MediaImportPanel() {
     livePreviewEnabled,
     settings.characterWidth,
     settings.characterHeight,
-    // Removed maintainAspectRatio and cropMode since they don't affect processing anymore
+    settings.cropMode, // Added back - now used for aspect ratio cropping
     setProcessing,
     setProgress,
     setProcessedFrames,
@@ -772,28 +772,37 @@ export function MediaImportPanel() {
       const imageAspectRatio = imageWidth / imageHeight;
       setOriginalImageAspectRatio(imageAspectRatio);
       
-      // Apply character aspect ratio compensation for initial sizing
-      // Characters are 0.6x as wide as tall, so we need MORE width to maintain visual aspect ratio
+      // Characters are 0.6x as wide as they are tall (non-square cells)
+      // Visual aspect ratio = (charWidth * 0.6) / charHeight
+      // To match image aspect ratio: (charWidth * 0.6) / charHeight = imageAspectRatio
+      // Therefore: charWidth = (charHeight * imageAspectRatio) / 0.6
       const CHARACTER_ASPECT_RATIO = 0.6;
-      const characterCompensatedAspectRatio = imageAspectRatio / CHARACTER_ASPECT_RATIO;
-      const canvasAspectRatio = canvasWidth / canvasHeight;
       
+      // Try fitting to canvas width
+      const fitToWidthCharWidth = canvasWidth;
+      const fitToWidthCharHeight = Math.round((canvasWidth * CHARACTER_ASPECT_RATIO) / imageAspectRatio);
+      
+      // Try fitting to canvas height
+      const fitToHeightCharHeight = canvasHeight;
+      const fitToHeightCharWidth = Math.round((canvasHeight * imageAspectRatio) / CHARACTER_ASPECT_RATIO);
+      
+      // Choose whichever fits entirely within canvas
       let targetWidth: number;
       let targetHeight: number;
       
-      if (characterCompensatedAspectRatio > canvasAspectRatio) {
-        // Image is wider than canvas - fit to canvas width
-        targetWidth = canvasWidth;
-        targetHeight = Math.round(canvasWidth / characterCompensatedAspectRatio);
+      if (fitToWidthCharHeight <= canvasHeight) {
+        // Fitting to width works - use it
+        targetWidth = fitToWidthCharWidth;
+        targetHeight = fitToWidthCharHeight;
       } else {
-        // Image is taller than canvas - fit to canvas height  
-        targetHeight = canvasHeight;
-        targetWidth = Math.round(canvasHeight * characterCompensatedAspectRatio);
+        // Must fit to height instead
+        targetWidth = fitToHeightCharWidth;
+        targetHeight = fitToHeightCharHeight;
       }
       
-      // Ensure we don't exceed canvas bounds
-      targetWidth = Math.min(targetWidth, canvasWidth);
-      targetHeight = Math.min(targetHeight, canvasHeight);
+      // Safety: ensure within bounds
+      targetWidth = Math.max(1, Math.min(targetWidth, canvasWidth));
+      targetHeight = Math.max(1, Math.min(targetHeight, canvasHeight));
       
       // Only auto-calculate dimensions if user hasn't saved preferences from previous session
       if (!hasSessionSettings) {

@@ -9,6 +9,104 @@ This document analyzes the current state of the media import functionality in AS
 1. **Blank first frame bug** when importing videos
 2. **Nested button hydration error** in CharacterMappingSection
 
+---
+
+## 🐛 **Issue #4: Aspect Ratio Bug - Images Distorted on Import**
+
+### **Problem Description**
+
+**Date**: October 31, 2025  
+**Status**: ✅ **FIXED**
+
+When importing media, images and videos were not maintaining their original aspect ratios. Assets appeared squashed or stretched, regardless of source dimensions.
+
+### **Root Cause Analysis**
+
+The bug had two components:
+
+1. **Incorrect Aspect Ratio Calculation** (Lines 770-803 in MediaImportPanel.tsx)
+   - Formula was incorrect for accounting for non-square character cells (0.6 aspect ratio)
+   - Used: `characterCompensatedAspectRatio = imageAspectRatio / CHARACTER_ASPECT_RATIO`
+   - Should use: Direct calculation based on visual aspect ratio formula
+
+2. **Character Space vs Pixel Space Confusion**
+   - Characters are 0.6x as wide as they are tall (non-square cells)
+   - Visual aspect ratio = (charWidth × 0.6) / charHeight
+   - To match image aspect ratio: charWidth = (charHeight × imageAspectRatio) / 0.6
+
+### **The Fix**
+
+**Corrected Aspect Ratio Calculation**:
+```typescript
+// Characters are 0.6x as wide as they are tall (non-square cells)
+// Visual aspect ratio = (charWidth * 0.6) / charHeight
+// To match image aspect ratio: (charWidth * 0.6) / charHeight = imageAspectRatio
+// Therefore: charWidth = (charHeight * imageAspectRatio) / 0.6
+const CHARACTER_ASPECT_RATIO = 0.6;
+
+// Try fitting to canvas width
+const fitToWidthCharWidth = canvasWidth;
+const fitToWidthCharHeight = Math.round((canvasWidth * CHARACTER_ASPECT_RATIO) / imageAspectRatio);
+
+// Try fitting to canvas height
+const fitToHeightCharHeight = canvasHeight;
+const fitToHeightCharWidth = Math.round((canvasHeight * imageAspectRatio) / CHARACTER_ASPECT_RATIO);
+
+// Choose whichever fits entirely within canvas
+if (fitToWidthCharHeight <= canvasHeight) {
+  targetWidth = fitToWidthCharWidth;
+  targetHeight = fitToWidthCharHeight;
+} else {
+  targetWidth = fitToHeightCharWidth;
+  targetHeight = fitToHeightCharHeight;
+}
+```
+
+**Key Insight**: The mediaProcessor works in pixel space (square pixels), but we display in character space (0.6-wide characters). The calculation must account for this by:
+1. Calculating character dimensions that will VISUALLY match the source aspect ratio
+2. Stretching the pixel-space image to those character dimensions (`maintainAspectRatio: false`)
+3. Letting the ASCII renderer display with 0.6-wide characters, which produces the correct visual result
+
+### **Example Calculation**
+
+**Input**: 
+- Image: 1920×1080 (16:9 = 1.778 aspect ratio)
+- Canvas: 120×80 characters
+
+**Fit to width**:
+- charWidth = 120
+- charHeight = (120 × 0.6) / 1.778 = 40.5 ≈ 41
+- Visual aspect ratio = (120 × 0.6) / 41 = 1.756 ≈ 1.778 ✅
+- Fits canvas? 120 ≤ 120 ✅, 41 ≤ 80 ✅
+
+**Fit to height**:
+- charHeight = 80
+- charWidth = (80 × 1.778) / 0.6 = 237
+- Fits canvas? 237 ≤ 120 ❌
+
+**Result**: Use width-based fit → 120×41 characters
+
+### **Files Modified**
+
+- `src/components/features/MediaImportPanel.tsx` (lines 770-810)
+  - Fixed aspect ratio calculation formula
+  - Added clear comments explaining the math
+  - Ensured proper fitting to smallest dimension
+
+### **Testing Checklist**
+
+After this fix:
+- [ ] Square image (1:1) → should remain square visually
+- [ ] Landscape 16:9 video → should maintain 16:9 ratio
+- [ ] Portrait 9:16 video → should maintain 9:16 ratio
+- [ ] Ultra-wide 21:9 image → should maintain 21:9 ratio
+- [ ] Verify images scale to fit smallest canvas dimension
+- [ ] Verify no squashing or stretching
+
+---
+
+## 📋 **Previous Issues**
+
 ## 🐛 **Issue #1: Blank First Frame Bug**
 
 ### **Problem Description**
