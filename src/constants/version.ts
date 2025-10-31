@@ -1,12 +1,24 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.2.20";
-export const BUILD_DATE = "2025-10-31T17:30:51.446Z";
-export const BUILD_HASH = "ea007c0";
+export const VERSION = "0.2.21";
+export const BUILD_DATE = "2025-10-31T19:37:04.030Z";
+export const BUILD_HASH = "1d11516";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.2.21",
+    "date": "2025-10-31T19:37:04.030Z",
+    "commits": [
+      "Fixed up import media panel bugs",
+      "Fixed aspect ratio bug in import media",
+      "Fixed lint errors",
+      "Fixed up some palette inconsistencies",
+      "Fixed up some color palette bugs",
+      "Added new preset palettes"
+    ]
+  },
   {
     "version": "0.2.20",
     "date": "2025-10-31T17:30:51.446Z",
