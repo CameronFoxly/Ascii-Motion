@@ -1,12 +1,23 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.2.18";
-export const BUILD_DATE = "2025-10-30T22:52:36.949Z";
-export const BUILD_HASH = "c1e4eac";
+export const VERSION = "0.2.19";
+export const BUILD_DATE = "2025-10-30T23:05:36.991Z";
+export const BUILD_HASH = "ff7c5a2";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.2.19",
+    "date": "2025-10-30T23:05:36.991Z",
+    "commits": [
+      "Added generators to welcome message",
+      "Merge pull request #33 from CameronFoxly/generators",
+      "Merge pull request #32 from davidmwilliams/patch-1",
+      "Update README.md",
+      "Merge pull request #31 from CameronFoxly/Font-system"
+    ]
+  },
   {
     "version": "0.2.18",
     "date": "2025-10-30T22:52:36.949Z",

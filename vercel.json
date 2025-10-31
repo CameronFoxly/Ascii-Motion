@@ -5,10 +5,7 @@
   "installCommand": "npm install",
   "framework": "vite",
   "git": {
-    "deploymentEnabled": {
-      "main": false,
-      "welcome-experience-core": false
-    }
+    "deploymentEnabled": false
   },
   "headers": [
     {
