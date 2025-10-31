@@ -1,12 +1,21 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.2.19";
-export const BUILD_DATE = "2025-10-30T23:05:36.991Z";
-export const BUILD_HASH = "ff7c5a2";
+export const VERSION = "0.2.20";
+export const BUILD_DATE = "2025-10-31T17:30:51.446Z";
+export const BUILD_HASH = "ea007c0";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.2.20",
+    "date": "2025-10-31T17:30:51.446Z",
+    "commits": [
+      "Fine tune matrix effect",
+      "Added digital rain generator",
+      "Remove auto deployments from vercel"
+    ]
+  },
   {
     "version": "0.2.19",
     "date": "2025-10-30T23:05:36.991Z",

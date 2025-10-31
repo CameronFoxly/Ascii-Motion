@@ -264,16 +264,186 @@ export const WARM_REDS_PALETTE: ColorPalette = {
 };
 
 /**
- * Array of all default palettes
+ * Bright Greens Palette
+ */
+export const BRIGHT_GREENS_PALETTE: ColorPalette = {
+  id: 'bright-greens',
+  name: 'Bright Greens',
+  isPreset: true,
+  isCustom: false,
+  colors: createPaletteColors([
+    { hex: '#004b23', name: 'Cal Poly Green' },
+    { hex: '#006400', name: 'Dark Green' },
+    { hex: '#007200', name: 'Green' },
+    { hex: '#008000', name: 'Office Green' },
+    { hex: '#38b000', name: 'Kelly Green' },
+    { hex: '#70e000', name: 'SGBUS Green' },
+    { hex: '#9ef01a', name: 'Spring Bud' },
+    { hex: '#ccff33', name: 'Lime' }
+  ])
+};
+
+/**
+ * Fiery Sunset Palette
+ */
+export const FIERY_SUNSET_PALETTE: ColorPalette = {
+  id: 'fiery-sunset',
+  name: 'Fiery Sunset',
+  isPreset: true,
+  isCustom: false,
+  colors: createPaletteColors([
+    { hex: '#03071e', name: 'Rich Black' },
+    { hex: '#370617', name: 'Chocolate' },
+    { hex: '#6a040f', name: 'Rosewood' },
+    { hex: '#9d0208', name: 'Penn Red' },
+    { hex: '#d00000', name: 'Bright Red' },
+    { hex: '#dc2f02', name: 'Sinopia' },
+    { hex: '#e85d04', name: 'Persimmon' },
+    { hex: '#f48c06', name: 'Princeton Orange' },
+    { hex: '#faa307', name: 'Orange' },
+    { hex: '#ffba08', name: 'Yellow' }
+  ])
+};
+
+/**
+ * Luminous Glow Palette
+ */
+export const LUMINOUS_GLOW_PALETTE: ColorPalette = {
+  id: 'luminous-glow',
+  name: 'Luminous Glow',
+  isPreset: true,
+  isCustom: false,
+  colors: createPaletteColors([
+    { hex: '#f2f230', name: 'Icterine' },
+    { hex: '#c2f261', name: 'Green Yellow' },
+    { hex: '#91f291', name: 'Light Green' },
+    { hex: '#61f2c2', name: 'Aquamarine' },
+    { hex: '#30f2f2', name: 'Cyan' }
+  ])
+};
+
+/**
+ * Purple Rain Palette
+ */
+export const PURPLE_RAIN_PALETTE: ColorPalette = {
+  id: 'purple-rain',
+  name: 'Purple Rain',
+  isPreset: true,
+  isCustom: false,
+  colors: createPaletteColors([
+    { hex: '#f72585', name: 'Rose' },
+    { hex: '#b5179e', name: 'Fandango' },
+    { hex: '#7209b7', name: 'Grape' },
+    { hex: '#560bad', name: 'Chrysler Blue' },
+    { hex: '#480ca8', name: 'Dark Blue' },
+    { hex: '#3a0ca3', name: 'Zaffre' },
+    { hex: '#3f37c9', name: 'Palatinate Blue' },
+    { hex: '#4361ee', name: 'Neon Blue' },
+    { hex: '#4895ef', name: 'Chefchaouen Blue' },
+    { hex: '#4cc9f0', name: 'Sky Blue' }
+  ])
+};
+
+/**
+ * Soft Rainbow Palette
+ */
+export const SOFT_RAINBOW_PALETTE: ColorPalette = {
+  id: 'soft-rainbow',
+  name: 'Soft Rainbow',
+  isPreset: true,
+  isCustom: false,
+  colors: createPaletteColors([
+    { hex: '#fbf8cc', name: 'Lemon Chiffon' },
+    { hex: '#fde4cf', name: 'Champagne Pink' },
+    { hex: '#ffcfd2', name: 'Tea Rose' },
+    { hex: '#f1c0e8', name: 'Pink Lavender' },
+    { hex: '#cfbaf0', name: 'Mauve' },
+    { hex: '#a3c4f3', name: 'Jordy Blue' },
+    { hex: '#90dbf4', name: 'Non-Photo Blue' },
+    { hex: '#8eecf5', name: 'Electric Blue' },
+    { hex: '#98f5e1', name: 'Aquamarine' },
+    { hex: '#b9fbc0', name: 'Celadon' }
+  ])
+};
+
+/**
+ * Sunset Gradient Palette
+ */
+export const SUNSET_GRADIENT_PALETTE: ColorPalette = {
+  id: 'sunset-gradient',
+  name: 'Sunset Gradient',
+  isPreset: true,
+  isCustom: false,
+  colors: createPaletteColors([
+    { hex: '#ff7b00', name: 'Safety Orange' },
+    { hex: '#ff8800', name: 'Dark Orange' },
+    { hex: '#ff9500', name: 'Princeton Orange' },
+    { hex: '#ffa200', name: 'Orange Peel' },
+    { hex: '#ffaa00', name: 'Orange' },
+    { hex: '#ffb700', name: 'Selective Yellow' },
+    { hex: '#ffc300', name: 'Mikado Yellow' },
+    { hex: '#ffd000', name: 'Jonquil' },
+    { hex: '#ffdd00', name: 'School Bus Yellow' },
+    { hex: '#ffea00', name: 'Canary' }
+  ])
+};
+
+/**
+ * Vivid Nightfall Palette
+ */
+export const VIVID_NIGHTFALL_PALETTE: ColorPalette = {
+  id: 'vivid-nightfall',
+  name: 'Vivid Nightfall',
+  isPreset: true,
+  isCustom: false,
+  colors: createPaletteColors([
+    { hex: '#10002b', name: 'Russian Violet' },
+    { hex: '#240046', name: 'Russian Violet 2' },
+    { hex: '#3c096c', name: 'Persian Indigo' },
+    { hex: '#5a189a', name: 'Tekhelet' },
+    { hex: '#7b2cbf', name: 'French Violet' },
+    { hex: '#9d4edd', name: 'Amethyst' },
+    { hex: '#c77dff', name: 'Heliotrope' },
+    { hex: '#e0aaff', name: 'Mauve' }
+  ])
+};
+
+/**
+ * Vibrant Fiesta Palette
+ */
+export const VIBRANT_FIESTA_PALETTE: ColorPalette = {
+  id: 'vibrant-fiesta',
+  name: 'Vibrant Fiesta',
+  isPreset: true,
+  isCustom: false,
+  colors: createPaletteColors([
+    { hex: '#ffbe0b', name: 'Amber' },
+    { hex: '#fb5607', name: 'Orange' },
+    { hex: '#ff006e', name: 'Rose' },
+    { hex: '#8338ec', name: 'Blue Violet' },
+    { hex: '#3a86ff', name: 'Azure' }
+  ])
+};
+
+/**
+ * Array of all default palettes (alphabetically sorted)
  */
 export const DEFAULT_PALETTES: ColorPalette[] = [
   ANSI_PALETTE,
-  MATERIAL_DESIGN_PALETTE,
-  RETRO_8BIT_PALETTE,
-  EARTH_TONES_PALETTE,
+  BRIGHT_GREENS_PALETTE,
   COOL_BLUES_PALETTE,
+  EARTH_TONES_PALETTE,
+  FIERY_SUNSET_PALETTE,
+  LUMINOUS_GLOW_PALETTE,
+  MATERIAL_DESIGN_PALETTE,
+  PURPLE_RAIN_PALETTE,
+  RETRO_8BIT_PALETTE,
+  SOFT_RAINBOW_PALETTE,
+  SUNSET_GRADIENT_PALETTE,
+  VIBRANT_FIESTA_PALETTE,
+  VIVID_NIGHTFALL_PALETTE,
   WARM_REDS_PALETTE,
-  WEB_SAFE_PALETTE // Put web safe last since it's very large
+  WEB_SAFE_PALETTE // Keep web safe last since it's very large
 ];
 
 /**
