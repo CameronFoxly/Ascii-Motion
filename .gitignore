@@ -16,6 +16,10 @@ dist-ssr
 packages/*/dist
 packages/*/.tsbuildinfo
 
+# TypeScript declaration files (build artifacts)
+*.d.ts
+*.d.ts.map
+
 # Premium package protection
 # Note: Premium code is in a separate private Git repository (Git submodule).
 # No gitignore patterns needed - the entire packages/premium/ directory
