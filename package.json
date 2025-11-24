@@ -5,7 +5,8 @@
   "type": "module",
   "workspaces": [
     "packages/*",
-    "packages/web/marketing"
+    "packages/web/marketing",
+    "packages/web/docs-site"
   ],
   "scripts": {
     "dev": "vite",
@@ -17,6 +18,9 @@
     "dev:marketing": "npm run dev -w @ascii-motion/marketing",
     "build:marketing": "npm run build -w @ascii-motion/marketing",
     "lint:marketing": "npm run lint -w @ascii-motion/marketing",
+    "dev:docs": "npm run dev -w @ascii-motion/docs",
+    "build:docs": "npm run build -w @ascii-motion/docs",
+    "lint:docs": "npm run lint -w @ascii-motion/docs",
     "lint": "eslint .",
     "preview": "vite preview",
     "build:prod": "npm run build",
