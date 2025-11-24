@@ -1,12 +1,27 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "0.2.48";
-export const BUILD_DATE = "2025-11-21T06:46:28.402Z";
-export const BUILD_HASH = "bc34012";
+export const VERSION = "0.2.49";
+export const BUILD_DATE = "2025-11-21T18:36:47.277Z";
+export const BUILD_HASH = "322777b";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "0.2.49",
+    "date": "2025-11-21T18:36:47.277Z",
+    "commits": [
+      "Bump version to 0.2.48",
+      "Merge pull request #48 from CameronFoxly/dependabot/npm_and_yarn/js-yaml-4.1.1",
+      "Merge pull request #47 from CameronFoxly/dependabot/npm_and_yarn/vite-7.2.4",
+      "Merge pull request #46 from CameronFoxly/dependabot/npm_and_yarn/glob-10.5.0",
+      "Merge pull request #45 from CameronFoxly/alert-autofix-1",
+      "Bump js-yaml from 4.1.0 to 4.1.1",
+      "Bump vite from 7.1.7 to 7.2.4",
+      "Bump glob from 10.4.5 to 10.5.0",
+      "Potential fix for code scanning alert no. 1: Incomplete URL substring sanitization"
+    ]
+  },
   {
     "version": "0.2.48",
     "date": "2025-11-21T06:46:28.402Z",

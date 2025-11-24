@@ -1,3 +1,6 @@
 [submodule "packages/premium"]
 	path = packages/premium
 	url = https://github.com/cameronfoxly/Ascii-Motion-Premium.git
+[submodule "packages/web"]
+	path = packages/web
+	url = https://github.com/cameronfoxly/Ascii-Motion-Web.git
