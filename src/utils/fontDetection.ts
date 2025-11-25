@@ -21,6 +21,22 @@ export async function isFontAvailable(fontName: string): Promise<boolean> {
     return fontAvailabilityCache.get(fontName)!;
   }
 
+  // First, check if the font is available via CSS Font Loading API
+  // This catches fonts loaded via @font-face declarations
+  if (document.fonts) {
+    try {
+      // Try with quotes (for fonts with spaces)
+      const fontWithQuotes = fontName.includes(' ') ? `"${fontName}"` : fontName;
+      const isAvailableViaCSS = document.fonts.check(`12px ${fontWithQuotes}`);
+      if (isAvailableViaCSS) {
+        fontAvailabilityCache.set(fontName, true);
+        return true;
+      }
+    } catch (e) {
+      // If check() throws, fall through to canvas measurement
+    }
+  }
+
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');
   

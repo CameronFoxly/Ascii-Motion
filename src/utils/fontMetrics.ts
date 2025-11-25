@@ -99,10 +99,18 @@ export const pixelToGrid = (
 
 /**
  * Get font CSS string for canvas rendering
- * Note: Font stack already includes fallback fonts, no additional fallback needed
+ * Properly quotes font names with spaces for canvas compatibility
  */
 export const getFontString = (fontMetrics: FontMetrics): string => {
-  return `${fontMetrics.fontSize}px ${fontMetrics.fontFamily}`;
+  // Split the font stack to handle the first font name
+  const fonts = fontMetrics.fontFamily.split(',').map(f => f.trim());
+  
+  // If the first font has spaces and isn't already quoted, quote it
+  if (fonts[0] && fonts[0].includes(' ') && !fonts[0].startsWith('"') && !fonts[0].startsWith("'")) {
+    fonts[0] = `"${fonts[0]}"`;
+  }
+  
+  return `${fontMetrics.fontSize}px ${fonts.join(', ')}`;
 };
 
 /**

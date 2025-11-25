@@ -101,6 +101,26 @@ export const MONOSPACE_FONTS: MonospaceFont[] = [
     fileSize: '~41KB'
   },
   {
+    id: 'ibm-vga',
+    name: 'Px437 IBM VGA 9x14',
+    displayName: 'IBM VGA 9x14 (Retro bold)',
+    cssStack: 'Px437 IBM VGA 9x14, monospace',
+    category: 'web',
+    description: 'Classic IBM VGA font - authentic retro terminal aesthetic',
+    isBundled: false,
+    fileSize: '~25KB'
+  },
+  {
+    id: 'ibm-dos',
+    name: 'Px437 IBM DOS ISO8',
+    displayName: 'IBM DOS ISO8 (Retro thin)',
+    cssStack: 'Px437 IBM DOS ISO8, monospace',
+    category: 'web',
+    description: 'Classic IBM DOS font with ISO-8859-1 extended characters',
+    isBundled: false,
+    fileSize: '~28KB'
+  },
+  {
     id: 'auto',
     name: 'Auto',
     displayName: 'Auto (Best Available)',

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>IBM VGA Font Test</title>
+  <style>
+    @font-face {
+      font-family: 'Px437 IBM VGA 9x8';
+      src: url('../public/fonts/Px437_IBM_VGA_9x8.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+    }
+    
+    body {
+      background: #1a1a1a;
+      color: white;
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    
+    .test-row {
+      margin: 20px 0;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    
+    .label {
+      width: 150px;
+      font-size: 14px;
+    }
+    
+    .ibm-font {
+      font-family: 'Px437 IBM VGA 9x8', monospace;
+    }
+    
+    .sf-mono {
+      font-family: 'SF Mono', monospace;
+    }
+    
+    canvas {
+      border: 1px solid #444;
+      background: #000;
+    }
+  </style>
+</head>
+<body>
+  <h1>IBM VGA Font Scaling Test</h1>
+  
+  <h2>CSS Text (for comparison)</h2>
+  <div class="test-row">
+    <span class="label">SF Mono 18px:</span>
+    <span class="sf-mono" style="font-size: 18px;">Hello World ABCDEF</span>
+  </div>
+  <div class="test-row">
+    <span class="label">IBM VGA 18px:</span>
+    <span class="ibm-font" style="font-size: 18px;">Hello World ABCDEF</span>
+  </div>
+  <div class="test-row">
+    <span class="label">IBM VGA 36px:</span>
+    <span class="ibm-font" style="font-size: 36px;">Hello World ABCDEF</span>
+  </div>
+  <div class="test-row">
+    <span class="label">IBM VGA 72px:</span>
+    <span class="ibm-font" style="font-size: 72px;">Hello World ABCDEF</span>
+  </div>
+  
+  <h2>Canvas Text</h2>
+  <div class="test-row">
+    <span class="label">Canvas SF Mono:</span>
+    <canvas id="canvas-sf" width="400" height="50"></canvas>
+  </div>
+  <div class="test-row">
+    <span class="label">Canvas IBM VGA:</span>
+    <canvas id="canvas-ibm" width="400" height="50"></canvas>
+  </div>
+  
+  <h2>Font Load Status</h2>
+  <div id="status">Loading fonts...</div>
+  
+  <script>
+    // Wait for fonts to load
+    document.fonts.ready.then(() => {
+      const status = document.getElementById('status');
+      
+      // Check if IBM VGA font loaded
+      const ibmLoaded = document.fonts.check('18px "Px437 IBM VGA 9x8"');
+      const sfLoaded = document.fonts.check('18px "SF Mono"');
+      
+      status.innerHTML = `
+        SF Mono loaded: ${sfLoaded}<br>
+        IBM VGA loaded: ${ibmLoaded}<br>
+        Available fonts: ${[...document.fonts].map(f => f.family).join(', ')}
+      `;
+      
+      // Draw on SF Mono canvas
+      const ctxSF = document.getElementById('canvas-sf').getContext('2d');
+      ctxSF.fillStyle = 'white';
+      ctxSF.font = '18px SF Mono, monospace';
+      ctxSF.textBaseline = 'middle';
+      ctxSF.fillText('Hello World ABCDEF', 10, 25);
+      
+      // Draw on IBM VGA canvas
+      const ctxIBM = document.getElementById('canvas-ibm').getContext('2d');
+      ctxIBM.fillStyle = 'white';
+      ctxIBM.font = '18px "Px437 IBM VGA 9x8", monospace';
+      ctxIBM.textBaseline = 'middle';
+      ctxIBM.fillText('Hello World ABCDEF', 10, 25);
+      
+      console.log('SF Mono font string:', ctxSF.font);
+      console.log('IBM VGA font string:', ctxIBM.font);
+    });
+  </script>
+</body>
+</html>

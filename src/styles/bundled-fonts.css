@@ -39,3 +39,21 @@
   font-style: normal;
   font-display: swap;
 }
+
+/* IBM VGA 9x14 - ~25KB */
+@font-face {
+  font-family: 'Px437 IBM VGA 9x14';
+  src: url('/fonts/Px437_IBM_VGA_9x14.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* IBM DOS ISO8 - ~28KB */
+@font-face {
+  font-family: 'Px437 IBM DOS ISO8';
+  src: url('/fonts/Px437_IBM_DOS_ISO8.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}

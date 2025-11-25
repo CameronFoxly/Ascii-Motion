@@ -155,6 +155,19 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
           }
         }
         
+        // For CSS-loaded fonts (not bundled), ensure they're loaded before detection
+        if (!font.isBundled && document.fonts) {
+          setIsFontLoading(true);
+          try {
+            const fontNameWithQuotes = font.name.includes(' ') ? `"${font.name}"` : font.name;
+            await document.fonts.load(`12px ${fontNameWithQuotes}`);
+          } catch (error) {
+            // Font might already be loaded or not available, continue anyway
+          } finally {
+            setIsFontLoading(false);
+          }
+        }
+        
         // Detect which font is actually being rendered
         const detected = await detectAvailableFont(fontStack);
         setActualFont(detected);

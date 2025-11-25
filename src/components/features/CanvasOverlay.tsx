@@ -7,6 +7,7 @@ import { useCanvasContext } from '../../contexts/CanvasContext';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCanvasState } from '../../hooks/useCanvasState';
+import { getFontString } from '../../utils/fontMetrics';
 import { InteractiveGradientOverlay } from './InteractiveGradientOverlay';
 import { InteractiveBezierOverlay } from './InteractiveBezierOverlay';
 
@@ -610,9 +611,9 @@ export const CanvasOverlay: React.FC = () => {
           // Draw character
           if (cell.char && cell.char !== ' ') {
             ctx.fillStyle = cell.color || '#000000';
-            // Use the same font as the main canvas for 1:1 preview
-            const scaledFontSize = fontMetrics.fontSize * zoom;
-            ctx.font = `${scaledFontSize}px ${fontMetrics.fontFamily}`;
+            // Use helper to properly quote font names with spaces
+            const scaledFontMetrics = { ...fontMetrics, fontSize: fontMetrics.fontSize * zoom };
+            ctx.font = getFontString(scaledFontMetrics);
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(
@@ -658,8 +659,8 @@ export const CanvasOverlay: React.FC = () => {
           // Draw character
           if (cell.char && cell.char !== ' ') {
             ctx.fillStyle = cell.color || '#000000';
-            const scaledFontSize = fontMetrics.fontSize * zoom;
-            ctx.font = `${scaledFontSize}px ${fontMetrics.fontFamily}`;
+            const scaledFontMetrics = { ...fontMetrics, fontSize: fontMetrics.fontSize * zoom };
+            ctx.font = getFontString(scaledFontMetrics);
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(
@@ -696,8 +697,8 @@ export const CanvasOverlay: React.FC = () => {
         // Draw character
         if (cell.char && cell.char !== ' ') {
           ctx.fillStyle = cell.color || '#ffffff';
-          const scaledFontSize = fontMetrics.fontSize * zoom;
-          ctx.font = `${scaledFontSize}px ${fontMetrics.fontFamily}`;
+          const scaledFontMetrics = { ...fontMetrics, fontSize: fontMetrics.fontSize * zoom };
+          ctx.font = getFontString(scaledFontMetrics);
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText(
@@ -730,8 +731,8 @@ export const CanvasOverlay: React.FC = () => {
         // Draw character
         if (cell.char && cell.char !== ' ') {
           ctx.fillStyle = cell.color || '#000000';
-          const scaledFontSize = fontMetrics.fontSize * zoom;
-          ctx.font = `${scaledFontSize}px ${fontMetrics.fontFamily}`;
+          const scaledFontMetrics = { ...fontMetrics, fontSize: fontMetrics.fontSize * zoom };
+          ctx.font = getFontString(scaledFontMetrics);
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText(

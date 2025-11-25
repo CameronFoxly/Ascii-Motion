@@ -15,6 +15,7 @@ import { measureCanvasRender, finishCanvasRender } from '../utils/performance';
 import { 
   setupTextRendering
 } from '../utils/canvasTextRendering';
+import { getFontString } from '../utils/fontMetrics';
 import { scheduleCanvasRender } from '../utils/renderScheduler';
 import { markFullRedraw } from '../utils/dirtyTracker';
 import { calculateAdaptiveGridColor } from '../utils/gridColor';
@@ -62,7 +63,7 @@ const setupHighDPICanvas = (
  * - Performance measurement
  */
 export const useCanvasRenderer = () => {
-  const { canvasRef, pasteMode, panOffset, fontMetrics } = useCanvasContext();
+  const { canvasRef, pasteMode, panOffset, fontMetrics, isFontLoading } = useCanvasContext();
   const { theme } = useTheme();
   const {
     effectiveCellWidth,
@@ -132,10 +133,11 @@ export const useCanvasRenderer = () => {
 
   // Memoize font and style calculations
   const drawingStyles = useMemo(() => {
-    // Scale font size with zoom - keep original logic
+    // Scale font size with zoom
     const scaledFontSize = fontMetrics.fontSize * zoom;
-    // Font stack already includes fallback monospace, no need to wrap in quotes or add extra fallback
-    const scaledFontString = `${scaledFontSize}px ${fontMetrics.fontFamily}`;
+    // Use helper to properly quote font names with spaces
+    const scaledFontMetrics = { ...fontMetrics, fontSize: scaledFontSize };
+    const scaledFontString = getFontString(scaledFontMetrics);
     
     return {
       font: scaledFontString,
@@ -146,7 +148,8 @@ export const useCanvasRenderer = () => {
       defaultTextColor: '#FFFFFF',
       defaultBgColor: '#000000'
     };
-  }, [fontMetrics, zoom, canvasBackgroundColor, theme]);
+    // Include isFontLoading to trigger re-render after font loads
+  }, [fontMetrics, zoom, canvasBackgroundColor, theme, isFontLoading]);
 
     // Optimized drawCell function with pixel-aligned rendering (but no coordinate changes)
   const drawCell = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, cell: Cell) => {

@@ -3,6 +3,7 @@ import type { GradientProperty } from '../../types';
 import { sampleGradientProperty } from '../../utils/gradientEngine';
 import { cn } from '../../lib/utils';
 import { useCanvasContext } from '../../contexts/CanvasContext';
+import { getFontString } from '../../utils/fontMetrics';
 
 const MAX_PREVIEW_WIDTH = 256;
 const PREVIEW_HEIGHT = 24;
@@ -116,9 +117,8 @@ const drawCheckboard = (ctx: CanvasRenderingContext2D, width: number, height: nu
 const CharacterPreview: React.FC<{ property: GradientProperty }> = ({ property }) => {
   const { fontMetrics } = useCanvasContext();
   
-  // Use the same font string format as the canvas renderer
-  // Font stack already includes fallback, no need for quotes or extra fallback
-  const fontString = `${fontMetrics.fontSize}px ${fontMetrics.fontFamily}`;
+  // Use helper to properly quote font names with spaces
+  const fontString = getFontString(fontMetrics);
   
   return (
     <div

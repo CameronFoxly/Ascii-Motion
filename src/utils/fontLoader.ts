@@ -12,7 +12,7 @@ const loadingPromises = new Map<string, Promise<void>>();
 /**
  * Font file definitions for bundled fonts
  */
-const BUNDLED_FONT_FILES: Record<string, { url: string; weight?: number; style?: string }[]> = {
+const BUNDLED_FONT_FILES: Record<string, { url: string; weight?: number; style?: string; format?: string }[]> = {
   'JetBrains Mono': [
     { url: '/fonts/JetBrainsMono-Regular.woff2', weight: 400, style: 'normal' }
   ],
@@ -53,9 +53,10 @@ export async function loadBundledFont(fontName: string): Promise<void> {
     try {
       // Load all variants of the font
       const loadPromises = fontFiles.map(async (file) => {
+        const format = file.format || 'woff2';
         const fontFace = new FontFace(
           fontName,
-          `url(${file.url}) format('woff2')`,
+          `url(${file.url}) format('${format}')`,
           {
             weight: file.weight?.toString() || '400',
             style: file.style || 'normal'
