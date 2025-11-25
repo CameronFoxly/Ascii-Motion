@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run build:core && npm run build:premium && tsc -b && vite build",
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": "vite",
