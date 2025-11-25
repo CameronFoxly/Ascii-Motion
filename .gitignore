@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Next.js (for submodule sites - prevent accidental root pollution)
+.next
+next-env.d.ts
+
 # Monorepo build outputs
 packages/*/dist
 packages/*/.tsbuildinfo
