@@ -87,7 +87,11 @@ export const useWelcomeDialog = () => {
     const isRemix = params.get('remix') === 'true'
     const manageProjects = params.get('manage-projects') === 'true'
     
-    if (isRemix || manageProjects) {
+    // Also skip for auth deep links (signup/login from marketing site)
+    const path = window.location.pathname
+    const isAuthPath = path === '/auth/signup' || path === '/auth/login'
+    
+    if (isRemix || manageProjects || isAuthPath) {
       return
     }
     

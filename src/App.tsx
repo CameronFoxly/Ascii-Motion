@@ -29,6 +29,33 @@ import { CommunityPage } from './pages/CommunityPage'
 import { useAdminProjectLoader } from './hooks/useAdminProjectLoader'
 
 /**
+ * Auth Redirect Component
+ * Handles deep links from marketing site (/auth/signup, /auth/login)
+ * Redirects to root and opens the appropriate dialog
+ */
+function AuthRedirect({ type }: { type: 'signup' | 'login' }) {
+  const navigate = useNavigate()
+  
+  useEffect(() => {
+    // Navigate to root first
+    navigate('/', { replace: true })
+    
+    // Then dispatch event to open the appropriate dialog
+    // Use setTimeout to ensure navigation completes first
+    setTimeout(() => {
+      if (type === 'signup') {
+        window.dispatchEvent(new CustomEvent('openSignUpDialog'))
+      } else {
+        window.dispatchEvent(new CustomEvent('open-signin-dialog'))
+      }
+    }, 100)
+  }, [navigate, type])
+  
+  // Return the editor page while redirecting (prevents flash)
+  return <EditorPage />
+}
+
+/**
  * Inner component that uses auth hooks
  * This component is rendered inside AuthProvider
  * Fixed: Moved useAuth hook inside AuthProvider context
@@ -276,6 +303,8 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<EditorPage />} />
           <Route path="/community/*" element={<CommunityPage />} />
+          <Route path="/auth/signup" element={<AuthRedirect type="signup" />} />
+          <Route path="/auth/login" element={<AuthRedirect type="login" />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         
