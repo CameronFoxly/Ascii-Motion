@@ -767,7 +767,7 @@ export const useTimelineStore = create<TimelineState>()(
       set((state) => ({
         layers: updateLayer(state.layers, layerId, (l) => ({
           ...l,
-          contentFrames: [...l.contentFrames, newFrame],
+          contentFrames: [...l.contentFrames, newFrame].sort((a, b) => a.startFrame - b.startFrame),
         })),
       }));
 
@@ -875,7 +875,10 @@ export const useTimelineStore = create<TimelineState>()(
         data: new Map(cf.data), // Clone data
       };
 
-      // Shrink original + insert new frame
+      // Shrink original + insert new frame, keeping sorted by startFrame
+      // CRITICAL: contentFrames must stay sorted because getContentFrameAtTime()
+      // uses binary search. Appending with concat() would break the sort order
+      // when splitting a non-last frame, causing binary search to miss frames.
       set((state) => ({
         layers: updateLayer(state.layers, layerId, (l) => ({
           ...l,
@@ -883,7 +886,7 @@ export const useTimelineStore = create<TimelineState>()(
             c.id === frameId
               ? { ...c, durationFrames: leftDuration }
               : c,
-          ).concat(newFrame),
+          ).concat(newFrame).sort((a, b) => a.startFrame - b.startFrame),
         })),
       }));
 
@@ -924,7 +927,7 @@ export const useTimelineStore = create<TimelineState>()(
       set((state) => ({
         layers: updateLayer(state.layers, layerId, (l) => ({
           ...l,
-          contentFrames: [...l.contentFrames, newFrame],
+          contentFrames: [...l.contentFrames, newFrame].sort((a, b) => a.startFrame - b.startFrame),
         })),
       }));
 
