@@ -1,12 +1,20 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "2.0.2";
-export const BUILD_DATE = "2026-02-24T05:58:13.035Z";
-export const BUILD_HASH = "3204770";
+export const VERSION = "2.0.3";
+export const BUILD_DATE = "2026-02-27T20:57:08.640Z";
+export const BUILD_HASH = "a823966";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "2.0.3",
+    "date": "2026-02-27T20:57:08.640Z",
+    "commits": [
+      "FIxed frame splitting bug",
+      "Update flags and version after deploy"
+    ]
+  },
   {
     "version": "2.0.2",
     "date": "2026-02-24T05:58:13.035Z",
