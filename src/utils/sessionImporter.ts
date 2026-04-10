@@ -7,7 +7,7 @@ import { useProjectMetadataStore } from '../stores/projectMetadataStore';
 import { useTimelineStore } from '../stores/timelineStore';
 import type { Cell, Tool } from '../types';
 import type { Layer, LayerId, ContentFrameId, PropertyTrackId, KeyframeId, LayerGroup, LayerGroupId, SessionDataV2 } from '../types/timeline';
-import type { PostEffectTrack, PostEffectTrackId, PostEffectBlockId, PostEffectPropertyTrackId, PostEffectKeyFrameId } from '../types/postEffect';
+import type { PostEffectTrack, PostEffectTrackId, PostEffectBlockId, PostEffectPropertyTrackId } from '../types/postEffect';
 import { DEFAULT_FRAME_DURATION } from '../constants';
 import type { TypographySettings } from './canvasSizeConversion';
 import type { ColorPalette, CharacterPalette, CharacterMappingSettings } from '../types/palette';

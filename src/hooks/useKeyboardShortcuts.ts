@@ -1563,7 +1563,7 @@ const processHistoryAction = (
       const isPostEffect = tl.postEffectTracks.some((pet) => (pet.effectBlock.id as string) === a.data.blockId);
       if (isPostEffect) {
         if (isRedo) {
-          tl.addPostEffectKeyframe(a.data.blockId as import("../types/postEffect").PostEffectBlockId, a.data.trackId as import("../types/postEffect").PostEffectPropertyTrackId, a.data.keyframe.frame, a.data.keyframe.value);
+          tl.addPostEffectKeyframe(a.data.blockId as import("../types/postEffect").PostEffectBlockId, a.data.trackId as import("../types/postEffect").PostEffectPropertyTrackId, a.data.keyframe.frame, a.data.keyframe.value as string | number | boolean);
         } else {
           tl.removePostEffectKeyframe(a.data.blockId as import("../types/postEffect").PostEffectBlockId, a.data.trackId as import("../types/postEffect").PostEffectPropertyTrackId, a.data.keyframe.id);
         }
@@ -1585,7 +1585,7 @@ const processHistoryAction = (
         if (isRedo) {
           tl.removePostEffectKeyframe(a.data.blockId as import("../types/postEffect").PostEffectBlockId, a.data.trackId as import("../types/postEffect").PostEffectPropertyTrackId, a.data.keyframe.id);
         } else {
-          tl.addPostEffectKeyframe(a.data.blockId as import("../types/postEffect").PostEffectBlockId, a.data.trackId as import("../types/postEffect").PostEffectPropertyTrackId, a.data.keyframe.frame, a.data.keyframe.value);
+          tl.addPostEffectKeyframe(a.data.blockId as import("../types/postEffect").PostEffectBlockId, a.data.trackId as import("../types/postEffect").PostEffectPropertyTrackId, a.data.keyframe.frame, a.data.keyframe.value as string | number | boolean);
         }
       } else {
         if (isRedo) {
@@ -1603,7 +1603,7 @@ const processHistoryAction = (
       const kf = isRedo ? a.data.newKeyframe : a.data.previousKeyframe;
       const isPostEffect = tl.postEffectTracks.some((pet) => (pet.effectBlock.id as string) === a.data.blockId);
       if (isPostEffect) {
-        tl.updatePostEffectKeyframe(a.data.blockId as import("../types/postEffect").PostEffectBlockId, a.data.trackId as import("../types/postEffect").PostEffectPropertyTrackId, a.data.keyframeId as KeyframeId, { frame: kf.frame, value: kf.value, easing: kf.easing });
+        tl.updatePostEffectKeyframe(a.data.blockId as import("../types/postEffect").PostEffectBlockId, a.data.trackId as import("../types/postEffect").PostEffectPropertyTrackId, a.data.keyframeId as KeyframeId, { frame: kf.frame, value: kf.value as string | number | boolean, easing: kf.easing });
       } else {
         tl.updateEffectKeyframe(a.data.blockId as import("../types/effectBlock").EffectBlockId, a.data.trackId as import("../types/effectBlock").EffectPropertyTrackId, a.data.keyframeId as KeyframeId, { frame: kf.frame, value: kf.value, easing: kf.easing });
       }

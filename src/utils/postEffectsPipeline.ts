@@ -5,10 +5,9 @@
  * and orchestrates the WebGL post-processing chain.
  */
 
-import type { PostEffectBlock, PostEffectTrack, PostEffectPropertyTrack } from '../types/postEffect';
-import type { PostEffectPropertyDefinition } from '../types/postEffect';
+import type { PostEffectBlock, PostEffectTrack } from '../types/postEffect';
 import type { PostEffectPass } from './webgl/WebGLPostProcessor';
-import { getPostEffect, type PostEffectRegistryEntry } from '../registry/postEffectRegistry';
+import { getPostEffect } from '../registry/postEffectRegistry';
 import { interpolateEffectProperty } from './effectKeyframeInterpolation';
 import type { EffectPropertyTrack, EffectPropertyDefinition } from '../types/effectBlock';
 

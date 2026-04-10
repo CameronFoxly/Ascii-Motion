@@ -6,7 +6,7 @@
  * determines the render order (first = applied first).
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useTimelineStore } from '../../../stores/timelineStore';
 import { useToolStore } from '../../../stores/toolStore';
 import { cn } from '@/lib/utils';
@@ -22,7 +22,7 @@ import { Button } from '../../ui/button';
 import { getAllPostEffects, getPostEffect } from '../../../registry/postEffectRegistry';
 import { evaluatePostEffectBlock } from '../../../utils/postEffectsPipeline';
 import { usePostEffectBlockHistory } from '../../../hooks/usePostEffectBlockHistory';
-import type { PostEffectBlockId, PostEffectPropertyTrackId } from '../../../types/postEffect';
+import type { PostEffectBlockId } from '../../../types/postEffect';
 import type { KeyframeId } from '../../../types/timeline';
 
 // Category colors for shaders — matches global effects styling

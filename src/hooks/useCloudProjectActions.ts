@@ -215,7 +215,7 @@ export function useCloudProjectActions() {
                   backgroundColor: sessionData.canvas.canvasBackgroundColor,
                   fontSize: sessionData.typography?.fontSize || 16,
                   fontFamily: getFontStack(sessionData.typography?.selectedFontId),
-                  postEffectTracks: sessionData.postEffectTracks,
+                  postEffectTracks: (sessionData as any).postEffectTracks,
                   timelineFrameIndex: frameIndex,
                 }
               );

@@ -48,7 +48,7 @@ import {
 } from '../types/effectBlock';
 import { getEffect } from '../registry/effectRegistry';
 import { bakeEffectIntoFrames } from '../utils/effectsPipeline';
-import type { PostEffectTrack, PostEffectBlock, PostEffectKeyframe, PostEffectBlockId, PostEffectTrackId, PostEffectPropertyTrackId } from '../types/postEffect';
+import type { PostEffectTrack, PostEffectBlock, PostEffectKeyframe, PostEffectBlockId, PostEffectPropertyTrackId } from '../types/postEffect';
 import {
   generatePostEffectBlockId,
   generatePostEffectTrackId,
