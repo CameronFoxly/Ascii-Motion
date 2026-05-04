@@ -18,6 +18,7 @@ import { useImageTraceStore } from '../stores/imageTraceStore';
 import { useTimelineStore } from '../stores/timelineStore';
 import { useAnimationStore } from '../stores/animationStore';
 import { useCanvasContext } from '../contexts/CanvasContext';
+import { useCanvasState } from './useCanvasState';
 import { getFrameForTimelinePosition } from '../utils/imageTraceProcessor';
 
 export const useImageTraceRenderer = () => {
@@ -29,13 +30,15 @@ export const useImageTraceRenderer = () => {
   const position = useImageTraceStore((s) => s.position);
   const scale = useImageTraceStore((s) => s.scale);
 
-  const { canvasRef } = useCanvasContext();
+  const { canvasRef, panOffset } = useCanvasContext();
+  const { zoom } = useCanvasState();
 
   const isLayerMode = useTimelineStore.getState().layers.length > 0;
 
   /**
    * Core render function — draws the image/video frame onto the canvas
    * at the configured position, scale, and opacity.
+   * Respects the canvas zoom level and pan offset.
    */
   const renderOverlay = useCallback(() => {
     const canvas = canvasRef.current;
@@ -59,14 +62,19 @@ export const useImageTraceRenderer = () => {
     // Apply opacity
     ctx.globalAlpha = opacity;
 
-    // Draw the source at the configured position and scale
-    const drawWidth = sourceCanvas.width * scale;
-    const drawHeight = sourceCanvas.height * scale;
-    ctx.drawImage(sourceCanvas, position.x, position.y, drawWidth, drawHeight);
+    // Apply zoom and pan offset to match the canvas coordinate system.
+    // The user's position/scale values are in unzoomed pixels; we need to
+    // transform them into the zoomed canvas space.
+    const drawWidth = sourceCanvas.width * scale * zoom;
+    const drawHeight = sourceCanvas.height * scale * zoom;
+    const drawX = position.x * zoom + panOffset.x;
+    const drawY = position.y * zoom + panOffset.y;
+
+    ctx.drawImage(sourceCanvas, drawX, drawY, drawWidth, drawHeight);
 
     // Restore context state
     ctx.restore();
-  }, [canvasRef, enabled, source, opacity, frameOffset, position, scale, isLayerMode]);
+  }, [canvasRef, enabled, source, opacity, frameOffset, position, scale, isLayerMode, zoom, panOffset]);
 
   /**
    * Render the overlay behind ASCII content.

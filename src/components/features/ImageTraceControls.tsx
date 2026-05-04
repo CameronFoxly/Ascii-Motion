@@ -23,6 +23,7 @@ import { Upload, Trash2, Maximize2, Film, Image as ImageIcon } from 'lucide-reac
 import { useImageTraceStore } from '@/stores/imageTraceStore';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useCanvasContext } from '@/contexts/CanvasContext';
+import { useScrubInput } from '@/hooks/useScrubInput';
 import {
   classifyTraceFile,
   getTraceFileAcceptString,
@@ -80,6 +81,9 @@ export const ImageTraceControls: React.FC = () => {
       return;
     }
 
+    // Clear existing source first to ensure a clean state transition
+    // (fixes stale overlay when replacing source)
+    clearSource();
     setLoading(true);
     setLoadError(null);
 
@@ -96,15 +100,36 @@ export const ImageTraceControls: React.FC = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, [setSource, setLoading, setLoadError]);
+  }, [setSource, clearSource, setLoading, setLoadError]);
 
   const handleFitToCanvas = useCallback(() => {
     const dims = getCanvasPixelDimensions();
     fitToCanvas(dims.width, dims.height);
   }, [fitToCanvas, getCanvasPixelDimensions]);
 
+  // Drag-to-scrub for position X/Y (matches LayerPropertiesPanel pattern)
+  const scrubX = useScrubInput({
+    value: position.x,
+    onChange: (v) => setPosition(v, position.y),
+    step: 1,
+  });
+  const scrubY = useScrubInput({
+    value: position.y,
+    onChange: (v) => setPosition(position.x, v),
+    step: 1,
+  });
+
   return (
     <div className="space-y-3" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+      {/* Single persistent file input (always in DOM so ref stays valid during replace) */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={getTraceFileAcceptString()}
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+
       {/* File Upload */}
       {!source ? (
         <div className="flex flex-col items-center gap-2">
@@ -118,13 +143,6 @@ export const ImageTraceControls: React.FC = () => {
             <Upload className="w-3 h-3" />
             {isLoading ? 'Loading...' : 'Upload Image or Video'}
           </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept={getTraceFileAcceptString()}
-            onChange={handleFileSelect}
-            className="hidden"
-          />
           {loadError && (
             <p className="text-xs text-destructive">{loadError}</p>
           )}
@@ -196,7 +214,10 @@ export const ImageTraceControls: React.FC = () => {
             </label>
             <div className="flex gap-2 items-center">
               <div className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground w-3">X</span>
+                <span
+                  className="text-xs text-muted-foreground w-3 cursor-ew-resize select-none"
+                  onMouseDown={scrubX.onMouseDown}
+                >X</span>
                 <input
                   type="number"
                   value={position.x}
@@ -205,7 +226,10 @@ export const ImageTraceControls: React.FC = () => {
                 />
               </div>
               <div className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground w-3">Y</span>
+                <span
+                  className="text-xs text-muted-foreground w-3 cursor-ew-resize select-none"
+                  onMouseDown={scrubY.onMouseDown}
+                >Y</span>
                 <input
                   type="number"
                   value={position.y}
@@ -306,13 +330,6 @@ export const ImageTraceControls: React.FC = () => {
               <Trash2 className="w-3 h-3" />
               Remove
             </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={getTraceFileAcceptString()}
-              onChange={handleFileSelect}
-              className="hidden"
-            />
           </div>
         </>
       )}
