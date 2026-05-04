@@ -51,7 +51,6 @@ export const ImageTraceControls: React.FC = () => {
     setScale,
     fitToCanvas,
     toggle,
-    setLoading,
     setLoadError,
   } = useImageTraceStore();
 
@@ -334,7 +333,7 @@ export const ImageTraceControls: React.FC = () => {
               variant="outline"
               size="sm"
               onClick={clearSource}
-              className="h-7 px-2 text-xs text-destructive hover:text-destructive gap-1"
+              className="flex-1 h-7 text-xs text-destructive hover:text-destructive gap-1"
             >
               <Trash2 className="w-3 h-3" />
               Remove
