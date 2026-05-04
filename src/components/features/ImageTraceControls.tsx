@@ -19,7 +19,7 @@ import React, { useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Upload, Trash2, Maximize2, Film, Image as ImageIcon } from 'lucide-react';
+import { Upload, Trash2, Maximize2, Film, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useImageTraceStore } from '@/stores/imageTraceStore';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useCanvasContext } from '@/contexts/CanvasContext';
@@ -140,7 +140,7 @@ export const ImageTraceControls: React.FC = () => {
             disabled={isLoading}
             className="w-full h-8 text-xs gap-1.5"
           >
-            <Upload className="w-3 h-3" />
+            {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
             {isLoading ? 'Loading...' : 'Upload Image or Video'}
           </Button>
           {loadError && (
