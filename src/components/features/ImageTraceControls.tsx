@@ -92,6 +92,9 @@ export const ImageTraceControls: React.FC = () => {
         ? await processTraceImage(file)
         : await processTraceVideo(file);
       setSource(result);
+      // Auto fit-to-canvas on load
+      const dims = getCanvasPixelDimensions();
+      fitToCanvas(dims.width, dims.height);
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Failed to load file');
     }
@@ -100,7 +103,7 @@ export const ImageTraceControls: React.FC = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, [setSource, clearSource, setLoading, setLoadError]);
+  }, [setSource, clearSource, setLoading, setLoadError, fitToCanvas, getCanvasPixelDimensions]);
 
   const handleFitToCanvas = useCallback(() => {
     const dims = getCanvasPixelDimensions();
