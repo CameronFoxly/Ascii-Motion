@@ -24,6 +24,7 @@ import { useSelectionStore } from '../stores/selectionStore';
 import { ANSI_COLORS } from '../constants/colors';
 import type { AnyHistoryAction, CanvasHistoryAction, CanvasResizeHistoryAction, FrameId, Cell } from '../types';
 import { useTimelineStore } from '../stores/timelineStore';
+import { useImageTraceStore } from '../stores/imageTraceStore';
 import type { LayerId, LayerGroupId, ContentFrameId, PropertyTrackId, KeyframeId, PropertyPath } from '../types/timeline';
 import { PROPERTY_DEFINITIONS } from '../types/timeline';
 
@@ -1760,6 +1761,7 @@ export const useKeyboardShortcuts = () => {
   const frames = useAnimationStore((s) => s.frames);
   const selectedFrameIndices = useAnimationStore((s) => s.selectedFrameIndices);
   const toggleOnionSkin = useAnimationStore((s) => s.toggleOnionSkin);
+  const toggleImageTrace = useImageTraceStore((s) => s.toggle);
   const { zoomIn, zoomOut } = useZoomControls();
   const { showSaveProjectDialog, showSaveAsDialog, showOpenProjectDialog } = useProjectFileActions();
   
@@ -2355,6 +2357,11 @@ export const useKeyboardShortcuts = () => {
       if (event.key === 'O' || event.key === 'o') {
         event.preventDefault();
         toggleOnionSkin();
+        return;
+      }
+      if (event.key === 'I' || event.key === 'i') {
+        event.preventDefault();
+        toggleImageTrace();
         return;
       }
     }
@@ -3011,6 +3018,7 @@ export const useKeyboardShortcuts = () => {
     swapForegroundBackground,
     adjustBrushSize,
     toggleOnionSkin,
+    toggleImageTrace,
     currentFrameIndex,
     frames,
     selectedFrameIndices,

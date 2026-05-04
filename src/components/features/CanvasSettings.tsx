@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Grid3X3, Palette, Type, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Grid3X3, Palette, Type, AlertTriangle, CheckCircle2, Loader2, Image as ImageIcon } from 'lucide-react';
 import { CanvasResizeDialog } from './CanvasResizeDialog';
+import { ImageTraceControls } from './ImageTraceControls';
 import { ToolOptionsPanel } from './ToolPalette';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useCanvasContext } from '@/contexts/CanvasContext';
@@ -14,6 +15,7 @@ import { useToolStore } from '@/stores/toolStore';
 import { useTimelineStore } from '@/stores/timelineStore';
 import { useProjectDialogState } from '@/hooks/useProjectDialogState';
 import { MONOSPACE_FONTS, DEFAULT_FONT_ID } from '@/constants/fonts';
+import { useImageTraceStore } from '@/stores/imageTraceStore';
 import { getFontFallbackMessage } from '@/utils/fontDetection';
 import {
   charactersToPixels,
@@ -220,14 +222,21 @@ export const CanvasSettings: React.FC = () => {
   // Replace inline dropdown picker with modal overlay reuse
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showTypographyPicker, setShowTypographyPicker] = useState(false);
+  const [showImageTracePicker, setShowImageTracePicker] = useState(false);
   // (Removed old dropdown animation state)
   const [typographyPickerAnimationClass, setTypographyPickerAnimationClass] = useState('');
+  const [imageTracePickerAnimationClass, setImageTracePickerAnimationClass] = useState('');
   // Temp color state removed; modal handles confirmation
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [imageTraceDropdownPosition, setImageTraceDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const colorPickerRef = useRef<HTMLDivElement>(null);
   const typographyPickerRef = useRef<HTMLDivElement>(null);
+  const imageTracePickerRef = useRef<HTMLDivElement>(null);
   const colorPickerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typographyPickerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const imageTracePickerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const imageTraceEnabled = useImageTraceStore((s) => s.enabled);
+  const imageTraceSource = useImageTraceStore((s) => s.source);
 
   const clearColorPickerTimeout = useCallback(() => {
     const timeout = colorPickerTimeoutRef.current;
@@ -242,6 +251,14 @@ export const CanvasSettings: React.FC = () => {
     if (timeout) {
       clearTimeout(timeout);
       typographyPickerTimeoutRef.current = null;
+    }
+  }, []);
+
+  const clearImageTracePickerTimeout = useCallback(() => {
+    const timeout = imageTracePickerTimeoutRef.current;
+    if (timeout) {
+      clearTimeout(timeout);
+      imageTracePickerTimeoutRef.current = null;
     }
   }, []);
 
@@ -290,6 +307,26 @@ export const CanvasSettings: React.FC = () => {
     }, 100); // Match faster exit animation duration
   }, [showTypographyPicker]);
 
+  // Animated show/hide functions for image trace picker
+  const showImageTracePickerAnimated = useCallback(() => {
+    if (imageTracePickerTimeoutRef.current) {
+      clearTimeout(imageTracePickerTimeoutRef.current);
+    }
+    setShowImageTracePicker(true);
+    setImageTracePickerAnimationClass('dropdown-enter');
+  }, []);
+
+  const closeImageTracePicker = useCallback(() => {
+    if (!showImageTracePicker) {
+      return;
+    }
+    setImageTracePickerAnimationClass('dropdown-exit');
+    imageTracePickerTimeoutRef.current = setTimeout(() => {
+      setShowImageTracePicker(false);
+      setImageTracePickerAnimationClass('');
+    }, 100);
+  }, [showImageTracePicker]);
+
 
   // Close typography picker when clicking outside (color picker overlay handles its own dialog focus trapping)
   useEffect(() => {
@@ -314,24 +351,47 @@ export const CanvasSettings: React.FC = () => {
     }
   }, [showTypographyPicker, closeTypographyPicker]);
 
+  // Close image trace picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+
+      if (showImageTracePicker && 
+          imageTracePickerRef.current && 
+          !imageTracePickerRef.current.contains(target)) {
+        const imageTraceDropdown = document.getElementById('image-trace-dropdown');
+        if (!imageTraceDropdown || !imageTraceDropdown.contains(target)) {
+          closeImageTracePicker();
+        }
+      }
+    };
+
+    if (showImageTracePicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showImageTracePicker, closeImageTracePicker]);
+
   // Reset dropdown states when layout might be changing (e.g., window resize)
   useEffect(() => {
     const handleLayoutChange = () => {
       closeColorPicker();
       closeTypographyPicker();
+      closeImageTracePicker();
     };
 
     window.addEventListener('resize', handleLayoutChange);
     return () => window.removeEventListener('resize', handleLayoutChange);
-  }, [closeColorPicker, closeTypographyPicker]);
+  }, [closeColorPicker, closeTypographyPicker, closeImageTracePicker]);
 
   // Clean up timeouts on unmount
   useEffect(() => {
     return () => {
       clearColorPickerTimeout();
       clearTypographyPickerTimeout();
+      clearImageTracePickerTimeout();
     };
-  }, [clearColorPickerTimeout, clearTypographyPickerTimeout]);
+  }, [clearColorPickerTimeout, clearTypographyPickerTimeout, clearImageTracePickerTimeout]);
 
   // Handle real-time color changes (for live preview)
   const handleColorPickerChange = (color: string) => {
@@ -542,6 +602,38 @@ export const CanvasSettings: React.FC = () => {
               </TooltipContent>
             </Tooltip>
           </div>
+
+          {/* Image Trace Controls */}
+          <div className="relative" ref={imageTracePickerRef}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={imageTraceEnabled && imageTraceSource ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    if (showImageTracePicker) {
+                      closeImageTracePicker();
+                    } else {
+                      const position = calculatePosition(imageTracePickerRef.current);
+                      setImageTraceDropdownPosition(position);
+                      closeColorPicker();
+                      closeTypographyPicker();
+                      showImageTracePickerAnimated();
+                    }
+                  }}
+                  className="h-6 w-6 p-0 leading-none flex items-center justify-center [&_svg]:w-3 [&_svg]:h-3"
+                  aria-label="Image trace"
+                  aria-expanded={showImageTracePicker}
+                  aria-controls="image-trace-dropdown"
+                >
+                  <ImageIcon className="w-3 h-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Upload image or video to use as an overlay for tracing</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
       </div>
 
@@ -724,6 +816,26 @@ export const CanvasSettings: React.FC = () => {
                 </Button>
               </div>
             </div>
+          </div>,
+          document.body
+        )}
+
+        {/* Image Trace Picker Dropdown - Portal rendered for proper layering */}
+        {showImageTracePicker && imageTraceDropdownPosition.top > 0 && createPortal(
+          <div 
+            id="image-trace-dropdown"
+            className={`fixed z-[99999] p-3 bg-popover border border-border rounded-md shadow-lg ${imageTracePickerAnimationClass}`}
+            style={{
+              top: `${imageTraceDropdownPosition.top}px`,
+              left: `${imageTraceDropdownPosition.left}px`,
+              width: `${imageTraceDropdownPosition.width}px`
+            }}
+            role="menu"
+            aria-label="Image trace settings"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ImageTraceControls />
           </div>,
           document.body
         )}

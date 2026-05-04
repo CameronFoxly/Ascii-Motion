@@ -10,6 +10,7 @@ import { useMemoizedGrid } from './useMemoizedGrid';
 import { useDrawingTool } from './useDrawingTool';
 import { useCompositedCanvas } from './useCompositedCanvas';
 import { useOnionSkinRenderer } from './useOnionSkinRenderer';
+import { useImageTraceRenderer } from './useImageTraceRenderer';
 import { measureCanvasRender, finishCanvasRender } from '../utils/performance';
 import { 
   setupTextRendering
@@ -106,6 +107,9 @@ export const useCanvasRenderer = () => {
 
   // Use onion skin renderer for frame overlays
   const { renderOnionSkins } = useOnionSkinRenderer();
+
+  // Use image trace renderer for overlay tracing
+  const { renderImageTraceBehind, renderImageTraceInFront } = useImageTraceRenderer();
 
   // Use memoized grid for optimized rendering  
   const { selectionData, shapePreviewData } = useMemoizedGrid(
@@ -250,6 +254,9 @@ export const useCanvasRenderer = () => {
     // Render onion skin layers (previous and next frames)
     renderOnionSkins();
 
+    // Render image trace overlay behind content (if configured)
+    renderImageTraceBehind();
+
     // Set font context once for the entire render batch
     ctx.font = drawingStyles.font;
     ctx.textAlign = drawingStyles.textAlign;
@@ -304,6 +311,10 @@ export const useCanvasRenderer = () => {
         }
       }
     } // end skipBaseRenderForEffectPreview
+
+    // Render image trace overlay in front of content (if configured)
+    renderImageTraceInFront();
+
     // Draw moved cells at their new positions
     if (overlayState.moveState && overlayState.moveState.originalData.size > 0) {
       const totalOffset = getTotalOffset(overlayState.moveState);
@@ -524,6 +535,8 @@ export const useCanvasRenderer = () => {
     drawingStyles,
     getEllipsePoints,
     renderOnionSkins,
+    renderImageTraceBehind,
+    renderImageTraceInFront,
     // Preview store values
     previewData,
     isPreviewActive,

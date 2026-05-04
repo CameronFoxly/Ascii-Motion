@@ -108,6 +108,7 @@ const KEYBOARD_SHORTCUTS: ShortcutSection[] = [
       { keys: ['U'], description: 'Show/hide all keyframes' },
       { keys: ['Cmd', 'G'], description: 'Group selected layers' },
       { keys: ['Shift', 'O'], description: 'Toggle onion skinning' },
+      { keys: ['Shift', 'I'], description: 'Toggle image trace overlay' },
     ]
   },
   {
