@@ -81,11 +81,17 @@ export const ImageTraceControls: React.FC = () => {
       return;
     }
 
-    // Clear existing source first to ensure a clean state transition
-    // (fixes stale overlay when replacing source)
-    clearSource();
-    setLoading(true);
-    setLoadError(null);
+    // Clear existing source and enter loading state atomically
+    // (single set() call prevents a flash of non-loading UI)
+    useImageTraceStore.setState({
+      source: null,
+      enabled: false,
+      isLoading: true,
+      loadError: null,
+      frameOffset: 0,
+      position: { x: 0, y: 0 },
+      scale: 1.0,
+    });
 
     try {
       const result = fileType === 'image'
@@ -103,7 +109,7 @@ export const ImageTraceControls: React.FC = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, [setSource, clearSource, setLoading, setLoadError, fitToCanvas, getCanvasPixelDimensions]);
+  }, [setSource, setLoadError, fitToCanvas, getCanvasPixelDimensions]);
 
   const handleFitToCanvas = useCallback(() => {
     const dims = getCanvasPixelDimensions();
