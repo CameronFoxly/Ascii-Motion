@@ -98,7 +98,7 @@ export const useImageTraceStore = create<ImageTraceState & ImageTraceActions>((s
 
   setRenderOrder: (renderOrder) => set({ renderOrder }),
 
-  setFrameOffset: (frameOffset) => set({ frameOffset: Math.max(0, frameOffset) }),
+  setFrameOffset: (frameOffset) => set({ frameOffset }),
 
   setPosition: (x, y) => set({ position: { x, y } }),
 

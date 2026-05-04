@@ -296,7 +296,7 @@ export const ImageTraceControls: React.FC = () => {
               <div className="flex items-center gap-2">
                 <input
                   type="range"
-                  min="0"
+                  min={-(source.totalVideoFrames - 1)}
                   max={Math.max(0, source.totalVideoFrames - 1)}
                   step="1"
                   value={frameOffset}
@@ -305,7 +305,7 @@ export const ImageTraceControls: React.FC = () => {
                 />
                 <input
                   type="number"
-                  min="0"
+                  min={-(source.totalVideoFrames - 1)}
                   max={Math.max(0, source.totalVideoFrames - 1)}
                   value={frameOffset}
                   onChange={(e) => setFrameOffset(parseInt(e.target.value) || 0)}
