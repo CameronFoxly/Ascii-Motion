@@ -13,6 +13,7 @@ import { ExportImportButtons } from './components/features/ExportImportButtons'
 import { useCloudDialogState } from './hooks/useCloudDialogState'
 import { useCloudProjectActions } from './hooks/useCloudProjectActions'
 import { useAuth, usePasswordRecoveryCallback, useEmailVerificationCallback, UpdatePasswordDialog, SignInDialog } from '@ascii-motion/premium'
+import { registerSubscriptionLayerLimit, FREE_TIER_MAX_LAYERS, UNLIMITED_LAYERS } from './utils/layerLimits'
 import { AsciiMotionLogo } from './components/common/AsciiMotionLogo'
 import { InlineProjectNameEditor } from './components/features/InlineProjectNameEditor'
 import { SaveToCloudDialog } from './components/features/SaveToCloudDialog'
@@ -70,8 +71,18 @@ function AppContent() {
   const { setFontSize, setCharacterSpacing, setLineSpacing, setSelectedFontId } = useCanvasContext()
   
   // Cloud storage state and actions
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const { loadFromCloud } = useCloudProject()
+
+  // Register subscription-aware layer limit
+  // Pro/admin users get unlimited layers, free users get FREE_TIER_MAX_LAYERS (5)
+  useEffect(() => {
+    registerSubscriptionLayerLimit(() => {
+      if (profile?.is_admin) return UNLIMITED_LAYERS;
+      if (profile?.subscription_tier?.name === 'pro') return UNLIMITED_LAYERS;
+      return FREE_TIER_MAX_LAYERS;
+    });
+  }, [profile]);
   const { 
     showSaveToCloudDialog, 
     showProjectsDialog,
