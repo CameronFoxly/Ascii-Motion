@@ -58,7 +58,9 @@ export function sanitizeFontStackForSvg(fontStack: string, actualFont?: string |
 
 /**
  * Generate SVG header with proper namespaces and viewBox.
- * Optionally embeds a <style> element for shared text styles to reduce SVG size.
+ * Uses a <defs> block with inline presentation attributes for text styling
+ * rather than CSS <style> — After Effects does not support <style> elements
+ * or CSS properties like dominant-baseline, and crashes on import.
  */
 export function generateSvgHeader(
   width: number,
@@ -70,11 +72,22 @@ export function generateSvgHeader(
     ? `  <rect width="100%" height="100%" fill="${backgroundColor}"/>\n`
     : '';
   
-  const styleBlock = textStyle
-    ? `  <style>\n    .t { font-family: ${textStyle.fontFamily}; font-size: ${textStyle.fontSize}px; text-anchor: middle; dominant-baseline: central; }\n  </style>\n`
-    : '';
+  // Store textStyle params for use by text generation functions.
+  // We avoid <style> blocks entirely for After Effects compatibility.
+  if (textStyle) {
+    _currentTextStyle = textStyle;
+  }
   
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n${styleBlock}${bgRect}`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n${bgRect}`;
+}
+
+// Module-level state to pass text style from header to content generators
+// without threading it through every call. Reset per export.
+let _currentTextStyle: { fontFamily: string; fontSize: number } | null = null;
+
+/** Get the current text style set by generateSvgHeader */
+export function getCurrentTextStyle(): { fontFamily: string; fontSize: number } | null {
+  return _currentTextStyle;
 }
 
 /**
@@ -107,8 +120,9 @@ export function generateSvgGrid(
 
 /**
  * Generate SVG text element for a character.
- * When useClass is true (default), uses the shared CSS class 't' instead of
- * inlining font-family/font-size on each element, drastically reducing SVG size.
+ * Uses inline presentation attributes (no CSS classes or dominant-baseline)
+ * for maximum compatibility with After Effects and other desktop apps.
+ * Vertical centering uses dy="0.35em" instead of dominant-baseline="central".
  */
 export function generateSvgTextElement(
   char: string,
@@ -119,8 +133,7 @@ export function generateSvgTextElement(
   cellWidth: number,
   cellHeight: number,
   fontSize: number,
-  fontFamily: string,
-  useClass: boolean = true
+  fontFamily: string
 ): string {
   let elements = '';
   
@@ -135,17 +148,12 @@ export function generateSvgTextElement(
   const textX = x * cellWidth + cellWidth / 2;
   const textY = y * cellHeight + cellHeight / 2;
   
-  // Escape special XML characters
   const escapedChar = escapeXml(char);
+  const escapedFontFamily = fontFamily.replace(/"/g, '&quot;');
   
-  if (useClass) {
-    // Use shared CSS class — much smaller output
-    elements += `    <text class="t" x="${textX}" y="${textY}" fill="${color}">${escapedChar}</text>\n`;
-  } else {
-    // Inline everything (legacy fallback)
-    const escapedFontFamily = fontFamily.replace(/"/g, '&quot;');
-    elements += `    <text x="${textX}" y="${textY}" fill="${color}" font-family="${escapedFontFamily}, monospace" font-size="${fontSize}px" text-anchor="middle" dominant-baseline="central">${escapedChar}</text>\n`;
-  }
+  // Use dy="0.35em" for vertical centering — this is widely supported
+  // unlike dominant-baseline="central" which crashes After Effects
+  elements += `    <text x="${textX}" y="${textY}" dy="0.35em" fill="${color}" font-family="${escapedFontFamily}" font-size="${fontSize}px" text-anchor="middle">${escapedChar}</text>\n`;
   
   return elements;
 }
@@ -164,6 +172,12 @@ export function generateSvgContentGrouped(
   cellHeight: number
 ): string {
   let svg = '';
+  const style = getCurrentTextStyle();
+  const fontFamily = style ? style.fontFamily.replace(/"/g, '&quot;') : 'monospace';
+  const fontSize = style?.fontSize ?? 16;
+
+  // Shared inline attributes for <text> elements (no CSS classes for AE compat)
+  const textAttrs = `font-family="${fontFamily}" font-size="${fontSize}px" text-anchor="middle"`;
 
   // Build a 2D grid for efficient row-based traversal
   type CellInfo = { char: string; color: string; bgColor?: string };
@@ -212,17 +226,17 @@ export function generateSvgContentGrouped(
 
     if (runs.length === 0) continue;
 
-    // Emit one <text> per row with <tspan> children
+    // Emit one <text> per row with <tspan> children, using dy for vertical centering
     if (runs.length === 1) {
       const run = runs[0];
-      svg += `    <text class="t" y="${textY}" fill="${run.color}">`;
+      svg += `    <text ${textAttrs} y="${textY}" dy="0.35em" fill="${run.color}">`;
       for (const span of run.spans) {
         const textX = span.x * cellWidth + cellWidth / 2;
         svg += `<tspan x="${textX}">${escapeXml(span.char)}</tspan>`;
       }
       svg += '</text>\n';
     } else {
-      svg += `    <text class="t" y="${textY}">`;
+      svg += `    <text ${textAttrs} y="${textY}" dy="0.35em">`;
       for (const run of runs) {
         for (const span of run.spans) {
           const textX = span.x * cellWidth + cellWidth / 2;
@@ -328,7 +342,7 @@ function convertTextToPathPixelTracing(
     const textX = x * cellWidth + cellWidth / 2;
     const textY = y * cellHeight + cellHeight / 2;
     const escapedChar = escapeXml(char);
-    elements += `    <text class="t" x="${textX}" y="${textY}" fill="${color}">${escapedChar}</text>\n`;
+    elements += `    <text x="${textX}" y="${textY}" dy="0.35em" fill="${color}" font-family="${fontFamily.replace(/"/g, '&quot;')}" font-size="${fontSize}px" text-anchor="middle">${escapedChar}</text>\n`;
     return elements;
   }
   
@@ -359,7 +373,7 @@ function convertTextToPathPixelTracing(
     const textX = x * cellWidth + cellWidth / 2;
     const textY = y * cellHeight + cellHeight / 2;
     const escapedChar = escapeXml(char);
-    elements += `    <text class="t" x="${textX}" y="${textY}" fill="${color}">${escapedChar}</text>\n`;
+    elements += `    <text x="${textX}" y="${textY}" dy="0.35em" fill="${color}" font-family="${fontFamily.replace(/"/g, '&quot;')}" font-size="${fontSize}px" text-anchor="middle">${escapedChar}</text>\n`;
   }
   
   return elements;

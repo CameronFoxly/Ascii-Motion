@@ -24,7 +24,6 @@ import { applyPostEffectsToCanvas } from '../hooks/usePostEffectsRenderer';
 import { 
   generateSvgHeader, 
   generateSvgGrid, 
-  generateSvgTextElement, 
   generateSvgContentGrouped,
   convertTextToPath,
   minifySvg,
