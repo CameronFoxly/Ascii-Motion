@@ -7,18 +7,60 @@ import type { Font } from 'opentype.js';
 import { convertGlyphToSvgPath, generateSvgPathElement } from './font/opentypePathConverter';
 
 /**
- * Generate SVG header with proper namespaces and viewBox
+ * CSS-only font keywords and system UI keywords that are not valid font names
+ * in desktop applications like Adobe Illustrator, After Effects, etc.
+ * These must be filtered out of SVG font-family attributes.
+ */
+const CSS_ONLY_FONT_KEYWORDS = new Set([
+  'ui-monospace',
+  'ui-sans-serif',
+  'ui-serif',
+  'ui-rounded',
+  'system-ui',
+  '-apple-system',
+  'BlinkMacSystemFont',
+]);
+
+/**
+ * Sanitize a CSS font stack for SVG export.
+ * Removes CSS-only keywords that desktop apps can't resolve,
+ * and ensures we always end with a generic 'monospace' fallback.
+ */
+export function sanitizeFontStackForSvg(fontStack: string): string {
+  const fonts = fontStack.split(',').map(f => f.trim()).filter(f => f.length > 0);
+  const sanitized = fonts.filter(f => {
+    // Remove quotes for comparison
+    const bare = f.replace(/['"]/g, '');
+    return !CSS_ONLY_FONT_KEYWORDS.has(bare);
+  });
+
+  // Ensure we have at least a generic fallback
+  if (sanitized.length === 0 || sanitized[sanitized.length - 1] !== 'monospace') {
+    sanitized.push('monospace');
+  }
+
+  return sanitized.join(', ');
+}
+
+/**
+ * Generate SVG header with proper namespaces and viewBox.
+ * Optionally embeds a <style> element for shared text styles to reduce SVG size.
  */
 export function generateSvgHeader(
   width: number,
   height: number,
-  backgroundColor?: string
+  backgroundColor?: string,
+  textStyle?: { fontFamily: string; fontSize: number }
 ): string {
   const bgRect = backgroundColor
     ? `  <rect width="100%" height="100%" fill="${backgroundColor}"/>\n`
     : '';
   
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n${bgRect}`;
+  const styleBlock = textStyle
+    ? `  <style>\n    .t { font-family: ${textStyle.fontFamily}; font-size: ${textStyle.fontSize}px; text-anchor: middle; dominant-baseline: central; }\n  </style>\n`
+    : '';
+  
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n${styleBlock}${bgRect}`;
 }
 
 /**
@@ -50,7 +92,9 @@ export function generateSvgGrid(
 }
 
 /**
- * Generate SVG text element for a character
+ * Generate SVG text element for a character.
+ * When useClass is true (default), uses the shared CSS class 't' instead of
+ * inlining font-family/font-size on each element, drastically reducing SVG size.
  */
 export function generateSvgTextElement(
   char: string,
@@ -61,7 +105,8 @@ export function generateSvgTextElement(
   cellWidth: number,
   cellHeight: number,
   fontSize: number,
-  fontFamily: string
+  fontFamily: string,
+  useClass: boolean = true
 ): string {
   let elements = '';
   
@@ -79,10 +124,14 @@ export function generateSvgTextElement(
   // Escape special XML characters
   const escapedChar = escapeXml(char);
   
-  // Escape quotes in font-family for XML attribute
-  const escapedFontFamily = fontFamily.replace(/"/g, '&quot;');
-  
-  elements += `    <text x="${textX}" y="${textY}" fill="${color}" font-family="${escapedFontFamily}, monospace" font-size="${fontSize}px" text-anchor="middle" dominant-baseline="central">${escapedChar}</text>\n`;
+  if (useClass) {
+    // Use shared CSS class — much smaller output
+    elements += `    <text class="t" x="${textX}" y="${textY}" fill="${color}">${escapedChar}</text>\n`;
+  } else {
+    // Inline everything (legacy fallback)
+    const escapedFontFamily = fontFamily.replace(/"/g, '&quot;');
+    elements += `    <text x="${textX}" y="${textY}" fill="${color}" font-family="${escapedFontFamily}, monospace" font-size="${fontSize}px" text-anchor="middle" dominant-baseline="central">${escapedChar}</text>\n`;
+  }
   
   return elements;
 }
@@ -179,8 +228,7 @@ function convertTextToPathPixelTracing(
     const textX = x * cellWidth + cellWidth / 2;
     const textY = y * cellHeight + cellHeight / 2;
     const escapedChar = escapeXml(char);
-    const escapedFontFamily = fontFamily.replace(/"/g, '&quot;');
-    elements += `    <text x="${textX}" y="${textY}" fill="${color}" font-family="${escapedFontFamily}, monospace" font-size="${fontSize}px" text-anchor="middle" dominant-baseline="central">${escapedChar}</text>\n`;
+    elements += `    <text class="t" x="${textX}" y="${textY}" fill="${color}">${escapedChar}</text>\n`;
     return elements;
   }
   
@@ -211,8 +259,7 @@ function convertTextToPathPixelTracing(
     const textX = x * cellWidth + cellWidth / 2;
     const textY = y * cellHeight + cellHeight / 2;
     const escapedChar = escapeXml(char);
-    const escapedFontFamily = fontFamily.replace(/"/g, '&quot;');
-    elements += `    <text x="${textX}" y="${textY}" fill="${color}" font-family="${escapedFontFamily}, monospace" font-size="${fontSize}px" text-anchor="middle" dominant-baseline="central">${escapedChar}</text>\n`;
+    elements += `    <text class="t" x="${textX}" y="${textY}" fill="${color}">${escapedChar}</text>\n`;
   }
   
   return elements;

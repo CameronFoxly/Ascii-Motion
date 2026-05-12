@@ -26,7 +26,8 @@ import {
   generateSvgGrid, 
   generateSvgTextElement, 
   convertTextToPath,
-  minifySvg
+  minifySvg,
+  sanitizeFontStackForSvg
 } from './svgExportUtils';
 import { getPostEffect } from '../registry/postEffectRegistry';
 import { evaluatePostEffectBlock, getActivePostEffects } from './postEffectsPipeline';
@@ -198,13 +199,18 @@ export class ExportRenderer {
       const canvasWidth = data.canvasDimensions.width * cellWidth;
       const canvasHeight = data.canvasDimensions.height * cellHeight;
 
+      // Sanitize the font stack for desktop app compatibility
+      const rawFontStack = data.fontMetrics?.fontFamily || 'SF Mono, Monaco, Cascadia Code, Consolas, JetBrains Mono, Fira Code, Monaspace Neon, Geist Mono, Courier New, monospace';
+      const fontStack = sanitizeFontStackForSvg(rawFontStack);
+
       this.updateProgress('Generating SVG structure...', 20);
 
-      // Start SVG with header
+      // Start SVG with header and embedded text style
       let svg = generateSvgHeader(
         canvasWidth, 
         canvasHeight, 
-        svgSettings.includeBackground ? data.canvasBackgroundColor : undefined
+        svgSettings.includeBackground ? data.canvasBackgroundColor : undefined,
+        { fontFamily: fontStack, fontSize: actualFontSize }
       );
 
       // Add metadata as SVG comments
@@ -239,9 +245,6 @@ export class ExportRenderer {
 
       // Content group
       svg += '  <g id="content">\n';
-
-      // Font stack is already properly formatted (no quotes) from fontMetrics
-      const fontStack = data.fontMetrics?.fontFamily || 'SF Mono, Monaco, Cascadia Code, Consolas, JetBrains Mono, Fira Code, Monaspace Neon, Geist Mono, Courier New, monospace';
 
       // Render each cell
       let cellCount = 0;
@@ -458,10 +461,14 @@ export class ExportRenderer {
     const canvasWidth = data.canvasDimensions.width * cellWidth;
     const canvasHeight = data.canvasDimensions.height * cellHeight;
 
+    const rawFontStack = data.fontMetrics?.fontFamily || 'SF Mono, Monaco, Cascadia Code, Consolas, JetBrains Mono, Fira Code, Monaspace Neon, Geist Mono, Courier New, monospace';
+    const fontStack = sanitizeFontStackForSvg(rawFontStack);
+
     let svg = generateSvgHeader(
       canvasWidth,
       canvasHeight,
-      svgSettings.includeBackground ? data.canvasBackgroundColor : undefined
+      svgSettings.includeBackground ? data.canvasBackgroundColor : undefined,
+      { fontFamily: fontStack, fontSize: actualFontSize }
     );
 
     if (svgSettings.includeGrid) {
@@ -479,8 +486,6 @@ export class ExportRenderer {
     }
 
     svg += '  <g id="content">\n';
-
-    const fontStack = data.fontMetrics?.fontFamily || 'SF Mono, Monaco, Cascadia Code, Consolas, JetBrains Mono, Fira Code, Monaspace Neon, Geist Mono, Courier New, monospace';
 
     frameData.forEach((cell, key) => {
       const [x, y] = key.split(',').map(Number);
