@@ -78,7 +78,11 @@ export function generateSvgHeader(
     _currentTextStyle = textStyle;
   }
   
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n${bgRect}`;
+  // Round dimensions to avoid floating-point noise (e.g. 863.9999999999999)
+  const w = Math.round(width * 100) / 100;
+  const h = Math.round(height * 100) / 100;
+  
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">\n${bgRect}`;
 }
 
 // Module-level state to pass text style from header to content generators
@@ -144,25 +148,24 @@ export function generateSvgTextElement(
     elements += `    <rect x="${rectX}" y="${rectY}" width="${cellWidth}" height="${cellHeight}" fill="${bgColor}"/>\n`;
   }
   
-  // Text element centered in cell
+  // Text element — position y at baseline offset for approximate vertical centering
   const textX = x * cellWidth + cellWidth / 2;
-  const textY = y * cellHeight + cellHeight / 2;
+  const textY = y * cellHeight + fontSize * 0.85;
   
   const escapedChar = escapeXml(char);
   const escapedFontFamily = fontFamily.replace(/"/g, '&quot;');
   
-  // Use dy="0.35em" for vertical centering — this is widely supported
-  // unlike dominant-baseline="central" which crashes After Effects
-  elements += `    <text x="${textX}" y="${textY}" dy="0.35em" fill="${color}" font-family="${escapedFontFamily}" font-size="${fontSize}px" text-anchor="middle">${escapedChar}</text>\n`;
+  elements += `    <text x="${textX}" y="${textY}" fill="${color}" font-family="${escapedFontFamily}" font-size="${fontSize}" text-anchor="middle">${escapedChar}</text>\n`;
   
   return elements;
 }
 
 /**
- * Generate optimized SVG content from a frame's cell data using row-based grouping.
- * Instead of one <text> per character (which crashes After Effects with large canvases),
- * this groups characters by row and merges consecutive same-color runs into single
- * <tspan> elements. Typically reduces element count by 10-50x.
+ * Generate SVG content from a frame's cell data.
+ * Uses individual <text> elements with minimal attributes — no <tspan>,
+ * no dominant-baseline, no CSS classes. After Effects cannot parse <tspan>
+ * elements and crashes on import. Simple <text> elements with only x, y,
+ * fill, font-family, and font-size are the safest cross-app format.
  */
 export function generateSvgContentGrouped(
   frameData: Map<string, Cell>,
@@ -175,9 +178,6 @@ export function generateSvgContentGrouped(
   const style = getCurrentTextStyle();
   const fontFamily = style ? style.fontFamily.replace(/"/g, '&quot;') : 'monospace';
   const fontSize = style?.fontSize ?? 16;
-
-  // Shared inline attributes for <text> elements (no CSS classes for AE compat)
-  const textAttrs = `font-family="${fontFamily}" font-size="${fontSize}px" text-anchor="middle"`;
 
   // Build a 2D grid for efficient row-based traversal
   type CellInfo = { char: string; color: string; bgColor?: string };
@@ -192,58 +192,30 @@ export function generateSvgContentGrouped(
     }
   });
 
+  // Helper to round coordinates and avoid floating-point noise
+  const r = (n: number) => Math.round(n * 100) / 100;
+
   for (let row = 0; row < gridHeight; row++) {
     const rowCells = grid[row];
-    const textY = row * cellHeight + cellHeight / 2;
+    // Position y at the baseline offset for approximate vertical centering
+    const textY = r(row * cellHeight + fontSize * 0.85);
 
     // Emit background rects for this row
     for (let col = 0; col < gridWidth; col++) {
       const cell = rowCells[col];
       if (cell?.bgColor && cell.bgColor !== 'transparent') {
-        svg += `    <rect x="${col * cellWidth}" y="${row * cellHeight}" width="${cellWidth}" height="${cellHeight}" fill="${cell.bgColor}"/>\n`;
+        svg += `    <rect x="${r(col * cellWidth)}" y="${r(row * cellHeight)}" width="${r(cellWidth)}" height="${r(cellHeight)}" fill="${cell.bgColor}"/>\n`;
       }
     }
 
-    // Build color runs for this row
-    type ColorRun = { color: string; spans: { x: number; char: string }[] };
-    const runs: ColorRun[] = [];
-    let currentRun: ColorRun | null = null;
-
+    // Emit individual <text> elements — no <tspan> for AE compatibility
     for (let col = 0; col < gridWidth; col++) {
       const cell = rowCells[col];
-      if (!cell) {
-        currentRun = null;
-        continue;
-      }
+      if (!cell) continue;
 
-      if (currentRun && currentRun.color === cell.color) {
-        currentRun.spans.push({ x: col, char: cell.char });
-      } else {
-        currentRun = { color: cell.color, spans: [{ x: col, char: cell.char }] };
-        runs.push(currentRun);
-      }
-    }
-
-    if (runs.length === 0) continue;
-
-    // Emit one <text> per row with <tspan> children, using dy for vertical centering
-    if (runs.length === 1) {
-      const run = runs[0];
-      svg += `    <text ${textAttrs} y="${textY}" dy="0.35em" fill="${run.color}">`;
-      for (const span of run.spans) {
-        const textX = span.x * cellWidth + cellWidth / 2;
-        svg += `<tspan x="${textX}">${escapeXml(span.char)}</tspan>`;
-      }
-      svg += '</text>\n';
-    } else {
-      svg += `    <text ${textAttrs} y="${textY}" dy="0.35em">`;
-      for (const run of runs) {
-        for (const span of run.spans) {
-          const textX = span.x * cellWidth + cellWidth / 2;
-          svg += `<tspan x="${textX}" fill="${run.color}">${escapeXml(span.char)}</tspan>`;
-        }
-      }
-      svg += '</text>\n';
+      const textX = r(col * cellWidth + cellWidth / 2);
+      const escapedChar = escapeXml(cell.char);
+      svg += `    <text x="${textX}" y="${textY}" fill="${cell.color}" font-family="${fontFamily}" font-size="${fontSize}" text-anchor="middle">${escapedChar}</text>\n`;
     }
   }
 
@@ -340,9 +312,9 @@ function convertTextToPathPixelTracing(
   if (!ctx) {
     // Fallback to text element if canvas context unavailable
     const textX = x * cellWidth + cellWidth / 2;
-    const textY = y * cellHeight + cellHeight / 2;
+    const textY = y * cellHeight + fontSize * 0.85;
     const escapedChar = escapeXml(char);
-    elements += `    <text x="${textX}" y="${textY}" dy="0.35em" fill="${color}" font-family="${fontFamily.replace(/"/g, '&quot;')}" font-size="${fontSize}px" text-anchor="middle">${escapedChar}</text>\n`;
+    elements += `    <text x="${textX}" y="${textY}" fill="${color}" font-family="${fontFamily.replace(/"/g, '&quot;')}" font-size="${fontSize}" text-anchor="middle">${escapedChar}</text>\n`;
     return elements;
   }
   
@@ -371,9 +343,9 @@ function convertTextToPathPixelTracing(
   } else {
     // Fallback to text element if path extraction fails
     const textX = x * cellWidth + cellWidth / 2;
-    const textY = y * cellHeight + cellHeight / 2;
+    const textY = y * cellHeight + fontSize * 0.85;
     const escapedChar = escapeXml(char);
-    elements += `    <text x="${textX}" y="${textY}" dy="0.35em" fill="${color}" font-family="${fontFamily.replace(/"/g, '&quot;')}" font-size="${fontSize}px" text-anchor="middle">${escapedChar}</text>\n`;
+    elements += `    <text x="${textX}" y="${textY}" fill="${color}" font-family="${fontFamily.replace(/"/g, '&quot;')}" font-size="${fontSize}" text-anchor="middle">${escapedChar}</text>\n`;
   }
   
   return elements;
