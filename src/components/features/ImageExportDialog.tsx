@@ -8,7 +8,7 @@ import { Badge } from '../ui/badge';
 import { Switch } from '../ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Slider } from '../ui/slider';
-import { FileImage, Download, Settings, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { FileImage, Download, Settings, Loader2, CheckCircle2, AlertTriangle, Film } from 'lucide-react';
 import { useExportStore } from '../../stores/exportStore';
 import { useExportDataCollector } from '../../utils/exportDataCollector';
 import { useProjectMetadataStore } from '../../stores/projectMetadataStore';
@@ -62,8 +62,13 @@ export const ImageExportDialog: React.FC = () => {
 	const projectName = useProjectMetadataStore((state) => state.projectName);
 	const { selectedFontId, actualFont: canvasActualFont, isFontDetecting: canvasIsFontDetecting } = useCanvasContext();
 	const postEffectTracks = useTimelineStore((s) => s.postEffectTracks);
+	const timelineConfig = useTimelineStore((s) => s.config);
 
 	const [filename, setFilename] = useState(projectName || 'ascii-motion-frame');
+	const [sequenceMode, setSequenceMode] = useState(false);
+	const [entireTimeline, setEntireTimeline] = useState(true);
+	const [rangeStart, setRangeStart] = useState(1);
+	const [rangeEnd, setRangeEnd] = useState(1);
 	const [svgFontStatus, setSvgFontStatus] = useState<{
 		isDetecting: boolean;
 		actualFont: string | null;
@@ -80,6 +85,17 @@ export const ImageExportDialog: React.FC = () => {
 			setFilename(projectName);
 		}
 	}, [isOpen, projectName]);
+
+	// Initialize range end to total frame count when dialog opens or timeline changes
+	useEffect(() => {
+		if (isOpen && exportData) {
+			const totalFrames = exportData.frames.length;
+			setRangeEnd(totalFrames);
+			if (rangeStart > totalFrames) {
+				setRangeStart(1);
+			}
+		}
+	}, [isOpen, exportData?.frames.length]);
 
 	// Detect font for SVG export (use canvas context font detection if available, otherwise detect)
 	useEffect(() => {
@@ -186,7 +202,17 @@ export const ImageExportDialog: React.FC = () => {
 				setProgress(progress);
 			});
 
-			if (imageSettings.format === 'svg') {
+			if (sequenceMode) {
+				const totalFrames = exportData.frames.length;
+				const sequenceSettings = {
+					...imageSettings,
+					sequenceMode: true as const,
+					sequenceRange: entireTimeline
+						? 'all' as const
+						: { start: rangeStart - 1, end: Math.min(rangeEnd - 1, totalFrames - 1) },
+				};
+				await renderer.exportImageSequence(exportData, sequenceSettings, filename);
+			} else if (imageSettings.format === 'svg') {
 				await renderer.exportSvg(exportData, imageSettings, filename);
 			} else {
 				await renderer.exportImage(exportData, imageSettings, filename);
@@ -258,13 +284,96 @@ export const ImageExportDialog: React.FC = () => {
 								disabled={isExporting}
 							/>
 							<Badge variant="outline" className="ml-2 self-center">
-								.{fileExtension}
+								{sequenceMode ? '.zip' : `.${fileExtension}`}
 							</Badge>
+						</div>
+
+						{/* Export Mode Toggle */}
+						<div className="flex items-center gap-3 pt-2">
+							<Button
+								variant={!sequenceMode ? 'default' : 'outline'}
+								size="sm"
+								onClick={() => setSequenceMode(false)}
+								disabled={isExporting}
+								className="flex-1"
+							>
+								<FileImage className="w-3.5 h-3.5 mr-1.5" />
+								Current Frame
+							</Button>
+							<Button
+								variant={sequenceMode ? 'default' : 'outline'}
+								size="sm"
+								onClick={() => setSequenceMode(true)}
+								disabled={isExporting}
+								className="flex-1"
+							>
+								<Film className="w-3.5 h-3.5 mr-1.5" />
+								Image Sequence
+							</Button>
 						</div>
 					</div>
 
 					{/* Scrollable Settings */}
 					<div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+						{/* Frame Range Settings (sequence mode only) */}
+						{sequenceMode && (
+							<Card className="border-border/50">
+								<CardContent className="pt-4 space-y-4">
+									<div className="flex items-center gap-2 mb-1">
+										<Film className="w-4 h-4" />
+										<span className="text-sm font-medium">Frame Range</span>
+									</div>
+
+									<div className="flex items-center justify-between">
+										<div className="space-y-0.5">
+											<Label htmlFor="entire-timeline">Entire Timeline</Label>
+											<p className="text-xs text-muted-foreground">
+												Export all {exportData?.frames.length || 0} frames
+											</p>
+										</div>
+										<Switch
+											id="entire-timeline"
+											checked={entireTimeline}
+											onCheckedChange={setEntireTimeline}
+											disabled={isExporting}
+										/>
+									</div>
+
+									{!entireTimeline && (
+										<div className="grid grid-cols-2 gap-3">
+											<div className="space-y-1">
+												<Label htmlFor="range-start">Start Frame</Label>
+												<Input
+													id="range-start"
+													type="number"
+													min={1}
+													max={rangeEnd}
+													value={rangeStart}
+													onChange={(e) => setRangeStart(Math.max(1, Math.min(parseInt(e.target.value) || 1, rangeEnd)))}
+													disabled={isExporting}
+												/>
+											</div>
+											<div className="space-y-1">
+												<Label htmlFor="range-end">End Frame</Label>
+												<Input
+													id="range-end"
+													type="number"
+													min={rangeStart}
+													max={exportData?.frames.length || 1}
+													value={rangeEnd}
+													onChange={(e) => setRangeEnd(Math.max(rangeStart, Math.min(parseInt(e.target.value) || 1, exportData?.frames.length || 1)))}
+													disabled={isExporting}
+												/>
+											</div>
+											<p className="col-span-2 text-xs text-muted-foreground">
+												{rangeEnd - rangeStart + 1} frame{rangeEnd - rangeStart + 1 !== 1 ? 's' : ''} will be exported
+											</p>
+										</div>
+									)}
+								</CardContent>
+							</Card>
+						)}
+
 						<Card className="border-border/50">
 							<CardContent className="pt-4 space-y-4">
 								<div className="flex items-center gap-2 mb-1">
@@ -493,14 +602,34 @@ export const ImageExportDialog: React.FC = () => {
 						</Card>
 
 						<div className="text-center p-3 bg-muted/50 rounded-lg space-y-1">
-							<p className="text-sm text-muted-foreground">Current frame will be exported as</p>
-							<p className="text-sm font-medium">
-								{filename}.{fileExtension}
-								{imageSettings.format !== 'svg' && ` (${imageSettings.sizeMultiplier}x scale)`}
-								{imageSettings.format === 'svg' && ' (vector)'}
-							</p>
-							{estimatedSize && (
-								<p className="text-xs text-muted-foreground">Estimated size: {estimatedSize}</p>
+							{sequenceMode ? (
+								<>
+									<p className="text-sm text-muted-foreground">Image sequence will be exported as</p>
+									<p className="text-sm font-medium">
+										{filename}_sequence.zip
+									</p>
+									<p className="text-xs text-muted-foreground">
+										{(() => {
+											const totalFrames = exportData?.frames.length || 0;
+											const frameCount = entireTimeline ? totalFrames : (rangeEnd - rangeStart + 1);
+											const padLen = Math.max(String(frameCount).length, 1);
+											const example = `${filename}_${'1'.padStart(padLen, '0')}.${fileExtension}`;
+											return `${frameCount} file${frameCount !== 1 ? 's' : ''}: ${example} → ${filename}_${String(frameCount).padStart(padLen, '0')}.${fileExtension}`;
+										})()}
+									</p>
+								</>
+							) : (
+								<>
+									<p className="text-sm text-muted-foreground">Current frame will be exported as</p>
+									<p className="text-sm font-medium">
+										{filename}.{fileExtension}
+										{imageSettings.format !== 'svg' && ` (${imageSettings.sizeMultiplier}x scale)`}
+										{imageSettings.format === 'svg' && ' (vector)'}
+									</p>
+									{estimatedSize && (
+										<p className="text-xs text-muted-foreground">Estimated size: {estimatedSize}</p>
+									)}
+								</>
 							)}
 						</div>
 					</div>
@@ -519,7 +648,7 @@ export const ImageExportDialog: React.FC = () => {
 							) : (
 								<>
 									<Download className="w-4 h-4 mr-2" />
-									Export Image
+									{sequenceMode ? 'Export Sequence (.zip)' : 'Export Image'}
 								</>
 							)}
 						</Button>

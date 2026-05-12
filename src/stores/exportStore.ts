@@ -65,6 +65,8 @@ const DEFAULT_IMAGE_SETTINGS: ImageExportSettings = {
   format: 'png',
   quality: 90,
   svgSettings: DEFAULT_SVG_SETTINGS,
+  sequenceMode: false,
+  sequenceRange: 'all',
 };
 
 const DEFAULT_VIDEO_SETTINGS: VideoExportSettings = {
