@@ -28,25 +28,28 @@ const CSS_ONLY_FONT_KEYWORDS = new Set([
  * include fonts that are actually available — not the entire CSS fallback chain.
  * If an actualFont is provided (from font detection), use only that + monospace.
  * Otherwise, filter out CSS-only keywords and keep the stack.
+ *
+ * Multi-word font names are single-quoted per SVG/CSS spec (e.g. 'SF Mono').
+ * After Effects' SVG parser is strict about this — unquoted multi-word names crash it.
  */
 export function sanitizeFontStackForSvg(fontStack: string, actualFont?: string | null): string {
   // If we know the actual detected font, use only that + generic fallback.
-  // This prevents Adobe apps from trying (and failing) to load every font
-  // in the CSS fallback chain.
   if (actualFont) {
     const bare = actualFont.replace(/['"]/g, '');
     if (CSS_ONLY_FONT_KEYWORDS.has(bare) || bare === 'monospace') {
       return 'monospace';
     }
-    return `${actualFont}, monospace`;
+    return `${quoteFontName(bare)}, monospace`;
   }
 
   // Fallback: filter out CSS-only keywords from the stack
   const fonts = fontStack.split(',').map(f => f.trim()).filter(f => f.length > 0);
-  const sanitized = fonts.filter(f => {
-    const bare = f.replace(/['"]/g, '');
-    return !CSS_ONLY_FONT_KEYWORDS.has(bare);
-  });
+  const sanitized = fonts
+    .filter(f => {
+      const bare = f.replace(/['"]/g, '');
+      return !CSS_ONLY_FONT_KEYWORDS.has(bare);
+    })
+    .map(f => quoteFontName(f.replace(/['"]/g, '')));
 
   // Ensure we have at least a generic fallback
   if (sanitized.length === 0 || sanitized[sanitized.length - 1] !== 'monospace') {
@@ -54,6 +57,14 @@ export function sanitizeFontStackForSvg(fontStack: string, actualFont?: string |
   }
 
   return sanitized.join(', ');
+}
+
+/** Single-quote a font name if it contains spaces; leave generic families unquoted. */
+function quoteFontName(name: string): string {
+  const generic = ['monospace', 'serif', 'sans-serif', 'cursive', 'fantasy'];
+  if (generic.includes(name)) return name;
+  if (name.includes(' ')) return `'${name}'`;
+  return name;
 }
 
 /**
