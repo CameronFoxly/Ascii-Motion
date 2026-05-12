@@ -25,6 +25,7 @@ import {
   generateSvgHeader, 
   generateSvgGrid, 
   generateSvgTextElement, 
+  generateSvgContentGrouped,
   convertTextToPath,
   minifySvg,
   sanitizeFontStackForSvg
@@ -247,15 +248,15 @@ export class ExportRenderer {
       // Content group
       svg += '  <g id="content">\n';
 
-      // Render each cell
-      let cellCount = 0;
-      const totalCells = currentFrame.size;
-      
-      currentFrame.forEach((cell, key) => {
-        const [x, y] = key.split(',').map(Number);
+      if (svgSettings.textAsOutlines) {
+        // Text-as-outlines: render each cell individually with path conversion
+        let cellCount = 0;
+        const totalCells = currentFrame.size;
         
-        if (cell.char) {
-          if (svgSettings.textAsOutlines) {
+        currentFrame.forEach((cell, key) => {
+          const [x, y] = key.split(',').map(Number);
+          
+          if (cell.char) {
             svg += convertTextToPath(
               cell.char,
               x, y,
@@ -265,28 +266,27 @@ export class ExportRenderer {
               cellHeight,
               actualFontSize,
               fontStack,
-              font // Pass the loaded font for opentype.js conversion
-            );
-          } else {
-            svg += generateSvgTextElement(
-              cell.char,
-              x, y,
-              cell.color || '#ffffff',
-              cell.bgColor,
-              cellWidth,
-              cellHeight,
-              actualFontSize,
-              fontStack
+              font
             );
           }
-        }
-        
-        cellCount++;
-        if (cellCount % 100 === 0) {
-          const progress = 50 + Math.floor((cellCount / totalCells) * 30);
-          this.updateProgress(`Rendering characters... (${cellCount}/${totalCells})`, progress);
-        }
-      });
+          
+          cellCount++;
+          if (cellCount % 100 === 0) {
+            const progress = 50 + Math.floor((cellCount / totalCells) * 30);
+            this.updateProgress(`Rendering characters... (${cellCount}/${totalCells})`, progress);
+          }
+        });
+      } else {
+        // Row-based grouped rendering — dramatically fewer SVG elements
+        // for compatibility with After Effects and other desktop apps
+        svg += generateSvgContentGrouped(
+          currentFrame,
+          data.canvasDimensions.width,
+          data.canvasDimensions.height,
+          cellWidth,
+          cellHeight
+        );
+      }
 
       svg += '  </g>\n';
       svg += '</svg>';
@@ -488,11 +488,11 @@ export class ExportRenderer {
 
     svg += '  <g id="content">\n';
 
-    frameData.forEach((cell, key) => {
-      const [x, y] = key.split(',').map(Number);
+    if (svgSettings.textAsOutlines) {
+      frameData.forEach((cell, key) => {
+        const [x, y] = key.split(',').map(Number);
 
-      if (cell.char) {
-        if (svgSettings.textAsOutlines) {
+        if (cell.char) {
           svg += convertTextToPath(
             cell.char,
             x, y,
@@ -504,20 +504,17 @@ export class ExportRenderer {
             fontStack,
             font
           );
-        } else {
-          svg += generateSvgTextElement(
-            cell.char,
-            x, y,
-            cell.color || '#ffffff',
-            cell.bgColor,
-            cellWidth,
-            cellHeight,
-            actualFontSize,
-            fontStack
-          );
         }
-      }
-    });
+      });
+    } else {
+      svg += generateSvgContentGrouped(
+        frameData,
+        data.canvasDimensions.width,
+        data.canvasDimensions.height,
+        cellWidth,
+        cellHeight
+      );
+    }
 
     svg += '  </g>\n';
     svg += '</svg>';

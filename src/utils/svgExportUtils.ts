@@ -4,6 +4,7 @@
  */
 
 import type { Font } from 'opentype.js';
+import type { Cell } from '../types';
 import { convertGlyphToSvgPath, generateSvgPathElement } from './font/opentypePathConverter';
 
 /**
@@ -147,6 +148,92 @@ export function generateSvgTextElement(
   }
   
   return elements;
+}
+
+/**
+ * Generate optimized SVG content from a frame's cell data using row-based grouping.
+ * Instead of one <text> per character (which crashes After Effects with large canvases),
+ * this groups characters by row and merges consecutive same-color runs into single
+ * <tspan> elements. Typically reduces element count by 10-50x.
+ */
+export function generateSvgContentGrouped(
+  frameData: Map<string, Cell>,
+  gridWidth: number,
+  gridHeight: number,
+  cellWidth: number,
+  cellHeight: number
+): string {
+  let svg = '';
+
+  // Build a 2D grid for efficient row-based traversal
+  type CellInfo = { char: string; color: string; bgColor?: string };
+  const grid: (CellInfo | null)[][] = Array.from({ length: gridHeight }, () =>
+    Array.from({ length: gridWidth }, () => null)
+  );
+
+  frameData.forEach((cell, key) => {
+    const [x, y] = key.split(',').map(Number);
+    if (x >= 0 && x < gridWidth && y >= 0 && y < gridHeight && cell.char) {
+      grid[y][x] = { char: cell.char, color: cell.color || '#ffffff', bgColor: cell.bgColor };
+    }
+  });
+
+  for (let row = 0; row < gridHeight; row++) {
+    const rowCells = grid[row];
+    const textY = row * cellHeight + cellHeight / 2;
+
+    // Emit background rects for this row
+    for (let col = 0; col < gridWidth; col++) {
+      const cell = rowCells[col];
+      if (cell?.bgColor && cell.bgColor !== 'transparent') {
+        svg += `    <rect x="${col * cellWidth}" y="${row * cellHeight}" width="${cellWidth}" height="${cellHeight}" fill="${cell.bgColor}"/>\n`;
+      }
+    }
+
+    // Build color runs for this row
+    type ColorRun = { color: string; spans: { x: number; char: string }[] };
+    const runs: ColorRun[] = [];
+    let currentRun: ColorRun | null = null;
+
+    for (let col = 0; col < gridWidth; col++) {
+      const cell = rowCells[col];
+      if (!cell) {
+        currentRun = null;
+        continue;
+      }
+
+      if (currentRun && currentRun.color === cell.color) {
+        currentRun.spans.push({ x: col, char: cell.char });
+      } else {
+        currentRun = { color: cell.color, spans: [{ x: col, char: cell.char }] };
+        runs.push(currentRun);
+      }
+    }
+
+    if (runs.length === 0) continue;
+
+    // Emit one <text> per row with <tspan> children
+    if (runs.length === 1) {
+      const run = runs[0];
+      svg += `    <text class="t" y="${textY}" fill="${run.color}">`;
+      for (const span of run.spans) {
+        const textX = span.x * cellWidth + cellWidth / 2;
+        svg += `<tspan x="${textX}">${escapeXml(span.char)}</tspan>`;
+      }
+      svg += '</text>\n';
+    } else {
+      svg += `    <text class="t" y="${textY}">`;
+      for (const run of runs) {
+        for (const span of run.spans) {
+          const textX = span.x * cellWidth + cellWidth / 2;
+          svg += `<tspan x="${textX}" fill="${run.color}">${escapeXml(span.char)}</tspan>`;
+        }
+      }
+      svg += '</text>\n';
+    }
+  }
+
+  return svg;
 }
 
 /**
