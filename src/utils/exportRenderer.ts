@@ -199,9 +199,10 @@ export class ExportRenderer {
       const canvasWidth = data.canvasDimensions.width * cellWidth;
       const canvasHeight = data.canvasDimensions.height * cellHeight;
 
-      // Sanitize the font stack for desktop app compatibility
+      // Sanitize the font stack for desktop app compatibility — use the actually
+      // detected font when available to avoid Adobe apps choking on uninstalled fonts
       const rawFontStack = data.fontMetrics?.fontFamily || 'SF Mono, Monaco, Cascadia Code, Consolas, JetBrains Mono, Fira Code, Monaspace Neon, Geist Mono, Courier New, monospace';
-      const fontStack = sanitizeFontStackForSvg(rawFontStack);
+      const fontStack = sanitizeFontStackForSvg(rawFontStack, data.typography?.actualFont);
 
       this.updateProgress('Generating SVG structure...', 20);
 
@@ -462,7 +463,7 @@ export class ExportRenderer {
     const canvasHeight = data.canvasDimensions.height * cellHeight;
 
     const rawFontStack = data.fontMetrics?.fontFamily || 'SF Mono, Monaco, Cascadia Code, Consolas, JetBrains Mono, Fira Code, Monaspace Neon, Geist Mono, Courier New, monospace';
-    const fontStack = sanitizeFontStackForSvg(rawFontStack);
+    const fontStack = sanitizeFontStackForSvg(rawFontStack, data.typography?.actualFont);
 
     let svg = generateSvgHeader(
       canvasWidth,

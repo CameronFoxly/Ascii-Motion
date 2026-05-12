@@ -303,7 +303,8 @@ export const useExportDataCollector = (enabled: boolean = true): ExportDataBundl
     fontSize,
     characterSpacing,
     lineSpacing,
-    selectedFontId
+    selectedFontId,
+    actualFont
   } = useCanvasContext();
 
   // Get theme context (must be called before early return — React hooks rules)
@@ -373,7 +374,8 @@ export const useExportDataCollector = (enabled: boolean = true): ExportDataBundl
       fontSize,
       characterSpacing,
       lineSpacing,
-      selectedFontId
+      selectedFontId,
+      actualFont
     },
     
     // Tool state

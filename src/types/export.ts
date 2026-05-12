@@ -170,6 +170,7 @@ export interface ExportDataBundle {
     characterSpacing: number;
     lineSpacing: number;
     selectedFontId: string;
+    actualFont?: string | null; // The font actually detected/rendered (for SVG export compatibility)
   };
   
   // Tool state (for session saves)
