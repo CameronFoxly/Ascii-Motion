@@ -85,7 +85,7 @@
     "opentype.js": "^1.3.4",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
-    "react-router-dom": "^7.13.0",
+    "react-router-dom": "^7.17.0",
     "simplex-noise": "^4.0.3",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
