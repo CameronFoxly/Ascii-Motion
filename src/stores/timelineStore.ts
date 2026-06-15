@@ -1080,10 +1080,13 @@ export const useTimelineStore = create<TimelineState>()(
         get().ensureTimelineContains(frameEnd - 1);
       }
 
+      // Keep contentFrames sorted by startFrame so getContentFrameAtTime()'s
+      // binary search stays valid (a frame may be inserted into a gap before
+      // existing frames, e.g. via paste/undo).
       set((state) => ({
         layers: updateLayer(state.layers, layerId, (l) => ({
           ...l,
-          contentFrames: [...l.contentFrames, newFrame],
+          contentFrames: [...l.contentFrames, newFrame].sort((a, b) => a.startFrame - b.startFrame),
         })),
       }));
 
@@ -1191,15 +1194,23 @@ export const useTimelineStore = create<TimelineState>()(
         data: new Map(cf.data), // Clone data
       };
 
-      // Shrink original + insert new frame
+      // Shrink original + insert new frame.
+      // IMPORTANT: keep contentFrames sorted by startFrame. The new (split) frame
+      // starts in the middle of the timeline, so appending it would leave the array
+      // unsorted whenever a later frame exists. getContentFrameAtTime() relies on a
+      // binary search over a sorted array — an unsorted array makes it miss the new
+      // frame, which renders blank and can't be drawn on. See bug: split corruption.
       set((state) => ({
         layers: updateLayer(state.layers, layerId, (l) => ({
           ...l,
-          contentFrames: l.contentFrames.map((c) =>
-            c.id === frameId
-              ? { ...c, durationFrames: leftDuration }
-              : c,
-          ).concat(newFrame),
+          contentFrames: l.contentFrames
+            .map((c) =>
+              c.id === frameId
+                ? { ...c, durationFrames: leftDuration }
+                : c,
+            )
+            .concat(newFrame)
+            .sort((a, b) => a.startFrame - b.startFrame),
         })),
       }));
 
@@ -1237,10 +1248,12 @@ export const useTimelineStore = create<TimelineState>()(
       // Auto-expand timeline if needed
       get().ensureTimelineContains(afterEnd + cf.durationFrames - 1);
 
+      // Keep contentFrames sorted by startFrame (the copy lands in a gap that may
+      // sit before later frames) so getContentFrameAtTime()'s binary search holds.
       set((state) => ({
         layers: updateLayer(state.layers, layerId, (l) => ({
           ...l,
-          contentFrames: [...l.contentFrames, newFrame],
+          contentFrames: [...l.contentFrames, newFrame].sort((a, b) => a.startFrame - b.startFrame),
         })),
       }));
 

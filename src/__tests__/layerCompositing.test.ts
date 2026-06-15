@@ -432,6 +432,25 @@ describe('getContentFrameAtTime', () => {
     const layer = makeLayer({ id: 'l1', contentFrames: [] });
     expect(getContentFrameAtTime(layer, 0)).toBeNull();
   });
+
+  // Regression: splitting a frame that has a later frame used to leave the
+  // contentFrames array unsorted, which made the binary search miss the new
+  // (split) frame and render it blank/uneditable. The lookup must stay correct
+  // even if the array is not sorted by startFrame.
+  it('finds a frame even when contentFrames are not sorted by startFrame', () => {
+    const cfA = makeContentFrame('cfA', 0, 5, new Map()); // [0,5)
+    const cfLater = makeContentFrame('cfLater', 10, 10, new Map()); // [10,20)
+    const cfSplit = makeContentFrame('cfSplit', 5, 5, new Map()); // [5,10)
+    // Deliberately out of order (as .concat() would leave it after a split):
+    const layer = makeLayer({ id: 'l1', contentFrames: [cfA, cfLater, cfSplit] });
+
+    expect(getContentFrameAtTime(layer, 5)).toBe(cfSplit);
+    expect(getContentFrameAtTime(layer, 9)).toBe(cfSplit);
+    expect(getContentFrameAtTime(layer, 4)).toBe(cfA);
+    expect(getContentFrameAtTime(layer, 15)).toBe(cfLater);
+    // Genuine gap still returns null even with an unsorted array.
+    expect(getContentFrameAtTime(layer, 25)).toBeNull();
+  });
 });
 
 // ============================================
