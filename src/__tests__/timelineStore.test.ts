@@ -7,6 +7,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useTimelineStore } from '../stores/timelineStore';
+import { getContentFrameAtTime } from '../utils/layerCompositing';
 import type { LayerId, PropertyTrackId } from '../types/timeline';
 
 // ============================================
@@ -319,6 +320,32 @@ describe('timelineStore', () => {
       // Frame 2 is in the gap between [0,1) and [5,8)
       const atFrame2 = useTimelineStore.getState().getContentFrameAt(layerId, 2);
       expect(atFrame2).toBeNull();
+    });
+
+    // Regression: splitting a frame that has a later frame on the same layer used
+    // to append the new (split) frame out of startFrame order. That broke the
+    // binary search in getContentFrameAtTime(), so the new frame couldn't be found
+    // and rendered blank / uneditable on the canvas.
+    it('splitContentFrame keeps frames sorted and findable when a later frame exists', () => {
+      const store = useTimelineStore.getState();
+      // Frame to split spans [5,15); a later frame [20,25) must exist to trigger the bug.
+      const splitFrameId = store.addContentFrame(layerId, 5, 10)!;
+      store.addContentFrame(layerId, 20, 5);
+
+      const newFrameId = useTimelineStore.getState().splitContentFrame(layerId, splitFrameId, 10);
+      expect(newFrameId).not.toBeNull();
+
+      const layer = useTimelineStore.getState().getLayer(layerId)!;
+
+      // contentFrames must stay sorted by startFrame (binary-search invariant).
+      const starts = layer.contentFrames.map((cf) => cf.startFrame);
+      expect(starts).toEqual([...starts].sort((a, b) => a - b));
+
+      // The new (split) frame must be locatable via the binary-search path that the
+      // canvas/frame-sync uses — not just the store's linear getContentFrameAt.
+      const found = getContentFrameAtTime(layer, 12);
+      expect(found).not.toBeNull();
+      expect(found?.id).toBe(newFrameId);
     });
   });
 

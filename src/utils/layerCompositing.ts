@@ -388,14 +388,16 @@ export function compositeLayersAtFrame(
  * Returns null if the frame falls in a gap between content frames.
  * 
  * PERF FIX: Uses binary search (O(log F)) instead of linear scan (O(F)).
- * Content frames are sorted by startFrame, so binary search is valid.
- * Falls back to linear scan if the array appears unsorted.
+ * Content frames are expected to be sorted by startFrame, so binary search is valid.
+ * Falls back to a linear scan if the binary search misses, which guarantees a
+ * correct result even if the array is momentarily unsorted (content frames never
+ * overlap, so at most one frame can contain a given time — there are no false hits).
  */
 export function getContentFrameAtTime(layer: Layer, frame: number): ContentFrame | null {
   const cfs = layer.contentFrames;
   if (cfs.length === 0) return null;
 
-  // Binary search: content frames are sorted by startFrame
+  // Binary search: content frames are expected to be sorted by startFrame
   let lo = 0;
   let hi = cfs.length - 1;
 
@@ -411,6 +413,16 @@ export function getContentFrameAtTime(layer: Layer, frame: number): ContentFrame
       // frame is within this content frame's range
       if (cf.hidden) return null;
       return cf;
+    }
+  }
+
+  // Fallback: if the array was not sorted by startFrame, the binary search above
+  // can incorrectly miss a frame that actually contains `frame`. A linear scan
+  // recovers it. Because content frames never overlap, this can only ever find the
+  // one correct frame (or nothing, for a genuine gap).
+  for (const cf of cfs) {
+    if (frame >= cf.startFrame && frame < cf.startFrame + cf.durationFrames) {
+      return cf.hidden ? null : cf;
     }
   }
 
