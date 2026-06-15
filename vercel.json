@@ -51,7 +51,5 @@
       "source": "/((?!api/.*).*)",
       "destination": "/index.html"
     }
-  ],
-
-  "public": true
+  ]
 }

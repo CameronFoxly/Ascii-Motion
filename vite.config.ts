@@ -29,12 +29,25 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Separate FFmpeg into its own chunk for better loading
-          ffmpeg: ['@ffmpeg/ffmpeg', '@ffmpeg/util', '@ffmpeg/core'],
-          // Separate large UI library chunks
-          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
-          vendor: ['react', 'react-dom', 'zustand'],
+        // Vite 8 bundles with rolldown, which (unlike rollup) only accepts the
+        // function form of manualChunks. Match on node_modules path segments to
+        // reproduce the previous chunk grouping.
+        manualChunks: (id: string) => {
+          if (id.includes('/node_modules/@ffmpeg/')) return 'ffmpeg'
+          if (
+            id.includes('/node_modules/@radix-ui/react-dialog/') ||
+            id.includes('/node_modules/@radix-ui/react-dropdown-menu/') ||
+            id.includes('/node_modules/@radix-ui/react-select/')
+          ) {
+            return 'ui'
+          }
+          if (
+            id.includes('/node_modules/react/') ||
+            id.includes('/node_modules/react-dom/') ||
+            id.includes('/node_modules/zustand/')
+          ) {
+            return 'vendor'
+          }
         },
       },
     },
