@@ -15,7 +15,9 @@ import { ZoomControls } from './ZoomControls';
 import { CanvasOverlay } from './CanvasOverlay';
 import { usePostEffectsRenderer } from '../../hooks/usePostEffectsRenderer';
 import { PlaybackStatusBar } from './PlaybackStatusBar';
-import type { Tool } from '../../types';
+import type { Cell, Tool } from '../../types';
+import { screenToLocal } from '../../utils/layerTransformUtils';
+import { compositeLayersAtFrame } from '../../utils/layerCompositing';
 
 interface CanvasGridProps {
   className?: string;
@@ -87,6 +89,49 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
   const clearLassoSelection = useToolStore((s) => s.clearLassoSelection);
   const clearMagicWandSelection = useToolStore((s) => s.clearMagicWandSelection);
 
+  const buildMovePreviewState = useCallback((selectionCells: Set<string>, startPos: { x: number; y: number }) => {
+    const { getCell, width, height } = useCanvasStore.getState();
+    const { selectionAffectsAllLayers } = useToolStore.getState();
+
+    let compositedForMove: Map<string, Cell> | null = null;
+    if (selectionAffectsAllLayers) {
+      const tl = useTimelineStore.getState();
+      if (tl.layers.length > 0) {
+        compositedForMove = compositeLayersAtFrame(
+          tl.layers,
+          tl.view.currentFrame,
+          width,
+          height,
+          undefined,
+          false,
+          tl.layerGroups,
+        );
+      }
+    }
+
+    const originalData = new Map<string, Cell>();
+    const originalPositions = new Set(selectionCells);
+
+    selectionCells.forEach((cellKey) => {
+      const [screenX, screenY] = cellKey.split(',').map(Number);
+      const local = screenToLocal(screenX, screenY);
+      const cell = compositedForMove
+        ? compositedForMove.get(cellKey)
+        : getCell(local.x, local.y);
+
+      if (cell && cell.char !== ' ') {
+        originalData.set(cellKey, cell);
+      }
+    });
+
+    return {
+      originalData,
+      originalPositions,
+      startPos,
+      baseOffset: { x: 0, y: 0 },
+    };
+  }, []);
+
   // Handle arrow movement for rectangular selection
   const handleRectangularSelectionArrowMovement = useCallback((arrowOffset: { x: number; y: number }) => {
     if (!selection.active) return;
@@ -105,33 +150,17 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       });
     } else {
       // Enter move mode for the first time
-      const { getCell } = useCanvasStore.getState();
-  const startX = Math.min(selection.start.x, selection.end.x);
-  const startY = Math.min(selection.start.y, selection.end.y);
-
-      const originalData = new Map();
-      const originalPositions = new Set<string>();
-
-      selection.selectedCells.forEach((cellKey) => {
-        originalPositions.add(cellKey);
-        const [cx, cy] = cellKey.split(',').map(Number);
-        const cell = getCell(cx, cy);
-        // Only store non-empty cells (not spaces or empty cells)
-        if (cell && cell.char !== ' ') {
-          originalData.set(cellKey, cell);
-        }
-      });
+      const startX = Math.min(selection.start.x, selection.end.x);
+      const startY = Math.min(selection.start.y, selection.end.y);
+      const movePreviewState = buildMovePreviewState(selection.selectedCells, { x: startX, y: startY });
       
       setMoveState({
-        originalData,
-        originalPositions,
-        startPos: { x: startX, y: startY }, // Use selection start as reference point
-        baseOffset: { x: 0, y: 0 },
+        ...movePreviewState,
         currentOffset: arrowOffset // Start with the arrow offset
       });
       setSelectionMode('moving');
     }
-  }, [selection, moveState, setJustCommittedMove, setMoveState, setSelectionMode]);
+  }, [selection, moveState, setJustCommittedMove, setMoveState, setSelectionMode, buildMovePreviewState]);
 
   // Handle arrow movement for lasso selection
   const handleLassoSelectionArrowMovement = useCallback((arrowOffset: { x: number; y: number }) => {
@@ -151,19 +180,6 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       });
     } else {
       // Enter move mode for the first time
-      const { getCell } = useCanvasStore.getState();
-      
-      // Store only the non-empty cells from the lasso selection
-      const originalData = new Map();
-      lassoSelection.selectedCells.forEach((cellKey) => {
-        const [cx, cy] = cellKey.split(',').map(Number);
-        const cell = getCell(cx, cy);
-        // Only store non-empty cells (not spaces or empty cells)
-        if (cell && cell.char !== ' ') {
-          originalData.set(cellKey, cell);
-        }
-      });
-      
       // Use center of selection as reference point
       const cellCoords = Array.from(lassoSelection.selectedCells).map(key => {
         const [x, y] = key.split(',').map(Number);
@@ -171,17 +187,15 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       });
       const centerX = Math.floor(cellCoords.reduce((sum, c) => sum + c.x, 0) / cellCoords.length);
       const centerY = Math.floor(cellCoords.reduce((sum, c) => sum + c.y, 0) / cellCoords.length);
+      const movePreviewState = buildMovePreviewState(lassoSelection.selectedCells, { x: centerX, y: centerY });
       
       setMoveState({
-        originalData,
-        originalPositions: new Set(originalData.keys()),
-        startPos: { x: centerX, y: centerY }, // Use selection center as reference point
-        baseOffset: { x: 0, y: 0 },
+        ...movePreviewState,
         currentOffset: arrowOffset // Start with the arrow offset
       });
       setSelectionMode('moving');
     }
-  }, [lassoSelection, moveState, setJustCommittedMove, setMoveState, setSelectionMode]);
+  }, [lassoSelection, moveState, setJustCommittedMove, setMoveState, setSelectionMode, buildMovePreviewState]);
 
   // Handle arrow movement for magic wand selection
   const handleMagicWandSelectionArrowMovement = useCallback((arrowOffset: { x: number; y: number }) => {
@@ -201,19 +215,6 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       });
     } else {
       // Enter move mode for the first time
-      const { getCell } = useCanvasStore.getState();
-      
-      // Store only the non-empty cells from the magic wand selection
-      const originalData = new Map();
-      magicWandSelection.selectedCells.forEach((cellKey) => {
-        const [cx, cy] = cellKey.split(',').map(Number);
-        const cell = getCell(cx, cy);
-        // Only store non-empty cells (not spaces or empty cells)
-        if (cell && cell.char !== ' ') {
-          originalData.set(cellKey, cell);
-        }
-      });
-      
       // Use center of selection as reference point
       const cellCoords = Array.from(magicWandSelection.selectedCells).map(key => {
         const [x, y] = key.split(',').map(Number);
@@ -221,17 +222,15 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
       });
       const centerX = Math.floor(cellCoords.reduce((sum, c) => sum + c.x, 0) / cellCoords.length);
       const centerY = Math.floor(cellCoords.reduce((sum, c) => sum + c.y, 0) / cellCoords.length);
+      const movePreviewState = buildMovePreviewState(magicWandSelection.selectedCells, { x: centerX, y: centerY });
       
       setMoveState({
-        originalData,
-        originalPositions: new Set(originalData.keys()),
-        startPos: { x: centerX, y: centerY }, // Use selection center as reference point
-        baseOffset: { x: 0, y: 0 },
+        ...movePreviewState,
         currentOffset: arrowOffset // Start with the arrow offset
       });
       setSelectionMode('moving');
     }
-  }, [magicWandSelection, moveState, setJustCommittedMove, setMoveState, setSelectionMode]);
+  }, [magicWandSelection, moveState, setJustCommittedMove, setMoveState, setSelectionMode, buildMovePreviewState]);
 
   // Handle keyboard events for Escape and Shift keys
   useEffect(() => {
