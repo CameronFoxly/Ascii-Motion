@@ -301,11 +301,19 @@ export const useImportStore = create<ImportState>((set, get) => ({
   },
   
   setProcessedFrames: (frames: ProcessedFrame[]) => {
-    set({ 
+    set((state) => ({ 
       processedFrames: frames,
-      previewFrameIndex: 0,
+      // Preserve the user's current preview position when frames are
+      // re-processed (e.g. a live-preview setting change re-extracts frames).
+      // The index is clamped to the new frame range. Selecting a new file or
+      // opening the modal resets the index to 0 via their own actions, so the
+      // only path that reaches here with a non-zero index is reprocessing the
+      // same media, where the chosen frame should persist.
+      previewFrameIndex: frames.length > 0
+        ? Math.max(0, Math.min(frames.length - 1, state.previewFrameIndex))
+        : 0,
       isPreviewMode: frames.length > 0
-    });
+    }));
   },
   
   setProcessing: (isProcessing: boolean) => {
