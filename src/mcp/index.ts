@@ -27,6 +27,14 @@
  */
 
 export { MCPClient, createMCPClient } from './client';
+export { MCPCommandDispatcher } from './commandDispatcher';
 export { useMCPStore, type MCPConnectionState } from './store';
 export { useMCPConnection } from './useMCPConnection';
-export type { MCPCommand, MCPStateUpdate, MCPMessage } from './types';
+export type {
+  MCPCommand,
+  MCPCommandApplied,
+  MCPCommandRequest,
+  MCPCommandResult,
+  MCPStateUpdate,
+  MCPMessage,
+} from './types';

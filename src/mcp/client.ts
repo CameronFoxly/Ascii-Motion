@@ -13,12 +13,28 @@ import { useSelectionStore } from '../stores/selectionStore';
 import { useProjectMetadataStore } from '../stores/projectMetadataStore';
 import { useTimelineStore } from '../stores/timelineStore';
 import { getContentFrameAtTime } from '../utils/layerCompositing';
+import { SessionImporter } from '../utils/sessionImporter';
+import { MCPCommandDispatcher } from './commandDispatcher';
 import { useMCPStore } from './store';
-import type { MCPCommand, MCPServerMessage, MCPClientAuth, MCPClientHeartbeat, MCPClientStateSnapshot, MCPExportRequest, MCPExportResult } from './types';
+import type {
+  MCPClientAuth,
+  MCPClientHeartbeat,
+  MCPClientStateSnapshot,
+  MCPCommand,
+  MCPCommandApplied,
+  MCPCommandRequest,
+  MCPExportRequest,
+  MCPExportResult,
+  MCPServerMessage,
+} from './types';
 
 const DEFAULT_PORT = 9876;
 const HEARTBEAT_INTERVAL = 30000; // 30 seconds
 const RECONNECT_DELAY = 3000; // 3 seconds
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
 
 export class MCPClient {
   private ws: WebSocket | null = null;
@@ -30,9 +46,14 @@ export class MCPClient {
   private autoReconnect: boolean = true;
   // Maps MCP server effect block IDs → browser effect block IDs
   private effectBlockIdMap: Map<string, string> = new Map();
+  private readonly commandDispatcher: MCPCommandDispatcher;
 
   constructor() {
     this.sessionId = this.generateSessionId();
+    this.commandDispatcher = new MCPCommandDispatcher(
+      (command) => this.executeCommand(command),
+      (result) => this.send(result),
+    );
   }
 
   /**
@@ -318,6 +339,20 @@ export class MCPClient {
     timeline.updateContentFrameData(activeLayer.id, cf.id, new Map(cells));
   }
 
+  private syncCanvasToCurrentContentFrame(): void {
+    const timeline = useTimelineStore.getState();
+    const activeLayer = timeline.layers.find((layer) => layer.id === timeline.view.activeLayerId)
+      ?? timeline.layers[0];
+    const activeFrame = activeLayer
+      ? getContentFrameAtTime(activeLayer, timeline.view.currentFrame)
+      : null;
+    const canvas = useCanvasStore.getState();
+
+    canvas.setActiveLayerId(activeLayer?.id ?? null);
+    canvas.setCanvasData(activeFrame ? new Map(activeFrame.data) : new Map<string, Cell>());
+    canvas.setDirty(false);
+  }
+
   private generateSessionId(): string {
     const timestamp = Date.now();
 
@@ -403,16 +438,25 @@ export class MCPClient {
 
   private handleMessage(data: string): void {
     try {
-      const message = JSON.parse(data);
+      const message: unknown = JSON.parse(data);
+
+      if (!isRecord(message)) {
+        throw new Error('MCP message must be an object');
+      }
       
       // Handle JSON-RPC style notifications from MCP server
-      if (message.jsonrpc === '2.0' && message.method) {
+      if (message.jsonrpc === '2.0' && typeof message.method === 'string') {
         this.handleNotification(message.method, message.params);
+        return;
+      }
+
+      if (message.type === 'command_request') {
+        this.handleCommandRequest(message);
         return;
       }
       
       // Handle legacy message format
-      const legacyMessage = message as MCPServerMessage;
+      const legacyMessage = message as unknown as MCPServerMessage;
       
       switch (legacyMessage.type) {
         case 'auth_result':
@@ -425,8 +469,10 @@ export class MCPClient {
           
         case 'command':
           if (legacyMessage.command) {
-            this.executeCommand(legacyMessage.command);
-            useMCPStore.getState().incrementCommandCount();
+            void this.executeCommand(legacyMessage.command).then(
+              () => useMCPStore.getState().incrementCommandCount(),
+              (error) => console.error('[MCP] Legacy command failed:', error),
+            );
           }
           break;
           
@@ -445,6 +491,34 @@ export class MCPClient {
     } catch (error) {
       console.error('[MCP] Failed to parse message:', error);
     }
+  }
+
+  private handleCommandRequest(message: Record<string, unknown>): void {
+    const requestId = message.requestId;
+    if (typeof requestId !== 'string' || requestId.length === 0) {
+      console.error('[MCP] command_request is missing a requestId');
+      return;
+    }
+
+    const command = message.command;
+    if (!isRecord(command) || typeof command.type !== 'string') {
+      void this.commandDispatcher.reject(
+        requestId,
+        'command_request is missing a valid command',
+      ).catch((error) => console.error('[MCP] Failed to emit command result:', error));
+      return;
+    }
+
+    const request: MCPCommandRequest = {
+      type: 'command_request',
+      requestId,
+      command: command as unknown as MCPCommand,
+    };
+
+    void this.commandDispatcher.dispatch(request).then(
+      () => useMCPStore.getState().incrementCommandCount(),
+      (error) => console.error('[MCP] Failed to emit command result:', error),
+    );
   }
 
   private handleNotification(method: string, params: unknown): void {
@@ -869,7 +943,7 @@ export class MCPClient {
     }
   }
 
-  private executeCommand(command: MCPCommand): void {
+  private async executeCommand(command: MCPCommand): Promise<MCPCommandApplied | undefined> {
     console.log('[MCP] Executing command:', command.type);
     
     switch (command.type) {
@@ -878,8 +952,7 @@ export class MCPClient {
         break;
         
       case 'set_cells_batch':
-        this.handleSetCellsBatch(command);
-        break;
+        return this.handleSetCellsBatch(command);
         
       case 'clear_cell':
         this.handleClearCell(command);
@@ -906,8 +979,10 @@ export class MCPClient {
         break;
         
       case 'set_frame_duration':
-        this.handleSetFrameDuration(command);
-        break;
+        return this.handleSetFrameDuration(command);
+
+      case 'set_frame_rate':
+        return this.handleSetFrameRate(command);
         
       case 'set_frame_data':
         this.handleSetFrameData(command);
@@ -926,8 +1001,7 @@ export class MCPClient {
         break;
         
       case 'load_project':
-        this.handleLoadProject(command);
-        break;
+        return this.handleLoadProject(command);
         
       case 'set_foreground_color':
         this.handleSetForegroundColor(command);
@@ -975,7 +1049,7 @@ export class MCPClient {
         break;
         
       default:
-        console.warn('[MCP] Unknown command type:', (command as { type: string }).type);
+        throw new Error(`Unsupported browser command: ${(command as { type: string }).type}`);
     }
   }
 
@@ -987,11 +1061,100 @@ export class MCPClient {
     useCanvasStore.getState().setCell(cmd.x, cmd.y, cmd.cell);
   }
 
-  private handleSetCellsBatch(cmd: { cells: Array<{ x: number; y: number; cell: Cell }> }): void {
-    const canvasStore = useCanvasStore.getState();
-    for (const { x, y, cell } of cmd.cells) {
-      canvasStore.setCell(x, y, cell);
+  private handleSetCellsBatch(cmd: {
+    cells: Array<{ x: number; y: number; cell: Cell }>;
+    frameIndex?: number;
+  }): MCPCommandApplied {
+    if (!Array.isArray(cmd.cells)) {
+      throw new Error('set_cells_batch cells must be an array');
     }
+
+    const canvas = useCanvasStore.getState();
+    for (const update of cmd.cells) {
+      if (
+        !isRecord(update)
+        || !Number.isInteger(update.x)
+        || !Number.isInteger(update.y)
+        || update.x < 0
+        || update.x >= canvas.width
+        || update.y < 0
+        || update.y >= canvas.height
+        || !isRecord(update.cell)
+        || typeof update.cell.char !== 'string'
+        || typeof update.cell.color !== 'string'
+        || typeof update.cell.bgColor !== 'string'
+      ) {
+        throw new Error('set_cells_batch contains an invalid or out-of-bounds cell');
+      }
+    }
+
+    if (cmd.frameIndex !== undefined && (!Number.isInteger(cmd.frameIndex) || cmd.frameIndex < 0)) {
+      throw new Error('set_cells_batch frameIndex must be a non-negative integer');
+    }
+
+    this.flushCanvasToActiveContentFrame();
+
+    const timeline = useTimelineStore.getState();
+    const activeLayer = timeline.layers.find((layer) => layer.id === timeline.view.activeLayerId)
+      ?? timeline.layers[0];
+    if (!activeLayer) {
+      throw new Error('set_cells_batch requires an active layer');
+    }
+
+    let targetFrameIndex = cmd.frameIndex;
+    if (targetFrameIndex === undefined) {
+      const currentContentFrame = getContentFrameAtTime(activeLayer, timeline.view.currentFrame);
+      targetFrameIndex = currentContentFrame
+        ? activeLayer.contentFrames.findIndex((frame) => frame.id === currentContentFrame.id)
+        : -1;
+    }
+
+    const targetFrame = activeLayer.contentFrames[targetFrameIndex];
+    if (!targetFrame) {
+      throw new Error(`set_cells_batch frameIndex ${targetFrameIndex} is out of range`);
+    }
+
+    const nextData = new Map(targetFrame.data);
+    let cellsChanged = 0;
+
+    for (const { x, y, cell } of cmd.cells) {
+      const key = `${x},${y}`;
+      const previous = nextData.get(key);
+      const removesCell = cell.char === ' '
+        && cell.color === '#FFFFFF'
+        && cell.bgColor === 'transparent';
+
+      if (removesCell) {
+        if (nextData.delete(key)) {
+          cellsChanged += 1;
+        }
+        continue;
+      }
+
+      if (
+        !previous
+        || previous.char !== cell.char
+        || previous.color !== cell.color
+        || previous.bgColor !== cell.bgColor
+      ) {
+        nextData.set(key, { ...cell });
+        cellsChanged += 1;
+      }
+    }
+
+    timeline.updateContentFrameData(activeLayer.id, targetFrame.id, nextData);
+
+    const currentContentFrame = getContentFrameAtTime(activeLayer, timeline.view.currentFrame);
+    if (currentContentFrame?.id === targetFrame.id) {
+      canvas.setActiveLayerId(activeLayer.id);
+      canvas.setCanvasData(nextData);
+      canvas.setDirty(false);
+    }
+
+    return {
+      currentFrameIndex: targetFrameIndex,
+      cellsChanged,
+    };
   }
 
   private handleClearCell(cmd: { x: number; y: number }): void {
@@ -1029,8 +1192,117 @@ export class MCPClient {
     useAnimationStore.getState().goToFrame(cmd.index);
   }
 
-  private handleSetFrameDuration(cmd: { index: number; duration: number }): void {
-    useAnimationStore.getState().updateFrameDuration(cmd.index, cmd.duration);
+  private handleSetFrameDuration(cmd: { index: number; duration: number }): MCPCommandApplied {
+    if (!Number.isInteger(cmd.index) || cmd.index < 0) {
+      throw new Error('set_frame_duration index must be a non-negative integer');
+    }
+    if (!Number.isFinite(cmd.duration) || cmd.duration <= 0) {
+      throw new Error('set_frame_duration duration must be greater than zero');
+    }
+
+    this.flushCanvasToActiveContentFrame();
+
+    const timeline = useTimelineStore.getState();
+    const activeLayer = timeline.layers.find((layer) => layer.id === timeline.view.activeLayerId)
+      ?? timeline.layers[0];
+    if (!activeLayer) {
+      throw new Error('set_frame_duration requires an active layer');
+    }
+
+    const targetFrame = activeLayer.contentFrames[cmd.index];
+    if (!targetFrame) {
+      throw new Error(`set_frame_duration index ${cmd.index} is out of range`);
+    }
+
+    const durationFrames = Math.round(cmd.duration / (1000 / timeline.config.frameRate));
+    if (!Number.isSafeInteger(durationFrames) || durationFrames < 1) {
+      throw new Error('set_frame_duration does not map to a valid timeline duration');
+    }
+
+    const delta = durationFrames - targetFrame.durationFrames;
+    const nextContentFrames = activeLayer.contentFrames.map((frame, index) => {
+      if (index < cmd.index) {
+        return frame;
+      }
+      if (index === cmd.index) {
+        return { ...frame, durationFrames };
+      }
+      return { ...frame, startFrame: frame.startFrame + delta };
+    });
+
+    let previousEnd = 0;
+    for (const [index, frame] of nextContentFrames.entries()) {
+      if (
+        !Number.isSafeInteger(frame.startFrame)
+        || !Number.isSafeInteger(frame.durationFrames)
+        || frame.startFrame < 0
+        || frame.durationFrames < 1
+        || (index > 0 && frame.startFrame < previousEnd)
+      ) {
+        throw new Error('set_frame_duration would create invalid or overlapping content frames');
+      }
+      previousEnd = frame.startFrame + frame.durationFrames;
+    }
+
+    const nextTimelineDuration = timeline.config.durationFrames + delta;
+    const otherLayerEnd = timeline.layers
+      .filter((layer) => layer.id !== activeLayer.id)
+      .flatMap((layer) => layer.contentFrames)
+      .reduce(
+        (maxEnd, frame) => Math.max(maxEnd, frame.startFrame + frame.durationFrames),
+        0,
+      );
+    const activeLayerEnd = nextContentFrames.reduce(
+      (maxEnd, frame) => Math.max(maxEnd, frame.startFrame + frame.durationFrames),
+      0,
+    );
+
+    if (
+      !Number.isSafeInteger(nextTimelineDuration)
+      || nextTimelineDuration < 1
+      || activeLayerEnd > nextTimelineDuration
+      || otherLayerEnd > nextTimelineDuration
+    ) {
+      throw new Error('set_frame_duration would create an invalid timeline duration');
+    }
+
+    useTimelineStore.setState((state) => ({
+      layers: state.layers.map((layer) => (
+        layer.id === activeLayer.id
+          ? { ...layer, contentFrames: nextContentFrames }
+          : layer
+      )),
+      config: {
+        ...state.config,
+        durationFrames: nextTimelineDuration,
+        durationMs: (nextTimelineDuration / state.config.frameRate) * 1000,
+      },
+    }));
+
+    this.syncCanvasToCurrentContentFrame();
+
+    return {
+      currentFrameIndex: cmd.index,
+      durationMs: durationFrames * (1000 / timeline.config.frameRate),
+    };
+  }
+
+  private handleSetFrameRate(cmd: { fps: number }): MCPCommandApplied {
+    if (!Number.isFinite(cmd.fps) || cmd.fps <= 0) {
+      throw new Error('set_frame_rate fps must be greater than zero');
+    }
+
+    useTimelineStore.getState().setFrameRate(cmd.fps, false);
+    const applied = useTimelineStore.getState().config;
+
+    if (applied.frameRate !== cmd.fps) {
+      throw new Error(`set_frame_rate failed to apply ${cmd.fps} fps`);
+    }
+
+    return {
+      frameRate: applied.frameRate,
+      durationMs: applied.durationMs,
+    };
   }
 
   private handleSetFrameData(cmd: { index: number; cells: Array<{ key: string; cell: Cell }> }): void {
@@ -1073,11 +1345,15 @@ export class MCPClient {
     useSelectionStore.getState().clearSelection();
   }
 
-  private handleLoadProject(_cmd: { sessionData: unknown }): void {
-    // This would need to integrate with the session importer
-    // For now, log a warning
-    console.warn('[MCP] load_project command received, but session import is not yet implemented in MCP client');
-    // TODO: Integrate with sessionImporter.ts
+  private async handleLoadProject(cmd: { sessionData: unknown }): Promise<MCPCommandApplied> {
+    await SessionImporter.importSessionData(cmd.sessionData);
+
+    const timeline = useTimelineStore.getState();
+    return {
+      currentFrameIndex: timeline.view.currentFrame,
+      frameRate: timeline.config.frameRate,
+      durationMs: timeline.config.durationMs,
+    };
   }
 
   private handleSetForegroundColor(cmd: { color: string }): void {

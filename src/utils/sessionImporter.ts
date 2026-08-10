@@ -13,6 +13,7 @@ import type { TypographySettings } from './canvasSizeConversion';
 import type { ColorPalette, CharacterPalette, CharacterMappingSettings } from '../types/palette';
 import { isColorPalette, isCharacterPalette } from '../types/palette';
 import { detectSessionVersion, migrateV1ToV2, validateAndRepairV2 } from './sessionMigration';
+import { getContentFrameAtTime } from './layerCompositing';
 
 type SessionFrameCells = Record<string, Cell>;
 
@@ -72,6 +73,18 @@ interface SessionImportData {
   characterPalettes?: SessionCharacterPalettesData;
 }
 
+interface TypographyCallbacks {
+  setFontSize: (size: number) => void;
+  setCharacterSpacing: (spacing: number) => void;
+  setLineSpacing: (spacing: number) => void;
+  setSelectedFontId?: (fontId: string) => void;
+}
+
+interface InstalledSessionCanvas {
+  activeLayerId: LayerId | null;
+  cells: Map<string, Cell>;
+}
+
 /**
  * Session Import Utility
  * Handles loading and restoring session data from .asciimtn files
@@ -82,69 +95,71 @@ export class SessionImporter {
    * Import session data from a JSON file
    */
   static async importSessionFile(
-    file: File, 
-    typographyCallbacks?: {
-      setFontSize: (size: number) => void;
-      setCharacterSpacing: (spacing: number) => void;
-      setLineSpacing: (spacing: number) => void;
-      setSelectedFontId?: (fontId: string) => void;
-    }
+    file: File,
+    typographyCallbacks?: TypographyCallbacks,
   ): Promise<void> {
-    return new Promise((resolve, reject) => {
+    const content = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
-      
+
       reader.onload = (event) => {
-        try {
-          const content = event.target?.result as string;
-          const rawData = JSON.parse(content) as unknown;
-          
-          // Detect session format version
-          const version = detectSessionVersion(rawData);
-          
-          if (version === '2.0.0') {
-            // V2: Validate, repair, and load layer data directly
-            const { data: repairedData, repairs } = validateAndRepairV2(rawData as SessionDataV2);
-            if (repairs.length > 0) {
-              console.warn(`Session import: ${repairs.length} repairs applied:`, repairs);
-            }
-            SessionImporter.restoreSessionDataV2(repairedData, typographyCallbacks);
-          } else if (version === '1.0.0') {
-            // V1: Migrate to v2 format and load into timeline
-            // All projects are forced into timeline mode (no legacy frame path)
-            console.log('Migrating v1 session to v2 timeline format...');
-            const migrated = migrateV1ToV2(rawData);
-            const { data: repairedData, repairs } = validateAndRepairV2(migrated);
-            if (repairs.length > 0) {
-              console.warn(`Session v1→v2 migration: ${repairs.length} repairs applied:`, repairs);
-            }
-            SessionImporter.restoreSessionDataV2(repairedData, typographyCallbacks);
-          } else {
-            // Unknown: Attempt v1→v2 migration as fallback
-            try {
-              const migrated = migrateV1ToV2(rawData);
-              const { data: repairedData, repairs } = validateAndRepairV2(migrated);
-              if (repairs.length > 0) {
-                console.warn(`Session migration: ${repairs.length} repairs applied:`, repairs);
-              }
-              SessionImporter.restoreSessionDataV2(repairedData, typographyCallbacks);
-              console.log('Session imported via v1→v2 migration fallback');
-            } catch {
-              throw new Error('Unknown session file format');
-            }
-          }
-          
-          resolve();
-        } catch (error) {
-          reject(new Error(`Failed to import session: ${error instanceof Error ? error.message : 'Unknown error'}`));
+        if (typeof event.target?.result !== 'string') {
+          reject(new Error('Failed to read file'));
+          return;
         }
+
+        resolve(event.target.result);
       };
-      
+
       reader.onerror = () => {
         reject(new Error('Failed to read file'));
       };
-      
+
       reader.readAsText(file);
     });
+
+    let rawData: unknown;
+    try {
+      rawData = JSON.parse(content) as unknown;
+    } catch (error) {
+      throw new Error(`Failed to import session: ${error instanceof Error ? error.message : 'Invalid JSON'}`);
+    }
+
+    await SessionImporter.importSessionData(rawData, typographyCallbacks);
+  }
+
+  /**
+   * Import already-parsed session data and resolve only after every store,
+   * including the active canvas, reflects the loaded project.
+   */
+  static async importSessionData(
+    rawData: unknown,
+    typographyCallbacks?: TypographyCallbacks,
+  ): Promise<void> {
+    try {
+      const version = detectSessionVersion(rawData);
+      let sessionData: SessionDataV2;
+
+      if (version === '2.0.0') {
+        const { data, repairs } = validateAndRepairV2(rawData as SessionDataV2);
+        if (repairs.length > 0) {
+          console.warn(`Session import: ${repairs.length} repairs applied:`, repairs);
+        }
+        sessionData = data;
+      } else if (version === '1.0.0') {
+        const migrated = migrateV1ToV2(rawData);
+        const { data, repairs } = validateAndRepairV2(migrated);
+        if (repairs.length > 0) {
+          console.warn(`Session v1->v2 migration: ${repairs.length} repairs applied:`, repairs);
+        }
+        sessionData = data;
+      } else {
+        throw new Error('Unknown session file format');
+      }
+
+      await SessionImporter.restoreSessionDataV2(sessionData, typographyCallbacks);
+    } catch (error) {
+      throw new Error(`Failed to import session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
   
   /**
@@ -412,15 +427,39 @@ export class SessionImporter {
    * Loads layers into timelineStore, canvas settings into canvasStore,
    * and tool/palette/typography state into their respective stores.
    */
-  private static restoreSessionDataV2(
+  private static async restoreSessionDataV2(
     sessionData: SessionDataV2,
-    typographyCallbacks?: {
-      setFontSize: (size: number) => void;
-      setCharacterSpacing: (spacing: number) => void;
-      setLineSpacing: (spacing: number) => void;
-      setSelectedFontId?: (fontId: string) => void;
+    typographyCallbacks?: TypographyCallbacks,
+  ): Promise<void> {
+    const animationStore = useAnimationStore.getState();
+    animationStore.setImportingSession(true);
+
+    try {
+      const installedCanvas = SessionImporter.installSessionDataV2(
+        sessionData,
+        typographyCallbacks,
+      );
+
+      // Preserve the import guard across a render boundary. This lets
+      // useFrameSynchronization observe the temporary null active layer and
+      // prevents it from flushing a pre-import layer into loaded data when IDs
+      // collide during a round-trip import.
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+      useTimelineStore.getState().setActiveLayer(installedCanvas.activeLayerId);
+      const canvasStore = useCanvasStore.getState();
+      canvasStore.setActiveLayerId(installedCanvas.activeLayerId);
+      canvasStore.setCanvasData(installedCanvas.cells);
+      canvasStore.setDirty(false);
+    } finally {
+      animationStore.setImportingSession(false);
     }
-  ): void {
+  }
+
+  private static installSessionDataV2(
+    sessionData: SessionDataV2,
+    typographyCallbacks?: TypographyCallbacks,
+  ): InstalledSessionCanvas {
     const canvasStore = useCanvasStore.getState();
     const toolStore = useToolStore.getState();
     const paletteStore = usePaletteStore.getState();
@@ -449,7 +488,6 @@ export class SessionImporter {
     // Guard: block auto-save during session import to prevent race conditions.
     // Must be set BEFORE clearCanvas() to prevent the auto-save subscription from
     // scheduling saves during the import window.
-    animationStore.setImportingSession(true);
     canvasStore.clearCanvas();
 
     // Deserialize layers: convert Record<string, Cell> back to Map<string, Cell>
@@ -622,20 +660,6 @@ export class SessionImporter {
       postEffectTracksData,
     );
 
-    // Force activeLayerId change: null → layers[0].id
-    // This guarantees the layer-switch useEffect in useFrameSynchronization
-    // fires on EVERY load (first or repeat) because the layer ID always changes.
-    // The effect will load the active layer's content frame into canvasStore.
-    const activeId = layers.length > 0 ? layers[0].id : null;
-    timelineStore.setActiveLayer(null as unknown as LayerId);
-    // Defer the real activation so React sees the null → id transition
-    setTimeout(() => {
-      if (activeId) {
-        timelineStore.setActiveLayer(activeId);
-      }
-      animationStore.setImportingSession(false);
-    }, 0);
-
     // Restore tool state
     const tools = sessionData.tools as Record<string, unknown> | undefined;
     if (tools) {
@@ -703,6 +727,27 @@ export class SessionImporter {
         typographyCallbacks.setSelectedFontId(fontId);
       }
     }
+
+    animationStore.setCurrentFrame(0);
+
+    const restoredTimeline = useTimelineStore.getState();
+    const activeLayer = restoredTimeline.layers.find(
+      (layer) => layer.id === restoredTimeline.view.activeLayerId,
+    ) ?? restoredTimeline.layers[0];
+    const activeFrame = activeLayer
+      ? getContentFrameAtTime(activeLayer, restoredTimeline.view.currentFrame)
+      : null;
+    const installedCanvas: InstalledSessionCanvas = {
+      activeLayerId: activeLayer?.id ?? null,
+      cells: activeFrame ? new Map(activeFrame.data) : new Map<string, Cell>(),
+    };
+
+    timelineStore.setActiveLayer(null);
+    canvasStore.setActiveLayerId(null);
+    canvasStore.setCanvasData(installedCanvas.cells);
+    canvasStore.setDirty(false);
+
+    return installedCanvas;
   }
 }
 
@@ -711,13 +756,8 @@ export class SessionImporter {
  */
 export const useSessionImporter = () => {
   const importSession = async (
-    file: File, 
-    typographyCallbacks?: {
-      setFontSize: (size: number) => void;
-      setCharacterSpacing: (spacing: number) => void;
-      setLineSpacing: (spacing: number) => void;
-      setSelectedFontId?: (fontId: string) => void;
-    }
+    file: File,
+    typographyCallbacks?: TypographyCallbacks,
   ): Promise<void> => {
     try {
       await SessionImporter.importSessionFile(file, typographyCallbacks);
