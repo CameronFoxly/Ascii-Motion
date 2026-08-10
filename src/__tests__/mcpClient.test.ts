@@ -401,7 +401,7 @@ describe('MCPClient acknowledged commands', () => {
     });
   });
 
-  it('reflows later content frames and timeline duration for legacy frame duration changes', async () => {
+  it('reflows later frames and the playhead while preserving visible content', async () => {
     const timeline = useTimelineStore.getState();
     timeline.setFrameRate(10, false);
     const layer = timeline.layers[0];
@@ -409,8 +409,9 @@ describe('MCPClient acknowledged commands', () => {
     timeline.addContentFrame(layer.id, 2, 2, new Map([['0,0', cell('B')]]));
     timeline.addContentFrame(layer.id, 4, 2, new Map([['0,0', cell('C')]]));
     timeline.setDuration(6);
+    timeline.goToFrame(4);
     useCanvasStore.getState().setActiveLayerId(layer.id);
-    useCanvasStore.getState().setCanvasData(new Map([['0,0', cell('A')]]));
+    useCanvasStore.getState().setCanvasData(new Map([['0,0', cell('C')]]));
     const socket = await connected();
 
     const result = await sendCommand(socket, {
@@ -436,9 +437,41 @@ describe('MCPClient acknowledged commands', () => {
       durationFrames: 7,
       durationMs: 700,
     });
+    expect(applied.view.currentFrame).toBe(5);
+    expect(useCanvasStore.getState().cells.get('0,0')).toEqual(cell('C'));
     expect(result).toMatchObject({
       success: true,
-      applied: { currentFrameIndex: 0, durationMs: 300 },
+      applied: { currentFrameIndex: 5, durationMs: 300 },
+    });
+  });
+
+  it('clamps a playhead that falls beyond a shortened content frame', async () => {
+    const timeline = useTimelineStore.getState();
+    timeline.setFrameRate(10, false);
+    const layer = timeline.layers[0];
+    timeline.updateContentFrameTiming(layer.id, layer.contentFrames[0].id, 0, 3);
+    timeline.setDuration(3);
+    timeline.goToFrame(2);
+    useCanvasStore.getState().setActiveLayerId(layer.id);
+    useCanvasStore.getState().setCanvasData(new Map([['0,0', cell('A')]]));
+    const socket = await connected();
+
+    const result = await sendCommand(socket, {
+      type: 'command_request',
+      requestId: 'shorten-duration',
+      command: {
+        type: 'set_frame_duration',
+        index: 0,
+        duration: 100,
+      },
+    });
+
+    expect(useTimelineStore.getState().view.currentFrame).toBe(0);
+    expect(useTimelineStore.getState().config.durationFrames).toBe(1);
+    expect(useCanvasStore.getState().cells.get('0,0')).toEqual(cell('A'));
+    expect(result).toMatchObject({
+      success: true,
+      applied: { currentFrameIndex: 0, durationMs: 100 },
     });
   });
 
@@ -532,5 +565,95 @@ describe('MCPClient acknowledged commands', () => {
       success: false,
       error: 'Failed to import session: Unknown session file format',
     });
+  });
+
+  it('rejects malformed v2 data before mutating any project store', async () => {
+    const timeline = useTimelineStore.getState();
+    const layer = timeline.layers[0];
+    timeline.updateContentFrameData(layer.id, layer.contentFrames[0].id, new Map([
+      ['4,4', cell('O')],
+    ]));
+    useCanvasStore.setState({
+      width: 50,
+      height: 20,
+      cells: new Map([['4,4', cell('O')]]),
+      canvasBackgroundColor: '#303030',
+      showGrid: false,
+      activeLayerId: layer.id,
+      isDirty: false,
+    });
+    useProjectMetadataStore.setState({
+      projectName: 'Original Project',
+      projectDescription: 'Must survive a rejected load',
+      currentProjectId: 'original-project-id',
+    });
+
+    const before = {
+      metadata: {
+        projectName: useProjectMetadataStore.getState().projectName,
+        projectDescription: useProjectMetadataStore.getState().projectDescription,
+        currentProjectId: useProjectMetadataStore.getState().currentProjectId,
+      },
+      canvas: {
+        width: useCanvasStore.getState().width,
+        height: useCanvasStore.getState().height,
+        cells: Array.from(useCanvasStore.getState().cells.entries()),
+        canvasBackgroundColor: useCanvasStore.getState().canvasBackgroundColor,
+        showGrid: useCanvasStore.getState().showGrid,
+        activeLayerId: useCanvasStore.getState().activeLayerId,
+        isDirty: useCanvasStore.getState().isDirty,
+      },
+      timeline: useTimelineStore.getState().getSessionData(),
+      isImportingSession: useAnimationStore.getState().isImportingSession,
+    };
+
+    const mutation = vi.fn();
+    const unsubscribe = [
+      useProjectMetadataStore.subscribe(mutation),
+      useCanvasStore.subscribe(mutation),
+      useTimelineStore.subscribe(mutation),
+      useAnimationStore.subscribe(mutation),
+    ];
+
+    const malformed = makeV2Session();
+    (malformed.layers[0] as unknown as Record<string, unknown>).propertyTracks = undefined;
+
+    const socket = await connected();
+    const result = await sendCommand(socket, {
+      type: 'command_request',
+      requestId: 'load-malformed-v2',
+      command: {
+        type: 'load_project',
+        sessionData: malformed,
+      },
+    });
+
+    unsubscribe.forEach((unsubscribeStore) => unsubscribeStore());
+
+    expect(result).toEqual({
+      type: 'command_result',
+      requestId: 'load-malformed-v2',
+      success: false,
+      error: 'Failed to import session: Invalid v2 session: session.layers[0].propertyTracks must be an array',
+    });
+    expect(mutation).not.toHaveBeenCalled();
+    expect({
+      metadata: {
+        projectName: useProjectMetadataStore.getState().projectName,
+        projectDescription: useProjectMetadataStore.getState().projectDescription,
+        currentProjectId: useProjectMetadataStore.getState().currentProjectId,
+      },
+      canvas: {
+        width: useCanvasStore.getState().width,
+        height: useCanvasStore.getState().height,
+        cells: Array.from(useCanvasStore.getState().cells.entries()),
+        canvasBackgroundColor: useCanvasStore.getState().canvasBackgroundColor,
+        showGrid: useCanvasStore.getState().showGrid,
+        activeLayerId: useCanvasStore.getState().activeLayerId,
+        isDirty: useCanvasStore.getState().isDirty,
+      },
+      timeline: useTimelineStore.getState().getSessionData(),
+      isImportingSession: useAnimationStore.getState().isImportingSession,
+    }).toEqual(before);
   });
 });

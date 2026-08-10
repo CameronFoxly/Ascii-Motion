@@ -1266,6 +1266,20 @@ export class MCPClient {
       throw new Error('set_frame_duration would create an invalid timeline duration');
     }
 
+    const oldTargetEnd = targetFrame.startFrame + targetFrame.durationFrames;
+    const newTargetEnd = targetFrame.startFrame + durationFrames;
+    let nextCurrentFrame = timeline.view.currentFrame;
+
+    if (nextCurrentFrame >= oldTargetEnd) {
+      nextCurrentFrame += delta;
+    } else if (nextCurrentFrame >= newTargetEnd) {
+      nextCurrentFrame = newTargetEnd - 1;
+    }
+    nextCurrentFrame = Math.max(
+      0,
+      Math.min(nextCurrentFrame, nextTimelineDuration - 1),
+    );
+
     useTimelineStore.setState((state) => ({
       layers: state.layers.map((layer) => (
         layer.id === activeLayer.id
@@ -1277,12 +1291,16 @@ export class MCPClient {
         durationFrames: nextTimelineDuration,
         durationMs: (nextTimelineDuration / state.config.frameRate) * 1000,
       },
+      view: {
+        ...state.view,
+        currentFrame: nextCurrentFrame,
+      },
     }));
 
     this.syncCanvasToCurrentContentFrame();
 
     return {
-      currentFrameIndex: cmd.index,
+      currentFrameIndex: nextCurrentFrame,
       durationMs: durationFrames * (1000 / timeline.config.frameRate),
     };
   }
