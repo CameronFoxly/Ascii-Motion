@@ -1,12 +1,40 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "2.1.8";
-export const BUILD_DATE = "2026-05-12T19:05:36.647Z";
-export const BUILD_HASH = "16c6971";
+export const VERSION = "2.2.0";
+export const BUILD_DATE = "2026-08-11T18:27:15.292Z";
+export const BUILD_HASH = "79e0117";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "2.2.0",
+    "date": "2026-08-11T18:27:15.292Z",
+    "commits": [
+      "Merge pull request #157 from CameronFoxly/cameronfoxly-atomic-browser-navigation",
+      "Merge pull request #156 from CameronFoxly/cameronfoxly-browser-mcp-acknowledgements",
+      "test: cover timeline-frame batch acknowledgement",
+      "fix: make MCP frame navigation atomic",
+      "fix: report batch timeline position",
+      "fix: preserve MCP duration and load state",
+      "feat: acknowledge browser MCP commands",
+      "Preserve media import preview frame on setting edits (#147)",
+      "chore(deps-dev): bump js-yaml from 4.1.1 to 4.2.0 (#143)",
+      "chore(deps): bump esbuild, @vitejs/plugin-react and vite (#142)",
+      "fix: unbreak production build and deploy after tooling bumps",
+      "chore(deps): bump esbuild, @vitejs/plugin-react, tsx and vite (#140)",
+      "Fix blank/uneditable frame after splitting a content frame (#139)",
+      "chore(deps): bump shell-quote in /dev-tools/opentui-test-cli (#138)",
+      "chore(deps): bump ws from 8.19.0 to 8.21.0 in /dev-tools/ink-test-cli (#137)",
+      "chore(deps): bump ws in /dev-tools/opentui-test-cli (#136)",
+      "chore(deps-dev): bump vitest from 4.0.18 to 4.1.0 (#132)",
+      "chore(deps): bump react-router and react-router-dom (#133)",
+      "chore(deps-dev): bump hono from 4.12.18 to 4.12.23 (#135)",
+      "chore(deps): bump ws from 8.18.3 to 8.21.0 (#134)",
+      "chore(deps-dev): bump qs from 6.15.0 to 6.15.2 (#131)",
+      "fix: remove unused timelineConfig variable"
+    ]
+  },
   {
     "version": "2.1.8",
     "date": "2026-05-12T19:05:36.647Z",
