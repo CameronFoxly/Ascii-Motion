@@ -325,7 +325,7 @@ describe('MCPClient acknowledged commands', () => {
     const afterInactive = useTimelineStore.getState().layers[0];
     expect(inactiveResult).toMatchObject({
       success: true,
-      applied: { currentFrameIndex: 1, cellsChanged: 1 },
+      applied: { currentFrameIndex: 0, cellsChanged: 1 },
     });
     expect(afterInactive.contentFrames[1].data.get('1,0')).toEqual(cell('I'));
     expect(useCanvasStore.getState().cells.get('1,0')).toBeUndefined();
@@ -346,6 +346,37 @@ describe('MCPClient acknowledged commands', () => {
     });
     expect(useTimelineStore.getState().layers[0].contentFrames[0].data.get('2,0')).toEqual(cell('C'));
     expect(useCanvasStore.getState().cells.get('2,0')).toEqual(cell('C'));
+  });
+
+  it('reports the timeline playhead for a targetless batch', async () => {
+    const timeline = useTimelineStore.getState();
+    const layer = timeline.layers[0];
+    const firstFrame = layer.contentFrames[0];
+    timeline.setDuration(6);
+    expect(timeline.updateContentFrameTiming(layer.id, firstFrame.id, 0, 5)).toBe(true);
+    timeline.addContentFrame(layer.id, 5, 1, new Map([
+      ['0,0', cell('B')],
+    ]));
+    timeline.goToFrame(5);
+    useCanvasStore.getState().setActiveLayerId(layer.id);
+    useCanvasStore.getState().setCanvasData(new Map([['0,0', cell('B')]]));
+
+    const socket = await connected();
+    const result = await sendCommand(socket, {
+      type: 'command_request',
+      requestId: 'targetless-batch',
+      command: {
+        type: 'set_cells_batch',
+        cells: [{ x: 1, y: 0, cell: cell('T') }],
+      },
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      applied: { currentFrameIndex: 5, cellsChanged: 1 },
+    });
+    expect(useTimelineStore.getState().layers[0].contentFrames[1].data.get('1,0')).toEqual(cell('T'));
+    expect(useCanvasStore.getState().cells.get('1,0')).toEqual(cell('T'));
   });
 
   it('returns one correlated failure without partially applying an invalid batch', async () => {

@@ -1152,7 +1152,7 @@ export class MCPClient {
     }
 
     return {
-      currentFrameIndex: targetFrameIndex,
+      currentFrameIndex: timeline.view.currentFrame,
       cellsChanged,
     };
   }
