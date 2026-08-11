@@ -19,6 +19,7 @@ export type MCPCommand =
   | MCPDeleteFrameCommand
   | MCPGoToFrameCommand
   | MCPSetFrameDurationCommand
+  | MCPSetFrameRateCommand
   | MCPSetFrameDataCommand
   | MCPUndoCommand
   | MCPRedoCommand
@@ -46,6 +47,7 @@ export interface MCPSetCellCommand {
 export interface MCPSetCellsBatchCommand {
   type: 'set_cells_batch';
   cells: Array<{ x: number; y: number; cell: Cell }>;
+  frameIndex?: number;
 }
 
 export interface MCPClearCellCommand {
@@ -86,6 +88,11 @@ export interface MCPSetFrameDurationCommand {
   type: 'set_frame_duration';
   index: number;
   duration: number;
+}
+
+export interface MCPSetFrameRateCommand {
+  type: 'set_frame_rate';
+  fps: number;
 }
 
 export interface MCPSetFrameDataCommand {
@@ -213,7 +220,8 @@ export interface MCPMessage {
 export type MCPClientMessage =
   | MCPClientAuth
   | MCPClientHeartbeat
-  | MCPClientStateSnapshot;
+  | MCPClientStateSnapshot
+  | MCPCommandResult;
 
 export interface MCPClientAuth {
   type: 'auth';
@@ -287,10 +295,40 @@ export interface MCPExportResult {
 }
 
 /**
+ * Authoritative acknowledged command request sent by the MCP server.
+ */
+export interface MCPCommandRequest {
+  type: 'command_request';
+  requestId: string;
+  command: MCPCommand;
+}
+
+export interface MCPCommandApplied {
+  currentFrameIndex?: number;
+  cellsChanged?: number;
+  frameRate?: number;
+  durationMs?: number;
+}
+
+export type MCPCommandResult =
+  | {
+      type: 'command_result';
+      requestId: string;
+      success: true;
+      applied?: MCPCommandApplied;
+    }
+  | {
+      type: 'command_result';
+      requestId: string;
+      success: false;
+      error: string;
+    };
+
+/**
  * Server responses
  */
 export interface MCPServerMessage {
-  type: 'auth_result' | 'command' | 'state_request' | 'export_request' | 'error';
+  type: 'auth_result' | 'command' | 'command_request' | 'state_request' | 'export_request' | 'error';
   success?: boolean;
   error?: string;
   command?: MCPCommand;
