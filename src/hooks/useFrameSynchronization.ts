@@ -6,6 +6,7 @@ import { useToolStore } from '../stores/toolStore';
 import { useSelectionStore } from '../stores/selectionStore';
 import { getContentFrameAtTime } from '../utils/layerCompositing';
 import type { Cell } from '../types';
+import { registerAtomicFrameNavigator } from '../mcp/frameNavigation';
 
 /**
  * Hook that manages synchronization between canvas state and animation frames.
@@ -95,12 +96,25 @@ export const useFrameSynchronization = (
   const isLoadingFrameRef = useRef<boolean>(false);
   const frameWasEmptyOnLoadRef = useRef<boolean>(false);
   const lastActiveLayerIdRef = useRef<string | null>(activeLayerId);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep refs in sync for use in non-reactive callbacks
   const effectiveFrameIndexRef = useRef(effectiveFrameIndex);
   effectiveFrameIndexRef.current = effectiveFrameIndex;
   const setFrameDataRef = useRef(setFrameData);
   setFrameDataRef.current = setFrameData;
+
+  const installFrameData = useCallback((frameData?: Map<string, Cell>) => {
+    const nextCells = frameData && frameData.size > 0
+      ? new Map(frameData)
+      : new Map<string, Cell>();
+    setCanvasData(nextCells);
+
+    const installedCells = useCanvasStore.getState().cells;
+    cellsRef.current = installedCells;
+    lastCellsRef.current = installedCells;
+    frameWasEmptyOnLoadRef.current = installedCells.size === 0;
+  }, [setCanvasData]);
 
   // ── Layer-switch sync ──
   // When the active layer changes, flush canvas to the old layer's content frame
@@ -132,21 +146,85 @@ export const useFrameSynchronization = (
     const newLayer = tl.layers.find((l) => l.id === activeLayerId);
     if (newLayer) {
       const newCf = getContentFrameAtTime(newLayer, frame);
-      if (newCf && newCf.data.size > 0) {
-        setCanvasData(new Map(newCf.data));
-        lastCellsRef.current = new Map(newCf.data);
-      } else {
-        setCanvasData(new Map());
-        lastCellsRef.current = new Map();
-      }
+      installFrameData(newCf?.data);
+      useCanvasStore.getState().setActiveLayerId(newLayer.id);
     } else {
-      setCanvasData(new Map());
-      lastCellsRef.current = new Map();
+      installFrameData();
+      useCanvasStore.getState().setActiveLayerId(null);
     }
+    useCanvasStore.getState().setDirty(false);
     setTimeout(() => { isLoadingFrameRef.current = false; }, 0);
 
     lastActiveLayerIdRef.current = activeLayerId;
-  }, [activeLayerId, isLayerMode, isPlaying, isImportingSession, setCanvasData]);
+  }, [activeLayerId, isLayerMode, isPlaying, isImportingSession, installFrameData]);
+
+  const commitPendingMove = useCallback((fallbackCells: Map<string, Cell>): Map<string, Cell> => {
+    if (!moveStateParam || !setMoveStateParam) {
+      return fallbackCells;
+    }
+
+    const totalOffset = {
+      x: moveStateParam.baseOffset.x + moveStateParam.currentOffset.x,
+      y: moveStateParam.baseOffset.y + moveStateParam.currentOffset.y
+    };
+    const newCells = new Map(cellsRef.current);
+    const originalKeys = moveStateParam.originalPositions ?? new Set(moveStateParam.originalData.keys());
+    originalKeys.forEach((key) => {
+      newCells.delete(key);
+    });
+
+    const updatedSelectionMask = new Set<string>();
+    moveStateParam.originalData.forEach((cell, key) => {
+      const [origX, origY] = key.split(',').map(Number);
+      const newX = origX + totalOffset.x;
+      const newY = origY + totalOffset.y;
+
+      if (newX >= 0 && newX < widthRef.current && newY >= 0 && newY < heightRef.current) {
+        newCells.set(`${newX},${newY}`, cell);
+        updatedSelectionMask.add(`${newX},${newY}`);
+      }
+    });
+
+    const toolStore = useToolStore.getState();
+    const activeSelection = toolStore.selection.active ? toolStore.selection.selectedCells
+      : (toolStore.lassoSelection.active ? toolStore.lassoSelection.selectedCells
+      : (toolStore.magicWandSelection.active ? toolStore.magicWandSelection.selectedCells : null));
+
+    if (activeSelection) {
+      activeSelection.forEach((key) => {
+        const [origX, origY] = key.split(',').map(Number);
+        const newX = origX + totalOffset.x;
+        const newY = origY + totalOffset.y;
+        if (newX >= 0 && newX < widthRef.current && newY >= 0 && newY < heightRef.current) {
+          updatedSelectionMask.add(`${newX},${newY}`);
+        }
+      });
+    }
+
+    setCanvasData(newCells);
+
+    if (updatedSelectionMask.size > 0) {
+      const { activeTool } = toolStore;
+      toolStore.clearSelection();
+      toolStore.clearLassoSelection();
+      toolStore.clearMagicWandSelection();
+
+      if (activeTool === 'select') {
+        toolStore.setSelectionFromMask(updatedSelectionMask);
+      } else if (activeTool === 'lasso') {
+        toolStore.setLassoSelectionFromMask(updatedSelectionMask, []);
+      } else if (activeTool === 'magicwand') {
+        toolStore.setMagicWandSelectionFromMask(updatedSelectionMask);
+      } else {
+        toolStore.setSelectionFromMask(updatedSelectionMask);
+      }
+
+      useSelectionStore.getState().setSelection(updatedSelectionMask);
+    }
+
+    setMoveStateParam(null);
+    return newCells;
+  }, [moveStateParam, setMoveStateParam, setCanvasData]);
 
   // Auto-save current canvas to current frame whenever canvas changes
   const saveCurrentCanvasToFrame = useCallback(() => {
@@ -160,121 +238,98 @@ export const useFrameSynchronization = (
   // Load frame data into canvas when frame changes
   const loadFrameToCanvas = useCallback((frameIndex: number) => {
     isLoadingFrameRef.current = true;
-    
-    const frameData = getFrameData(frameIndex);
-    
-    if (frameData && frameData.size > 0) {
-      setCanvasData(frameData);
-      // Update the reference to prevent false auto-save triggers
-      lastCellsRef.current = new Map(frameData);
-      frameWasEmptyOnLoadRef.current = false;
-    } else {
-      // If frame has no data, clear canvas
-      setCanvasData(new Map());
-      // Update the reference to reflect the empty canvas
-      lastCellsRef.current = new Map();
-      frameWasEmptyOnLoadRef.current = true;
-    }
+    installFrameData(getFrameData(frameIndex));
     
     // Small delay to ensure canvas update completes
     setTimeout(() => {
       isLoadingFrameRef.current = false;
     }, 0);
-  }, [getFrameData, setCanvasData]);
+  }, [getFrameData, installFrameData]);
+
+  const navigateToFrameAtomically = useCallback(async (frameIndex: number): Promise<number> => {
+    const timeline = useTimelineStore.getState();
+    if (!Number.isInteger(frameIndex)) {
+      throw new Error('go_to_frame index must be an integer');
+    }
+    if (frameIndex < 0 || frameIndex >= timeline.config.durationFrames) {
+      throw new Error(
+        `go_to_frame index ${frameIndex} is out of range for ${timeline.config.durationFrames} timeline frames`,
+      );
+    }
+    if (isLoadingFrameRef.current) {
+      throw new Error('Frame synchronization is already in progress');
+    }
+
+    const requestedLayer = timeline.layers.find((layer) => layer.id === timeline.view.activeLayerId)
+      ?? timeline.layers[0];
+    if (!requestedLayer) {
+      throw new Error('go_to_frame requires an active layer');
+    }
+
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+
+    isLoadingFrameRef.current = true;
+    try {
+      const canvas = useCanvasStore.getState();
+      const installedLayerId = canvas.activeLayerId ?? lastActiveLayerIdRef.current;
+      const installedLayer = timeline.layers.find((layer) => layer.id === installedLayerId)
+        ?? requestedLayer;
+      const previousFrameIndex = lastFrameIndexRef.current;
+      const currentCells = commitPendingMove(new Map(cellsRef.current));
+      const previousContentFrame = getContentFrameAtTime(installedLayer, previousFrameIndex);
+      if (previousContentFrame) {
+        timeline.updateContentFrameData(
+          installedLayer.id,
+          previousContentFrame.id,
+          new Map(currentCells),
+        );
+      }
+
+      timeline.goToFrame(frameIndex);
+      const appliedTimeline = useTimelineStore.getState();
+      const confirmedFrameIndex = appliedTimeline.view.currentFrame;
+      if (confirmedFrameIndex !== frameIndex) {
+        throw new Error(
+          `go_to_frame applied frame ${confirmedFrameIndex} instead of requested frame ${frameIndex}`,
+        );
+      }
+
+      const appliedLayer = appliedTimeline.layers.find(
+        (layer) => layer.id === appliedTimeline.view.activeLayerId,
+      ) ?? appliedTimeline.layers[0];
+      if (!appliedLayer) {
+        throw new Error('go_to_frame target layer is unavailable');
+      }
+
+      const targetContentFrame = getContentFrameAtTime(appliedLayer, confirmedFrameIndex);
+      installFrameData(targetContentFrame?.data);
+      useCanvasStore.getState().setActiveLayerId(appliedLayer.id);
+      useCanvasStore.getState().setDirty(false);
+
+      lastFrameIndexRef.current = confirmedFrameIndex;
+      effectiveFrameIndexRef.current = confirmedFrameIndex;
+      lastActiveLayerIdRef.current = appliedLayer.id;
+      return confirmedFrameIndex;
+    } finally {
+      isLoadingFrameRef.current = false;
+    }
+  }, [commitPendingMove, installFrameData]);
+
+  useEffect(
+    () => registerAtomicFrameNavigator(navigateToFrameAtomically),
+    [navigateToFrameAtomically],
+  );
 
   // Handle frame switching
   useEffect(() => {
     const previousFrameIndex = lastFrameIndexRef.current;
     
     if (effectiveFrameIndex !== previousFrameIndex) {
-        // CRITICAL: Use the last known cells state, not current cells which may have already been updated
-      let currentCellsToSave = new Map(lastCellsRef.current);
-      
-      // Commit any pending move operations to the original frame before clearing state
-      if (moveStateParam && setMoveStateParam) {
-        const totalOffset = {
-          x: moveStateParam.baseOffset.x + moveStateParam.currentOffset.x,
-          y: moveStateParam.baseOffset.y + moveStateParam.currentOffset.y
-        };
-
-        // Create a new canvas data map with the moved cells
-        const newCells = new Map(cellsRef.current);
-
-        // Clear original positions
-        const originalKeys = moveStateParam.originalPositions ?? new Set(moveStateParam.originalData.keys());
-        originalKeys.forEach((key) => {
-          newCells.delete(key);
-        });
-
-        // Place cells at new positions AND build updated selection mask
-        const updatedSelectionMask = new Set<string>();
-        moveStateParam.originalData.forEach((cell, key) => {
-          const [origX, origY] = key.split(',').map(Number);
-          const newX = origX + totalOffset.x;
-          const newY = origY + totalOffset.y;
-          
-          // Only place if within bounds
-          if (newX >= 0 && newX < widthRef.current && newY >= 0 && newY < heightRef.current) {
-            newCells.set(`${newX},${newY}`, cell);
-            updatedSelectionMask.add(`${newX},${newY}`);
-          }
-        });
-        
-        // Also add any selected cells that weren't in originalData (empty cells in selection)
-        // We need to offset ALL selected cells, not just the ones with content
-        const toolStore = useToolStore.getState();
-        const activeSelection = toolStore.selection.active ? toolStore.selection.selectedCells 
-          : (toolStore.lassoSelection.active ? toolStore.lassoSelection.selectedCells 
-          : (toolStore.magicWandSelection.active ? toolStore.magicWandSelection.selectedCells : null));
-        
-        if (activeSelection) {
-          activeSelection.forEach((key) => {
-            const [origX, origY] = key.split(',').map(Number);
-            const newX = origX + totalOffset.x;
-            const newY = origY + totalOffset.y;
-            if (newX >= 0 && newX < widthRef.current && newY >= 0 && newY < heightRef.current) {
-              updatedSelectionMask.add(`${newX},${newY}`);
-            }
-          });
-        }
-
-        // Update the cells to save with the committed move
-        currentCellsToSave = newCells;
-        
-        // Update canvas data with committed move
-        setCanvasData(newCells);
-        
-        // Update selection positions to reflect the move
-        // IMPORTANT: Clear ALL tool selections first, then set current tool's selection
-        if (updatedSelectionMask.size > 0) {
-          const { activeTool } = toolStore;
-          
-          // Clear all tool selections first
-          toolStore.clearSelection();
-          toolStore.clearLassoSelection();
-          toolStore.clearMagicWandSelection();
-          
-          // Set the current tool's selection with updated positions
-          if (activeTool === 'select' || activeTool === 'lasso' || activeTool === 'magicwand') {
-            if (activeTool === 'select') {
-              toolStore.setSelectionFromMask(updatedSelectionMask);
-            } else if (activeTool === 'lasso') {
-              toolStore.setLassoSelectionFromMask(updatedSelectionMask, []);
-            } else if (activeTool === 'magicwand') {
-              toolStore.setMagicWandSelectionFromMask(updatedSelectionMask);
-            }
-          } else {
-            // If on a non-selection tool, default to rect selection
-            toolStore.setSelectionFromMask(updatedSelectionMask);
-          }
-          
-          // Update global selection store
-          useSelectionStore.getState().setSelection(updatedSelectionMask);
-        }
-        
-        // Clear move state after committing
-        setMoveStateParam(null);
-      }
+      // CRITICAL: Use the last known cells state, not current cells which may have already been updated
+      const currentCellsToSave = commitPendingMove(new Map(lastCellsRef.current));
       
       // PERSISTENT SELECTION: Selections now persist across frame changes
       // The selection coordinates remain the same - they represent a "region of interest"
@@ -307,7 +362,7 @@ export const useFrameSynchronization = (
       
       lastFrameIndexRef.current = effectiveFrameIndex;
     }
-  }, [effectiveFrameIndex, setFrameData, getFrameData, loadFrameToCanvas, isPlaying, isDraggingFrame, isDeletingFrame, isImportingSession, isProcessingHistory, moveStateParam, setMoveStateParam, setCanvasData]);
+  }, [effectiveFrameIndex, setFrameData, getFrameData, loadFrameToCanvas, isPlaying, isDraggingFrame, isDeletingFrame, isImportingSession, isProcessingHistory, commitPendingMove]);
 
   // PERF FIX: Auto-save via non-reactive Zustand subscribe() instead of useEffect([cells]).
   // This is THE most critical performance fix: previously, `cells` was a reactive dependency
@@ -315,7 +370,6 @@ export const useFrameSynchronization = (
   // value → every context consumer re-renders → entire CanvasGrid tree re-renders.
   // Now we watch for cells changes via a vanilla JS subscription that does NOT trigger
   // React re-renders of CanvasProvider.
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveCurrentCanvasToFrameRef = useRef(saveCurrentCanvasToFrame);
   saveCurrentCanvasToFrameRef.current = saveCurrentCanvasToFrame;
 

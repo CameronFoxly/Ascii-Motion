@@ -15,6 +15,7 @@ import { useTimelineStore } from '../stores/timelineStore';
 import { getContentFrameAtTime } from '../utils/layerCompositing';
 import { SessionImporter } from '../utils/sessionImporter';
 import { MCPCommandDispatcher } from './commandDispatcher';
+import { navigateToFrameAtomically } from './frameNavigation';
 import { useMCPStore } from './store';
 import type {
   MCPClientAuth,
@@ -975,8 +976,7 @@ export class MCPClient {
         break;
         
       case 'go_to_frame':
-        this.handleGoToFrame(command);
-        break;
+        return this.handleGoToFrame(command);
         
       case 'set_frame_duration':
         return this.handleSetFrameDuration(command);
@@ -1188,8 +1188,9 @@ export class MCPClient {
     useAnimationStore.getState().removeFrame(cmd.index);
   }
 
-  private handleGoToFrame(cmd: { index: number }): void {
-    useAnimationStore.getState().goToFrame(cmd.index);
+  private async handleGoToFrame(cmd: { index: number }): Promise<MCPCommandApplied> {
+    const currentFrameIndex = await navigateToFrameAtomically(cmd.index);
+    return { currentFrameIndex };
   }
 
   private handleSetFrameDuration(cmd: { index: number; duration: number }): MCPCommandApplied {
