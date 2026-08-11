@@ -403,16 +403,22 @@ describe('MCPClient acknowledged commands', () => {
     expect(useCanvasStore.getState().cells.size).toBe(0);
   });
 
-  it('installs navigation before acknowledging and serializes an immediate current-frame batch', async () => {
+  it('serializes variable-duration navigation before an immediate current-frame batch', async () => {
     const timeline = useTimelineStore.getState();
     const layer = timeline.layers[0];
     timeline.updateContentFrameData(layer.id, layer.contentFrames[0].id, new Map([
       ['0,0', cell('stored-old')],
     ]));
-    timeline.addContentFrame(layer.id, 1, 1, new Map([
+    timeline.setDuration(6);
+    expect(timeline.updateContentFrameTiming(
+      layer.id,
+      layer.contentFrames[0].id,
+      0,
+      5,
+    )).toBe(true);
+    timeline.addContentFrame(layer.id, 5, 1, new Map([
       ['0,0', cell('target')],
     ]));
-    timeline.setDuration(2);
     timeline.goToFrame(0);
     useCanvasStore.setState({
       cells: new Map([['0,0', cell('canvas-old')]]),
@@ -438,7 +444,7 @@ describe('MCPClient acknowledged commands', () => {
       socket.receive({
         type: 'command_request',
         requestId: 'navigate',
-        command: { type: 'go_to_frame', index: 1 },
+        command: { type: 'go_to_frame', index: 5 },
       });
       socket.receive({
         type: 'command_request',
@@ -463,7 +469,13 @@ describe('MCPClient acknowledged commands', () => {
       type: 'command_result',
       requestId: 'navigate',
       success: true,
-      applied: { currentFrameIndex: 1 },
+      applied: { currentFrameIndex: 5 },
+    });
+    expect(results[1]).toEqual({
+      type: 'command_result',
+      requestId: 'mutate-target',
+      success: true,
+      applied: { currentFrameIndex: 5, cellsChanged: 1 },
     });
     expect(resultCanvasSnapshots.get('navigate')).toEqual(new Map([
       ['0,0', cell('target')],
@@ -478,6 +490,7 @@ describe('MCPClient acknowledged commands', () => {
     });
 
     const appliedLayer = useTimelineStore.getState().layers[0];
+    expect(useTimelineStore.getState().view.currentFrame).toBe(5);
     expect(appliedLayer.contentFrames[0].data).toEqual(new Map([
       ['0,0', cell('canvas-old')],
     ]));
