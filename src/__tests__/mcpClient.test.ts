@@ -1,4 +1,6 @@
+import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useFrameSynchronization } from '../hooks/useFrameSynchronization';
 import { MCPClient } from '../mcp/client';
 import { MCPCommandDispatcher } from '../mcp/commandDispatcher';
 import { useMCPStore } from '../mcp/store';
@@ -399,6 +401,210 @@ describe('MCPClient acknowledged commands', () => {
       (entry) => entry.requestId === 'invalid-batch',
     )).toHaveLength(1);
     expect(useCanvasStore.getState().cells.size).toBe(0);
+  });
+
+  it('serializes variable-duration navigation before an immediate current-frame batch', async () => {
+    const timeline = useTimelineStore.getState();
+    const layer = timeline.layers[0];
+    timeline.updateContentFrameData(layer.id, layer.contentFrames[0].id, new Map([
+      ['0,0', cell('stored-old')],
+    ]));
+    timeline.setDuration(6);
+    expect(timeline.updateContentFrameTiming(
+      layer.id,
+      layer.contentFrames[0].id,
+      0,
+      5,
+    )).toBe(true);
+    timeline.addContentFrame(layer.id, 5, 1, new Map([
+      ['0,0', cell('target')],
+    ]));
+    timeline.goToFrame(0);
+    useCanvasStore.setState({
+      cells: new Map([['0,0', cell('canvas-old')]]),
+      activeLayerId: layer.id,
+      isDirty: true,
+    });
+
+    const { unmount } = renderHook(() => useFrameSynchronization());
+    const socket = await connected();
+    const resultCanvasSnapshots = new Map<string, Map<string, Cell>>();
+    vi.spyOn(socket, 'send').mockImplementation((data) => {
+      socket.sent.push(data);
+      const message = JSON.parse(data) as Partial<MCPCommandResult>;
+      if (message.type === 'command_result' && message.requestId) {
+        resultCanvasSnapshots.set(
+          message.requestId,
+          new Map(useCanvasStore.getState().cells),
+        );
+      }
+    });
+
+    act(() => {
+      socket.receive({
+        type: 'command_request',
+        requestId: 'navigate',
+        command: { type: 'go_to_frame', index: 5 },
+      });
+      socket.receive({
+        type: 'command_request',
+        requestId: 'mutate-target',
+        command: {
+          type: 'set_cells_batch',
+          cells: [{ x: 1, y: 0, cell: cell('pasted') }],
+        },
+      });
+    });
+
+    await vi.waitFor(() => {
+      expect(sentCommandResults(socket)).toHaveLength(2);
+    });
+
+    const results = sentCommandResults(socket);
+    expect(results.map((result) => result.requestId)).toEqual([
+      'navigate',
+      'mutate-target',
+    ]);
+    expect(results[0]).toEqual({
+      type: 'command_result',
+      requestId: 'navigate',
+      success: true,
+      applied: { currentFrameIndex: 5 },
+    });
+    expect(results[1]).toEqual({
+      type: 'command_result',
+      requestId: 'mutate-target',
+      success: true,
+      applied: { currentFrameIndex: 5, cellsChanged: 1 },
+    });
+    expect(resultCanvasSnapshots.get('navigate')).toEqual(new Map([
+      ['0,0', cell('target')],
+    ]));
+    expect(resultCanvasSnapshots.get('mutate-target')).toEqual(new Map([
+      ['0,0', cell('target')],
+      ['1,0', cell('pasted')],
+    ]));
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    });
+
+    const appliedLayer = useTimelineStore.getState().layers[0];
+    expect(useTimelineStore.getState().view.currentFrame).toBe(5);
+    expect(appliedLayer.contentFrames[0].data).toEqual(new Map([
+      ['0,0', cell('canvas-old')],
+    ]));
+    expect(appliedLayer.contentFrames[1].data).toEqual(new Map([
+      ['0,0', cell('target')],
+      ['1,0', cell('pasted')],
+    ]));
+    expect(useCanvasStore.getState().cells).toEqual(appliedLayer.contentFrames[1].data);
+    unmount();
+  });
+
+  it('preserves the first immediate mutation after navigating to an empty target frame', async () => {
+    const timeline = useTimelineStore.getState();
+    const layer = timeline.layers[0];
+    timeline.updateContentFrameData(layer.id, layer.contentFrames[0].id, new Map([
+      ['0,0', cell('stored-old')],
+    ]));
+    timeline.addContentFrame(layer.id, 1, 1, new Map());
+    timeline.setDuration(2);
+    timeline.goToFrame(0);
+    useCanvasStore.setState({
+      cells: new Map([['0,0', cell('canvas-old')]]),
+      activeLayerId: layer.id,
+      isDirty: true,
+    });
+
+    const { unmount } = renderHook(() => useFrameSynchronization());
+    const socket = await connected();
+
+    act(() => {
+      socket.receive({
+        type: 'command_request',
+        requestId: 'navigate-empty',
+        command: { type: 'go_to_frame', index: 1 },
+      });
+      socket.receive({
+        type: 'command_request',
+        requestId: 'mutate-empty',
+        command: {
+          type: 'set_cells_batch',
+          cells: [{ x: 1, y: 0, cell: cell('first') }],
+        },
+      });
+    });
+
+    await vi.waitFor(() => {
+      expect(sentCommandResults(socket)).toHaveLength(2);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    });
+
+    expect(sentCommandResults(socket).map((result) => result.requestId)).toEqual([
+      'navigate-empty',
+      'mutate-empty',
+    ]);
+    const appliedLayer = useTimelineStore.getState().layers[0];
+    expect(appliedLayer.contentFrames[0].data).toEqual(new Map([
+      ['0,0', cell('canvas-old')],
+    ]));
+    expect(appliedLayer.contentFrames[1].data).toEqual(new Map([
+      ['1,0', cell('first')],
+    ]));
+    expect(useCanvasStore.getState().cells).toEqual(appliedLayer.contentFrames[1].data);
+    unmount();
+  });
+
+  it('returns a correlated failure when atomic frame synchronization is unavailable', async () => {
+    const timeline = useTimelineStore.getState();
+    timeline.setDuration(2);
+    const socket = await connected();
+
+    const result = await sendCommand(socket, {
+      type: 'command_request',
+      requestId: 'navigation-unavailable',
+      command: { type: 'go_to_frame', index: 1 },
+    });
+
+    expect(result).toEqual({
+      type: 'command_result',
+      requestId: 'navigation-unavailable',
+      success: false,
+      error: 'Frame synchronization is unavailable',
+    });
+    expect(useTimelineStore.getState().view.currentFrame).toBe(0);
+  });
+
+  it('rejects an out-of-range navigation without changing installed state', async () => {
+    const timeline = useTimelineStore.getState();
+    timeline.setDuration(2);
+    const beforeCanvas = new Map([['0,0', cell('current')]]);
+    useCanvasStore.setState({
+      cells: beforeCanvas,
+      activeLayerId: timeline.layers[0].id,
+      isDirty: true,
+    });
+    const { unmount } = renderHook(() => useFrameSynchronization());
+    const socket = await connected();
+
+    const result = await sendCommand(socket, {
+      type: 'command_request',
+      requestId: 'invalid-navigation',
+      command: { type: 'go_to_frame', index: 2 },
+    });
+
+    expect(result).toEqual({
+      type: 'command_result',
+      requestId: 'invalid-navigation',
+      success: false,
+      error: 'go_to_frame index 2 is out of range for 2 timeline frames',
+    });
+    expect(useTimelineStore.getState().view.currentFrame).toBe(0);
+    expect(useCanvasStore.getState().cells).toEqual(beforeCanvas);
+    unmount();
   });
 
   it('changes playback speed while preserving frame counts and timings', async () => {
