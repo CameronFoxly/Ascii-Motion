@@ -5,6 +5,8 @@ import { useAsciiBoxStore } from '../../stores/asciiBoxStore';
 import { useBezierStore } from '../../stores/bezierStore';
 import { useCanvasContext } from '../../contexts/CanvasContext';
 import { useCanvasStore } from '../../stores/canvasStore';
+import { useImportStore } from '../../stores/importStore';
+import { usePreviewStore } from '../../stores/previewStore';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCanvasState } from '../../hooks/useCanvasState';
 import { getFontString } from '../../utils/fontMetrics';
@@ -13,6 +15,7 @@ import { InteractiveBezierOverlay } from './InteractiveBezierOverlay';
 import { InteractiveVectorShapeOverlay } from './InteractiveVectorShapeOverlay';
 import { AnchorPointOverlay } from './AnchorPointOverlay';
 import { LayerTransformOverlay } from './LayerTransformOverlay';
+import { ImportTransformOverlay } from './ImportTransformOverlay';
 import { transformCellMapToScreen } from '../../utils/layerTransformUtils';
 
 type GradientPropertyKey = 'character' | 'textColor' | 'backgroundColor';
@@ -38,6 +41,19 @@ export const CanvasOverlay: React.FC = React.memo(() => {
   const magicWandSelection = useToolStore((s) => s.magicWandSelection);
   const linePreview = useToolStore((s) => s.linePreview);
   const activeTool = useToolStore((s) => s.activeTool);
+  const importModalOpen = useImportStore((s) => s.isImportModalOpen);
+  const importFileSelected = useImportStore((s) => s.selectedFile !== null);
+  const importPreviewMode = useImportStore((s) => s.isPreviewMode);
+  const importLivePreview = useImportStore(
+    (s) => s.uiState.livePreviewEnabled,
+  );
+  const importPreviewActive = usePreviewStore((s) => s.isPreviewActive);
+  const importTransformActive =
+    importModalOpen &&
+    importFileSelected &&
+    importPreviewMode &&
+    importLivePreview &&
+    importPreviewActive;
   // PERF FIX: Use targeted selectors for gradientStore and asciiBoxStore.
   const gradientApplying = useGradientStore((s) => s.isApplying);
   const gradientStart = useGradientStore((s) => s.startPoint);
@@ -950,10 +966,21 @@ export const CanvasOverlay: React.FC = React.memo(() => {
           zIndex: 11, // Above main overlay
         }}
       />
-      <InteractiveGradientOverlay />
-      {activeTool === 'beziershape' && <InteractiveBezierOverlay key={bezierRemountKey} />}
-      {(activeTool === 'rectangle' || activeTool === 'ellipse') && <InteractiveVectorShapeOverlay key={`vs-${bezierRemountKey}`} />}
-      {activeTool === 'layertransform' ? <LayerTransformOverlay /> : <AnchorPointOverlay />}
+      {!importTransformActive && <InteractiveGradientOverlay />}
+      {!importTransformActive && activeTool === 'beziershape' && (
+        <InteractiveBezierOverlay key={bezierRemountKey} />
+      )}
+      {!importTransformActive &&
+        (activeTool === 'rectangle' || activeTool === 'ellipse') && (
+          <InteractiveVectorShapeOverlay key={`vs-${bezierRemountKey}`} />
+        )}
+      {importTransformActive ? (
+        <ImportTransformOverlay />
+      ) : activeTool === 'layertransform' ? (
+        <LayerTransformOverlay />
+      ) : (
+        <AnchorPointOverlay />
+      )}
     </>
   );
 });

@@ -9,7 +9,7 @@
  * - Processing progress display
  */
 
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -78,6 +78,12 @@ import type { Cell, ImportMediaHistoryAction } from '../../types';
 import type { ColorPalette } from '../../types/palette';
 import type { ImportSettings } from '../../stores/importStore';
 import { ColorMatcher } from '../../utils/asciiConverter';
+import {
+  getImportHeightForWidth,
+  getImportWidthForHeight,
+  IMPORT_CHARACTER_ASPECT_RATIO,
+  positionImportCells,
+} from '../../utils/importTransformUtils';
 
 /**
  * Apply color keying to filter out cells matching the alpha key color
@@ -184,10 +190,22 @@ const alignmentOptions: CropAlignmentOption[] = [
 
 export function MediaImportPanel() {
   const { isOpen, closeModal } = useImportModal();
-  const { selectedFile, setSelectedFile, setProcessedFrames } = useImportFile();
+  const {
+    selectedFile,
+    setSelectedFile,
+    sourceAspectRatio,
+    setSourceAspectRatio,
+    setProcessedFrames,
+  } = useImportFile();
   const { isProcessing, progress, error, setProcessing, setProgress, setError } = useImportProcessing();
   const { settings, updateSettings } = useImportSettings();
-  const { frameIndex, setFrameIndex, frames: previewFrames } = useImportPreview();
+  const {
+    frameIndex,
+    setFrameIndex,
+    frames: previewFrames,
+    convertedPreview,
+    setConvertedPreview,
+  } = useImportPreview();
   const { uiState, updateUIState } = useImportUIState();
   const { hasSessionSettings } = useImportSessionState();
   
@@ -219,9 +237,9 @@ export function MediaImportPanel() {
   
   const [dragActive, setDragActive] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [originalImageAspectRatio, setOriginalImageAspectRatio] = useState<number | null>(null);
   const [detectedVideoFps, setDetectedVideoFps] = useState<number | null>(null);
   const [frameRateMode, setFrameRateMode] = useState<'match_video' | 'keep_project'>('match_video');
+  const processingRequestIdRef = useRef(0);
   
   // Project frame rate from timeline store
   const projectFrameRate = useTimelineStore(state => state.config.frameRate);
@@ -265,13 +283,8 @@ export function MediaImportPanel() {
 
   // Handle linked sizing when maintain aspect ratio is enabled
   const handleWidthChange = useCallback((value: number) => {
-    if (settings.maintainAspectRatio && originalImageAspectRatio) {
-      // Apply character aspect ratio compensation (characters are 0.6x as wide as tall)
-      // To make image appear with correct aspect ratio, we need MORE width in character count
-      const CHARACTER_ASPECT_RATIO = 0.6;
-      const characterCompensatedAspectRatio = originalImageAspectRatio / CHARACTER_ASPECT_RATIO;
-      
-      const newHeight = Math.ceil(value / characterCompensatedAspectRatio);
+    if (settings.maintainAspectRatio && sourceAspectRatio) {
+      const newHeight = getImportHeightForWidth(value, sourceAspectRatio);
       // Don't constrain to canvas - allow larger dimensions for proper aspect ratio
       updateSettings({ 
         characterWidth: value,
@@ -280,16 +293,11 @@ export function MediaImportPanel() {
     } else {
       updateSettings({ characterWidth: value });
     }
-  }, [settings.maintainAspectRatio, originalImageAspectRatio, updateSettings]);
+  }, [settings.maintainAspectRatio, sourceAspectRatio, updateSettings]);
 
   const handleHeightChange = useCallback((value: number) => {
-    if (settings.maintainAspectRatio && originalImageAspectRatio) {
-      // Apply character aspect ratio compensation (characters are 0.6x as wide as tall)
-      // To make image appear with correct aspect ratio, we need MORE width in character count
-      const CHARACTER_ASPECT_RATIO = 0.6;
-      const characterCompensatedAspectRatio = originalImageAspectRatio / CHARACTER_ASPECT_RATIO;
-      
-      const newWidth = Math.ceil(value * characterCompensatedAspectRatio);
+    if (settings.maintainAspectRatio && sourceAspectRatio) {
+      const newWidth = getImportWidthForHeight(value, sourceAspectRatio);
       // Don't constrain to canvas - allow larger dimensions for proper aspect ratio
       updateSettings({ 
         characterWidth: newWidth,
@@ -298,7 +306,7 @@ export function MediaImportPanel() {
     } else {
       updateSettings({ characterHeight: value });
     }
-  }, [settings.maintainAspectRatio, originalImageAspectRatio, updateSettings]);
+  }, [settings.maintainAspectRatio, sourceAspectRatio, updateSettings]);
 
   // Input handlers that allow empty strings during typing
   const handleWidthInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -343,105 +351,23 @@ export function MediaImportPanel() {
   }, [isPreviewActive, setPreviewActive]);
 
   const endPreview = useCallback(() => {
-    if (isPreviewActive) {
-      // Clear preview overlay
-      clearPreview();
-      setPreviewActive(false);
-      // Clear local state
-      setIsPreviewActive(false);
-    }
-  }, [isPreviewActive, clearPreview, setPreviewActive]);
+    setConvertedPreview(null);
+    clearPreview();
+    setPreviewActive(false);
+    setIsPreviewActive(false);
+  }, [clearPreview, setConvertedPreview, setPreviewActive]);
 
   // Position cells on canvas based on alignment settings
   const positionCellsOnCanvas = useCallback((cells: Map<string, Cell>, imageWidth: number, imageHeight: number) => {
-
-    
-    // Calculate offset based on alignment
-    let offsetX = 0;
-    let offsetY = 0;
-    
-    switch (settings.cropMode) {
-      case 'top-left':
-        offsetX = 0;
-        offsetY = 0;
-        break;
-      case 'top':
-        offsetX = Math.floor((canvasWidth - imageWidth) / 2);
-        offsetY = 0;
-        break;
-      case 'top-right':
-        offsetX = canvasWidth - imageWidth;
-        offsetY = 0;
-        break;
-      case 'left':
-        offsetX = 0;
-        offsetY = Math.floor((canvasHeight - imageHeight) / 2);
-        break;
-      case 'center':
-        offsetX = Math.floor((canvasWidth - imageWidth) / 2);
-        offsetY = Math.floor((canvasHeight - imageHeight) / 2);
-        break;
-      case 'right':
-        offsetX = canvasWidth - imageWidth;
-        offsetY = Math.floor((canvasHeight - imageHeight) / 2);
-        break;
-      case 'bottom-left':
-        offsetX = 0;
-        offsetY = canvasHeight - imageHeight;
-        break;
-      case 'bottom':
-        offsetX = Math.floor((canvasWidth - imageWidth) / 2);
-        offsetY = canvasHeight - imageHeight;
-        break;
-      case 'bottom-right':
-        offsetX = canvasWidth - imageWidth;
-        offsetY = canvasHeight - imageHeight;
-        break;
-    }
-    
-    // Apply nudge adjustments
-    offsetX += settings.nudgeX;
-    offsetY += settings.nudgeY;
-    
-
-    
-    // For images larger than canvas, we need different logic
-    // Don't constrain offset to positive values - allow negative offsets to show center portions
-    if (imageWidth > canvasWidth || imageHeight > canvasHeight) {
-      // For oversized images, positioning shows different parts of the image
-      // No additional constraints needed - let the cell bounds check below handle visibility
-    } else {
-      // For images smaller than canvas, allow some nudging beyond bounds but keep at least part visible
-      // Allow image to be nudged up to 50% off-screen while keeping some portion visible
-      const maxNegativeX = Math.floor(imageWidth * -0.5);
-      const maxPositiveX = canvasWidth - Math.floor(imageWidth * 0.5);
-      const maxNegativeY = Math.floor(imageHeight * -0.5);
-      const maxPositiveY = canvasHeight - Math.floor(imageHeight * 0.5);
-      
-      offsetX = Math.max(maxNegativeX, Math.min(offsetX, maxPositiveX));
-      offsetY = Math.max(maxNegativeY, Math.min(offsetY, maxPositiveY));
-    }
-    
-
-    
-    const positionedCells = new Map<string, Cell>();
-    cells.forEach((cell, originalKey) => {
-      // Parse original coordinates from the key (format: "x,y")
-      const [origX, origY] = originalKey.split(',').map(Number);
-      
-      const newX = origX + offsetX;
-      const newY = origY + offsetY;
-      
-      // Only add cell if it's within canvas bounds
-      if (newX >= 0 && newX < canvasWidth && newY >= 0 && newY < canvasHeight) {
-        const newKey = `${newX},${newY}`;
-        positionedCells.set(newKey, { ...cell });
-      }
+    return positionImportCells(cells, {
+      canvasWidth,
+      canvasHeight,
+      imageWidth,
+      imageHeight,
+      cropMode: settings.cropMode,
+      nudgeX: settings.nudgeX,
+      nudgeY: settings.nudgeY,
     });
-    
-
-    
-    return positionedCells;
   }, [canvasWidth, canvasHeight, settings.cropMode, settings.nudgeX, settings.nudgeY]);
 
   // Get palette data for dependencies (use individual arrays to avoid getAllPalettes() caching issues)
@@ -567,7 +493,11 @@ export function MediaImportPanel() {
 
   // Auto-process file when settings change
   useEffect(() => {
-    if (!selectedFile || !livePreviewEnabled) return;
+    const requestId = ++processingRequestIdRef.current;
+    if (!selectedFile || !livePreviewEnabled) {
+      setProcessing(false);
+      return;
+    }
     
     const processFileAutomatically = async () => {
       setProcessing(true);
@@ -602,10 +532,12 @@ export function MediaImportPanel() {
         if (selectedFile.type === 'image') {
           setProgress(25);
           result = await mediaProcessor.processImage(selectedFile, options);
+          if (requestId !== processingRequestIdRef.current) return;
           setProgress(100);
         } else {
           setProgress(10);
           result = await mediaProcessor.processVideo(selectedFile, options);
+          if (requestId !== processingRequestIdRef.current) return;
           setProgress(100);
         }
         
@@ -622,15 +554,24 @@ export function MediaImportPanel() {
           setError(result.error || 'Unknown processing error');
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to process file');
+        if (requestId === processingRequestIdRef.current) {
+          setError(err instanceof Error ? err.message : 'Failed to process file');
+        }
       } finally {
-        setProcessing(false);
+        if (requestId === processingRequestIdRef.current) {
+          setProcessing(false);
+        }
       }
     };
     
     // Debounce the processing to avoid excessive calls
     const timeoutId = setTimeout(processFileAutomatically, 500);
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      if (requestId === processingRequestIdRef.current) {
+        processingRequestIdRef.current += 1;
+      }
+    };
   }, [
     selectedFile,
     livePreviewEnabled,
@@ -669,10 +610,13 @@ export function MediaImportPanel() {
           settings.characterWidth,
           settings.characterHeight
         );
+
+        setConvertedPreview({
+          cells: filteredCells,
+          width: settings.characterWidth,
+          height: settings.characterHeight,
+        });
         
-        // Show preview on canvas overlay (positioned based on alignment)
-        const positionedCells = positionCellsOnCanvas(filteredCells, settings.characterWidth, settings.characterHeight);
-        setPreviewData(positionedCells);
       } catch (err) {
         console.error('Live preview error:', err);
       }
@@ -688,8 +632,6 @@ export function MediaImportPanel() {
     settings.characterWidth, 
     settings.characterHeight,
     settings.cropMode, // Added back since it affects positioning
-    settings.nudgeX, // FIXED: Added nudge dependencies for position updates
-    settings.nudgeY, // FIXED: Added nudge dependencies for position updates
     settings.useOriginalColors,
     settings.colorQuantization,
     settings.paletteSize,
@@ -733,10 +675,42 @@ export function MediaImportPanel() {
     palettes,
     customPalettes,
     setCanvasData,
-    positionCellsOnCanvas,
     startPreview,
     createConversionSettings,
-    setPreviewData
+    setConvertedPreview
+  ]);
+
+  // Placement-only changes should move the existing conversion immediately.
+  useEffect(() => {
+    if (
+      !isOpen ||
+      !selectedFile ||
+      !livePreviewEnabled ||
+      !isPreviewActive ||
+      !convertedPreview ||
+      convertedPreview.width !== settings.characterWidth ||
+      convertedPreview.height !== settings.characterHeight
+    ) {
+      return;
+    }
+
+    setPreviewData(
+      positionCellsOnCanvas(
+        convertedPreview.cells,
+        convertedPreview.width,
+        convertedPreview.height,
+      ),
+    );
+  }, [
+    convertedPreview,
+    isOpen,
+    isPreviewActive,
+    livePreviewEnabled,
+    positionCellsOnCanvas,
+    selectedFile,
+    setPreviewData,
+    settings.characterHeight,
+    settings.characterWidth,
   ]);
 
   // End preview when live preview is disabled or component unmounts
@@ -753,19 +727,18 @@ export function MediaImportPanel() {
     }
   }, [isOpen, isPreviewActive, endPreview]);
 
+  useEffect(() => {
+    if (!selectedFile && isPreviewActive) {
+      endPreview();
+    }
+  }, [selectedFile, isPreviewActive, endPreview]);
+
   // Reset live preview to enabled when panel opens
   useEffect(() => {
     if (isOpen) {
       setLivePreviewEnabled(true);
     }
   }, [isOpen, setLivePreviewEnabled]);
-
-  // End preview when modal closes
-  useEffect(() => {
-    if (!isOpen && isPreviewActive) {
-      endPreview();
-    }
-  }, [isOpen, isPreviewActive, endPreview]);
 
   // File drop handlers
   const handleFileSelect = useCallback(async (file: File) => {
@@ -776,6 +749,8 @@ export function MediaImportPanel() {
       return;
     }
     
+    let detectedSourceAspectRatio: number | null = null;
+
     // Calculate optimal image size based on canvas dimensions and file dimensions
     try {
       let imageWidth = 0;
@@ -819,21 +794,23 @@ export function MediaImportPanel() {
       
       // Calculate optimal character dimensions
       const imageAspectRatio = imageWidth / imageHeight;
-      setOriginalImageAspectRatio(imageAspectRatio);
+      detectedSourceAspectRatio = imageAspectRatio;
       
       // Characters are 0.6x as wide as they are tall (non-square cells)
       // Visual aspect ratio = (charWidth * 0.6) / charHeight
       // To match image aspect ratio: (charWidth * 0.6) / charHeight = imageAspectRatio
       // Therefore: charWidth = (charHeight * imageAspectRatio) / 0.6
-      const CHARACTER_ASPECT_RATIO = 0.6;
-      
       // Try fitting to canvas width
       const fitToWidthCharWidth = canvasWidth;
-      const fitToWidthCharHeight = Math.round((canvasWidth * CHARACTER_ASPECT_RATIO) / imageAspectRatio);
+      const fitToWidthCharHeight = Math.round(
+        (canvasWidth * IMPORT_CHARACTER_ASPECT_RATIO) / imageAspectRatio,
+      );
       
       // Try fitting to canvas height
       const fitToHeightCharHeight = canvasHeight;
-      const fitToHeightCharWidth = Math.round((canvasHeight * imageAspectRatio) / CHARACTER_ASPECT_RATIO);
+      const fitToHeightCharWidth = Math.round(
+        (canvasHeight * imageAspectRatio) / IMPORT_CHARACTER_ASPECT_RATIO,
+      );
       
       // Choose whichever fits entirely within canvas
       let targetWidth: number;
@@ -867,9 +844,10 @@ export function MediaImportPanel() {
     }
     
     setSelectedFile(mediaFile);
+    setSourceAspectRatio(detectedSourceAspectRatio);
     setError(null);
     // Live preview enabled by default will trigger auto-processing
-  }, [setSelectedFile, setError, canvasWidth, canvasHeight, updateSettings, setOriginalImageAspectRatio, hasSessionSettings]);
+  }, [setSelectedFile, setSourceAspectRatio, setError, canvasWidth, canvasHeight, updateSettings, hasSessionSettings]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -1240,6 +1218,7 @@ export function MediaImportPanel() {
                   size="sm"
                   onClick={() => {
                     setSelectedFile(null);
+                    endPreview();
                     setLivePreviewEnabled(true); // Reset to default
                   }}
                   className="h-6 w-6 p-0"
@@ -1503,7 +1482,7 @@ export function MediaImportPanel() {
                                   variant={settings.maintainAspectRatio ? "default" : "outline"}
                                   size="sm"
                                   onClick={() => updateSettings({ maintainAspectRatio: !settings.maintainAspectRatio })}
-                                  disabled={!originalImageAspectRatio}
+                                  disabled={!sourceAspectRatio}
                                   className="h-8 w-8 p-0"
                                 >
                                   <Link className="w-3 h-3" />

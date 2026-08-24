@@ -28,9 +28,11 @@ describe('importStore preview frame index', () => {
   beforeEach(() => {
     useImportStore.setState({
       selectedFile: null,
+      sourceAspectRatio: null,
       processedFrames: [],
       previewFrameIndex: 0,
       isPreviewMode: false,
+      convertedPreview: null,
     });
   });
 
@@ -85,5 +87,48 @@ describe('importStore preview frame index', () => {
     // Processing the newly selected file keeps the reset position.
     store.setProcessedFrames(makeFrames(10));
     expect(useImportStore.getState().previewFrameIndex).toBe(0);
+  });
+
+  it('clears source aspect ratio with the selected file and import session', () => {
+    const store = useImportStore.getState();
+
+    store.setSourceAspectRatio(16 / 9);
+    expect(useImportStore.getState().sourceAspectRatio).toBe(16 / 9);
+
+    store.setSelectedFile(null);
+    expect(useImportStore.getState().sourceAspectRatio).toBeNull();
+
+    store.setSourceAspectRatio(4 / 3);
+    store.resetImportState();
+    expect(useImportStore.getState().sourceAspectRatio).toBeNull();
+
+    store.setSourceAspectRatio(1);
+    store.closeImportModal();
+    expect(useImportStore.getState().sourceAspectRatio).toBeNull();
+  });
+
+  it('clears converted preview data with the selected file and import session', () => {
+    const store = useImportStore.getState();
+    const preview = {
+      cells: new Map([
+        ['0,0', { char: '#', color: '#ffffff', bgColor: 'transparent' }],
+      ]),
+      width: 1,
+      height: 1,
+    };
+
+    store.setConvertedPreview(preview);
+    expect(useImportStore.getState().convertedPreview?.cells.size).toBe(1);
+
+    store.setSelectedFile(null);
+    expect(useImportStore.getState().convertedPreview).toBeNull();
+
+    store.setConvertedPreview(preview);
+    store.resetImportState();
+    expect(useImportStore.getState().convertedPreview).toBeNull();
+
+    store.setConvertedPreview(preview);
+    store.closeImportModal();
+    expect(useImportStore.getState().convertedPreview).toBeNull();
   });
 });
