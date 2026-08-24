@@ -24,6 +24,7 @@ import { getPropertyValueAtFrame, getGroupPropertyValue } from '../../utils/laye
 import { useLayerTransformTool, layerTransformHandlersRef } from '../../hooks/useLayerTransformTool';
 import { usePlaybackOnlySnapshot } from '../../hooks/usePlaybackOnlySnapshot';
 import { cn } from '@/lib/utils';
+import { TransformBoundingBoxVisual } from './TransformBoundingBoxVisual';
 
 export const LayerTransformOverlay: React.FC = () => {
   const activeTool = useToolStore((s) => s.activeTool);
@@ -171,21 +172,6 @@ export const LayerTransformOverlay: React.FC = () => {
     return points;
   })();
 
-  // Bounding box lines as SVG path
-  const boxPath = boundingBox
-    ? boundingBox.corners
-        .map((c, i) => {
-          const px = toPixelX(c.x);
-          const py = toPixelY(c.y);
-          return `${i === 0 ? 'M' : 'L'} ${px} ${py}`;
-        })
-        .join(' ') + ' Z'
-    : null;
-
-  const boxColor = isLocked ? 'rgba(128, 128, 128, 0.5)' : 'rgba(147, 130, 255, 0.8)';
-  const handleColor = isLocked ? 'rgba(128, 128, 128, 0.6)' : 'rgba(147, 130, 255, 1)';
-  const handleSize = 8; // pixels
-
   // Cursor based on current zone (CSS cursor values, not Tailwind classes)
   // Rotate uses a custom SVG cursor showing a rotation arrow
   const rotateCursor = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8' stroke='%23ffffff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 3v5h-5' stroke='%23ffffff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8' stroke='%23000000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 3v5h-5' stroke='%23000000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 8 8, crosshair`;
@@ -226,40 +212,14 @@ export const LayerTransformOverlay: React.FC = () => {
           );
         })}
 
-      {/* Bounding box + corner handles (SVG overlay) */}
-      {boundingBox && boxPath && (
-        <svg
-          className="absolute inset-0 w-full h-full pointer-events-none"
-          style={{ overflow: 'visible' }}
-        >
-          {/* Bounding box outline */}
-          <path
-            d={boxPath}
-            fill="none"
-            stroke={boxColor}
-            strokeWidth={1.5}
-            strokeDasharray="6 3"
-          />
-
-          {/* Corner handles */}
-          {boundingBox.corners.map((corner, i) => {
-            const px = toPixelX(corner.x);
-            const py = toPixelY(corner.y);
-            return (
-              <rect
-                key={i}
-                x={px - handleSize / 2}
-                y={py - handleSize / 2}
-                width={handleSize}
-                height={handleSize}
-                fill={handleColor}
-                stroke={isLocked ? 'rgba(100, 100, 100, 0.8)' : 'rgba(255, 255, 255, 0.9)'}
-                strokeWidth={1}
-                rx={1}
-              />
-            );
-          })}
-        </svg>
+      {boundingBox && (
+        <TransformBoundingBoxVisual
+          corners={boundingBox.corners.map((corner) => ({
+            x: toPixelX(corner.x),
+            y: toPixelY(corner.y),
+          }))}
+          isLocked={isLocked}
+        />
       )}
 
       {/* Anchor point crosshair */}

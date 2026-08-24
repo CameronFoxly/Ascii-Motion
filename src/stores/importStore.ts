@@ -10,6 +10,7 @@
 
 import { create } from 'zustand';
 import type { MediaFile, ProcessedFrame } from '../utils/mediaProcessor';
+import type { Cell } from '../types';
 import { usePaletteStore } from './paletteStore';
 
 export interface ImportUIState {
@@ -26,6 +27,7 @@ export interface ImportState {
   
   // File and processing state
   selectedFile: MediaFile | null;
+  sourceAspectRatio: number | null;
   processedFrames: ProcessedFrame[];
   isProcessing: boolean;
   processingProgress: number; // 0-100
@@ -44,11 +46,17 @@ export interface ImportState {
   // Preview state
   previewFrameIndex: number;
   isPreviewMode: boolean;
+  convertedPreview: {
+    cells: Map<string, Cell>;
+    width: number;
+    height: number;
+  } | null;
   
   // Actions
   openImportModal: () => void;
   closeImportModal: () => void;
   setSelectedFile: (file: MediaFile | null) => void;
+  setSourceAspectRatio: (aspectRatio: number | null) => void;
   setProcessedFrames: (frames: ProcessedFrame[]) => void;
   setProcessing: (isProcessing: boolean) => void;
   setProcessingProgress: (progress: number) => void;
@@ -57,6 +65,9 @@ export interface ImportState {
   updateUIState: (uiState: Partial<ImportUIState>) => void;
   setPreviewFrameIndex: (index: number) => void;
   setPreviewMode: (isPreview: boolean) => void;
+  setConvertedPreview: (
+    preview: ImportState['convertedPreview'],
+  ) => void;
   resetImportState: () => void;
 }
 
@@ -219,6 +230,7 @@ export const useImportStore = create<ImportState>((set, get) => ({
   // Initial state
   isImportModalOpen: false,
   selectedFile: null,
+  sourceAspectRatio: null,
   processedFrames: [],
   isProcessing: false,
   processingProgress: 0,
@@ -229,6 +241,7 @@ export const useImportStore = create<ImportState>((set, get) => ({
   sessionUIState: null, // No session UI state stored initially
   previewFrameIndex: 0,
   isPreviewMode: false,
+  convertedPreview: null,
   
   // Modal actions
   openImportModal: () => {
@@ -257,12 +270,14 @@ export const useImportStore = create<ImportState>((set, get) => ({
       isImportModalOpen: true,
       // Reset transient state when opening modal
       selectedFile: null,
+      sourceAspectRatio: null,
       processedFrames: [],
       isProcessing: false,
       processingProgress: 0,
       processingError: null,
       previewFrameIndex: 0,
       isPreviewMode: false,
+      convertedPreview: null,
       // Use session-persistent settings and UI state or defaults
       settings: settingsToUse,
       uiState: uiStateToUse
@@ -281,12 +296,14 @@ export const useImportStore = create<ImportState>((set, get) => ({
       sessionUIState: currentUIState, // Preserve UI state for next session
       // Reset transient state but keep current settings and session state
       selectedFile: null,
+      sourceAspectRatio: null,
       processedFrames: [],
       isProcessing: false,
       processingProgress: 0,
       processingError: null,
       previewFrameIndex: 0,
-      isPreviewMode: false
+      isPreviewMode: false,
+      convertedPreview: null,
     });
   },
   
@@ -294,10 +311,16 @@ export const useImportStore = create<ImportState>((set, get) => ({
   setSelectedFile: (file: MediaFile | null) => {
     set({ 
       selectedFile: file,
+      sourceAspectRatio: null,
       processedFrames: [], // Clear previous frames
       processingError: null,
-      previewFrameIndex: 0
+      previewFrameIndex: 0,
+      convertedPreview: null,
     });
+  },
+
+  setSourceAspectRatio: (sourceAspectRatio: number | null) => {
+    set({ sourceAspectRatio });
   },
   
   setProcessedFrames: (frames: ProcessedFrame[]) => {
@@ -378,17 +401,30 @@ export const useImportStore = create<ImportState>((set, get) => ({
   setPreviewMode: (isPreview: boolean) => {
     set({ isPreviewMode: isPreview });
   },
+
+  setConvertedPreview: (convertedPreview) => {
+    set({
+      convertedPreview: convertedPreview
+        ? {
+            ...convertedPreview,
+            cells: new Map(convertedPreview.cells),
+          }
+        : null,
+    });
+  },
   
   // Reset action - only resets transient state, preserves sessionSettings
   resetImportState: () => {
     set({
       selectedFile: null,
+      sourceAspectRatio: null,
       processedFrames: [],
       isProcessing: false,
       processingProgress: 0,
       processingError: null,
       previewFrameIndex: 0,
       isPreviewMode: false,
+      convertedPreview: null,
       // Don't reset settings or sessionSettings - they should persist
     });
   }
@@ -409,6 +445,8 @@ export const useImportFile = () => {
   return {
     selectedFile: store.selectedFile,
     setSelectedFile: store.setSelectedFile,
+    sourceAspectRatio: store.sourceAspectRatio,
+    setSourceAspectRatio: store.setSourceAspectRatio,
     processedFrames: store.processedFrames,
     setProcessedFrames: store.setProcessedFrames
   };
@@ -441,6 +479,8 @@ export const useImportPreview = () => {
     isPreviewMode: store.isPreviewMode,
     setFrameIndex: store.setPreviewFrameIndex,
     setPreviewMode: store.setPreviewMode,
+    convertedPreview: store.convertedPreview,
+    setConvertedPreview: store.setConvertedPreview,
     frames: store.processedFrames
   };
 };
