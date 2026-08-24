@@ -59,7 +59,18 @@ If testing tier features: ask which account, get explicit user ID, confirm befor
 
 ### No Automatic Commits or Deployments
 
-Do not commit or deploy automatically. All changes must be manually reviewed before committing. Only commit when explicitly asked. Never run `vercel deploy --prod` from feature branches.
+Do not commit or deploy automatically. All changes must be manually reviewed before committing. Only commit or deploy when explicitly asked. Never run a production deployment from a feature branch.
+
+### Main App Production Deployments
+
+The production version history is generated during deployment and must always match the code being shipped.
+
+- Deploy the main app only from a clean checkout of the latest merged `origin/main`.
+- Run `npm run deploy` from the repository root for normal production releases. Use `npm run deploy:major` only when a minor version increment is explicitly intended.
+- **Never run `vercel --prod` or `vercel deploy --prod` directly for the main app.** Those commands bypass `scripts/version-bump.js` and leave the live Version History, build date, and build hash stale.
+- Before deploying, use `vercel project ls` and `vercel inspect https://ascii-motion.app` to confirm the existing `ascii-motion` project and production alias. If Vercel attempts to create or link a different project, stop and remove that accidental project before continuing.
+- After deployment, verify that `https://ascii-motion.app` is READY and returns HTTP 200, then confirm the live UI or compiled asset shows the new `VERSION`, `BUILD_DATE`, `BUILD_HASH`, and release-history commits.
+- Direct `vercel --prod` remains appropriate for the separately deployed marketing and docs projects only, from their documented package directories.
 
 ### Tailwind CSS v3 Requirement
 
