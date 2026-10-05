@@ -9,6 +9,7 @@ import React from 'react';
 import { useToolStore } from '../../stores/toolStore';
 import { useCanvasContext } from '../../contexts/CanvasContext';
 import { calculateBrushCells } from '../../utils/brushUtils';
+import { formatFontStack } from '../../utils/fontStack';
 
 interface BrushPreviewProps {
   tool?: 'pencil' | 'eraser';
@@ -61,7 +62,7 @@ export const BrushPreview: React.FC<BrushPreviewProps> = ({
           width: '100%',
           aspectRatio: `${previewWidth} / ${previewHeight}`, // Use actual aspect ratio
           maxWidth: previewWidth,
-          fontFamily: fontMetrics.fontFamily,
+          fontFamily: formatFontStack(fontMetrics.fontFamily),
           fontSize: fontMetrics.fontSize,
         }}
       >
@@ -130,7 +131,7 @@ export const BrushPreview: React.FC<BrushPreviewProps> = ({
                   backgroundColor,
                   color: textColor,
                   border: borderStyle,
-                  fontFamily: fontMetrics.fontFamily,
+                  fontFamily: formatFontStack(fontMetrics.fontFamily),
                   fontSize: fontMetrics.fontSize,
                   lineHeight: 1,
                 }}

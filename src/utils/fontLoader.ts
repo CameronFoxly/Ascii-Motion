@@ -37,6 +37,13 @@ const BUNDLED_FONT_FILES: Record<string, { url: string; weight?: number; style?:
 };
 
 /**
+ * Get the font file definitions for a bundled font (empty if not bundled)
+ */
+export function getBundledFontFiles(fontName: string): { url: string; weight?: number; style?: string; format?: string }[] {
+  return BUNDLED_FONT_FILES[fontName] ?? [];
+}
+
+/**
  * Load a bundled font using the CSS Font Loading API
  * Returns a promise that resolves when the font is loaded
  */

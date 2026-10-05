@@ -102,7 +102,7 @@ const DEFAULT_HTML_SETTINGS: HtmlExportSettings = {
   includeMetadata: true,
   animationSpeed: 1.0, // Normal speed
   backgroundColor: '#000000', // Black background
-  fontFamily: 'monospace', // Standard monospace
+  fontFamily: 'project', // Match the project's selected font
   fontSize: 14, // 14px default size
   loops: 'infinite', // Loop infinitely
 };

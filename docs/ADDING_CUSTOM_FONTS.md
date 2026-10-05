@@ -110,6 +110,12 @@ stack: 'Px437 IBM VGA 9x14, monospace'
 stack: '"Px437 IBM VGA 9x14", monospace'
 ```
 
+**Always format stacks before use:** Any code that writes a font stack into `ctx.font`, inline CSS, or generated export code (HTML/React) must go through `formatFontStack()` / `buildCanvasFont()` from `src/utils/fontStack.ts`. These quote every family name and guarantee a `monospace` fallback, so canvas, PNG/JPG, video, HTML, and React exports all honour the selected font. `src/__tests__/fontExport.test.ts` asserts every entry in `MONOSPACE_FONTS` produces a valid `ctx.font` string.
+
+**Export checklist for new fonts:**
+- Bundled fonts: add the file to `BUNDLED_FONT_FILES` in `src/utils/fontLoader.ts` — HTML exports embed it as a base64 `@font-face` so the standalone file renders correctly.
+- TTF/OTF/WOFF files: add the font to `FONT_REGISTRY` in `src/utils/font/fontRegistry.ts` (same `id` as `fonts.ts`) so SVG "text as outlines" uses the real glyphs. WOFF2-only fonts fall back to pixel-traced outlines of the project font.
+
 ### 4. Update Community Gallery Font Mapping
 
 Add the font to the community gallery's optimized rendering system:

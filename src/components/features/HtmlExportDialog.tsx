@@ -153,6 +153,7 @@ export const HtmlExportDialog: React.FC = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="project">Project Font</SelectItem>
                         <SelectItem value="monospace">Monospace</SelectItem>
                         <SelectItem value="courier">Courier New</SelectItem>
                         <SelectItem value="consolas">Consolas</SelectItem>

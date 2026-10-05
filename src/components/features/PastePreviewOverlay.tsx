@@ -1,6 +1,7 @@
 import React from 'react';
 import { useCanvasContext } from '../../contexts/CanvasContext';
 import { useCanvasStore } from '../../stores/canvasStore';
+import { formatFontStack } from '../../utils/fontStack';
 
 /**
  * Component that renders paste preview overlay on the canvas
@@ -78,7 +79,7 @@ export const PastePreviewOverlay: React.FC = () => {
               color: cell.color || '#000000',
               backgroundColor: cell.bgColor || 'transparent',
               fontSize: `${fontMetrics.fontSize}px`,
-              fontFamily: fontMetrics.fontFamily,
+              fontFamily: formatFontStack(fontMetrics.fontFamily),
               lineHeight: 1,
             }}
           >

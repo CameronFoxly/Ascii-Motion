@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useEffect, useLayoutEffect } from 'react';
 import { CanvasContext } from './context';
 import type {
   CanvasContextValue,
@@ -12,6 +12,7 @@ import { calculateCellDimensions, calculateFontMetrics, DEFAULT_SPACING } from '
 import { DEFAULT_FONT_ID, getFontStack, getFontById } from '@/constants/fonts';
 import { detectAvailableFont } from '@/utils/fontDetection';
 import { loadBundledFont, isFontLoaded } from '@/utils/fontLoader';
+import { setCanvasTypographySnapshot } from '@/stores/canvasTypographySnapshot';
 
 export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   children,
@@ -207,6 +208,20 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
     
     detectFont();
   }, [selectedFontId]);
+
+  // Publish typography for non-React export paths (silent cloud save, MCP exports)
+  useLayoutEffect(() => {
+    setCanvasTypographySnapshot({
+      fontMetrics,
+      fontSize: cellSize,
+      characterSpacing,
+      lineSpacing,
+      selectedFontId,
+      actualFont,
+      zoom,
+      panOffset,
+    });
+  }, [fontMetrics, cellSize, characterSpacing, lineSpacing, selectedFontId, actualFont, zoom, panOffset]);
 
   // PERF FIX: Memoize context value to prevent cascading re-renders.
   // Without this, every CanvasProvider re-render creates a new object reference,

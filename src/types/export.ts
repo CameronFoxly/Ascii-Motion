@@ -22,7 +22,8 @@ export interface SvgExportSettings {
   textAsOutlines: boolean;
   includeBackground: boolean;
   prettify: boolean;
-  outlineFont?: 'jetbrains-mono'; // Font to use for text-to-outlines
+  /** @deprecated Outlines always use the project font (pixel-traced when no outline file exists). */
+  outlineFont?: 'jetbrains-mono';
 }
 
 export interface ImageExportSettings {
@@ -103,7 +104,7 @@ export interface HtmlExportSettings {
   includeMetadata: boolean;
   animationSpeed: number; // 0.1 to 5.0 speed multiplier
   backgroundColor: string;
-  fontFamily: 'monospace' | 'courier' | 'consolas';
+  fontFamily: 'project' | 'monospace' | 'courier' | 'consolas'; // 'project' uses the canvas font
   fontSize: number; // 8-24px
   loops: 'infinite' | number; // 'infinite' or specific number
   includePostEffects?: boolean; // Apply WebGL post effects (default: true)

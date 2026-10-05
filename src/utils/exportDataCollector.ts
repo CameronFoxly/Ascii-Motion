@@ -10,6 +10,7 @@ import { useCharacterPaletteStore } from '../stores/characterPaletteStore';
 import { useProjectMetadataStore } from '../stores/projectMetadataStore';
 import { useTimelineStore } from '../stores/timelineStore';
 import { compositeLayersAtFrame } from './layerCompositing';
+import { getCanvasTypographySnapshot } from '../stores/canvasTypographySnapshot';
 import type { Frame } from '../types';
 import type { FrameId } from '../types';
 
@@ -141,10 +142,13 @@ export class ExportDataCollector {
       exportCurrentFrameIndex = currentFrameIndex;
     }
 
-    // Get UI context data (we'll need to pass this in since we can't use hooks here)
-    // This will be handled by the calling component
+    // Typography/view state published by CanvasProvider (can't use hooks here)
+    const typographySnapshot = getCanvasTypographySnapshot();
 
     return {
+      name: projectName,
+      description: projectDescription,
+
       // Version metadata
       metadata: {
         version: VERSION,
@@ -167,19 +171,14 @@ export class ExportDataCollector {
       canvasBackgroundColor,
       showGrid,
       
-      // Typography & rendering (will be filled by calling component)
-      fontMetrics: {
-        characterWidth: 0,
-        characterHeight: 0,
-        aspectRatio: 0.6,
-        fontSize: 16,
-        fontFamily: 'monospace'
-      },
+      // Typography & rendering
+      fontMetrics: { ...typographySnapshot.fontMetrics },
       typography: {
-        fontSize: 16,
-        characterSpacing: 1.0,
-        lineSpacing: 1.0,
-        selectedFontId: 'auto'
+        fontSize: typographySnapshot.fontSize,
+        characterSpacing: typographySnapshot.characterSpacing,
+        lineSpacing: typographySnapshot.lineSpacing,
+        selectedFontId: typographySnapshot.selectedFontId,
+        actualFont: typographySnapshot.actualFont
       },
       
       // Tool state
@@ -192,11 +191,10 @@ export class ExportDataCollector {
         rectangleFilled
       },
       
-      // UI state (will be filled by calling component)
       uiState: {
-        zoom: 1.0,
-        panOffset: { x: 0, y: 0 },
-        theme: 'light'
+        zoom: typographySnapshot.zoom,
+        panOffset: { ...typographySnapshot.panOffset },
+        theme: typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light'
       },
 
       // Palette state

@@ -2,6 +2,7 @@ import type { Frame, Cell } from '../types';
 import { useCanvasStore } from '../stores/canvasStore';
 import { setupTextRendering } from './canvasTextRendering';
 import { calculateAdaptiveGridColor } from './gridColor';
+import { buildCanvasFont } from './fontStack';
 
 /**
  * Direct canvas renderer for optimized playback
@@ -120,8 +121,7 @@ export const renderFrameDirectly = (
   
   // Calculate drawing styles (similar to useCanvasRenderer)
   const scaledFontSize = settings.fontMetrics.fontSize * settings.zoom;
-  // Font stack already includes fallback, no need for quotes or extra fallback
-  const fontString = `${scaledFontSize}px ${settings.fontMetrics.fontFamily}`;
+  const fontString = buildCanvasFont(scaledFontSize, settings.fontMetrics.fontFamily);
   const gridLineColor = calculateAdaptiveGridColor(canvasSettings.canvasBackgroundColor, settings.theme as 'light' | 'dark');
   
   const drawingSettings = {
