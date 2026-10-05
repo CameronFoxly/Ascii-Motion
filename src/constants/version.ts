@@ -1,12 +1,33 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "2.2.0";
-export const BUILD_DATE = "2026-08-11T18:27:15.292Z";
-export const BUILD_HASH = "79e0117";
+export const VERSION = "2.2.2";
+export const BUILD_DATE = "2026-10-05T22:45:29.380Z";
+export const BUILD_HASH = "6e3ab51";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "2.2.2",
+    "date": "2026-10-05T22:45:29.380Z",
+    "commits": [
+      "Merge pull request #164 from CameronFoxly/cameronfoxly-fix-export-font-family",
+      "Point premium submodule at merged main",
+      "Honour selected font family in all exports and cloud saves",
+      "Merge pull request #148 from CameronFoxly/dependabot/npm_and_yarn/dompurify-3.4.12",
+      "Merge pull request #160 from CameronFoxly/cameronfoxly-import-transform-overlay",
+      "Document required production deploy flow",
+      "chore(deps): bump dompurify from 3.4.0 to 3.4.12"
+    ]
+  },
+  {
+    "version": "2.2.1",
+    "date": "2026-08-24T16:33:00.011Z",
+    "commits": [
+      "Merge pull request #159 from CameronFoxly/cameronfoxly-import-transform-overlay",
+      "Add import transform overlay"
+    ]
+  },
   {
     "version": "2.2.0",
     "date": "2026-08-11T18:27:15.292Z",
