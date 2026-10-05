@@ -64,11 +64,11 @@ function AuthRedirect({ type }: { type: 'signup' | 'login' }) {
  * Fixed: Moved useAuth hook inside AuthProvider context
  */
 function AppContent() {
-  // Admin project loader (handles sessionStorage loading after navigation)
-  useAdminProjectLoader();
-  
   // Get typography callbacks from CanvasContext
   const { setFontSize, setCharacterSpacing, setLineSpacing, setSelectedFontId } = useCanvasContext()
+
+  // Admin project loader (handles sessionStorage loading after navigation)
+  useAdminProjectLoader({ setFontSize, setCharacterSpacing, setLineSpacing, setSelectedFontId });
   
   // Cloud storage state and actions
   const { user, profile } = useAuth()

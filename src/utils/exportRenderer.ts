@@ -33,6 +33,9 @@ import { getPostEffect } from '../registry/postEffectRegistry';
 import { evaluatePostEffectBlock, getActivePostEffects } from './postEffectsPipeline';
 import type { PostEffectTrack } from '../types/postEffect';
 import { FULLSCREEN_VERTEX_SHADER } from './webgl/commonShaders';
+import { buildCanvasFont, formatFontStack, DEFAULT_EXPORT_FONT_STACK } from './fontStack';
+import { getFontById } from '../constants/fonts';
+import { getBundledFontFiles } from './fontLoader';
 
 interface JsonExportFrameColors {
   foreground?: Record<string, string> | string;
@@ -67,7 +70,7 @@ interface JsonExportStructure {
     height: number;
     backgroundColor: string;
   };
-  typography: TypographySettings;
+  typography: TypographySettings & { fontFamily?: string };
   animation: {
     frameRate: number;
     looping: boolean;
@@ -173,16 +176,7 @@ export class ExportRenderer {
       let font: Font | undefined;
       if (svgSettings.textAsOutlines) {
         this.updateProgress('Loading font for outlines...', 5);
-        const { fontLoader } = await import('./font/fontLoader');
-        const fontId = svgSettings.outlineFont || 'jetbrains-mono';
-        
-        try {
-          const loadedFont = await fontLoader.loadFont(fontId, { cache: true, timeout: 10000 });
-          font = loadedFont.font;
-        } catch {
-          // Font loading failed, will fall back to pixel tracing
-          font = undefined;
-        }
+        font = await this.loadOutlineFont(data.typography?.selectedFontId);
       }
 
       // Calculate dimensions using typography settings
@@ -201,7 +195,7 @@ export class ExportRenderer {
 
       // Sanitize the font stack for desktop app compatibility — use the actually
       // detected font when available to avoid Adobe apps choking on uninstalled fonts
-      const rawFontStack = data.fontMetrics?.fontFamily || 'SF Mono, Monaco, Cascadia Code, Consolas, JetBrains Mono, Fira Code, Monaspace Neon, Geist Mono, Courier New, monospace';
+      const rawFontStack = data.fontMetrics?.fontFamily || DEFAULT_EXPORT_FONT_STACK;
       const fontStack = sanitizeFontStackForSvg(rawFontStack, data.typography?.actualFont);
 
       this.updateProgress('Generating SVG structure...', 20);
@@ -347,14 +341,7 @@ export class ExportRenderer {
       let svgFont: Font | undefined;
       if (settings.format === 'svg' && settings.svgSettings?.textAsOutlines) {
         this.updateProgress('Loading font for outlines...', 2);
-        const { fontLoader } = await import('./font/fontLoader');
-        const fontId = settings.svgSettings.outlineFont || 'jetbrains-mono';
-        try {
-          const loadedFont = await fontLoader.loadFont(fontId, { cache: true, timeout: 10000 });
-          svgFont = loadedFont.font;
-        } catch {
-          svgFont = undefined;
-        }
+        svgFont = await this.loadOutlineFont(data.typography?.selectedFontId);
       }
 
       // Reusable canvas for raster exports
@@ -461,7 +448,7 @@ export class ExportRenderer {
     const canvasWidth = data.canvasDimensions.width * cellWidth;
     const canvasHeight = data.canvasDimensions.height * cellHeight;
 
-    const rawFontStack = data.fontMetrics?.fontFamily || 'SF Mono, Monaco, Cascadia Code, Consolas, JetBrains Mono, Fira Code, Monaspace Neon, Geist Mono, Courier New, monospace';
+    const rawFontStack = data.fontMetrics?.fontFamily || DEFAULT_EXPORT_FONT_STACK;
     const fontStack = sanitizeFontStackForSvg(rawFontStack, data.typography?.actualFont);
 
     let svg = generateSvgHeader(
@@ -906,7 +893,9 @@ export class ExportRenderer {
         typography: {
           fontSize: data.typography.fontSize,
           characterSpacing: data.typography.characterSpacing,
-          lineSpacing: data.typography.lineSpacing
+          lineSpacing: data.typography.lineSpacing,
+          selectedFontId: data.typography.selectedFontId,
+          fontFamily: data.fontMetrics?.fontFamily || getFontById(data.typography.selectedFontId).cssStack
         },
         animation: {
           frameRate: data.frameRate,
@@ -996,7 +985,10 @@ export class ExportRenderer {
       const htmlCellH = htmlBaseCharH * htmlLineSpacing;
       const htmlCanvasW = Number((htmlCellW * data.canvasDimensions.width).toFixed(2));
       const htmlCanvasH = Number((htmlCellH * data.canvasDimensions.height).toFixed(2));
-      const htmlFontFamily = data.fontMetrics?.fontFamily || 'SF Mono, Monaco, Cascadia Code, Consolas, monospace';
+      const htmlFontFamily = this.resolveHtmlFontFamily(data, settings);
+      const htmlFontFaceCss = (settings.fontFamily ?? 'project') === 'project'
+        ? await this.buildEmbeddedFontFaceCss(data.typography?.selectedFontId)
+        : '';
 
       const animationDuration = (data.frames.reduce((sum, frame) => sum + frame.duration, 0) / 1000) / settings.animationSpeed;
 
@@ -1012,6 +1004,7 @@ export class ExportRenderer {
       color-scheme: dark;
     }
 
+${htmlFontFaceCss}
     * {
       box-sizing: border-box;
     }
@@ -1020,7 +1013,7 @@ export class ExportRenderer {
       margin: 0;
       padding: 32px 24px;
       background-color: ${settings.backgroundColor};
-      font-family: ${settings.fontFamily}, monospace;
+      font-family: ${htmlFontFamily};
       font-size: ${settings.fontSize}px;
       line-height: 1;
       color: #f8f9fb;
@@ -1646,9 +1639,7 @@ ${this.generateWebGLShaderRuntime(htmlShaderBundle!)}
 
       const paletteJson = JSON.stringify(colorPalette);
       const framesJson = JSON.stringify(framesPayload);
-      // Font stack is already properly formatted (no quotes) from fontMetrics
-      const fontStack =
-        data.fontMetrics?.fontFamily || 'SF Mono, Monaco, Cascadia Code, Consolas, JetBrains Mono, Fira Code, Monaspace Neon, Geist Mono, Courier New, monospace';
+      const fontStack = formatFontStack(data.fontMetrics?.fontFamily || DEFAULT_EXPORT_FONT_STACK);
 
       this.updateProgress('Generating component code...', 60);
 
@@ -3704,6 +3695,85 @@ ${this.generateWebGLShaderRuntime(htmlShaderBundle!)}
   }
 
   /**
+   * Load the project font as an opentype.js font for SVG text-to-outlines.
+   * Returns undefined when the project font has no parseable bundled file, in which
+   * case outlines fall back to pixel tracing with the project font stack (rather than
+   * substituting a different font).
+   */
+  private async loadOutlineFont(selectedFontId: string | undefined): Promise<Font | undefined> {
+    if (!selectedFontId) return undefined;
+    const { fontLoader, isValidFontId } = await import('./font');
+    if (!isValidFontId(selectedFontId)) return undefined;
+    try {
+      const loadedFont = await fontLoader.loadFont(selectedFontId, { cache: true, timeout: 10000 });
+      return loadedFont.font;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Resolve the CSS font-family for HTML exports. Defaults to the project font.
+   */
+  private resolveHtmlFontFamily(data: ExportDataBundle, settings: HtmlExportSettings): string {
+    switch (settings.fontFamily) {
+      case 'monospace':
+        return 'monospace';
+      case 'courier':
+        return formatFontStack('Courier New, monospace');
+      case 'consolas':
+        return formatFontStack('Consolas, monospace');
+      default:
+        return formatFontStack(
+          data.fontMetrics?.fontFamily ||
+            getFontById(data.typography?.selectedFontId ?? 'auto').cssStack ||
+            DEFAULT_EXPORT_FONT_STACK
+        );
+    }
+  }
+
+  /**
+   * Inline @font-face rules (base64) for bundled web fonts so standalone exports
+   * render with the project font even when the viewer doesn't have it installed.
+   */
+  private async buildEmbeddedFontFaceCss(selectedFontId: string | undefined): Promise<string> {
+    if (!selectedFontId) return '';
+    const font = getFontById(selectedFontId);
+    if (!font.isBundled) return '';
+
+    const files = getBundledFontFiles(font.name);
+    if (!files.length || typeof fetch !== 'function') return '';
+
+    const rules: string[] = [];
+    for (const file of files) {
+      try {
+        const response = await fetch(file.url);
+        if (!response.ok) continue;
+        const buffer = new Uint8Array(await response.arrayBuffer());
+        let binary = '';
+        const chunkSize = 0x8000;
+        for (let i = 0; i < buffer.length; i += chunkSize) {
+          binary += String.fromCharCode(...buffer.subarray(i, i + chunkSize));
+        }
+        const format = file.format || 'woff2';
+        const mime = format === 'truetype' ? 'font/ttf' : format === 'woff' ? 'font/woff' : 'font/woff2';
+        rules.push(
+          `    @font-face {\n` +
+          `      font-family: ${JSON.stringify(font.name)};\n` +
+          `      src: url(data:${mime};base64,${btoa(binary)}) format('${format}');\n` +
+          `      font-weight: ${file.weight ?? 400};\n` +
+          `      font-style: ${file.style ?? 'normal'};\n` +
+          `      font-display: block;\n` +
+          `    }\n`
+        );
+      } catch (error) {
+        console.warn(`[ExportRenderer] Could not embed font "${font.name}":`, error);
+      }
+    }
+    return rules.join('');
+  }
+
+  /**
    * Create a high-resolution canvas for export with DPI scaling
    */
   private createExportCanvas(
@@ -3800,9 +3870,7 @@ ${this.generateWebGLShaderRuntime(htmlShaderBundle!)}
     
     // Setup font for text rendering using actual typography settings
     const exportFontSize = actualFontSize * sizeMultiplier;
-    // Font stack is already properly formatted (no quotes) from fontMetrics
-    const fontStack = fontMetrics.fontFamily || 'SF Mono, Monaco, Cascadia Code, Consolas, JetBrains Mono, Fira Code, Monaspace Neon, Geist Mono, Courier New, monospace';
-    ctx.font = `${exportFontSize}px ${fontStack}`;
+    ctx.font = buildCanvasFont(exportFontSize, fontMetrics.fontFamily || DEFAULT_EXPORT_FONT_STACK);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     

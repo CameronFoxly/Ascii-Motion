@@ -5,6 +5,8 @@
  * Uses a modern font stack optimized for crisp text rendering.
  */
 
+import { buildCanvasFont } from './fontStack';
+
 export interface FontMetrics {
   characterWidth: number;
   characterHeight: number;
@@ -99,19 +101,10 @@ export const pixelToGrid = (
 
 /**
  * Get font CSS string for canvas rendering
- * Properly quotes font names with spaces for canvas compatibility
+ * Quotes every family name so stacks like "Px437 IBM VGA 9x14" stay valid
  */
-export const getFontString = (fontMetrics: FontMetrics): string => {
-  // Split the font stack to handle the first font name
-  const fonts = fontMetrics.fontFamily.split(',').map(f => f.trim());
-  
-  // If the first font has spaces and isn't already quoted, quote it
-  if (fonts[0] && fonts[0].includes(' ') && !fonts[0].startsWith('"') && !fonts[0].startsWith("'")) {
-    fonts[0] = `"${fonts[0]}"`;
-  }
-  
-  return `${fontMetrics.fontSize}px ${fonts.join(', ')}`;
-};
+export const getFontString = (fontMetrics: FontMetrics): string =>
+  buildCanvasFont(fontMetrics.fontSize, fontMetrics.fontFamily);
 
 /**
  * Default spacing settings

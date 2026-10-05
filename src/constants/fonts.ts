@@ -7,7 +7,7 @@ export interface MonospaceFont {
   id: string;
   name: string;
   displayName: string;
-  cssStack: string; // No quotes, ready for canvas/CSS
+  cssStack: string; // Font stack; run through formatFontStack()/buildCanvasFont() before use in ctx.font or CSS
   category: 'system' | 'web' | 'fallback';
   platforms?: ('macos' | 'windows' | 'linux')[];
   description: string;
@@ -113,7 +113,7 @@ export const MONOSPACE_FONTS: MonospaceFont[] = [
     id: 'ibm-vga',
     name: 'Px437 IBM VGA 9x14',
     displayName: 'IBM VGA 9x14 (Retro bold)',
-    cssStack: 'Px437 IBM VGA 9x14, monospace',
+    cssStack: '"Px437 IBM VGA 9x14", monospace',
     category: 'web',
     description: 'Classic IBM VGA font - authentic retro terminal aesthetic',
     isBundled: true,
@@ -123,7 +123,7 @@ export const MONOSPACE_FONTS: MonospaceFont[] = [
     id: 'ibm-dos',
     name: 'Px437 IBM DOS ISO8',
     displayName: 'IBM DOS ISO8 (Retro thin)',
-    cssStack: 'Px437 IBM DOS ISO8, monospace',
+    cssStack: '"Px437 IBM DOS ISO8", monospace',
     category: 'web',
     description: 'Classic IBM DOS font with ISO-8859-1 extended characters',
     isBundled: true,
@@ -163,7 +163,8 @@ export const getFontById = (id: string): MonospaceFont => {
 export const DEFAULT_FONT_ID = 'auto';
 
 /**
- * Get CSS font stack for canvas/CSS usage (no quotes around individual font names)
+ * Get the raw CSS font stack for a font ID.
+ * Use formatFontStack()/buildCanvasFont() from utils/fontStack before writing it to ctx.font or CSS.
  */
 export const getFontStack = (fontId: string): string => {
   const font = getFontById(fontId);

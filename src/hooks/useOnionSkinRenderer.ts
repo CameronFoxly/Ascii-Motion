@@ -10,6 +10,7 @@ import {
   getOnionSkinColor 
 } from '../constants/onionSkin';
 import type { Cell } from '../types';
+import { buildCanvasFont } from '../utils/fontStack';
 
 /**
  * Hook for rendering onion skin layers with caching.
@@ -69,8 +70,7 @@ export const useOnionSkinRenderer = () => {
   // Memoize drawing styles for onion skins
   const drawingStyles = useMemo(() => {
     const scaledFontSize = fontMetrics.fontSize * zoom;
-    // Font stack already includes fallback, no need for quotes or extra fallback
-    const scaledFontString = `${scaledFontSize}px ${fontMetrics.fontFamily}`;
+    const scaledFontString = buildCanvasFont(scaledFontSize, fontMetrics.fontFamily);
     
     return {
       font: scaledFontString,

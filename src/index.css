@@ -3,10 +3,60 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom font faces */
+/* Bundled font faces (downloaded lazily on first use). Declared here so any renderer —
+   gallery previews, publish thumbnails, exports — can resolve them via document.fonts
+   even if the editor hasn't selected the font yet. Keep in sync with src/utils/fontLoader.ts. */
 @font-face {
   font-family: 'C64 Pro';
   src: url('/fonts/C64_Pro-STYLE.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/JetBrainsMono-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Fira Code';
+  src: url('/fonts/FiraCode-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Monaspace Neon';
+  src: url('/fonts/MonaspaceNeon-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/fonts/GeistMono-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Px437 IBM VGA 9x14';
+  src: url('/fonts/Px437_IBM_VGA_9x14.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Px437 IBM DOS ISO8';
+  src: url('/fonts/Px437_IBM_DOS_ISO8.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
