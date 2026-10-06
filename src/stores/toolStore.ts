@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Tool, ToolState, Selection, LassoSelection, MagicWandSelection, TextToolState, AnyHistoryAction, CanvasHistoryAction, BrushShape, BrushSettings, Cell } from '../types';
+import type { Tool, ToolState, Selection, LassoSelection, MagicWandSelection, TextToolState, TextBoxRegion, AnyHistoryAction, CanvasHistoryAction, BrushShape, BrushSettings, Cell } from '../types';
 import { createCellKey } from '../types';
 import { DEFAULT_COLORS } from '../constants';
 import { 
@@ -187,13 +187,16 @@ interface ToolStoreState extends ToolState {
   getMagicWandClipboardOriginalPosition: () => { x: number; y: number } | null;
   
   // Text tool actions
-  startTyping: (x: number, y: number) => void;
+  startTyping: (x: number, y: number, textBox?: TextBoxRegion | null) => void;
   stopTyping: () => void;
   setCursorPosition: (x: number, y: number) => void;
   setCursorVisible: (visible: boolean) => void;
   setTextBuffer: (buffer: string) => void;
   setLineStartX: (x: number) => void;
   commitWord: () => void;
+  startTextBoxDraft: (x: number, y: number) => void;
+  updateTextBoxDraft: (x: number, y: number) => void;
+  clearTextBoxDraft: () => void;
   
   // Enhanced history actions
   pushToHistory: (action: AnyHistoryAction) => void;
@@ -326,7 +329,9 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     cursorPosition: null,
     cursorVisible: true,
     textBuffer: '',
-    lineStartX: 0
+    lineStartX: 0,
+    textBox: null,
+    textBoxDraft: null
   },
   
   // Clipboard state
@@ -1172,7 +1177,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   },
   
   // Text tool actions
-  startTyping: (x: number, y: number) => {
+  startTyping: (x: number, y: number, textBox: TextBoxRegion | null = null) => {
     set({
       textToolState: {
         ...get().textToolState,
@@ -1180,7 +1185,9 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
         cursorPosition: { x, y },
         cursorVisible: true,
         textBuffer: '',
-        lineStartX: x
+        lineStartX: x,
+        textBox,
+        textBoxDraft: null
       }
     });
   },
@@ -1192,7 +1199,40 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
         isTyping: false,
         cursorPosition: null,
         cursorVisible: true,
-        textBuffer: ''
+        textBuffer: '',
+        textBox: null,
+        textBoxDraft: null
+      }
+    });
+  },
+
+  startTextBoxDraft: (x: number, y: number) => {
+    set({
+      textToolState: {
+        ...get().textToolState,
+        textBoxDraft: { start: { x, y }, current: { x, y } }
+      }
+    });
+  },
+
+  updateTextBoxDraft: (x: number, y: number) => {
+    const { textBoxDraft } = get().textToolState;
+    if (!textBoxDraft) return;
+    if (textBoxDraft.current.x === x && textBoxDraft.current.y === y) return;
+    set({
+      textToolState: {
+        ...get().textToolState,
+        textBoxDraft: { ...textBoxDraft, current: { x, y } }
+      }
+    });
+  },
+
+  clearTextBoxDraft: () => {
+    if (!get().textToolState.textBoxDraft) return;
+    set({
+      textToolState: {
+        ...get().textToolState,
+        textBoxDraft: null
       }
     });
   },

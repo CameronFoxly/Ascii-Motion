@@ -30,12 +30,12 @@ export const TextTool: React.FC = () => {
  * Provides visual feedback about the text tool's current state
  */
 export const TextToolStatus: React.FC = () => {
-  const { isTyping, cursorPosition } = useTextTool();
+  const { isTyping, cursorPosition, textBox } = useTextTool();
 
   if (!isTyping) {
     return (
       <span className="text-muted-foreground">
-        Click to place cursor and type
+        Click to place cursor • Drag to draw a text box
       </span>
     );
   }
@@ -43,7 +43,9 @@ export const TextToolStatus: React.FC = () => {
   if (cursorPosition) {
     return (
       <span className="text-muted-foreground">
-        Typing at ({cursorPosition.x}, {cursorPosition.y}) • Arrows to move • Enter for new line • Esc to finish
+        {textBox
+          ? `Text box ${textBox.right - textBox.left + 1}×${textBox.bottom - textBox.top + 1} • Text wraps at the box edge • Esc to finish`
+          : `Typing at (${cursorPosition.x}, ${cursorPosition.y}) • Arrows to move • Enter for new line • Esc to finish`}
       </span>
     );
   }

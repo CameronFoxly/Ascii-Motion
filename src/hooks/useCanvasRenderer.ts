@@ -495,6 +495,40 @@ export const useCanvasRenderer = () => {
       }
     }
 
+    // Draw text box overlay (active box or in-progress drag)
+    if (activeTool === 'text') {
+      const draft = textToolState.textBoxDraft;
+      const region = draft
+        ? {
+            left: Math.min(draft.start.x, draft.current.x),
+            top: Math.min(draft.start.y, draft.current.y),
+            right: Math.max(draft.start.x, draft.current.x),
+            bottom: Math.max(draft.start.y, draft.current.y)
+          }
+        : textToolState.textBox;
+
+      if (region) {
+        const boxLeft = Math.max(0, region.left);
+        const boxTop = Math.max(0, region.top);
+        const boxRight = Math.min(width - 1, region.right);
+        const boxBottom = Math.min(height - 1, region.bottom);
+
+        if (boxRight >= boxLeft && boxBottom >= boxTop) {
+          ctx.save();
+          ctx.strokeStyle = '#A855F7'; // Purple to match other tool overlays
+          ctx.lineWidth = 1;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(
+            Math.round(boxLeft * effectiveCellWidth + panOffset.x) + 0.5,
+            Math.round(boxTop * effectiveCellHeight + panOffset.y) + 0.5,
+            Math.round((boxRight - boxLeft + 1) * effectiveCellWidth) - 1,
+            Math.round((boxBottom - boxTop + 1) * effectiveCellHeight) - 1
+          );
+          ctx.restore();
+        }
+      }
+    }
+
     // Draw text cursor overlay
     if (textToolState.isTyping && textToolState.cursorVisible && textToolState.cursorPosition) {
       const { x, y } = textToolState.cursorPosition;
