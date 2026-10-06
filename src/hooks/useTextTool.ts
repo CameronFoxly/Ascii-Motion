@@ -1,14 +1,16 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useToolStore } from '../stores/toolStore';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useTimelineStore } from '../stores/timelineStore';
 import { screenToLocal } from '../utils/layerTransformUtils';
+import type { TextBoxRegion } from '../types';
 
 /**
  * Text Tool Hook - Handles text input functionality
  * 
  * Features:
  * - Click to place cursor and start typing
+ * - Click and drag to define a text box that constrains and wraps typing
  * - Arrow key navigation with boundary constraints
  * - Enter key for new lines (moves to line start)
  * - Backspace with line boundary stopping
@@ -23,8 +25,12 @@ export const useTextTool = () => {
   const stopTyping = useToolStore((s) => s.stopTyping);
   const setCursorPosition = useToolStore((s) => s.setCursorPosition);
   const setCursorVisible = useToolStore((s) => s.setCursorVisible);
+  const setTextBoxFull = useToolStore((s) => s.setTextBoxFull);
   const setTextBuffer = useToolStore((s) => s.setTextBuffer);
   const commitWord = useToolStore((s) => s.commitWord);
+  const startTextBoxDraft = useToolStore((s) => s.startTextBoxDraft);
+  const updateTextBoxDraft = useToolStore((s) => s.updateTextBoxDraft);
+  const clearTextBoxDraft = useToolStore((s) => s.clearTextBoxDraft);
   const pushCanvasHistory = useToolStore((s) => s.pushCanvasHistory);
   const finalizeCanvasHistory = useToolStore((s) => s.finalizeCanvasHistory);
   const width = useCanvasStore((s) => s.width);
@@ -37,7 +43,18 @@ export const useTextTool = () => {
   const selectedBgColor = useToolStore((s) => s.selectedBgColor);
   
   const blinkTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const wordBoundaryChars = useRef(new Set([' ', '\t', '\n', '.', ',', ';', ':', '!', '?', '"', "'", '(', ')', '[', ']', '{', '}', '<', '>', '/', '\\', '|', '@', '#', '$', '%', '^', '&', '*', '+', '=', '-', '_', '~', '`']));
+
+  const textBox = textToolState.textBox;
+
+  // Typing bounds: the active text box when present, otherwise the full canvas
+  const bounds = useMemo(() => ({
+    minX: textBox ? textBox.left : 0,
+    maxX: textBox ? textBox.right : width - 1,
+    minY: textBox ? textBox.top : 0,
+    maxY: textBox ? textBox.bottom : height - 1
+  }), [textBox, width, height]);
 
   // Helper function to create a cell with all attributes for text tool
   const createTextCellWithAllAttributes = useCallback((newChar: string): { char: string, color: string, bgColor: string } => {
@@ -105,12 +122,13 @@ export const useTextTool = () => {
     if (!textToolState.cursorPosition) return;
 
     const { x, y } = textToolState.cursorPosition;
+    const { minX, maxX, minY, maxY } = bounds;
     let newX = x + deltaX;
     let newY = y + deltaY;
 
     // Boundary constraints - stop at edges
-    newX = Math.max(0, Math.min(width - 1, newX));
-    newY = Math.max(0, Math.min(height - 1, newY));
+    newX = Math.max(minX, Math.min(maxX, newX));
+    newY = Math.max(minY, Math.min(maxY, newY));
 
     // Don't move if we're at the boundary
     if (newX !== x + deltaX || newY !== y + deltaY) {
@@ -119,13 +137,23 @@ export const useTextTool = () => {
 
     setCursorPosition(newX, newY);
     resetCursorBlink();
-  }, [textToolState.cursorPosition, width, height, setCursorPosition, resetCursorBlink]);
+  }, [textToolState.cursorPosition, bounds, setCursorPosition, resetCursorBlink]);
+
+  // Read the character currently rendered at a screen-space grid position
+  const getCharAt = useCallback((x: number, y: number): string => {
+    const local = screenToLocal(x, y);
+    const cell = getCell(local.x, local.y);
+    return cell?.char ?? ' ';
+  }, [getCell]);
 
   // Insert character at cursor position
   const insertCharacter = useCallback((char: string) => {
     if (!textToolState.cursorPosition) return;
+    // The text box has no room left - reject input instead of overwriting the last cell
+    if (textToolState.textBoxFull) return;
 
     const { x, y } = textToolState.cursorPosition;
+    const { minX, maxX, maxY } = bounds;
     const local = screenToLocal(x, y);
     
     // Check if character causes word boundary - commit current word if so
@@ -140,14 +168,54 @@ export const useTextTool = () => {
     // Add to text buffer for undo batching
     setTextBuffer(textToolState.textBuffer + char);
 
-    // Move cursor right, respecting canvas boundaries
-    const newX = x + 1;
-    if (newX < width) {
-      setCursorPosition(newX, y);
+    const nextX = x + 1;
+    if (nextX <= maxX) {
+      setCursorPosition(nextX, y);
       resetCursorBlink();
+      return;
     }
-    // If at right edge, don't move cursor (content extends beyond canvas)
-  }, [textToolState.cursorPosition, textToolState.textBuffer, isWordBoundary, commitCurrentWord, setCell, setTextBuffer, width, setCursorPosition, resetCursorBlink, createTextCellWithAllAttributes]);
+
+    // Reached the right edge
+    if (!textBox) {
+      // Free typing: keep cursor at the edge (content extends beyond canvas)
+      return;
+    }
+
+    // Text box: wrap to the next line when there's room
+    if (y + 1 > maxY) {
+      // Last cell of the box is now filled - block further input until the cursor moves
+      setTextBoxFull(true);
+      return;
+    }
+
+    // Word wrap: find the trailing word on this line so it can move down intact
+    let wordStart = maxX + 1;
+    if (char !== ' ') {
+      let scanX = maxX;
+      while (scanX >= minX && getCharAt(scanX, y).trim() !== '') {
+        scanX--;
+      }
+      wordStart = scanX + 1;
+    }
+
+    if (char !== ' ' && wordStart > minX) {
+      const blankCell = createTextCellWithAllAttributes(' ');
+      const movedCells = [];
+      for (let scanX = wordStart; scanX <= maxX; scanX++) {
+        const from = screenToLocal(scanX, y);
+        movedCells.push(getCell(from.x, from.y) ?? blankCell);
+        setCell(from.x, from.y, blankCell);
+      }
+      movedCells.forEach((cell, index) => {
+        const to = screenToLocal(minX + index, y + 1);
+        setCell(to.x, to.y, cell);
+      });
+      setCursorPosition(minX + movedCells.length, y + 1);
+    } else {
+      setCursorPosition(minX, y + 1);
+    }
+    resetCursorBlink();
+  }, [textToolState.cursorPosition, textToolState.textBuffer, textToolState.textBoxFull, bounds, textBox, isWordBoundary, commitCurrentWord, setCell, getCell, getCharAt, setTextBuffer, setCursorPosition, setTextBoxFull, resetCursorBlink, createTextCellWithAllAttributes]);
 
   // Handle Enter key - move to next line at line start
   const handleEnter = useCallback(() => {
@@ -159,28 +227,37 @@ export const useTextTool = () => {
     // Commit current word
     commitCurrentWord();
 
-    // Move to next line at lineStartX, respecting boundaries
-    if (newY < height) {
-      setCursorPosition(textToolState.lineStartX, newY);
+    // Move to next line at the line start, respecting boundaries
+    if (newY <= bounds.maxY) {
+      setCursorPosition(textBox ? bounds.minX : textToolState.lineStartX, newY);
       resetCursorBlink();
     }
-    // If at bottom edge, don't move cursor
-  }, [textToolState.cursorPosition, textToolState.lineStartX, height, commitCurrentWord, setCursorPosition, resetCursorBlink]);
+    // If at the bottom edge, don't move cursor
+  }, [textToolState.cursorPosition, textToolState.lineStartX, bounds, textBox, commitCurrentWord, setCursorPosition, resetCursorBlink]);
 
   // Handle Backspace - delete previous character with line boundary stopping
   const handleBackspace = useCallback(() => {
     if (!textToolState.cursorPosition) return;
 
     const { x, y } = textToolState.cursorPosition;
-    
-    // Can't backspace at position (0, 0)
-    if (x === 0 && y === 0) return;
+    const { minX, maxX, minY } = bounds;
 
-    const targetX = x - 1;
-    const targetY = y;
+    let targetX: number;
+    let targetY: number;
 
-    // If at beginning of line, stop (don't wrap to previous line)
-    if (x === 0) {
+    if (textToolState.textBoxFull) {
+      // Cursor is parked on the filled last cell - delete that cell and resume input there
+      targetX = x;
+      targetY = y;
+    } else if (x > minX) {
+      targetX = x - 1;
+      targetY = y;
+    } else if (textBox && y > minY) {
+      // Inside a text box, wrap back to the end of the previous line
+      targetX = maxX;
+      targetY = y - 1;
+    } else {
+      // At the start of the line (or canvas) - stop
       return;
     }
 
@@ -204,17 +281,19 @@ export const useTextTool = () => {
     // Update text buffer (remove last character)
     const newBuffer = textToolState.textBuffer.slice(0, -1);
     setTextBuffer(newBuffer);
-  }, [textToolState.cursorPosition, textToolState.textBuffer, getCell, isWordBoundary, commitCurrentWord, setCell, setCursorPosition, resetCursorBlink, setTextBuffer, createTextCellWithAllAttributes]);
+  }, [textToolState.cursorPosition, textToolState.textBuffer, textToolState.textBoxFull, bounds, textBox, getCell, isWordBoundary, commitCurrentWord, setCell, setCursorPosition, resetCursorBlink, setTextBuffer, createTextCellWithAllAttributes]);
 
   // Handle clipboard paste
   const handlePaste = useCallback(async () => {
     if (!textToolState.cursorPosition) return;
+    if (textToolState.textBoxFull) return;
 
     try {
       const clipboardText = await navigator.clipboard.readText();
       if (!clipboardText) return;
 
       const { x: startX, y: startY } = textToolState.cursorPosition;
+      const { minX, maxX, maxY } = bounds;
       let currentX = startX;
       let currentY = startY;
 
@@ -224,27 +303,49 @@ export const useTextTool = () => {
       // Process each character in clipboard
       for (const char of clipboardText) {
         if (char === '\n' || char === '\r') {
-          // Handle line breaks - move to next line at lineStartX
+          // Handle line breaks - move to next line at the line start
           currentY++;
-          currentX = textToolState.lineStartX;
+          currentX = textBox ? minX : textToolState.lineStartX;
           
           // Stop if we reach bottom boundary
-          if (currentY >= height) break;
+          if (currentY > maxY) break;
         } else {
-          // Insert character if within bounds
-          if (currentX < width && currentY < height) {
+          if (currentX > maxX) {
+            if (textBox) {
+              // Wrap inside the text box
+              currentY++;
+              currentX = minX;
+              if (currentY > maxY) break;
+            } else {
+              // Free typing: content extends beyond canvas, skip rendering it
+              currentX++;
+              continue;
+            }
+          }
+
+          if (currentY <= maxY) {
             const localPaste = screenToLocal(currentX, currentY);
             const newCell = createTextCellWithAllAttributes(char);
             setCell(localPaste.x, localPaste.y, newCell);
             currentX++;
           }
-          // Continue processing even if beyond width (content extends beyond canvas)
         }
       }
 
       // Position cursor at end of pasted content
-      if (currentY < height) {
-        const finalX = Math.min(currentX, width - 1);
+      if (textBox) {
+        if (currentY > maxY || (currentX > maxX && currentY >= maxY)) {
+          // Pasted content filled the box - park on the last cell and block further input
+          setCursorPosition(maxX, maxY);
+          setTextBoxFull(true);
+        } else if (currentX > maxX) {
+          setCursorPosition(minX, currentY + 1);
+        } else {
+          setCursorPosition(currentX, currentY);
+        }
+        resetCursorBlink();
+      } else if (currentY <= maxY) {
+        const finalX = Math.min(currentX, maxX);
         setCursorPosition(finalX, currentY);
         resetCursorBlink();
       }
@@ -256,18 +357,61 @@ export const useTextTool = () => {
     } catch (error) {
       console.error('Failed to read clipboard:', error);
     }
-  }, [textToolState.cursorPosition, textToolState.lineStartX, width, height, commitCurrentWord, setCell, setCursorPosition, resetCursorBlink, pushCanvasHistory, cells, currentFrameIndex, createTextCellWithAllAttributes, finalizeCanvasHistory]);
+  }, [textToolState.cursorPosition, textToolState.lineStartX, textToolState.textBoxFull, bounds, textBox, commitCurrentWord, setCell, setCursorPosition, setTextBoxFull, resetCursorBlink, pushCanvasHistory, cells, currentFrameIndex, createTextCellWithAllAttributes, finalizeCanvasHistory]);
 
-  // Click to place cursor
-  const handleTextToolClick = useCallback((x: number, y: number) => {
+  // Mouse down - begin a potential text box drag
+  const handleTextToolMouseDown = useCallback((x: number, y: number) => {
+    dragStartRef.current = { x, y };
+    startTextBoxDraft(x, y);
+  }, [startTextBoxDraft]);
+
+  // Mouse move - update the text box drag preview
+  const handleTextToolMouseMove = useCallback((x: number, y: number) => {
+    if (!dragStartRef.current) return;
+    updateTextBoxDraft(x, y);
+  }, [updateTextBoxDraft]);
+
+  // Mouse up - either create a text box (drag) or place the cursor (click)
+  const handleTextToolMouseUp = useCallback((position?: { x: number; y: number } | null) => {
+    const start = dragStartRef.current;
+    dragStartRef.current = null;
+    clearTextBoxDraft();
+    if (!start) return;
+
+    const end = position ?? start;
+    const left = Math.max(0, Math.min(start.x, end.x));
+    const right = Math.min(width - 1, Math.max(start.x, end.x));
+    const top = Math.max(0, Math.min(start.y, end.y));
+    const bottom = Math.min(height - 1, Math.max(start.y, end.y));
+
     // Commit current word if switching positions
     if (textToolState.isTyping) {
       commitCurrentWord();
     }
 
-    startTyping(x, y);
+    // A drag spanning more than one column creates a text box
+    if (right > left) {
+      const region: TextBoxRegion = { left, top, right, bottom };
+      startTyping(region.left, region.top, region);
+    } else if (
+      textBox &&
+      end.x >= textBox.left && end.x <= textBox.right &&
+      end.y >= textBox.top && end.y <= textBox.bottom
+    ) {
+      // Click inside the active text box repositions the cursor and keeps the box
+      setCursorPosition(end.x, end.y);
+    } else {
+      startTyping(end.x, end.y, null);
+    }
+
     resetCursorBlink();
-  }, [textToolState.isTyping, commitCurrentWord, startTyping, resetCursorBlink]);
+  }, [clearTextBoxDraft, width, height, textToolState.isTyping, textBox, commitCurrentWord, startTyping, setCursorPosition, resetCursorBlink]);
+
+  // Cancel an in-progress text box drag (e.g. pointer left the canvas)
+  const cancelTextBoxDrag = useCallback(() => {
+    dragStartRef.current = null;
+    clearTextBoxDraft();
+  }, [clearTextBoxDraft]);
 
   // Handle keyboard input
   const handleTextToolKeyDown = useCallback((event: KeyboardEvent) => {
@@ -345,9 +489,13 @@ export const useTextTool = () => {
     cursorPosition: textToolState.cursorPosition,
     cursorVisible: textToolState.cursorVisible,
     textBuffer: textToolState.textBuffer,
+    textBox: textToolState.textBox,
     
     // Actions
-    handleTextToolClick,
+    handleTextToolMouseDown,
+    handleTextToolMouseMove,
+    handleTextToolMouseUp,
+    cancelTextBoxDrag,
     handleTextToolKeyDown,
     commitCurrentWord,
     

@@ -121,12 +121,23 @@ export interface MagicWandSelection {
   contiguous: boolean; // Whether to select only connected matching cells
 }
 
+/** Inclusive grid bounds of a text box drawn with the text tool */
+export interface TextBoxRegion {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
 export interface TextToolState {
   isTyping: boolean;
   cursorPosition: { x: number; y: number } | null;
   cursorVisible: boolean; // For blink animation
   textBuffer: string; // Current word being typed for undo batching
   lineStartX: number; // Starting X position for line returns
+  textBox: TextBoxRegion | null; // Active text box constraining typing (null = free typing)
+  textBoxDraft: { start: { x: number; y: number }; current: { x: number; y: number } } | null; // In-progress drag
+  textBoxFull: boolean; // True when the last cell of the text box is filled and input must stop
 }
 
 export interface CharacterPalette {

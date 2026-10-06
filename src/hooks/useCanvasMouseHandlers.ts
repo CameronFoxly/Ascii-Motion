@@ -137,6 +137,12 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
   const handleMouseLeave = useCallback(() => {
     setIsDrawing(false);
     setMouseButtonDown(false);
+
+    // Finish an in-progress text box drag using the last known cell
+    if (activeTool === 'text') {
+      textToolHandlers.handleTextToolMouseUp(lastHoveredCellRef.current);
+    }
+
     lastHoveredCellRef.current = null; // Reset ref
     setHoveredCell(null); // Clear hover state when mouse leaves canvas
     
@@ -144,7 +150,7 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
     const { setPencilLastPosition, clearLinePreview } = useToolStore.getState();
     setPencilLastPosition(null);
     clearLinePreview(); // Clear line preview when mouse leaves canvas
-  }, [setIsDrawing, setMouseButtonDown, setHoveredCell]);
+  }, [setIsDrawing, setMouseButtonDown, setHoveredCell, activeTool, textToolHandlers]);
 
   // Route mouse down to appropriate tool handler based on effective tool
   const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -240,7 +246,10 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
         break;
       case 'text': {
         const textCoords = getGridCoordinatesFromEvent(event);
-        textToolHandlers.handleTextToolClick(textCoords.x, textCoords.y);
+        if (event.button === 0) {
+          textToolHandlers.handleTextToolMouseDown(textCoords.x, textCoords.y);
+          setMouseButtonDown(true);
+        }
         break;
       }
       case 'gradientfill': {
@@ -367,6 +376,11 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
       case 'magicwand':
         magicWandSelectionHandlers.handleMagicWandMouseMove(event);
         break;
+      case 'text': {
+        const textCoords = getGridCoordinatesFromEvent(event);
+        textToolHandlers.handleTextToolMouseMove(textCoords.x, textCoords.y);
+        break;
+      }
       case 'rectangle':
       case 'ellipse':
         // Handled by InteractiveVectorShapeOverlay
@@ -437,10 +451,11 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
     clampAsciiOrigin,
     updateAsciiDrag,
     asciiBoxHandlers,
+    textToolHandlers,
   ]);
 
   // Route mouse up to appropriate tool handler
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = useCallback((event?: React.MouseEvent<HTMLCanvasElement>) => {
     // Block mouse interactions during playback
     if (isPlaybackMode) {
       return;
@@ -463,6 +478,12 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
       case 'magicwand':
         magicWandSelectionHandlers.handleMagicWandMouseUp();
         break;
+      case 'text': {
+        const textCoords = event ? getGridCoordinatesFromEvent(event) : lastHoveredCellRef.current;
+        textToolHandlers.handleTextToolMouseUp(textCoords);
+        setMouseButtonDown(false);
+        break;
+      }
       case 'rectangle':
       case 'ellipse':
         // Handled by InteractiveVectorShapeOverlay
@@ -511,6 +532,8 @@ export const useCanvasMouseHandlers = (): MouseHandlers => {
     asciiDragState,
     endAsciiDrag,
     asciiBoxHandlers,
+    textToolHandlers,
+    getGridCoordinatesFromEvent,
   ]);
 
   return {
