@@ -777,7 +777,7 @@ export const useTimelineStore = create<TimelineState>()(
         contentFrames: [{
           id: generateContentFrameId(),
           name: 'Frame 1',
-          startFrame: 0,
+          startFrame: view.currentFrame,
           durationFrames: 1,
           data: new Map(),
         }],
