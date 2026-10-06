@@ -101,6 +101,21 @@ describe('timelineStore', () => {
       expect(useTimelineStore.getState().view.activeLayerId).toBe(newId);
     });
 
+    it('addLayer creates its first content frame at the playhead', () => {
+      const store = useTimelineStore.getState();
+      store.setDuration(10);
+      store.goToFrame(6);
+
+      const newId = useTimelineStore.getState().addLayer();
+      const newLayer = useTimelineStore.getState().getLayer(newId!);
+
+      expect(newLayer?.contentFrames[0]).toMatchObject({
+        name: 'Frame 1',
+        startFrame: 6,
+        durationFrames: 1,
+      });
+    });
+
     it('addLayer auto-names layers sequentially', () => {
       const store = useTimelineStore.getState();
       store.addLayer();
