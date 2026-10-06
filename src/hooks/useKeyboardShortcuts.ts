@@ -27,6 +27,7 @@ import { useTimelineStore } from '../stores/timelineStore';
 import { useImageTraceStore } from '../stores/imageTraceStore';
 import type { LayerId, LayerGroupId, ContentFrameId, PropertyTrackId, KeyframeId, PropertyPath } from '../types/timeline';
 import { PROPERTY_DEFINITIONS } from '../types/timeline';
+import { getKeyframeNavigationTarget, type NavigableKeyframe } from '../utils/keyframeNavigation';
 
 type CanvasStoreState = ReturnType<typeof useCanvasStore.getState>;
 type CanvasStoreForHistory = Pick<CanvasStoreState, 'setCanvasData'>;
@@ -2438,15 +2439,15 @@ export const useKeyboardShortcuts = () => {
             if (g.collapsed) collapsedGroupIds.add(g.id as string);
           }
 
-          // Collect keyframe frame numbers from visible (expanded) layers,
+          // Collect keyframes from visible (expanded) layers,
           // skipping layers inside collapsed groups
-          const keyframeFrames = new Set<number>();
+          const visibleKeyframes: NavigableKeyframe[] = [];
           for (const layer of tl.layers) {
             if (!expandedIds.has(layer.id)) continue;
             if (layer.parentGroupId && collapsedGroupIds.has(layer.parentGroupId as string)) continue;
             for (const track of layer.propertyTracks) {
               for (const kf of track.keyframes) {
-                keyframeFrames.add(kf.frame);
+                visibleKeyframes.push({ id: kf.id, trackId: track.id, frame: kf.frame });
               }
             }
             // Include effect keyframes from expanded effect tracks
@@ -2454,7 +2455,11 @@ export const useKeyboardShortcuts = () => {
               if (!tl.view.expandedEffectTrackIds.has(et.effectBlock.id)) continue;
               for (const pt of et.effectBlock.propertyTracks) {
                 for (const kf of pt.keyframes) {
-                  keyframeFrames.add(kf.frame);
+                  visibleKeyframes.push({
+                    id: kf.id as KeyframeId,
+                    trackId: pt.id as unknown as PropertyTrackId,
+                    frame: kf.frame,
+                  });
                 }
               }
             }
@@ -2465,7 +2470,7 @@ export const useKeyboardShortcuts = () => {
             if (g.collapsed) continue;
             for (const track of (g.propertyTracks ?? [])) {
               for (const kf of track.keyframes) {
-                keyframeFrames.add(kf.frame);
+                visibleKeyframes.push({ id: kf.id, trackId: track.id, frame: kf.frame });
               }
             }
             // Include group effect keyframes from expanded effect tracks
@@ -2473,7 +2478,11 @@ export const useKeyboardShortcuts = () => {
               if (!tl.view.expandedEffectTrackIds.has(et.effectBlock.id)) continue;
               for (const pt of et.effectBlock.propertyTracks) {
                 for (const kf of pt.keyframes) {
-                  keyframeFrames.add(kf.frame);
+                  visibleKeyframes.push({
+                    id: kf.id as KeyframeId,
+                    trackId: pt.id as unknown as PropertyTrackId,
+                    frame: kf.frame,
+                  });
                 }
               }
             }
@@ -2485,24 +2494,28 @@ export const useKeyboardShortcuts = () => {
               if (!tl.view.expandedEffectTrackIds.has(et.effectBlock.id)) continue;
               for (const pt of et.effectBlock.propertyTracks) {
                 for (const kf of pt.keyframes) {
-                  keyframeFrames.add(kf.frame);
+                  visibleKeyframes.push({
+                    id: kf.id as KeyframeId,
+                    trackId: pt.id as unknown as PropertyTrackId,
+                    frame: kf.frame,
+                  });
                 }
               }
             }
           }
 
-          if (keyframeFrames.size > 0) {
-            const sorted = [...keyframeFrames].sort((a, b) => a - b);
-            let target: number | null = null;
-            if (direction === 1) {
-              target = sorted.find((f) => f > current) ?? null;
-            } else {
-              for (let i = sorted.length - 1; i >= 0; i--) {
-                if (sorted[i] < current) { target = sorted[i]; break; }
-              }
-            }
-            if (target !== null) {
-              tl.goToFrame(target);
+          if (visibleKeyframes.length > 0) {
+            const target = getKeyframeNavigationTarget(
+              visibleKeyframes,
+              current,
+              direction,
+              tl.view.editingKeyframeId,
+            );
+            if (target) {
+              tl.goToFrame(target.frame);
+              tl.selectKeyframes([target.id]);
+              tl.setEditingKeyframe(target.id);
+              tl.selectEffectBlock(null);
             } else {
               // Past the last/first keyframe — go to timeline boundary
               if (direction === 1) {
