@@ -13,6 +13,7 @@ import type {
   InkExportSettings,
   OpenTuiExportSettings,
   BubbleteaExportSettings,
+  AnsiExportSettings,
   ExportProgress 
 } from '../types/export';
 import type { Cell } from '../types';
@@ -768,6 +769,254 @@ export class ExportRenderer {
       console.error('Text export failed:', error);
       throw new Error(`Text export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  /**
+   * Export a terminal-ready ANSI escape sequence payload.
+   * Supports direct console paste with 16-color ANSI, xterm-256, or truecolor output.
+   */
+  async exportAnsi(
+    data: ExportDataBundle,
+    settings: AnsiExportSettings,
+    filename: string
+  ): Promise<void> {
+    this.updateProgress('Preparing ANSI export...', 0);
+
+    try {
+      const baseName = (filename || 'ascii-motion-ansi').replace(/\.(?:ansi|sh)$/i, '');
+      const frames = data.frames.length > 0
+        ? data.frames
+        : [{
+            id: 'ansi-export-fallback',
+            name: 'Current frame',
+            duration: 1000 / Math.max(data.frameRate, 1),
+            data: data.canvasData,
+          }];
+
+      if (settings.outputMode === 'animation') {
+        const payload = this.buildAnsiAnimationScript(data, settings, frames);
+        this.updateProgress('Saving ANSI animation...', 90);
+        saveAs(
+          new Blob([payload], { type: 'text/x-shellscript; charset=utf-8' }),
+          `${baseName}.sh`
+        );
+      } else {
+        const selectedFrameIndex = data.frames[data.currentFrameIndex] ? data.currentFrameIndex : 0;
+        const selectedFrame = data.frames[selectedFrameIndex] ?? frames[0];
+        const frameText = this.serializeAnsiFrame(
+          selectedFrame.data,
+          data.canvasDimensions.width,
+          data.canvasDimensions.height,
+          settings.colorMode,
+          data.canvasBackgroundColor
+        );
+        const sections: string[] = [];
+
+        if (settings.clearScreen) {
+          sections.push('\u001b[2J\u001b[H');
+        }
+
+        if (settings.includeMetadata) {
+          sections.push([
+            '\u001b[1mASCII Motion ANSI Export\u001b[0m',
+            `Project: ${data.metadata.projectName || data.name || 'ASCII Motion'}`,
+            `Frame: ${selectedFrameIndex + 1}/${Math.max(data.frames.length, 1)}`,
+            `Size: ${data.canvasDimensions.width}x${data.canvasDimensions.height}`,
+            `Color mode: ${settings.colorMode}`,
+            '',
+          ].join('\n'));
+        }
+
+        sections.push(frameText, '\u001b[0m\n');
+
+        this.updateProgress('Saving ANSI file...', 90);
+        saveAs(
+          new Blob([sections.join('')], { type: 'text/plain; charset=utf-8' }),
+          `${baseName}.ansi`
+        );
+      }
+
+      this.updateProgress('Export complete!', 100);
+    } catch (error) {
+      console.error('ANSI export failed:', error);
+      throw new Error(`ANSI export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  private serializeAnsiFrame(
+    frameData: Map<string, Cell>,
+    width: number,
+    height: number,
+    colorMode: AnsiExportSettings['colorMode'],
+    canvasBackgroundColor: string
+  ): string {
+    const rows: string[] = [];
+
+    for (let y = 0; y < height; y++) {
+      let row = '';
+      let activeForeground: string | null = null;
+      let activeBackground: string | null = null;
+
+      for (let x = 0; x < width; x++) {
+        const cell = frameData.get(`${x},${y}`);
+        const character = this.sanitizeAnsiCharacter(cell?.char);
+        const foreground = character === ' ' && (!cell?.bgColor || cell.bgColor === 'transparent')
+          ? null
+          : this.normalizeAnsiHex(cell?.color, '#ffffff');
+        const backgroundValue = cell?.bgColor && cell.bgColor !== 'transparent'
+          ? cell.bgColor
+          : canvasBackgroundColor;
+        const background = backgroundValue && backgroundValue !== 'transparent'
+          ? this.normalizeAnsiHex(backgroundValue, '#000000')
+          : null;
+        const parameters: string[] = [];
+
+        if (foreground !== activeForeground) {
+          parameters.push(foreground ? this.getAnsiColorParameter(foreground, 'fg', colorMode) : '39');
+          activeForeground = foreground;
+        }
+
+        if (background !== activeBackground) {
+          parameters.push(background ? this.getAnsiColorParameter(background, 'bg', colorMode) : '49');
+          activeBackground = background;
+        }
+
+        if (parameters.length > 0) {
+          row += `\u001b[${parameters.join(';')}m`;
+        }
+
+        row += character;
+      }
+
+      if (activeForeground !== null || activeBackground !== null) {
+        row += '\u001b[0m';
+      }
+
+      rows.push(row);
+    }
+
+    return rows.join('\n');
+  }
+
+  private buildAnsiAnimationScript(
+    data: ExportDataBundle,
+    settings: AnsiExportSettings,
+    frames: Array<{ duration: number; data: Map<string, Cell> }>
+  ): string {
+    const fallbackDuration = 1000 / Math.max(data.frameRate, 1);
+    const projectName = this.sanitizeShellComment(data.metadata.projectName || data.name || 'ASCII Motion');
+    const lines = [
+      '#!/bin/sh',
+      '# Generated by ASCII Motion',
+    ];
+
+    if (settings.includeMetadata) {
+      lines.push(
+        `# Project: ${projectName}`,
+        `# Frames: ${frames.length}`,
+        `# Size: ${data.canvasDimensions.width}x${data.canvasDimensions.height}`,
+        `# Color mode: ${settings.colorMode}`
+      );
+    }
+
+    lines.push(
+      '',
+      'cleanup() {',
+      "  printf '\\033[0m\\033[?25h\\n'",
+      '}',
+      'trap cleanup EXIT',
+      "trap 'exit 0' HUP INT TERM",
+      "printf '\\033[?25l'"
+    );
+
+    if (settings.clearScreen) {
+      lines.push("printf '\\033[2J'");
+    }
+
+    lines.push('', 'play_once() {');
+
+    frames.forEach((frame) => {
+      const frameText = this.serializeAnsiFrame(
+        frame.data,
+        data.canvasDimensions.width,
+        data.canvasDimensions.height,
+        settings.colorMode,
+        data.canvasBackgroundColor
+      );
+      const duration = Number.isFinite(frame.duration) && frame.duration > 0
+        ? frame.duration
+        : fallbackDuration;
+      const seconds = (Math.max(duration, 1) / 1000).toFixed(3);
+
+      lines.push(
+        `  printf '\\033[H%s' ${this.quoteShellArgument(frameText)}`,
+        `  sleep ${seconds}`
+      );
+    });
+
+    lines.push('}');
+
+    if (settings.loopAnimation) {
+      lines.push('', 'while :; do', '  play_once', 'done');
+    } else {
+      lines.push('', 'play_once');
+    }
+
+    lines.push('');
+    return lines.join('\n');
+  }
+
+  private getAnsiColorParameter(
+    hex: string,
+    target: 'fg' | 'bg',
+    mode: AnsiExportSettings['colorMode']
+  ): string {
+    if (mode === 'truecolor') {
+      const r = Number.parseInt(hex.slice(1, 3), 16);
+      const g = Number.parseInt(hex.slice(3, 5), 16);
+      const b = Number.parseInt(hex.slice(5, 7), 16);
+      return `${target === 'fg' ? 38 : 48};2;${r};${g};${b}`;
+    }
+
+    if (mode === '256') {
+      return `${target === 'fg' ? 38 : 48};5;${this.hexTo256Color(hex)}`;
+    }
+
+    const index = Number(this.hexToAnsi16Color(hex).code);
+    if (target === 'fg') {
+      return String(index < 8 ? 30 + index : 90 + index - 8);
+    }
+    return String(index < 8 ? 40 + index : 100 + index - 8);
+  }
+
+  private normalizeAnsiHex(value: string | undefined, fallback: string): string {
+    const candidate = value?.trim() || fallback;
+    const normalized = candidate.startsWith('#') ? candidate : `#${candidate}`;
+    const shortMatch = /^#([0-9a-fA-F]{3})$/.exec(normalized);
+
+    if (shortMatch) {
+      const [r, g, b] = shortMatch[1].split('');
+      return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
+    }
+
+    return /^#[0-9a-fA-F]{6}$/.test(normalized)
+      ? normalized.toLowerCase()
+      : fallback;
+  }
+
+  private sanitizeAnsiCharacter(value: string | undefined): string {
+    if (!value) return ' ';
+    const character = Array.from(value)[0];
+    const codePoint = character?.codePointAt(0);
+    return codePoint === undefined || codePoint <= 31 || codePoint === 127 ? ' ' : character;
+  }
+
+  private quoteShellArgument(value: string): string {
+    return `'${value.replace(/'/g, `'\\''`)}'`;
+  }
+
+  private sanitizeShellComment(value: string): string {
+    return value.replace(/[\r\n]+/g, ' ').replace(/[^\x20-\x7e]/g, '?');
   }
 
   /**
