@@ -4,7 +4,7 @@ import type { ColorPalette, CharacterPalette, CharacterMappingSettings } from '.
 import type { SessionDataV2 } from './timeline';
 
 // Export format identifiers
-export type ExportFormatId = 'png' | 'svg' | 'mp4' | 'session' | 'media' | 'text' | 'json' | 'html' | 'react' | 'ink' | 'opentui' | 'bubbletea';
+export type ExportFormatId = 'png' | 'svg' | 'mp4' | 'session' | 'media' | 'text' | 'json' | 'html' | 'react' | 'ink' | 'opentui' | 'bubbletea' | 'ansi';
 
 // Base export format interface
 export interface ExportFormat {
@@ -67,6 +67,15 @@ export interface BubbleteaExportSettings {
   colorMode: 'hex' | '256' | 'semantic';           // Hex (24-bit), xterm-256, or Semantic (ANSI 16)
   playbackStyle: 'autoplay' | 'keyboard' | 'api';  // How playback is controlled
   loopAnimation: boolean;                          // Loop animation by default
+}
+
+export interface AnsiExportSettings {
+  fileName: string;
+  colorMode: 'ansi' | '256' | 'truecolor';
+  outputMode: 'single-frame' | 'animation';
+  includeMetadata: boolean;
+  loopAnimation: boolean;
+  clearScreen: boolean;
 }
 
 export interface VideoExportSettings {
@@ -134,7 +143,8 @@ export type ExportSettings =
   | HtmlExportSettings
   | ReactExportSettings
   | InkExportSettings
-  | OpenTuiExportSettings;
+  | OpenTuiExportSettings
+  | AnsiExportSettings;
 
 // Export data bundle - all data needed for any export
 export interface ExportDataBundle {
@@ -256,6 +266,7 @@ export interface ExportState {
   inkSettings: InkExportSettings;
   opentuiSettings: OpenTuiExportSettings;
   bubbleteaSettings: BubbleteaExportSettings;
+  ansiSettings: AnsiExportSettings;
   
   // Export history
   history: ExportHistoryEntry[];

@@ -57,6 +57,12 @@ const EXPORT_OPTIONS = [
     icon: Terminal,
   },
   {
+    id: 'ansi' as ExportFormatId,
+    name: 'ANSI Text',
+    description: 'Console-safe xterm-256 / truecolor output',
+    icon: Terminal,
+  },
+  {
     id: 'json' as ExportFormatId,
     name: 'JSON',
     description: 'Importable & human readable',

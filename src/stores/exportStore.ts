@@ -14,7 +14,8 @@ import type {
   ReactExportSettings,
   InkExportSettings,
   OpenTuiExportSettings,
-  BubbleteaExportSettings
+  BubbleteaExportSettings,
+  AnsiExportSettings
 } from '../types/export';
 
 interface ExportActions {
@@ -38,6 +39,7 @@ interface ExportActions {
   setInkSettings: (settings: Partial<InkExportSettings>) => void;
   setOpenTuiSettings: (settings: Partial<OpenTuiExportSettings>) => void;
   setBubbleteaSettings: (settings: Partial<BubbleteaExportSettings>) => void;
+  setAnsiSettings: (settings: Partial<AnsiExportSettings>) => void;
   
   // History management
   addToHistory: (entry: ExportHistoryEntry) => void;
@@ -136,6 +138,15 @@ const DEFAULT_BUBBLETEA_SETTINGS: BubbleteaExportSettings = {
   loopAnimation: true,
 };
 
+const DEFAULT_ANSI_SETTINGS: AnsiExportSettings = {
+  fileName: 'ascii-motion-ansi',
+  colorMode: '256',
+  outputMode: 'single-frame',
+  includeMetadata: false,
+  loopAnimation: true,
+  clearScreen: true,
+};
+
 export const useExportStore = create<ExportStoreState>((set, get) => ({
   // Initial state
   activeFormat: null,
@@ -153,6 +164,7 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
   inkSettings: DEFAULT_INK_SETTINGS,
   opentuiSettings: DEFAULT_OPENTUI_SETTINGS,
   bubbleteaSettings: DEFAULT_BUBBLETEA_SETTINGS,
+  ansiSettings: DEFAULT_ANSI_SETTINGS,
   
   // UI state - updated for dropdown UX
   showExportModal: false, // Now used for format-specific dialogs
@@ -249,6 +261,12 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
       bubbleteaSettings: { ...state.bubbleteaSettings, ...settings }
     }));
   },
+
+  setAnsiSettings: (settings: Partial<AnsiExportSettings>) => {
+    set((state) => ({
+      ansiSettings: { ...state.ansiSettings, ...settings }
+    }));
+  },
   
   addToHistory: (entry: ExportHistoryEntry) => {
     set((state) => ({
@@ -290,6 +308,8 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
         return state.inkSettings;
       case 'opentui':
         return state.opentuiSettings;
+      case 'ansi':
+        return state.ansiSettings;
       default:
         return null;
     }

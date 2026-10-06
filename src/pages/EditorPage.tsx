@@ -31,6 +31,7 @@ import { ReactExportDialog } from '../components/features/ReactExportDialog'
 import { InkExportDialog } from '../components/features/InkExportDialog'
 import { OpenTuiExportDialog } from '../components/features/OpenTuiExportDialog'
 import { BubbleteaExportDialog } from '../components/features/BubbleteaExportDialog'
+import { AnsiExportDialog } from '../components/features/AnsiExportDialog'
 import { NewProjectDialog } from '../components/features/NewProjectDialog'
 import { ProjectSettingsDialog } from '../components/features/ProjectSettingsDialog'
 import { WelcomeDialog } from '../components/features/WelcomeDialog'
@@ -201,6 +202,7 @@ export function EditorPage() {
       <InkExportDialog />
       <OpenTuiExportDialog />
       <BubbleteaExportDialog />
+      <AnsiExportDialog />
       
       {/* Project Management Dialogs */}
       <NewProjectDialog />
