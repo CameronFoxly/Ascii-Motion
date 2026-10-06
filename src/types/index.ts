@@ -137,6 +137,7 @@ export interface TextToolState {
   lineStartX: number; // Starting X position for line returns
   textBox: TextBoxRegion | null; // Active text box constraining typing (null = free typing)
   textBoxDraft: { start: { x: number; y: number }; current: { x: number; y: number } } | null; // In-progress drag
+  textBoxFull: boolean; // True when the last cell of the text box is filled and input must stop
 }
 
 export interface CharacterPalette {

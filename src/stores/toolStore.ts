@@ -191,6 +191,7 @@ interface ToolStoreState extends ToolState {
   stopTyping: () => void;
   setCursorPosition: (x: number, y: number) => void;
   setCursorVisible: (visible: boolean) => void;
+  setTextBoxFull: (full: boolean) => void;
   setTextBuffer: (buffer: string) => void;
   setLineStartX: (x: number) => void;
   commitWord: () => void;
@@ -331,7 +332,8 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     textBuffer: '',
     lineStartX: 0,
     textBox: null,
-    textBoxDraft: null
+    textBoxDraft: null,
+    textBoxFull: false
   },
   
   // Clipboard state
@@ -1187,7 +1189,8 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
         textBuffer: '',
         lineStartX: x,
         textBox,
-        textBoxDraft: null
+        textBoxDraft: null,
+        textBoxFull: false
       }
     });
   },
@@ -1201,7 +1204,8 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
         cursorVisible: true,
         textBuffer: '',
         textBox: null,
-        textBoxDraft: null
+        textBoxDraft: null,
+        textBoxFull: false
       }
     });
   },
@@ -1242,7 +1246,18 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
       textToolState: {
         ...get().textToolState,
         cursorPosition: { x, y },
-        cursorVisible: true // Reset blink on move
+        cursorVisible: true, // Reset blink on move
+        textBoxFull: false // Repositioning the cursor always re-enables input
+      }
+    });
+  },
+
+  setTextBoxFull: (full: boolean) => {
+    if (get().textToolState.textBoxFull === full) return;
+    set({
+      textToolState: {
+        ...get().textToolState,
+        textBoxFull: full
       }
     });
   },

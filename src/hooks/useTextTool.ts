@@ -25,6 +25,7 @@ export const useTextTool = () => {
   const stopTyping = useToolStore((s) => s.stopTyping);
   const setCursorPosition = useToolStore((s) => s.setCursorPosition);
   const setCursorVisible = useToolStore((s) => s.setCursorVisible);
+  const setTextBoxFull = useToolStore((s) => s.setTextBoxFull);
   const setTextBuffer = useToolStore((s) => s.setTextBuffer);
   const commitWord = useToolStore((s) => s.commitWord);
   const startTextBoxDraft = useToolStore((s) => s.startTextBoxDraft);
@@ -148,6 +149,8 @@ export const useTextTool = () => {
   // Insert character at cursor position
   const insertCharacter = useCallback((char: string) => {
     if (!textToolState.cursorPosition) return;
+    // The text box has no room left - reject input instead of overwriting the last cell
+    if (textToolState.textBoxFull) return;
 
     const { x, y } = textToolState.cursorPosition;
     const { minX, maxX, maxY } = bounds;
@@ -180,7 +183,9 @@ export const useTextTool = () => {
 
     // Text box: wrap to the next line when there's room
     if (y + 1 > maxY) {
-      return; // Box is full - stop advancing
+      // Last cell of the box is now filled - block further input until the cursor moves
+      setTextBoxFull(true);
+      return;
     }
 
     // Word wrap: find the trailing word on this line so it can move down intact
@@ -210,7 +215,7 @@ export const useTextTool = () => {
       setCursorPosition(minX, y + 1);
     }
     resetCursorBlink();
-  }, [textToolState.cursorPosition, textToolState.textBuffer, bounds, textBox, isWordBoundary, commitCurrentWord, setCell, getCell, getCharAt, setTextBuffer, setCursorPosition, resetCursorBlink, createTextCellWithAllAttributes]);
+  }, [textToolState.cursorPosition, textToolState.textBuffer, textToolState.textBoxFull, bounds, textBox, isWordBoundary, commitCurrentWord, setCell, getCell, getCharAt, setTextBuffer, setCursorPosition, setTextBoxFull, resetCursorBlink, createTextCellWithAllAttributes]);
 
   // Handle Enter key - move to next line at line start
   const handleEnter = useCallback(() => {
@@ -240,7 +245,11 @@ export const useTextTool = () => {
     let targetX: number;
     let targetY: number;
 
-    if (x > minX) {
+    if (textToolState.textBoxFull) {
+      // Cursor is parked on the filled last cell - delete that cell and resume input there
+      targetX = x;
+      targetY = y;
+    } else if (x > minX) {
       targetX = x - 1;
       targetY = y;
     } else if (textBox && y > minY) {
@@ -272,11 +281,12 @@ export const useTextTool = () => {
     // Update text buffer (remove last character)
     const newBuffer = textToolState.textBuffer.slice(0, -1);
     setTextBuffer(newBuffer);
-  }, [textToolState.cursorPosition, textToolState.textBuffer, bounds, textBox, getCell, isWordBoundary, commitCurrentWord, setCell, setCursorPosition, resetCursorBlink, setTextBuffer, createTextCellWithAllAttributes]);
+  }, [textToolState.cursorPosition, textToolState.textBuffer, textToolState.textBoxFull, bounds, textBox, getCell, isWordBoundary, commitCurrentWord, setCell, setCursorPosition, resetCursorBlink, setTextBuffer, createTextCellWithAllAttributes]);
 
   // Handle clipboard paste
   const handlePaste = useCallback(async () => {
     if (!textToolState.cursorPosition) return;
+    if (textToolState.textBoxFull) return;
 
     try {
       const clipboardText = await navigator.clipboard.readText();
@@ -323,7 +333,18 @@ export const useTextTool = () => {
       }
 
       // Position cursor at end of pasted content
-      if (currentY <= maxY) {
+      if (textBox) {
+        if (currentY > maxY || (currentX > maxX && currentY >= maxY)) {
+          // Pasted content filled the box - park on the last cell and block further input
+          setCursorPosition(maxX, maxY);
+          setTextBoxFull(true);
+        } else if (currentX > maxX) {
+          setCursorPosition(minX, currentY + 1);
+        } else {
+          setCursorPosition(currentX, currentY);
+        }
+        resetCursorBlink();
+      } else if (currentY <= maxY) {
         const finalX = Math.min(currentX, maxX);
         setCursorPosition(finalX, currentY);
         resetCursorBlink();
@@ -336,7 +357,7 @@ export const useTextTool = () => {
     } catch (error) {
       console.error('Failed to read clipboard:', error);
     }
-  }, [textToolState.cursorPosition, textToolState.lineStartX, bounds, textBox, commitCurrentWord, setCell, setCursorPosition, resetCursorBlink, pushCanvasHistory, cells, currentFrameIndex, createTextCellWithAllAttributes, finalizeCanvasHistory]);
+  }, [textToolState.cursorPosition, textToolState.lineStartX, textToolState.textBoxFull, bounds, textBox, commitCurrentWord, setCell, setCursorPosition, setTextBoxFull, resetCursorBlink, pushCanvasHistory, cells, currentFrameIndex, createTextCellWithAllAttributes, finalizeCanvasHistory]);
 
   // Mouse down - begin a potential text box drag
   const handleTextToolMouseDown = useCallback((x: number, y: number) => {
