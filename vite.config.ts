@@ -6,7 +6,17 @@ import fs from 'fs'
 // Resolve @ascii-motion/premium to the real package when the submodule is
 // initialised, or to a lightweight stub when it is absent (OSS contributors).
 const premiumSrc = path.resolve(__dirname, './packages/premium/src/index.ts')
-const premiumAlias = fs.existsSync(premiumSrc)
+const hasPremium = fs.existsSync(premiumSrc)
+
+// Deployed builds must never silently ship the stub (it renders auth dialogs
+// as null, breaking sign-in). Set ALLOW_PREMIUM_STUB=1 to override.
+if (!hasPremium && (process.env.VERCEL || process.env.REQUIRE_PREMIUM) && !process.env.ALLOW_PREMIUM_STUB) {
+  throw new Error(
+    '[ascii-motion] packages/premium is missing. Run `git submodule update --init --recursive` before deploying.'
+  )
+}
+
+const premiumAlias = hasPremium
   ? path.resolve(__dirname, './packages/premium/src')
   : path.resolve(__dirname, './src/lib/premium-stub.ts')
 
