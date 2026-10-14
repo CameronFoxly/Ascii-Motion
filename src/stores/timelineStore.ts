@@ -1713,6 +1713,19 @@ export const useTimelineStore = create<TimelineState>()(
     setKeyframeLooping: (layerId, trackId, looping) => {
       // Try layers first
       const layer = get().layers.find((l) => l.id === layerId);
+      if (layer?.generator?.propertyTracks.some((pt) => pt.id as string === trackId as string)) {
+        set((state) => ({
+          layers: updateLayer(state.layers, layerId, (l) => ({
+            ...l,
+            generator: {
+              ...l.generator!,
+              propertyTracks: l.generator!.propertyTracks.map((pt) =>
+                pt.id as string === trackId as string ? { ...pt, loopKeyframes: looping } : pt),
+            },
+          })),
+        }));
+        return;
+      }
       if (layer && layer.propertyTracks.some((pt) => pt.id === trackId)) {
         set((state) => ({
           layers: updateLayer(state.layers, layerId, (l) => ({
@@ -2193,7 +2206,7 @@ export const useTimelineStore = create<TimelineState>()(
       type Entry = { layerId: string; trackId: string; propertyPath: string; frame: number; value: number; easing: import('../types/timeline').Keyframe['easing'] };
       const entries: Entry[] = [];
       for (const layer of get().layers) {
-        for (const track of layer.propertyTracks) {
+        for (const track of [...layer.propertyTracks, ...(layer.generator?.propertyTracks ?? [])]) {
           for (const kf of track.keyframes) {
             if (keyframeIds.includes(kf.id)) {
               entries.push({

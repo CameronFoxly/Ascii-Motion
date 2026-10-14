@@ -34,6 +34,7 @@ import {
   type ResolvedMappingSettings,
 } from './intensityMapping';
 import { usePaletteStore } from '../../stores/paletteStore';
+import { useCharacterPaletteStore } from '../../stores/characterPaletteStore';
 
 // ============================================
 // FRAME RATE (synced from the timeline store)
@@ -119,19 +120,26 @@ function num(value: unknown, fallback: number): number {
 }
 
 export function resolveMappingSettings(settings: Record<string, unknown>): ResolvedMappingSettings {
+  const characterPaletteId = settings['mapping.characterPaletteId'];
+  const characterPalette = typeof characterPaletteId === 'string' && characterPaletteId
+    ? useCharacterPaletteStore.getState().getPaletteById(characterPaletteId)
+    : undefined;
   return {
     enableCharacterMapping: settings['mapping.enableCharacterMapping'] !== false,
-    characterSet: toCharacterArray(settings['mapping.characterSet']),
+    characterSet: characterPalette ? characterPalette.characters : toCharacterArray(settings['mapping.characterSet']),
     characterDitherMode: (settings['mapping.characterDitherMode'] as CharacterDitherMode) ?? 'by-index',
     ditherStrength: num(settings['mapping.ditherStrength'], 0.5),
+    reverseCharacterIndex: settings['mapping.reverseCharacterIndex'] === true,
     enableTextColorMapping: settings['mapping.enableTextColorMapping'] !== false,
     textColors: findPaletteColors(settings['mapping.textColorPaletteId']),
     textColorMappingMode: (settings['mapping.textColorMappingMode'] as ColorMappingMode) ?? 'by-index',
     textColorDitherStrength: num(settings['mapping.textColorDitherStrength'], 0.5),
+    reverseTextColorIndex: settings['mapping.reverseTextColorIndex'] === true,
     enableBackgroundColorMapping: settings['mapping.enableBackgroundColorMapping'] === true,
     backgroundColors: findPaletteColors(settings['mapping.backgroundColorPaletteId']),
     backgroundColorMappingMode: (settings['mapping.backgroundColorMappingMode'] as ColorMappingMode) ?? 'by-index',
     backgroundColorDitherStrength: num(settings['mapping.backgroundColorDitherStrength'], 0.5),
+    reverseBackgroundColorIndex: settings['mapping.reverseBackgroundColorIndex'] === true,
   };
 }
 
@@ -149,6 +157,8 @@ interface RuntimeEntry {
   fps: number;
   palettes: unknown;
   customPalettes: unknown;
+  characterPalettes: unknown;
+  customCharacterPalettes: unknown;
   generator: GeneratorRegistryEntry;
   settingsCache: Map<number, Record<string, unknown>>;
   phasePrefix: Map<string, number[]>;
@@ -164,6 +174,7 @@ function getEntry(source: GeneratorSource, width: number, height: number): Runti
   const generator = getGenerator(source.generatorType);
   if (!generator) return null;
   const { palettes, customPalettes } = usePaletteStore.getState();
+  const { availablePalettes: characterPalettes, customPalettes: customCharacterPalettes } = useCharacterPaletteStore.getState();
   const fps = currentFrameRate;
   let entry = runtimeCache.get(source);
   if (
@@ -173,11 +184,14 @@ function getEntry(source: GeneratorSource, width: number, height: number): Runti
     && entry.fps === fps
     && entry.generator === generator
   ) {
-    if (entry.palettes !== palettes || entry.customPalettes !== customPalettes) {
+    if (entry.palettes !== palettes || entry.customPalettes !== customPalettes ||
+        entry.characterPalettes !== characterPalettes || entry.customCharacterPalettes !== customCharacterPalettes) {
       // Palette edits only affect mapping — drop mapped output, keep simulation state
       entry.output.clear();
       entry.palettes = palettes;
       entry.customPalettes = customPalettes;
+      entry.characterPalettes = characterPalettes;
+      entry.customCharacterPalettes = customCharacterPalettes;
     }
     return entry;
   }
@@ -187,6 +201,8 @@ function getEntry(source: GeneratorSource, width: number, height: number): Runti
     fps,
     palettes,
     customPalettes,
+    characterPalettes,
+    customCharacterPalettes,
     generator,
     settingsCache: new Map(),
     phasePrefix: new Map(),

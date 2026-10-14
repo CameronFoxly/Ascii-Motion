@@ -172,6 +172,8 @@ export interface EffectPropertyDefinition {
   max?: number;
   step?: number;
   unit?: string;
+  /** Optional numeric UI presentation; omitted properties use a scrub input. */
+  control?: 'slider';
 
   // Select options (for valueType: 'select')
   options?: Array<{ label: string; value: string }>;

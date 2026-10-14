@@ -56,9 +56,10 @@ import type { CharacterPalette } from '../../types/palette';
 
 interface CharacterMappingSectionProps {
   onSettingsChange?: () => void; // Callback for triggering preview updates
+  paletteEditor?: { paletteId: string; onPaletteChange: (paletteId: string) => void };
 }
 
-export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSectionProps) {
+export function CharacterMappingSection({ onSettingsChange, paletteEditor }: CharacterMappingSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -75,14 +76,21 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
 
   // Import settings for enable/disable toggle
   const { settings, updateSettings } = useImportSettings();
-  const { enableCharacterMapping } = settings;
+  const enableCharacterMapping = paletteEditor ? true : settings.enableCharacterMapping;
 
   // Character palette store access
   const availablePalettes = useCharacterPaletteStore(state => state.availablePalettes);
   const customPalettes = useCharacterPaletteStore(state => state.customPalettes);
   const allPalettes = useMemo(() => [...availablePalettes, ...customPalettes], [availablePalettes, customPalettes]);
-  const activePalette = useCharacterPaletteStore(state => state.activePalette);
-  const setActivePalette = useCharacterPaletteStore(state => state.setActivePalette);
+  const storeActivePalette = useCharacterPaletteStore(state => state.activePalette);
+  const setStoreActivePalette = useCharacterPaletteStore(state => state.setActivePalette);
+  const activePalette = (paletteEditor
+    ? allPalettes.find((p) => p.id === paletteEditor.paletteId)
+    : storeActivePalette) ?? storeActivePalette;
+  const setActivePalette = (palette: CharacterPalette) => {
+    if (paletteEditor) paletteEditor.onPaletteChange(palette.id);
+    else setStoreActivePalette(palette);
+  };
   const mappingMode = useCharacterPaletteStore(state => state.mappingMode);
   const ditherStrength = useCharacterPaletteStore(state => state.ditherStrength);
   const setMappingMode = useCharacterPaletteStore(state => state.setMappingMode);
@@ -282,7 +290,8 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
 
   return (
     <>
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+    <Collapsible open={!!paletteEditor || isOpen} onOpenChange={setIsOpen}>
+      {!paletteEditor && (
       <div className="flex items-center justify-between gap-2">
         <CollapsibleTrigger asChild>
           <Button 
@@ -309,6 +318,7 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
           className="flex-shrink-0"
         />
       </div>
+      )}
       
       <CollapsibleContent className="collapsible-content space-y-3 mt-2">
         <div className="w-full">
@@ -323,6 +333,7 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
           {enableCharacterMapping && (
             <>
               {/* Mapping Style Selector */}
+              {!paletteEditor && (
               <div className="space-y-2 w-full">
                 <Label className="text-xs font-medium">Mapping Style</Label>
                 <Select 
@@ -342,9 +353,10 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                   </SelectContent>
                 </Select>
               </div>
+              )}
 
               {/* Auto Mode Controls */}
-              {settings.characterMappingStyle === 'auto-mode' && (
+              {!paletteEditor && settings.characterMappingStyle === 'auto-mode' && (
                 <Card className="bg-card/50 border-border/50 overflow-hidden w-full">
                   <CardContent className="p-3 space-y-3 w-full">
                     <div className="flex items-center gap-2">
@@ -414,7 +426,7 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
               )}
 
               {/* Line Art Controls (only shown in line-art mode) */}
-              {settings.characterMappingStyle === 'line-art' && (
+              {!paletteEditor && settings.characterMappingStyle === 'line-art' && (
                 <Card className="bg-card/50 border-border/50 overflow-hidden w-full">
                   <CardContent className="p-3 space-y-3 w-full">
                     <div className="flex items-center gap-2">
@@ -539,7 +551,7 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
               )}
 
               {/* Character Palette Editor (only shown in palette mode) */}
-              {settings.characterMappingStyle === 'character-palette' && (
+              {(paletteEditor || settings.characterMappingStyle === 'character-palette') && (
               <Card className="bg-card/50 border-border/50 overflow-hidden w-full">
             <CardContent className="p-3 space-y-3 w-full">
               
@@ -555,7 +567,7 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button size="sm" variant="outline" className="h-6 w-6 p-0 flex-shrink-0" onClick={() => { const p = createCustomPalette('New Palette', [' ']); setActivePalette(p); startEditing(p.id); setSelectedIndex(0);}}>
+                          <Button aria-label="Create character palette" size="sm" variant="outline" className="h-6 w-6 p-0 flex-shrink-0" onClick={() => { const p = createCustomPalette('New Palette', [' ']); setActivePalette(p); startEditing(p.id); setSelectedIndex(0);}}>
                             <Plus className="w-3 h-3" />
                           </Button>
                         </TooltipTrigger>
@@ -567,7 +579,7 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button size="sm" variant="outline" className="h-6 w-6 p-0 flex-shrink-0" onClick={() => setIsManagePalettesOpen(true)}>
+                          <Button aria-label="Manage character palettes" size="sm" variant="outline" className="h-6 w-6 p-0 flex-shrink-0" onClick={() => setIsManagePalettesOpen(true)}>
                             <Settings className="w-3 h-3" />
                           </Button>
                         </TooltipTrigger>
@@ -703,7 +715,7 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                       <div className="flex items-center gap-1">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleMoveSelectedLeft} disabled={selectedIndex === null || selectedIndex === 0}>
+                            <Button aria-label="Move character left" size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleMoveSelectedLeft} disabled={selectedIndex === null || selectedIndex === 0}>
                               <ArrowLeft className="w-3 h-3" />
                             </Button>
                           </TooltipTrigger>
@@ -713,7 +725,7 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleMoveSelectedRight} disabled={selectedIndex === null || selectedIndex === activePalette.characters.length - 1}>
+                            <Button aria-label="Move character right" size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleMoveSelectedRight} disabled={selectedIndex === null || selectedIndex === activePalette.characters.length - 1}>
                               <ArrowRight className="w-3 h-3" />
                             </Button>
                           </TooltipTrigger>
@@ -723,7 +735,7 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleAddCurrentCharacter} disabled={!selectedChar}>
+                            <Button aria-label="Add current character" size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleAddCurrentCharacter} disabled={!selectedChar}>
                               <Plus className="w-3 h-3" />
                             </Button>
                           </TooltipTrigger>
@@ -733,7 +745,7 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button ref={editButtonRef} size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleEditCharacters}>
+                            <Button aria-label="Edit character" ref={editButtonRef} size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleEditCharacters} disabled={selectedIndex === null}>
                               <Edit className="w-3 h-3" />
                             </Button>
                           </TooltipTrigger>
@@ -743,7 +755,7 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-destructive" onClick={handleDeleteSelected} disabled={selectedIndex === null}>
+                            <Button aria-label="Delete character" size="sm" variant="outline" className="h-8 w-8 p-0 text-destructive" onClick={handleDeleteSelected} disabled={selectedIndex === null}>
                               <Trash2 className="w-3 h-3" />
                             </Button>
                           </TooltipTrigger>
@@ -755,7 +767,7 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                       <div>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleReverseOrder}>
+                            <Button aria-label="Reverse character order" size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleReverseOrder}>
                               <ArrowUpDown className="w-3 h-3" />
                             </Button>
                           </TooltipTrigger>
@@ -773,6 +785,8 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                     onOpenChange={setIsManagePalettesOpen}
                     onImportClick={() => setIsImportDialogOpen(true)}
                     onExportClick={() => setIsExportDialogOpen(true)}
+                    paletteId={paletteEditor?.paletteId}
+                    onPaletteSelect={paletteEditor?.onPaletteChange}
                   />
 
                   {/* Character Picker */}
@@ -784,12 +798,14 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                     anchorPosition="left-bottom-aligned"
                     initialValue=""
                     title="Select Character for Mapping"
+                    modal={!!paletteEditor}
                   />
 
                 </div>
               </div>
 
               {/* Character Dithering Controls */}
+              {!paletteEditor && (
               <div className="space-y-3 w-full">
                 <div className="space-y-2">
                   <Label className="text-xs font-medium">Character Dithering</Label>
@@ -823,6 +839,7 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
                   </div>
                 )}
               </div>
+              )}
             </CardContent>
           </Card>
           )}
@@ -836,12 +853,14 @@ export function CharacterMappingSection({ onSettingsChange }: CharacterMappingSe
     <ImportCharacterPaletteDialog 
       isOpen={isImportDialogOpen} 
       onOpenChange={setIsImportDialogOpen} 
+      onPaletteImported={paletteEditor?.onPaletteChange}
     />
 
     {/* Export Dialog */}
     <ExportCharacterPaletteDialog 
       isOpen={isExportDialogOpen} 
       onOpenChange={setIsExportDialogOpen} 
+      paletteId={paletteEditor?.paletteId}
     />
     </>
   );

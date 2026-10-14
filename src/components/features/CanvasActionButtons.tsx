@@ -6,7 +6,7 @@ import { useToolStore } from '@/stores/toolStore';
 import { useAnimationStore } from '@/stores/animationStore';
 import { useTimelineStore } from '@/stores/timelineStore';
 import { useBezierStore } from '@/stores/bezierStore';
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useKeyboardShortcuts, processHistoryAction as processSharedHistoryAction } from '@/hooks/useKeyboardShortcuts';
 import type { 
   AnyHistoryAction, 
   ApplyEffectHistoryAction, 
@@ -560,6 +560,8 @@ export const CanvasActionButtons: React.FC = () => {
         }
         break;
       }
+      default:
+        processSharedHistoryAction(action, isRedo, { setCanvasData }, getAnimationStore());
     }
   }, [setCanvasData, setCanvasSize, bezierStore, setActiveTool, setSelectedChar, setSelectedColor, setSelectedBgColor, activeTool, getAnimationStore]);
 

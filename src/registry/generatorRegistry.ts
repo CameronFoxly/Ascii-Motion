@@ -101,35 +101,44 @@ const COLOR_MAPPING_OPTIONS = [
 ];
 
 export const DEFAULT_GENERATOR_CHARACTER_SET = ' .:-=+*#%@';
+export const DEFAULT_GENERATOR_CHARACTER_PALETTE_ID = 'minimal-ascii';
 export const DEFAULT_GENERATOR_TEXT_PALETTE_ID = 'ansi-16';
 
 export const DEFAULT_MAPPING_SETTINGS: Record<string, unknown> = {
   'mapping.enableCharacterMapping': true,
   'mapping.characterSet': DEFAULT_GENERATOR_CHARACTER_SET,
+  'mapping.characterPaletteId': '',
   'mapping.characterDitherMode': 'by-index',
+  'mapping.reverseCharacterIndex': false,
   'mapping.ditherStrength': 0.5,
   'mapping.enableTextColorMapping': true,
   'mapping.textColorPaletteId': DEFAULT_GENERATOR_TEXT_PALETTE_ID,
   'mapping.textColorMappingMode': 'by-index',
+  'mapping.reverseTextColorIndex': false,
   'mapping.textColorDitherStrength': 0.5,
   'mapping.enableBackgroundColorMapping': false,
   'mapping.backgroundColorPaletteId': DEFAULT_GENERATOR_TEXT_PALETTE_ID,
   'mapping.backgroundColorMappingMode': 'by-index',
+  'mapping.reverseBackgroundColorIndex': false,
   'mapping.backgroundColorDitherStrength': 0.5,
 };
 
 export const MAPPING_PROPERTY_DEFINITIONS: EffectPropertyDefinition[] = [
   { path: 'mapping.enableCharacterMapping', displayName: 'Map Characters', category: MAPPING_CATEGORY, valueType: 'boolean', defaultValue: true, interpolation: 'hold' },
   { path: 'mapping.characterSet', displayName: 'Character Set', category: MAPPING_CATEGORY, valueType: 'characterSet', defaultValue: DEFAULT_GENERATOR_CHARACTER_SET, interpolation: 'hold', visibleWhen: { path: 'mapping.enableCharacterMapping', values: ['true'] } },
+  { path: 'mapping.characterPaletteId', displayName: 'Character Palette', category: MAPPING_CATEGORY, valueType: 'palette', defaultValue: '', interpolation: 'hold', visibleWhen: { path: 'mapping.enableCharacterMapping', values: ['true'] } },
   { path: 'mapping.characterDitherMode', displayName: 'Character Dither', category: MAPPING_CATEGORY, valueType: 'select', defaultValue: 'by-index', interpolation: 'hold', options: CHARACTER_DITHER_OPTIONS, visibleWhen: { path: 'mapping.enableCharacterMapping', values: ['true'] } },
+  { path: 'mapping.reverseCharacterIndex', displayName: 'Reverse Characters', category: MAPPING_CATEGORY, valueType: 'boolean', defaultValue: false, interpolation: 'hold', visibleWhen: { path: 'mapping.characterDitherMode', values: ['by-index'] } },
   { path: 'mapping.ditherStrength', displayName: 'Character Dither Strength', category: MAPPING_CATEGORY, valueType: 'number', defaultValue: 0.5, interpolation: 'numeric', min: 0, max: 1, step: 0.05, visibleWhen: { path: 'mapping.characterDitherMode', values: ['noise-dither', 'bayer2x2', 'bayer4x4'] } },
   { path: 'mapping.enableTextColorMapping', displayName: 'Map Text Color', category: MAPPING_CATEGORY, valueType: 'boolean', defaultValue: true, interpolation: 'hold' },
   { path: 'mapping.textColorPaletteId', displayName: 'Text Palette', category: MAPPING_CATEGORY, valueType: 'palette', defaultValue: DEFAULT_GENERATOR_TEXT_PALETTE_ID, interpolation: 'hold', visibleWhen: { path: 'mapping.enableTextColorMapping', values: ['true'] } },
   { path: 'mapping.textColorMappingMode', displayName: 'Text Color Mode', category: MAPPING_CATEGORY, valueType: 'select', defaultValue: 'by-index', interpolation: 'hold', options: COLOR_MAPPING_OPTIONS, visibleWhen: { path: 'mapping.enableTextColorMapping', values: ['true'] } },
+  { path: 'mapping.reverseTextColorIndex', displayName: 'Reverse Text Colors', category: MAPPING_CATEGORY, valueType: 'boolean', defaultValue: false, interpolation: 'hold', visibleWhen: { path: 'mapping.textColorMappingMode', values: ['by-index'] } },
   { path: 'mapping.textColorDitherStrength', displayName: 'Text Dither Strength', category: MAPPING_CATEGORY, valueType: 'number', defaultValue: 0.5, interpolation: 'numeric', min: 0, max: 1, step: 0.05, visibleWhen: { path: 'mapping.textColorMappingMode', values: ['noise-dither', 'bayer2x2', 'bayer4x4'] } },
   { path: 'mapping.enableBackgroundColorMapping', displayName: 'Map Background Color', category: MAPPING_CATEGORY, valueType: 'boolean', defaultValue: false, interpolation: 'hold' },
   { path: 'mapping.backgroundColorPaletteId', displayName: 'Background Palette', category: MAPPING_CATEGORY, valueType: 'palette', defaultValue: DEFAULT_GENERATOR_TEXT_PALETTE_ID, interpolation: 'hold', visibleWhen: { path: 'mapping.enableBackgroundColorMapping', values: ['true'] } },
   { path: 'mapping.backgroundColorMappingMode', displayName: 'Background Color Mode', category: MAPPING_CATEGORY, valueType: 'select', defaultValue: 'by-index', interpolation: 'hold', options: COLOR_MAPPING_OPTIONS, visibleWhen: { path: 'mapping.enableBackgroundColorMapping', values: ['true'] } },
+  { path: 'mapping.reverseBackgroundColorIndex', displayName: 'Reverse Background', category: MAPPING_CATEGORY, valueType: 'boolean', defaultValue: false, interpolation: 'hold', visibleWhen: { path: 'mapping.backgroundColorMappingMode', values: ['by-index'] } },
   { path: 'mapping.backgroundColorDitherStrength', displayName: 'Background Dither Strength', category: MAPPING_CATEGORY, valueType: 'number', defaultValue: 0.5, interpolation: 'numeric', min: 0, max: 1, step: 0.05, visibleWhen: { path: 'mapping.backgroundColorMappingMode', values: ['noise-dither', 'bayer2x2', 'bayer4x4'] } },
 ];
 
@@ -184,6 +193,7 @@ export function getGeneratorInitialSettings(
   if (!entry) return null;
   return {
     ...entry.defaultSettings,
+    'mapping.characterPaletteId': DEFAULT_GENERATOR_CHARACTER_PALETTE_ID,
     ...(entry.getCanvasDefaults?.(canvasWidth, canvasHeight) ?? {}),
   };
 }

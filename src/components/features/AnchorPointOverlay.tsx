@@ -19,7 +19,7 @@ import { useToolStore } from '../../stores/toolStore';
 import { useCanvasContext } from '../../contexts/CanvasContext';
 import { usePlaybackOnlySnapshot } from '../../hooks/usePlaybackOnlySnapshot';
 import { getPropertyValueAtFrame, getTransformAtFrame, getContentFrameAtTime, applyRotation } from '../../utils/layerCompositing';
-import { cn } from '@/lib/utils';
+import { MotionPathDots } from './MotionPathDots';
 import type { Layer } from '../../types/timeline';
 
 const EMPTY_LAYERS: Layer[] = [];
@@ -186,24 +186,7 @@ export const AnchorPointOverlay: React.FC = () => {
         </svg>
       )}
       {/* Motion path dots */}
-      {motionPath.length > 1 && motionPath.map((point, idx) => {
-        const px = toPixelX(point.x);
-        const py = toPixelY(point.y);
-        const isCurrent = point.frame === currentFrame;
-
-        return (
-          <div
-            key={idx}
-            className={cn(
-              'absolute rounded-full -translate-x-1/2 -translate-y-1/2',
-              isCurrent
-                ? 'w-2.5 h-2.5 bg-yellow-400 border border-yellow-600'
-                : 'w-1 h-1 bg-yellow-500/50',
-            )}
-            style={{ left: px, top: py }}
-          />
-        );
-      })}
+      <MotionPathDots points={motionPath} currentFrame={currentFrame} toPixelX={toPixelX} toPixelY={toPixelY} />
 
       {/* Crosshair at current anchor point */}
       <div

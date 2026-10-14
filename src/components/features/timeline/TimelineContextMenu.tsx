@@ -49,7 +49,8 @@ import type { LayerId, ContentFrameId, PropertyTrackId, KeyframeId } from '../..
 import { getPropertyValueAtFrame, getGroupPropertyValue } from '../../../utils/layerCompositing';
 import { evaluateEffectBlock } from '../../../utils/effectsPipeline';
 import { resolveGeneratorSettings } from '../../../utils/generators/generatorRuntime';
-import { withGeneratorHistory, bakeGeneratorLayerWithHistory } from '../../../utils/generators/generatorHistory';
+import { withGeneratorHistory, bakeGeneratorLayerWithHistory, recordGeneratorChange } from '../../../utils/generators/generatorHistory';
+import type { GeneratorSource } from '../../../types/generatorLayer';
 import type { ContentFrameReorderHistoryAction } from '../../../types';
 
 // ============================================
@@ -351,6 +352,7 @@ export const TimelineContextMenu: React.FC<Props> = ({ menu, onClose }) => {
     const targetMatchesCopied = copiedPaths.includes(targetPropertyPath);
     const maxLayerIndex = Math.max(...copiedKfs.map((kf) => kf.layerIndex ?? 0));
     const isMultiLayer = maxLayerIndex > 0;
+    const generatorSnapshots = new Map<LayerId, GeneratorSource>();
 
     for (const entry of copiedKfs) {
       let destLayerId = layerId;
@@ -370,9 +372,10 @@ export const TimelineContextMenu: React.FC<Props> = ({ menu, onClose }) => {
             })();
         if (!destLayer) continue;
         destLayerId = destLayer.id;
-        const destTrack = destLayer.propertyTracks.find((t) => t.propertyPath === entry.propertyPath);
+        const destTrack = destLayer.propertyTracks.find((t) => t.propertyPath === entry.propertyPath)
+          ?? destLayer.generator?.propertyTracks.find((t) => t.propertyPath === entry.propertyPath);
         if (!destTrack) continue;
-        destTrackId = destTrack.id;
+        destTrackId = destTrack.id as PropertyTrackId;
       } else if (targetMatchesCopied) {
         // Single-layer multi-track: route to matching property
         // Search layers, groups, and effect property tracks for matching track
@@ -428,6 +431,15 @@ export const TimelineContextMenu: React.FC<Props> = ({ menu, onClose }) => {
 
       const targetFrame = atFrame + entry.frameOffset;
 
+      const generator = useTimelineStore.getState().getLayer(destLayerId)?.generator;
+      const generatorTrack = generator?.propertyTracks.find((pt) => pt.id as string === destTrackId as string);
+      if (generator && generatorTrack) {
+        if (!generatorSnapshots.has(destLayerId)) generatorSnapshots.set(destLayerId, generator);
+        const kfId = tl.addGeneratorKeyframe(destLayerId, generatorTrack.id, targetFrame, entry.value);
+        if (kfId) tl.updateGeneratorKeyframe(destLayerId, generatorTrack.id, kfId, { easing: entry.easing });
+        continue;
+      }
+
       // Check if destination is a post effect track
       let pastedViaPostEffect = false;
       for (const pet of (useTimelineStore.getState().postEffectTracks ?? [])) {
@@ -447,6 +459,9 @@ export const TimelineContextMenu: React.FC<Props> = ({ menu, onClose }) => {
           useTimelineStore.getState().updateKeyframe(destLayerId, destTrackId, kfId, { easing: entry.easing });
         }
       }
+    }
+    for (const [generatorLayerId, source] of generatorSnapshots) {
+      recordGeneratorChange(generatorLayerId, 'Paste generator keyframes', source);
     }
   }, [addKeyframe]);
 

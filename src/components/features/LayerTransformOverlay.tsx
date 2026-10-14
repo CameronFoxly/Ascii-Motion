@@ -23,7 +23,7 @@ import { useCanvasContext } from '../../contexts/CanvasContext';
 import { getPropertyValueAtFrame, getGroupPropertyValue } from '../../utils/layerCompositing';
 import { useLayerTransformTool, layerTransformHandlersRef } from '../../hooks/useLayerTransformTool';
 import { usePlaybackOnlySnapshot } from '../../hooks/usePlaybackOnlySnapshot';
-import { cn } from '@/lib/utils';
+import { MotionPathDots } from './MotionPathDots';
 import { TransformBoundingBoxVisual } from './TransformBoundingBoxVisual';
 
 export const LayerTransformOverlay: React.FC = () => {
@@ -192,25 +192,7 @@ export const LayerTransformOverlay: React.FC = () => {
       onMouseMove={onOverlayMouseMove}
     >
       {/* Motion path dots */}
-      {motionPath.length > 1 &&
-        motionPath.map((point, idx) => {
-          const px = toPixelX(point.x);
-          const py = toPixelY(point.y);
-          const isCurrent = point.frame === currentFrame;
-
-          return (
-            <div
-              key={idx}
-              className={cn(
-                'absolute rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none',
-                isCurrent
-                  ? 'w-2.5 h-2.5 bg-yellow-400 border border-yellow-600'
-                  : 'w-1 h-1 bg-yellow-500/50',
-              )}
-              style={{ left: px, top: py }}
-            />
-          );
-        })}
+      <MotionPathDots points={motionPath} currentFrame={currentFrame} toPixelX={toPixelX} toPixelY={toPixelY} />
 
       {boundingBox && (
         <TransformBoundingBoxVisual

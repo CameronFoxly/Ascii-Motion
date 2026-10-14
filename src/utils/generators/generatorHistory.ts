@@ -8,6 +8,7 @@
 import { useTimelineStore } from '../../stores/timelineStore';
 import { useToolStore } from '../../stores/toolStore';
 import type { LayerId } from '../../types/timeline';
+import type { EffectKeyframe } from '../../types/effectBlock';
 import type { GeneratorSource } from '../../types/generatorLayer';
 
 function getSource(layerId: LayerId): GeneratorSource | undefined {
@@ -22,7 +23,8 @@ export function withGeneratorHistory<T>(layerId: LayerId, description: string, m
   const previousSource = getSource(layerId);
   const result = mutate();
   const newSource = getSource(layerId);
-  if (previousSource && newSource && previousSource !== newSource) {
+  if (previousSource && newSource && previousSource !== newSource &&
+      JSON.stringify(previousSource) !== JSON.stringify(newSource)) {
     useToolStore.getState().pushToHistory({
       type: 'generator_update',
       timestamp: Date.now(),
@@ -37,6 +39,31 @@ export function withGeneratorHistory<T>(layerId: LayerId, description: string, m
   return result;
 }
 
+/**
+ * Set a generator property at `frame` without recording history. Updates the
+ * keyframe at the playhead, auto-keys tracked properties, or edits the static
+ * setting when the property is not animated.
+ */
+export function setGeneratorValueAtFrame(
+  layerId: LayerId,
+  propertyPath: string,
+  value: EffectKeyframe['value'],
+  frame: number,
+): void {
+  const tl = useTimelineStore.getState();
+  const current = getSource(layerId);
+  if (!current) return;
+  const track = current.propertyTracks.find((pt) => pt.propertyPath === propertyPath);
+  const kfAtFrame = track?.keyframes.find((kf) => kf.frame === frame);
+  if (track && kfAtFrame) {
+    tl.updateGeneratorKeyframe(layerId, track.id, kfAtFrame.id, { value });
+  } else if (track && track.keyframes.length > 0) {
+    tl.addGeneratorKeyframe(layerId, track.id, frame, value);
+  } else {
+    tl.updateGeneratorSettings(layerId, { [propertyPath]: value });
+  }
+}
+
 /** Record a `generator_update` entry for a change that already happened (e.g. after a drag) */
 export function recordGeneratorChange(
   layerId: LayerId,
@@ -44,7 +71,8 @@ export function recordGeneratorChange(
   previousSource: GeneratorSource,
 ): void {
   const newSource = getSource(layerId);
-  if (!newSource || newSource === previousSource) return;
+  if (!newSource || newSource === previousSource ||
+      JSON.stringify(previousSource) === JSON.stringify(newSource)) return;
   useToolStore.getState().pushToHistory({
     type: 'generator_update',
     timestamp: Date.now(),

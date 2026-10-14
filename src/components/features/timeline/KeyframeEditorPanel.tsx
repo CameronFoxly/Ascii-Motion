@@ -14,12 +14,15 @@
  * See: docs/LAYER_TIMELINE_REFACTOR_PLAN.md §3.10
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { useTimelineStore } from '../../../stores/timelineStore';
 import { PROPERTY_DEFINITIONS } from '../../../types/timeline';
 import { getGenerator } from '../../../registry/generatorRegistry';
 import { EasingCurveEditor } from './EasingCurveEditor';
 import { useScrubInput } from '../../../hooks/useScrubInput';
+import { withGeneratorHistory, recordGeneratorChange } from '../../../utils/generators/generatorHistory';
+import type { GeneratorSource } from '../../../types/generatorLayer';
+import type { LayerId } from '../../../types/timeline';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Switch } from '../../ui/switch';
@@ -39,13 +42,27 @@ export const KeyframeEditorPanel: React.FC = () => {
   const globalEffects = useTimelineStore((s) => s.globalEffects);
   const postEffectTracks = useTimelineStore((s) => s.postEffectTracks);
   const setEditingKeyframe = useTimelineStore((s) => s.setEditingKeyframe);
-  const moveKeyframe = useTimelineStore((s) => s.moveKeyframe);
-  const updateKeyframe = useTimelineStore((s) => s.updateKeyframe);
-  const setKeyframeLooping = useTimelineStore((s) => s.setKeyframeLooping);
-  const removeKeyframe = useTimelineStore((s) => s.removeKeyframe);
+  const moveKeyframeDirect = useTimelineStore((s) => s.moveKeyframe);
+  const updateKeyframeDirect = useTimelineStore((s) => s.updateKeyframe);
+  const setKeyframeLoopingDirect = useTimelineStore((s) => s.setKeyframeLooping);
+  const removeKeyframeDirect = useTimelineStore((s) => s.removeKeyframe);
   const clearKeyframeSelection = useTimelineStore((s) => s.clearKeyframeSelection);
 
   const [hasCopiedEase, setHasCopiedEase] = useState(!!copiedEasing);
+  const scrubSnapshot = useRef<{ layerId: LayerId; source: GeneratorSource } | null>(null);
+
+  const mutateWithHistory = (layerId: LayerId, description: string, mutate: () => void) => {
+    if (scrubSnapshot.current) mutate();
+    else withGeneratorHistory(layerId, description, mutate);
+  };
+  const moveKeyframe: typeof moveKeyframeDirect = (layerId, trackId, id, frame) =>
+    mutateWithHistory(layerId, 'Move generator keyframe', () => moveKeyframeDirect(layerId, trackId, id, frame));
+  const updateKeyframe: typeof updateKeyframeDirect = (layerId, trackId, id, updates) =>
+    mutateWithHistory(layerId, 'Update generator keyframe', () => updateKeyframeDirect(layerId, trackId, id, updates));
+  const removeKeyframe: typeof removeKeyframeDirect = (layerId, trackId, id) =>
+    mutateWithHistory(layerId, 'Remove generator keyframe', () => removeKeyframeDirect(layerId, trackId, id));
+  const setKeyframeLooping: typeof setKeyframeLoopingDirect = (layerId, trackId, looping) =>
+    mutateWithHistory(layerId, 'Change generator keyframe looping', () => setKeyframeLoopingDirect(layerId, trackId, looping));
 
   const multiSelectCount = selectedKeyframeIds.size;
 
@@ -180,6 +197,19 @@ export const KeyframeEditorPanel: React.FC = () => {
     return entries;
   }, [selectedKeyframeIds, layers, layerGroups, globalEffects, postEffectTracks]);
 
+  const onScrubStart = () => {
+    if (!kfData) return;
+    const source = useTimelineStore.getState().getLayer(kfData.layerId)?.generator;
+    if (source) scrubSnapshot.current = { layerId: kfData.layerId, source };
+  };
+  const onScrubEnd = () => {
+    const snapshot = scrubSnapshot.current;
+    if (snapshot) {
+      recordGeneratorChange(snapshot.layerId, 'Edit generator keyframe', snapshot.source);
+      scrubSnapshot.current = null;
+    }
+  };
+
   const frameScrub = useScrubInput({
     value: kfData?.keyframe.frame ?? 0,
     onChange: (v) => {
@@ -187,6 +217,8 @@ export const KeyframeEditorPanel: React.FC = () => {
     },
     step: 1,
     min: 0,
+    onScrubStart,
+    onScrubEnd,
   });
 
   const kfDef = useMemo(() => {
@@ -205,6 +237,8 @@ export const KeyframeEditorPanel: React.FC = () => {
     step: kfDef?.step ?? 1,
     min: kfDef?.min,
     max: kfDef?.max,
+    onScrubStart,
+    onScrubEnd,
   });
 
   if (!kfData) return null;

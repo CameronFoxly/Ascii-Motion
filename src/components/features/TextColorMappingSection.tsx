@@ -52,9 +52,10 @@ import { ExportPaletteDialog } from './ExportPaletteDialog';
 
 interface TextColorMappingSectionProps {
   onSettingsChange?: () => void;
+  paletteEditor?: { paletteId: string; onPaletteChange: (paletteId: string) => void };
 }
 
-export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSectionProps) {
+export function TextColorMappingSection({ onSettingsChange, paletteEditor }: TextColorMappingSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
   const [colorPickerInitialColor, setColorPickerInitialColor] = useState('#000000');
@@ -68,13 +69,20 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
   
   // Import settings
-  const { settings, updateSettings } = useImportSettings();
+  const { settings, updateSettings: updateImportSettings } = useImportSettings();
   const {
-    enableTextColorMapping,
-    textColorPaletteId,
     textColorMappingMode,
     textColorDitherStrength
   } = settings;
+  const enableTextColorMapping = paletteEditor ? true : settings.enableTextColorMapping;
+  const textColorPaletteId = paletteEditor?.paletteId ?? settings.textColorPaletteId;
+  const updateSettings: typeof updateImportSettings = (updates) => {
+    if (paletteEditor) {
+      if (typeof updates.textColorPaletteId === 'string') paletteEditor.onPaletteChange(updates.textColorPaletteId);
+    } else {
+      updateImportSettings(updates);
+    }
+  };
   
   // Color palette store integration
   const { 
@@ -118,9 +126,19 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
     onSettingsChange?.();
   };
 
+  const selectCopiedColor = (paletteId: string, colorId: string): string | undefined => {
+    const index = selectedPalette?.colors.findIndex((c) => c.id === colorId) ?? -1;
+    const copiedId = usePaletteStore.getState().customPalettes
+      .find((p) => p.id === paletteId)?.colors[index]?.id;
+    if (copiedId) setSelectedColor(copiedId);
+    return copiedId;
+  };
+
   // Color palette editing handlers
-  const handleColorDoubleClick = (color: string) => {
+  const handleColorDoubleClick = (colorId: string) => {
     if (!selectedPalette) return;
+    const colorObj = selectedPalette.colors.find(c => c.id === colorId);
+    if (!colorObj) return;
     
     // If it's a preset palette, create a custom copy first
     if (selectedPalette.isPreset) {
@@ -128,15 +146,11 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
       if (newPaletteId) {
         // Switch to the new custom palette
         updateSettings({ textColorPaletteId: newPaletteId });
-        // Find the color in the new palette and edit it
-        const newPalette = customPalettes.find(p => p.id === newPaletteId);
-        if (newPalette) {
-          const colorObj = newPalette.colors.find(c => c.value === color);
-          if (colorObj) {
-            setEditingColorId(colorObj.id);
-            setColorPickerInitialColor(color);
-            setIsColorPickerOpen(true);
-          }
+        const copiedId = selectCopiedColor(newPaletteId, colorId);
+        if (copiedId) {
+          setEditingColorId(copiedId);
+          setColorPickerInitialColor(colorObj.value);
+          setIsColorPickerOpen(true);
         }
         onSettingsChange?.();
       }
@@ -144,12 +158,10 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
     }
     
     // For custom palettes, edit directly
-    const colorObj = selectedPalette.colors.find(c => c.value === color);
-    if (colorObj) {
-      setEditingColorId(colorObj.id);
-      setColorPickerInitialColor(color);
-      setIsColorPickerOpen(true);
-    }
+    setSelectedColor(colorId);
+    setEditingColorId(colorId);
+    setColorPickerInitialColor(colorObj.value);
+    setIsColorPickerOpen(true);
   };
 
   const handleColorPickerSelect = (newColor: string) => {
@@ -161,35 +173,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
   };
 
   const handleEditColor = () => {
-    if (!selectedColorId || !selectedPalette) return;
-    
-    const colorObj = selectedPalette.colors.find(c => c.id === selectedColorId);
-    if (!colorObj) return;
-    
-    // If it's a preset palette, create a custom copy first
-    if (selectedPalette.isPreset) {
-      const newPaletteId = createCustomCopy(selectedPalette.id);
-      if (newPaletteId) {
-        updateSettings({ textColorPaletteId: newPaletteId });
-        // Find the color in the new palette and edit it
-        const newPalette = customPalettes.find(p => p.id === newPaletteId);
-        if (newPalette) {
-          const newColorObj = newPalette.colors.find(c => c.value === colorObj.value);
-          if (newColorObj) {
-            setEditingColorId(newColorObj.id);
-            setColorPickerInitialColor(colorObj.value);
-            setIsColorPickerOpen(true);
-          }
-        }
-        onSettingsChange?.();
-      }
-      return;
-    }
-    
-    // For custom palettes, edit directly
-    setEditingColorId(colorObj.id);
-    setColorPickerInitialColor(colorObj.value);
-    setIsColorPickerOpen(true);
+    if (selectedColorId) handleColorDoubleClick(selectedColorId);
   };
 
   const handleAddColor = () => {
@@ -218,7 +202,8 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
       const newPaletteId = createCustomCopy(selectedPalette.id);
       if (newPaletteId) {
         updateSettings({ textColorPaletteId: newPaletteId });
-        removeColor(newPaletteId, colorId);
+        const copiedId = selectCopiedColor(newPaletteId, colorId);
+        if (copiedId) removeColor(newPaletteId, copiedId);
         onSettingsChange?.();
       }
       return;
@@ -236,7 +221,8 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
       const newPaletteId = createCustomCopy(selectedPalette.id);
       if (newPaletteId) {
         updateSettings({ textColorPaletteId: newPaletteId });
-        moveColorLeft(newPaletteId, colorId);
+        const copiedId = selectCopiedColor(newPaletteId, colorId);
+        if (copiedId) moveColorLeft(newPaletteId, copiedId);
         onSettingsChange?.();
       }
       return;
@@ -254,7 +240,8 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
       const newPaletteId = createCustomCopy(selectedPalette.id);
       if (newPaletteId) {
         updateSettings({ textColorPaletteId: newPaletteId });
-        moveColorRight(newPaletteId, colorId);
+        const copiedId = selectCopiedColor(newPaletteId, colorId);
+        if (copiedId) moveColorRight(newPaletteId, copiedId);
         onSettingsChange?.();
       }
       return;
@@ -378,7 +365,8 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
 
   return (
     <>
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Collapsible open={!!paletteEditor || isOpen} onOpenChange={setIsOpen}>
+        {!paletteEditor && (
         <div className="flex items-center justify-between gap-2">
           <CollapsibleTrigger asChild>
             <Button 
@@ -405,6 +393,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
             className="flex-shrink-0"
           />
         </div>
+        )}
         
         <CollapsibleContent className="collapsible-content space-y-3 mt-2">
           <div className="w-full">
@@ -437,6 +426,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                                   updateSettings({ textColorPaletteId: newPaletteId });
                                   onSettingsChange?.();
                                 }}
+                                aria-label="Create color palette"
                               >
                                 <Plus className="h-3 w-3" />
                               </Button>
@@ -454,6 +444,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                                 variant="outline"
                                 className="h-6 w-6 p-0"
                                 onClick={() => setIsManagePalettesOpen(true)}
+                                aria-label="Manage color palettes"
                               >
                                 <Settings className="h-3 w-3" />
                               </Button>
@@ -528,6 +519,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                                 variant="outline"
                                 className="h-6 w-6 p-0"
                                 onClick={() => setIsImportDialogOpen(true)}
+                                aria-label="Import color palette"
                               >
                                 <Upload className="h-3 w-3" />
                               </Button>
@@ -546,6 +538,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                                 variant="outline"
                                 className="h-6 w-6 p-0"
                                 onClick={() => setIsExportDialogOpen(true)}
+                                aria-label="Export color palette"
                               >
                                 <Download className="h-3 w-3" />
                               </Button>
@@ -584,7 +577,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                                     style={{ backgroundColor: color.value }}
                                     draggable={!selectedPalette.isPreset}
                                     onClick={() => setSelectedColor(color.id)}
-                                    onDoubleClick={() => handleColorDoubleClick(color.value)}
+                                    onDoubleClick={() => handleColorDoubleClick(color.id)}
                                     onDragStart={(e) => handleDragStart(e, color.id)}
                                     onDragOver={(e) => handleDragOver(e, color.id)}
                                     onDrop={(e) => handleDrop(e, color.id)}
@@ -637,6 +630,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                                     variant="outline"
                                     className="h-6 w-6 p-0"
                                     onClick={() => selectedColorId && handleMoveColorLeft(selectedColorId)}
+                                    aria-label="Move color left"
                                     disabled={!selectedColorId}
                                   >
                                     <ChevronLeft className="h-3 w-3" />
@@ -656,6 +650,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                                     variant="outline"
                                     className="h-6 w-6 p-0"
                                     onClick={() => selectedColorId && handleMoveColorRight(selectedColorId)}
+                                    aria-label="Move color right"
                                     disabled={!selectedColorId}
                                   >
                                     <ChevronRight className="h-3 w-3" />
@@ -675,6 +670,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                                     variant="outline"
                                     className="h-6 w-6 p-0"
                                     onClick={handleAddColor}
+                                    aria-label="Add color"
                                   >
                                     <Plus className="h-3 w-3" />
                                   </Button>
@@ -693,6 +689,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                                     variant="outline"
                                     className="h-6 w-6 p-0"
                                     onClick={handleEditColor}
+                                    aria-label="Edit color"
                                     disabled={!selectedColorId}
                                   >
                                     <Edit className="h-3 w-3" />
@@ -712,6 +709,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                                     variant="outline"
                                     className="h-6 w-6 p-0"
                                     onClick={() => selectedColorId && handleRemoveColor(selectedColorId)}
+                                    aria-label="Remove color"
                                     disabled={!selectedColorId || selectedPalette.colors.length <= 1}
                                   >
                                     <Trash2 className="h-3 w-3" />
@@ -735,6 +733,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                                     variant="outline"
                                     className="h-6 w-6 p-0"
                                     onClick={handleReversePalette}
+                                    aria-label="Reverse color order"
                                   >
                                     <ArrowUpDown className="h-3 w-3" />
                                   </Button>
@@ -752,6 +751,7 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                 )}
 
                 {/* Mapping Mode */}
+                {!paletteEditor && (
                 <div className="space-y-2">
                   <Label className="text-xs font-medium">Mapping Mode</Label>
                   <Select 
@@ -781,9 +781,10 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
                     </SelectContent>
                   </Select>
                 </div>
+                )}
 
                 {/* Dither Strength Slider - shown for dithering modes */}
-                {textColorMappingMode !== 'closest' && textColorMappingMode !== 'by-index' && (
+                {!paletteEditor && textColorMappingMode !== 'closest' && textColorMappingMode !== 'by-index' && (
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <Label className="text-xs font-medium">Dither Strength</Label>
@@ -816,23 +817,28 @@ export function TextColorMappingSection({ onSettingsChange }: TextColorMappingSe
         onColorSelect={handleColorPickerSelect}
         title="Edit Color"
         anchorPosition="import-media-panel"
+        modal={!!paletteEditor}
       />
 
       {/* Palette Management Dialog */}
       <ManagePalettesDialog
         isOpen={isManagePalettesOpen}
         onOpenChange={setIsManagePalettesOpen}
+        paletteId={paletteEditor?.paletteId}
+        onPaletteSelect={paletteEditor?.onPaletteChange}
       />
 
       {/* Import/Export Dialogs */}
       <ImportPaletteDialog
         isOpen={isImportDialogOpen}
         onOpenChange={setIsImportDialogOpen}
+        onPaletteImported={paletteEditor?.onPaletteChange}
       />
 
       <ExportPaletteDialog
         isOpen={isExportDialogOpen}
         onOpenChange={setIsExportDialogOpen}
+        paletteId={paletteEditor?.paletteId}
       />
     </>
   );

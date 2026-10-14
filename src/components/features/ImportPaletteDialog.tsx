@@ -16,11 +16,13 @@ import type { PaletteExportFormat } from '../../types/palette';
 interface ImportPaletteDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  onPaletteImported?: (paletteId: string) => void;
 }
 
 export const ImportPaletteDialog: React.FC<ImportPaletteDialogProps> = ({
   isOpen,
-  onOpenChange
+  onOpenChange,
+  onPaletteImported,
 }) => {
   const { importPalette } = usePaletteStore();
   
@@ -71,6 +73,7 @@ export const ImportPaletteDialog: React.FC<ImportPaletteDialogProps> = ({
     try {
       const result = importPalette(jsonText);
       if (result.success) {
+        if (result.paletteId) onPaletteImported?.(result.paletteId);
         setImportSuccess(result.message);
         // Clear form after successful import
         setTimeout(() => {

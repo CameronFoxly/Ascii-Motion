@@ -14,6 +14,7 @@
 import { useCallback } from 'react';
 import { useTimelineStore } from '../stores/timelineStore';
 import { useToolStore } from '../stores/toolStore';
+import { withGeneratorHistory } from '../utils/generators/generatorHistory';
 import type { Cell } from '../types';
 import type {
   LayerAddHistoryAction,
@@ -494,6 +495,12 @@ export function useTimelineHistory() {
   ) => {
     const tl = useTimelineStore.getState();
 
+    const generatorTrack = tl.getLayer(layerId)?.generator?.propertyTracks.find((pt) => pt.id as string === trackId as string);
+    if (generatorTrack) {
+      return withGeneratorHistory(layerId, `Add keyframe at frame ${frame}`, () =>
+        tl.addGeneratorKeyframe(layerId, generatorTrack.id, frame, value));
+    }
+
     // Check if this track belongs to an effect property track
     const allEffectSources = [
       ...tl.layers.flatMap((l) => (l.effectTracks ?? [])),
@@ -548,6 +555,13 @@ export function useTimelineHistory() {
   ) => {
     const tl = useTimelineStore.getState();
 
+    const generatorTrack = tl.getLayer(layerId)?.generator?.propertyTracks.find((pt) => pt.id as string === trackId as string);
+    if (generatorTrack) {
+      withGeneratorHistory(layerId, 'Remove generator keyframe', () =>
+        tl.removeGeneratorKeyframe(layerId, generatorTrack.id, keyframeId));
+      return;
+    }
+
     // Check if this track belongs to an effect property track
     const allEffectSources = [
       ...tl.layers.flatMap((l) => (l.effectTracks ?? [])),
@@ -592,6 +606,12 @@ export function useTimelineHistory() {
   ) => {
     const { getLayer, updateKeyframe: updateKeyframeStore } = useTimelineStore.getState();
     const layer = getLayer(layerId);
+    const generatorTrack = layer?.generator?.propertyTracks.find((pt) => pt.id as string === trackId as string);
+    if (generatorTrack) {
+      withGeneratorHistory(layerId, 'Update generator keyframe', () =>
+        useTimelineStore.getState().updateGeneratorKeyframe(layerId, generatorTrack.id, keyframeId, updates));
+      return;
+    }
     const track = layer?.propertyTracks.find((pt) => pt.id === trackId);
     const keyframe = track?.keyframes.find((kf) => kf.id === keyframeId);
     if (!keyframe) return;

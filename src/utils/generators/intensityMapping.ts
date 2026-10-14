@@ -38,16 +38,19 @@ export interface ResolvedMappingSettings {
   characterSet: string[];
   characterDitherMode: CharacterDitherMode;
   ditherStrength: number;
+  reverseCharacterIndex?: boolean;
 
   enableTextColorMapping: boolean;
   textColors: string[];
   textColorMappingMode: ColorMappingMode;
   textColorDitherStrength: number;
+  reverseTextColorIndex?: boolean;
 
   enableBackgroundColorMapping: boolean;
   backgroundColors: string[];
   backgroundColorMappingMode: ColorMappingMode;
   backgroundColorDitherStrength: number;
+  reverseBackgroundColorIndex?: boolean;
 }
 
 export const DEFAULT_TEXT_COLOR = '#ffffff';
@@ -161,19 +164,26 @@ export function mapIntensityToCells(
   const { width, height, intensity, coverage } = buffer;
   const out = new Map<string, Cell>();
 
-  const chars = settings.enableCharacterMapping && settings.characterSet.length > 0
+  let chars = settings.enableCharacterMapping && settings.characterSet.length > 0
     ? settings.characterSet
     : null;
   const charMode = settings.characterDitherMode;
+  if (chars && charMode === 'by-index' && settings.reverseCharacterIndex) chars = [...chars].reverse();
   const charDither = chars !== null && charMode !== 'by-index';
 
-  const textPalette = settings.enableTextColorMapping ? settings.textColors : [];
+  const textPalette = settings.enableTextColorMapping
+    ? settings.textColorMappingMode === 'by-index' && settings.reverseTextColorIndex
+      ? [...settings.textColors].reverse() : settings.textColors
+    : [];
   const useTextPalette = textPalette.length > 0;
   const textMode = settings.textColorMappingMode;
   const textDither = useTextPalette && isColorDithered(textMode);
   const textLut = useTextPalette && !textDither ? getColorLut(textMode, textPalette) : null;
 
-  const bgPalette = settings.enableBackgroundColorMapping ? settings.backgroundColors : [];
+  const bgPalette = settings.enableBackgroundColorMapping
+    ? settings.backgroundColorMappingMode === 'by-index' && settings.reverseBackgroundColorIndex
+      ? [...settings.backgroundColors].reverse() : settings.backgroundColors
+    : [];
   const useBgPalette = bgPalette.length > 0;
   const bgMode = settings.backgroundColorMappingMode;
   const bgDither = useBgPalette && isColorDithered(bgMode);

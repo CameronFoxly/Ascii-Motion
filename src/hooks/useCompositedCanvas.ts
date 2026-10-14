@@ -16,6 +16,7 @@ import { useMemo } from 'react';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useTimelineStore } from '../stores/timelineStore';
 import { usePaletteStore } from '../stores/paletteStore';
+import { useCharacterPaletteStore } from '../stores/characterPaletteStore';
 import type { Cell } from '../types';
 import type { Layer } from '../types/timeline';
 import {
@@ -50,6 +51,8 @@ export function useCompositedCanvas() {
   // Generator layers map intensities through palettes — re-composite on palette edits
   const palettes = usePaletteStore((s) => s.palettes);
   const customPalettes = usePaletteStore((s) => s.customPalettes);
+  const characterPalettes = useCharacterPaletteStore((s) => s.availablePalettes);
+  const customCharacterPalettes = useCharacterPaletteStore((s) => s.customPalettes);
 
   // Determine if we're in layer mode (have layers loaded)
   const isLayerMode = layers.length > 0;
@@ -110,7 +113,7 @@ export function useCompositedCanvas() {
       globalEffects,
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layers, layerGroups, globalEffects, currentFrame, activeLayerId, canvasCells, canvasWidth, canvasHeight, isLayerMode, palettes, customPalettes]);
+  }, [layers, layerGroups, globalEffects, currentFrame, activeLayerId, canvasCells, canvasWidth, canvasHeight, isLayerMode, palettes, customPalettes, characterPalettes, customCharacterPalettes]);
 
   // Cell getter function for the renderer
   const getCompositedCell = useMemo(() => {

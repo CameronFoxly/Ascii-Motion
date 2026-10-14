@@ -40,6 +40,7 @@ interface Particle {
 interface ParticleState {
   particles: Particle[];
   emissionDebt: number;
+  previousOrigin: { x: number; y: number } | null;
 }
 
 const visibleWhen = (path: string, ...values: string[]) => ({ visibleWhen: { path, values } });
@@ -47,6 +48,10 @@ const visibleWhen = (path: string, ...values: string[]) => ({ visibleWhen: { pat
 const propertyDefinitions = [
   numberProp('originX', 'Origin X', 'Emitter', 40, -500, 1000, 1),
   numberProp('originY', 'Origin Y', 'Emitter', 12, -500, 1000, 1),
+  boolProp('inheritOriginVelocity', 'Inherit Velocity from Origin', 'Emitter', false),
+  numberProp('originVelocityInfluence', 'Origin Velocity Influence', 'Emitter', 100, 0, 200, 1, {
+    unit: '%', control: 'slider', ...visibleWhen('inheritOriginVelocity', 'true'),
+  }),
   selectProp('emitterShape', 'Emitter Shape', 'Emitter', 'point', [
     { label: 'Point', value: 'point' },
     { label: 'Vertical Line', value: 'vertical-line' },
@@ -166,7 +171,11 @@ function emitterPosition(settings: Record<string, unknown>, rng: () => number): 
   }
 }
 
-function spawnParticle(settings: Record<string, unknown>, rng: () => number): Particle {
+function spawnParticle(
+  settings: Record<string, unknown>,
+  rng: () => number,
+  originVelocity: { x: number; y: number },
+): Particle {
   const shape = s<ParticleShape>(settings, 'particleShape', 'circle');
   let cloudletOffsets: Array<{ x: number; y: number }> | undefined;
   if (shape === 'cloudlet') {
@@ -204,8 +213,8 @@ function spawnParticle(settings: Record<string, unknown>, rng: () => number): Pa
   return {
     x: pos.x,
     y: pos.y,
-    vx: Math.cos(angle) * magnitude,
-    vy: Math.sin(angle) * magnitude,
+    vx: Math.cos(angle) * magnitude + originVelocity.x,
+    vy: Math.sin(angle) * magnitude + originVelocity.y,
     size,
     age: 0,
     lifespan,
@@ -277,16 +286,29 @@ export const particlePhysicsGenerator: SimulationGeneratorEntry<ParticleState> =
   propertyDefinitions,
   getCanvasDefaults: (w, h) => ({ originX: Math.floor(w / 2), originY: Math.floor(h / 2) }),
 
-  createState: () => ({ particles: [], emissionDebt: 0 }),
+  createState: () => ({ particles: [], emissionDebt: 0, previousOrigin: null }),
 
   cloneState: (state) => ({
     emissionDebt: state.emissionDebt,
     particles: state.particles.map((p) => ({ ...p })),
+    previousOrigin: state.previousOrigin ? { ...state.previousOrigin } : null,
   }),
 
   step: (state, settings, ctx) => {
     const { width, height, dt, fps, localFrame } = ctx;
     const rng = frameRng(n(settings, 'seed', 0), localFrame, 0x9a71);
+    const origin = { x: n(settings, 'originX', 40), y: n(settings, 'originY', 12) };
+    const influence = b(settings, 'inheritOriginVelocity', false)
+      ? n(settings, 'originVelocityInfluence', 100) / 100
+      : 0;
+    // Convert cell displacement to the same 30fps reference units as particle speed.
+    const originVelocity = state.previousOrigin
+      ? {
+        x: (origin.x - state.previousOrigin.x) / dt * influence,
+        y: (origin.y - state.previousOrigin.y) / dt * influence,
+      }
+      : { x: 0, y: 0 };
+    state.previousOrigin = origin;
 
     // Emission
     let toSpawn = 0;
@@ -298,7 +320,7 @@ export const particlePhysicsGenerator: SimulationGeneratorEntry<ParticleState> =
       state.emissionDebt -= toSpawn;
     }
     toSpawn = Math.min(toSpawn, MAX_PARTICLES - state.particles.length);
-    for (let i = 0; i < toSpawn; i++) state.particles.push(spawnParticle(settings, rng));
+    for (let i = 0; i < toSpawn; i++) state.particles.push(spawnParticle(settings, rng, originVelocity));
 
     // Physics
     const gravity = n(settings, 'gravity', 0.2) * 0.1 * dt;

@@ -6,18 +6,23 @@
  * update the static settings. All edits record `generator_update` history.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useTimelineStore } from '../../../stores/timelineStore';
 import { usePaletteStore } from '../../../stores/paletteStore';
+import { useCharacterPaletteStore } from '../../../stores/characterPaletteStore';
+import { PaletteEditorDialog } from '../PaletteEditorDialog';
 import { getGenerator } from '../../../registry/generatorRegistry';
-import { resolveGeneratorSettings } from '../../../utils/generators/generatorRuntime';
+import { resolveGeneratorSettings, toCharacterArray } from '../../../utils/generators/generatorRuntime';
 import {
   withGeneratorHistory,
   bakeGeneratorLayerWithHistory,
+  recordGeneratorChange,
+  setGeneratorValueAtFrame,
 } from '../../../utils/generators/generatorHistory';
 import { Button } from '../../ui/button';
+import { Slider } from '../../ui/slider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../ui/tooltip';
-import { Eye, EyeOff, X, Diamond, Dices } from 'lucide-react';
+import { Eye, EyeOff, X, Diamond, Dices, Pencil } from 'lucide-react';
 import { useScrubInput } from '../../../hooks/useScrubInput';
 import type { EffectPropertyDefinition, EffectKeyframe } from '../../../types/effectBlock';
 import type { GeneratorSource } from '../../../types/generatorLayer';
@@ -31,12 +36,51 @@ interface GeneratorPropertyRowProps {
   definition: EffectPropertyDefinition;
   value: unknown;
   currentFrame: number;
-  onChange: (value: unknown) => void;
+  onChange: (value: unknown, recordHistory?: boolean) => void;
 }
 
 function ensureLayerExpanded(layerId: LayerId): void {
   const tl = useTimelineStore.getState();
   if (!tl.view.expandedLayerIds.has(layerId)) tl.toggleLayerExpanded(layerId);
+}
+
+function GeneratorSlider({
+  layerId, definition, value, onChange,
+}: Pick<GeneratorPropertyRowProps, 'layerId' | 'definition' | 'onChange'> & { value: number }) {
+  const before = useRef<GeneratorSource | null>(null);
+  const finish = useCallback(() => {
+    if (!before.current) return;
+    recordGeneratorChange(layerId, `Update ${definition.displayName}`, before.current);
+    before.current = null;
+  }, [layerId, definition.displayName]);
+
+  useEffect(() => {
+    window.addEventListener('pointerup', finish);
+    window.addEventListener('pointercancel', finish);
+    return () => {
+      window.removeEventListener('pointerup', finish);
+      window.removeEventListener('pointercancel', finish);
+      finish();
+    };
+  }, [finish]);
+
+  return (
+    <Slider
+      aria-label={definition.displayName}
+      value={value}
+      min={definition.min}
+      max={definition.max}
+      step={definition.step}
+      className="h-1 flex-1 min-w-0"
+      onValueChange={(next) => {
+        before.current ??= useTimelineStore.getState().getLayer(layerId)?.generator ?? null;
+        onChange(next, false);
+      }}
+      onKeyDown={(event) => event.stopPropagation()}
+      onKeyUp={finish}
+      onBlur={finish}
+    />
+  );
 }
 
 const GeneratorPropertyRow: React.FC<GeneratorPropertyRowProps> = ({
@@ -49,8 +93,12 @@ const GeneratorPropertyRow: React.FC<GeneratorPropertyRowProps> = ({
 }) => {
   const [localValue, setLocalValue] = useState<string>(String(value ?? definition.defaultValue));
   const [isFocused, setIsFocused] = useState(false);
+  const [isPaletteDialogOpen, setIsPaletteDialogOpen] = useState(false);
+  const scrubSource = useRef<GeneratorSource | null>(null);
   const palettes = usePaletteStore((s) => s.palettes);
   const customPalettes = usePaletteStore((s) => s.customPalettes);
+  const characterPalettes = useCharacterPaletteStore((s) => s.availablePalettes);
+  const customCharacterPalettes = useCharacterPaletteStore((s) => s.customPalettes);
 
   const existingTrack = source.propertyTracks.find((pt) => pt.propertyPath === definition.path);
   const existingKf = existingTrack?.keyframes.find((kf) => kf.frame === currentFrame);
@@ -76,7 +124,16 @@ const GeneratorPropertyRow: React.FC<GeneratorPropertyRowProps> = ({
   const scrubValue = typeof value === 'number' ? value : (definition.defaultValue as number);
   const scrub = useScrubInput({
     value: scrubValue,
-    onChange: (v) => { setLocalValue(String(v)); onChange(v); },
+    onChange: (v) => { setLocalValue(String(v)); onChange(v, false); },
+    onScrubStart: () => {
+      scrubSource.current = useTimelineStore.getState().getLayer(layerId)?.generator ?? null;
+    },
+    onScrubEnd: () => {
+      if (scrubSource.current) {
+        recordGeneratorChange(layerId, `Update ${definition.displayName}`, scrubSource.current);
+        scrubSource.current = null;
+      }
+    },
     step: definition.step ?? 1,
     min: definition.min,
     max: definition.max,
@@ -140,7 +197,6 @@ const GeneratorPropertyRow: React.FC<GeneratorPropertyRowProps> = ({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      commitValue();
       (e.target as HTMLInputElement).blur();
     } else if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && definition.valueType === 'number') {
       e.preventDefault();
@@ -171,10 +227,64 @@ const GeneratorPropertyRow: React.FC<GeneratorPropertyRowProps> = ({
     );
   }
 
-  if ((definition.valueType === 'select' && definition.options) || definition.valueType === 'palette') {
-    const options = definition.valueType === 'palette'
-      ? [...palettes, ...customPalettes].map((p) => ({ label: p.name, value: p.id }))
-      : definition.options!;
+  if (definition.valueType === 'palette') {
+    const isCharacterPalette = definition.path === 'mapping.characterPaletteId';
+    const paletteId = String(value ?? definition.defaultValue);
+    const palette = (isCharacterPalette
+      ? [...characterPalettes, ...customCharacterPalettes]
+      : [...palettes, ...customPalettes]).find((p) => p.id === paletteId);
+    const openEditor = () => {
+      if (isCharacterPalette && !paletteId) {
+        const characters = toCharacterArray(resolveGeneratorSettings(source, currentFrame)['mapping.characterSet']);
+        const matching = [...characterPalettes, ...customCharacterPalettes]
+          .find((p) => JSON.stringify(p.characters) === JSON.stringify(characters));
+        const selected = matching ?? useCharacterPaletteStore.getState().createCustomPalette('Generator Characters', characters);
+        onChange(selected.id);
+      }
+      setIsPaletteDialogOpen(true);
+    };
+    return (
+      <div className="flex items-center gap-1.5 py-0.5">
+        {keyframeDiamond}
+        {label}
+        <button
+          className="h-6 px-1.5 flex-1 min-w-0 flex items-center gap-1 rounded border border-border/50 bg-background hover:bg-muted text-[10px]"
+          onClick={openEditor}
+          aria-label={`Edit ${definition.displayName}`}
+          title={`Choose or edit ${definition.displayName.toLowerCase()}`}
+        >
+          <span className="truncate flex-1 text-left">{palette?.name ?? (paletteId ? 'Unavailable palette' : 'Custom characters')}</span>
+          <Pencil className="w-3 h-3 flex-shrink-0 text-muted-foreground" />
+        </button>
+        {isPaletteDialogOpen && (
+          <PaletteEditorDialog
+            open
+            onOpenChange={setIsPaletteDialogOpen}
+            kind={isCharacterPalette ? 'character' : 'color'}
+            paletteId={paletteId}
+            onPaletteChange={onChange}
+            title={definition.displayName}
+          />
+        )}
+      </div>
+    );
+  }
+
+  if (definition.valueType === 'number' && definition.control === 'slider') {
+    return (
+      <div className="flex items-center gap-1.5 py-0.5">
+        {keyframeDiamond}
+        {label}
+        <GeneratorSlider layerId={layerId} definition={definition} value={scrubValue} onChange={onChange} />
+        <span className="text-[9px] text-muted-foreground w-8 text-right flex-shrink-0">
+          {scrubValue}{definition.unit}
+        </span>
+      </div>
+    );
+  }
+
+  if (definition.valueType === 'select' && definition.options) {
+    const options = definition.options;
     return (
       <div className="flex items-center gap-1.5 py-0.5">
         {keyframeDiamond}
@@ -278,22 +388,13 @@ export const GeneratorPropertiesPanel: React.FC = () => {
     categories.get(def.category)!.push(def);
   }
 
-  const handleChange = (def: EffectPropertyDefinition, newValue: unknown) => {
-    const tl = useTimelineStore.getState();
-    const current = tl.layers.find((l) => l.id === layerId)?.generator;
+  const handleChange = (def: EffectPropertyDefinition, newValue: unknown, recordHistory = true) => {
+    const current = useTimelineStore.getState().layers.find((l) => l.id === layerId)?.generator;
     if (!current) return;
-    const track = current.propertyTracks.find((pt) => pt.propertyPath === def.path);
-    const kfAtFrame = track?.keyframes.find((kf) => kf.frame === currentFrame);
-    withGeneratorHistory(layerId, `Update ${def.displayName}`, () => {
-      if (track && kfAtFrame) {
-        tl.updateGeneratorKeyframe(layerId, track.id, kfAtFrame.id, { value: newValue as KeyframeValue });
-      } else if (track && track.keyframes.length > 0) {
-        // Tracked property without a keyframe at the playhead — auto-key
-        tl.addGeneratorKeyframe(layerId, track.id, currentFrame, newValue as KeyframeValue);
-      } else {
-        tl.updateGeneratorSettings(layerId, { [def.path]: newValue });
-      }
-    });
+    if (resolveGeneratorSettings(current, currentFrame)[def.path] === newValue) return;
+    const mutate = () => setGeneratorValueAtFrame(layerId, def.path, newValue as KeyframeValue, currentFrame);
+    if (recordHistory) withGeneratorHistory(layerId, `Update ${def.displayName}`, mutate);
+    else mutate();
   };
 
   const hasSeed = entry.propertyDefinitions.some((d) => d.path === 'seed');
@@ -346,6 +447,7 @@ export const GeneratorPropertiesPanel: React.FC = () => {
         <GeneratorTimingRows layerId={layerId} source={source} />
         {[...categories.entries()].map(([category, defs]) => {
           const visibleDefs = defs.filter((def) => {
+            if (def.path === 'mapping.characterSet') return false;
             if (!def.visibleWhen) return true;
             return def.visibleWhen.values.includes(String(resolved[def.visibleWhen.path]));
           });
@@ -363,7 +465,7 @@ export const GeneratorPropertiesPanel: React.FC = () => {
                   definition={def}
                   value={resolved[def.path]}
                   currentFrame={currentFrame}
-                  onChange={(v) => handleChange(def, v)}
+                  onChange={(v, recordHistory) => handleChange(def, v, recordHistory)}
                 />
               ))}
             </div>

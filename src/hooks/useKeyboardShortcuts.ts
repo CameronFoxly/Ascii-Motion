@@ -36,7 +36,7 @@ type AnimationStoreState = ReturnType<typeof useAnimationStore.getState>;
 /**
  * Helper function to process different types of history actions
  */
-const processHistoryAction = (
+export const processHistoryAction = (
   action: AnyHistoryAction,
   isRedo: boolean,
   canvasStore: CanvasStoreForHistory,
@@ -1363,6 +1363,24 @@ const processHistoryAction = (
           animationStore.setFrameData(animationStore.currentFrameIndex, data as Map<string, import('../types').Cell>);
           canvasStore.setCanvasData(data as Map<string, import('../types').Cell>);
         }
+      }
+      break;
+    }
+
+    case 'palette_edit': {
+      const data = action.data;
+      if (data.kind === 'character') {
+        const state = useCharacterPaletteStore.getState();
+        const customPalettes = structuredClone(isRedo ? data.newPalettes : data.previousPalettes);
+        const activePalette = [...state.availablePalettes, ...customPalettes]
+          .find((p) => p.id === state.activePalette.id) ?? state.availablePalettes[0];
+        useCharacterPaletteStore.setState({ customPalettes, activePalette });
+      } else {
+        const state = usePaletteStore.getState();
+        const customPalettes = structuredClone(isRedo ? data.newPalettes : data.previousPalettes);
+        const activePaletteId = [...state.palettes, ...customPalettes].some((p) => p.id === state.activePaletteId)
+          ? state.activePaletteId : state.palettes[0].id;
+        usePaletteStore.setState({ customPalettes, activePaletteId });
       }
       break;
     }

@@ -308,6 +308,7 @@ export type HistoryActionType =
   | 'apply_transforms'
   | 'generator_update'
   | 'generator_bake'
+  | 'palette_edit'
   | 'merge_layers'
   | 'create_group'
   | 'ungroup_layers'
@@ -967,6 +968,7 @@ export type AnyHistoryAction =
   | TrimToWorkAreaHistoryAction
   | ApplyTransformsHistoryAction
   | GeneratorUpdateHistoryAction
+  | PaletteEditHistoryAction
   | GeneratorBakeHistoryAction
   | MergeLayersHistoryAction
   | CreateGroupHistoryAction
@@ -1001,6 +1003,13 @@ export interface GeneratorUpdateHistoryAction extends HistoryAction {
     previousSource: import('../types/generatorLayer').GeneratorSource;
     newSource: import('../types/generatorLayer').GeneratorSource;
   };
+}
+
+export interface PaletteEditHistoryAction extends HistoryAction {
+  type: 'palette_edit';
+  data:
+    | { kind: 'color'; previousPalettes: import('./palette').ColorPalette[]; newPalettes: import('./palette').ColorPalette[] }
+    | { kind: 'character'; previousPalettes: import('./palette').CharacterPalette[]; newPalettes: import('./palette').CharacterPalette[] };
 }
 
 export interface GeneratorBakeHistoryAction extends HistoryAction {

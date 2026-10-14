@@ -10,21 +10,27 @@ import type { ColorPalette } from '../../types/palette';
 interface ManagePalettesDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  paletteId?: string;
+  onPaletteSelect?: (paletteId: string) => void;
 }
 
 export const ManagePalettesDialog: React.FC<ManagePalettesDialogProps> = ({
   isOpen,
-  onOpenChange
+  onOpenChange,
+  paletteId,
+  onPaletteSelect,
 }) => {
   const {
     getAllPalettes,
-    activePaletteId,
-    setActivePalette,
+    activePaletteId: storeActivePaletteId,
+    setActivePalette: setStoreActivePalette,
     deletePalette,
     renamePalette,
     duplicatePalette,
     createCustomPalette
   } = usePaletteStore();
+  const activePaletteId = paletteId ?? storeActivePaletteId;
+  const setActivePalette = onPaletteSelect ?? setStoreActivePalette;
 
   const [editingPaletteId, setEditingPaletteId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');

@@ -11,6 +11,8 @@ import { useToolStore } from '../../../stores/toolStore';
 import { cn } from '@/lib/utils';
 import type { Keyframe, KeyframeId, LayerId, PropertyTrack, PropertyTrackId } from '../../../types/timeline';
 import type { KeyframeUpdateHistoryAction, KeyframeAddHistoryAction } from '../../../types';
+import { recordGeneratorChange } from '../../../utils/generators/generatorHistory';
+import type { GeneratorSource } from '../../../types/generatorLayer';
 
 /** Find a track and keyframe across layers, layerGroups, and effect blocks */
 function findTrackAndKeyframe(trackId: PropertyTrackId, kfId: KeyframeId) {
@@ -211,6 +213,16 @@ export const KeyframeDiamond: React.FC<KeyframeDiamondProps> = ({
         entries.push({ layerId, trackId, kfId: keyframe.id, startFrame: keyframe.frame, value: keyframe.value as number, easing: keyframe.easing });
       }
 
+      const generatorSnapshots = new Map<LayerId, GeneratorSource>();
+      const generatorEntries = new Set<KfEntry>();
+      for (const entry of entries) {
+        const source = useTimelineStore.getState().getLayer(entry.layerId)?.generator;
+        if (source?.propertyTracks.some((pt) => pt.id as string === entry.trackId as string)) {
+          generatorSnapshots.set(entry.layerId, source);
+          generatorEntries.add(entry);
+        }
+      }
+
       // For Alt+drag (duplicate): we track the intent but create clones on mouseUp
       // after the originals have moved to their new positions. This avoids the store's
       // "replace keyframe at same frame" behavior that would overwrite the original.
@@ -247,7 +259,7 @@ export const KeyframeDiamond: React.FC<KeyframeDiamondProps> = ({
         document.removeEventListener('mouseup', onMouseUp);
         clearKeyframeDuplicateGhosts();
 
-        if (!didMove) return;
+        if (!didMove || lastDelta === 0) return;
 
         if (isDuplicate) {
           // Alt+drag: the originals have already moved to new positions during drag.
@@ -256,6 +268,7 @@ export const KeyframeDiamond: React.FC<KeyframeDiamondProps> = ({
 
           // 1. Record history for moving the originals
           for (const entry of entries) {
+            if (generatorEntries.has(entry)) continue;
             const finalFrame = Math.max(0, entry.startFrame + lastDelta);
             if (finalFrame !== entry.startFrame) {
               moveKeyframeDirect(entry.layerId, entry.trackId, entry.kfId, entry.startFrame);
@@ -281,7 +294,7 @@ export const KeyframeDiamond: React.FC<KeyframeDiamondProps> = ({
             if (newId) {
               tl.updateKeyframe(entry.layerId, entry.trackId, newId, { easing: entry.easing });
               const { kf: dupKf } = findTrackAndKeyframe(entry.trackId, newId);
-              if (dupKf) {
+              if (dupKf && !generatorEntries.has(entry)) {
                 pushToHistory({
                   type: 'keyframe_add',
                   timestamp: Date.now(),
@@ -294,6 +307,7 @@ export const KeyframeDiamond: React.FC<KeyframeDiamondProps> = ({
         } else {
           // Plain move — record batched history for each moved keyframe
           for (const entry of entries) {
+            if (generatorEntries.has(entry)) continue;
             const finalFrame = Math.max(0, entry.startFrame + lastDelta);
             if (finalFrame !== entry.startFrame) {
               moveKeyframeDirect(entry.layerId, entry.trackId, entry.kfId, entry.startFrame);
@@ -311,6 +325,9 @@ export const KeyframeDiamond: React.FC<KeyframeDiamondProps> = ({
               }
             }
           }
+        }
+        for (const [generatorLayerId, source] of generatorSnapshots) {
+          recordGeneratorChange(generatorLayerId, isDuplicate ? 'Duplicate generator keyframes' : 'Move generator keyframes', source);
         }
       };
 
