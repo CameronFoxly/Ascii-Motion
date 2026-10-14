@@ -52,7 +52,7 @@ There are three modes:
 |------|----------|----------|
 | `stateless` | Output is a pure function of time (waves, noise) | `render(ctx, settings, phases, out)`. Paths in `phaseProperties` are per-second speeds integrated over time, so keyframed speeds never jump. |
 | `simulation` | Output depends on history (particles, rain) | `createState`, `step` (called for every frame from 0), `render`, `cloneState`. Use `frameRng(seed, frame, salt)` so randomness is deterministic. |
-| `cells` | Output is literal characters and colors (Animated Text) | `renderCells(ctx, settings, phases, previousSettings?)` returns a cell map directly. No `Mapping` properties are added (`usesIntensityMapping` is false). `previousSettings` are the settings at the previous local frame. `ctx.editing` is set while the source is being edited on the canvas (`setGeneratorEditPreview`), and those renders skip the output cache. |
+| `cells` | Output is literal characters and colors (Animated Text) | `renderCells(ctx, settings, phases, previousSettings?)` returns a cell map directly. No `Mapping` properties are added (`usesIntensityMapping` is false). `previousSettings` are the settings at the previous local frame. `ctx.editing` is set while the source is being edited on the canvas (`setGeneratorEditPreview`), but only for renders that opt in with `editPreview` (the main canvas passes `compositeLayersAtFrame(..., { generatorEditPreview: true })`). Those renders skip the output cache; exports, previews, onion skins and bakes keep the animated output. |
 
 `ctx.dt` is `30 / fps`, so simulations tuned at 30 fps keep the same speed at any frame rate.
 
@@ -93,13 +93,16 @@ caret always matches the output:
 - **Hug Contents** sizes the box to the longest line × line count. **Fixed Size** uses
   keyframeable width/height, word-wraps (breaking long words), and clips overflowing rows.
 - Alignment (left/center/right) is applied per line. Text uses hold interpolation.
-- Text and background colors are keyframeable (hold). The background is transparent by
+- Text and background colors are keyframeable (hold). New boxes take the current foreground
+  color as their text color (white if it is transparent). The background is transparent by
   default; **Fill Box Background** fills the whole box instead of just glyph cells.
 - One effect at a time. Character indices exclude newlines.
   - **Typewriter** shows indices in [Start, End), in percent or index units. Picking it
     auto-keys End 0 → 100 across the span (`applyTypewriterDefaultKeyframes`) unless End is
     already animated. The optional block cursor sits at the next character and blinks only
-    while the reveal is paused, compared against `previousSettings`.
+    while the reveal is paused, compared against `previousSettings`. Hug boxes reserve a
+    trailing column for the cursor. In Fixed Size boxes, a cursor past the last column wraps to
+    the next row, or stays on the last cell when there is no next row.
   - **Blink** uses On/Off frames and a phase offset, either for the whole text or per character
     with a stagger.
   - **Wave** mirrors Wave Warp (axis, frequency, amplitude, integrated speed, phase). Characters
@@ -111,7 +114,7 @@ box or handle writes `position.x/y` through `setGeneratorValueAtFrame` with one 
 Double-clicking the box (or adding the generator) enters edit mode via
 `useAnimatedTextEditStore`. A hidden, focused textarea provides native typing, selection,
 paste and IME. Edits auto-key at the playhead. While editing, the layer renders without its
-effect. Esc or clicking outside exits and records one `Edit text` undo entry.
+effect on the main canvas only. Esc or clicking outside exits and records one `Edit text` undo entry.
 `layerLocalPointToCanvas` / `canvasPointToParticleOrigin` convert through layer and group
 transforms.
 

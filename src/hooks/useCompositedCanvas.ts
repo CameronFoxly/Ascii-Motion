@@ -114,6 +114,7 @@ export function useCompositedCanvas() {
       false,
       layerGroups,
       globalEffects,
+      { generatorEditPreview: editingTextLayerId !== null },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layers, layerGroups, globalEffects, currentFrame, activeLayerId, canvasCells, canvasWidth, canvasHeight, isLayerMode, palettes, customPalettes, characterPalettes, customCharacterPalettes, editingTextLayerId]);

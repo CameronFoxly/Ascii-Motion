@@ -8,6 +8,7 @@ import {
   getTypewriterRange,
 } from '../registry/generators/animatedText';
 import { layoutText } from '../utils/generators/animatedTextLayout';
+import { compositeLayersAtFrame } from '../utils/layerCompositing';
 import { applyTypewriterDefaultKeyframes } from '../utils/generators/animatedTextActions';
 import {
   renderGeneratorFrame,
@@ -170,6 +171,22 @@ describe('animated text rendering', () => {
     expect(rows(textGen.renderCells(ctx(0), s, {}))).toEqual([]);
     expect(rows(textGen.renderCells(ctx(0, true), s, {}))).toEqual(['abcd']);
   });
+
+  it('keeps the fully revealed typewriter cursor inside the box', () => {
+    const full = (extra: Record<string, unknown>) => settings({
+      effect: 'typewriter', 'typewriter.end': 100, 'typewriter.cursor': true, 'typewriter.cursorBlink': false, ...extra,
+    });
+    // Hug: a trailing column is reserved for the cursor, whatever the alignment
+    const right = full({ text: 'abcd\nab', align: 'right' });
+    expect(getAnimatedTextBox(right).layout.width).toBe(5);
+    expect(rows(textGen.renderCells(ctx(0), right, {}))).toEqual(['abcd', '  ab█']);
+    expect(getAnimatedTextBox({ ...right, 'typewriter.cursor': false }).layout.width).toBe(4);
+    // Fixed: wrap to the next row when there is one, otherwise stay on the last cell
+    const fixed = full({ text: 'abcd', shape: 'fixed', 'box.width': 4, 'box.height': 2 });
+    expect(getAnimatedTextBox(fixed).layout.width).toBe(4);
+    expect(rows(textGen.renderCells(ctx(0), fixed, {}))).toEqual(['abcd', '█']);
+    expect(rows(textGen.renderCells(ctx(0), { ...fixed, 'box.height': 1 }, {}))).toEqual(['abc█']);
+  });
 });
 
 describe('animated text generator integration', () => {
@@ -179,6 +196,14 @@ describe('animated text generator integration', () => {
     const initial = getGeneratorInitialSettings('animated-text', 80, 24)!;
     expect(initial).not.toHaveProperty('mapping.characterPaletteId');
     expect(initial).toMatchObject({ 'position.x': 38, 'position.y': 11, text: 'Text', shape: 'hug' });
+  });
+
+  it('defaults the text color to the current foreground color', () => {
+    useToolStore.getState().setSelectedColor('#FF0000');
+    expect(getGeneratorInitialSettings('animated-text', 80, 24)!.textColor).toBe('#FF0000');
+    useToolStore.getState().setSelectedColor('transparent');
+    expect(getGeneratorInitialSettings('animated-text', 80, 24)!.textColor).toBe('#ffffff');
+    useToolStore.getState().setSelectedColor('#FFFFFF');
   });
 
   it('holds keyframed text and bypasses the output cache for edit previews', () => {
@@ -195,9 +220,15 @@ describe('animated text generator integration', () => {
     tl.updateGeneratorSettings(id, { 'typewriter.end': 0 });
     expect(renderGeneratorFrame(source(), 0, 80, 24).size).toBe(0);
     setGeneratorEditPreview(source().id);
-    expect(renderGeneratorFrame(source(), 0, 80, 24).size).toBe(3);
-    setGeneratorEditPreview(null);
+    expect(renderGeneratorFrame(source(), 0, 80, 24, { editPreview: true }).size).toBe(3);
+    // Renders that don't opt in (exports, previews, onion skins) keep the animated output
     expect(renderGeneratorFrame(source(), 0, 80, 24).size).toBe(0);
+    expect(compositeLayersAtFrame(useTimelineStore.getState().layers, 0, 80, 24).size).toBe(0);
+    expect(compositeLayersAtFrame(
+      useTimelineStore.getState().layers, 0, 80, 24, undefined, true, undefined, undefined, { generatorEditPreview: true },
+    ).size).toBe(3);
+    setGeneratorEditPreview(null);
+    expect(renderGeneratorFrame(source(), 0, 80, 24, { editPreview: true }).size).toBe(0);
   });
 
   it('auto-keyframes typewriter End across the span when the effect is chosen', () => {

@@ -62,8 +62,10 @@ export { hash3, mulberry32, frameRng } from './random';
 let editPreviewSourceId: string | null = null;
 
 /**
- * Mark a generator source as being edited on the canvas. Cells-mode generators
- * receive `ctx.editing` so they can show their full content while typing.
+ * Mark a generator source as being edited on the canvas. Renders that opt in
+ * via `editPreview` (the main canvas) pass `ctx.editing` to cells-mode
+ * generators so they show their full content while typing; exports, previews,
+ * onion skins and bakes keep the animated output.
  */
 export function setGeneratorEditPreview(sourceId: string | null): void {
   editPreviewSourceId = sourceId;
@@ -130,6 +132,8 @@ export interface GeneratorPaletteLookup {
 
 export interface RenderGeneratorFrameOptions {
   paletteLookup?: GeneratorPaletteLookup;
+  /** Honor the on-canvas edit preview (main editing canvas only) */
+  editPreview?: boolean;
 }
 
 function findPaletteColors(paletteId: unknown, lookup?: GeneratorPaletteLookup): string[] {
@@ -342,7 +346,7 @@ export function renderGeneratorFrame(
 
   const localFrame = frame - source.startFrame;
   const lookup = options?.paletteLookup;
-  const editing = editPreviewSourceId !== null && editPreviewSourceId === source.id;
+  const editing = options?.editPreview === true && editPreviewSourceId !== null && editPreviewSourceId === source.id;
   // Output cache is keyed to the live palette stores; bypass it for custom lookups and edit previews
   const cached = lookup || editing ? undefined : entry.output.get(localFrame);
   if (cached) {
@@ -417,9 +421,10 @@ export function getGeneratorLayerCells(
   frame: number,
   width: number,
   height: number,
+  options?: RenderGeneratorFrameOptions,
 ): Map<string, Cell> {
   if (!isGeneratorLayer(layer)) return new Map();
-  return renderGeneratorFrame(layer.generator!, frame, width, height);
+  return renderGeneratorFrame(layer.generator!, frame, width, height, options);
 }
 
 /** Drop cached runtime state for a source (e.g. after external mutation) */

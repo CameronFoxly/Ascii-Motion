@@ -27,6 +27,11 @@ import { applyEffectsToLayer, hasActiveEffectsAtFrame } from './effectsPipeline'
 import { getEffect } from '../registry/effectRegistry';
 import { getGeneratorLayerCells, isGeneratorLayer } from './generators/generatorRuntime';
 
+export interface CompositeOptions {
+  /** Show generator layers being edited on the canvas in their edit-preview form (main canvas only) */
+  generatorEditPreview?: boolean;
+}
+
 // ============================================
 // MAIN COMPOSITING FUNCTION
 // ============================================
@@ -51,6 +56,7 @@ export function compositeLayersAtFrame(
   clip: boolean = true,
   groups?: LayerGroup[],
   globalEffectTracks?: EffectTrack[],
+  options?: CompositeOptions,
 ): Map<string, Cell> {
   const result = new Map<string, Cell>();
 
@@ -82,7 +88,7 @@ export function compositeLayersAtFrame(
     if (hasSoloLayer && !layer.solo) continue;
 
     // Get source cells at this time (content frame or procedural generator output)
-    const sourceCells = getLayerSourceCellsAtFrame(layer, frame, canvasWidth, canvasHeight);
+    const sourceCells = getLayerSourceCellsAtFrame(layer, frame, canvasWidth, canvasHeight, options);
     if (!sourceCells) continue;
 
     // Split effects into local-space and screen-space
@@ -310,7 +316,7 @@ export function compositeLayersAtFrame(
       // Re-composite just this group's child layers at the requested frame
       const groupLayers = layers.filter((l) => l.parentGroupId === groupId);
       const composite = compositeLayersAtFrame(
-        groupLayers, reqFrame, canvasWidth, canvasHeight, cellAspectRatio, clip, groups,
+        groupLayers, reqFrame, canvasWidth, canvasHeight, cellAspectRatio, clip, groups, undefined, options,
       );
       frameCache.set(reqFrame, composite);
       return composite;
@@ -359,6 +365,7 @@ export function compositeLayersAtFrame(
         const composite = compositeLayersAtFrame(
           layers, reqFrame, canvasWidth, canvasHeight, cellAspectRatio, clip, groups,
           localGlobalEffects.length > 0 ? localGlobalEffects : undefined,
+          options,
         );
         frameCache.set(reqFrame, composite);
         return composite;
@@ -441,9 +448,12 @@ export function getLayerSourceCellsAtFrame(
   frame: number,
   canvasWidth: number,
   canvasHeight: number,
+  options?: CompositeOptions,
 ): Map<string, Cell> | null {
   if (isGeneratorLayer(layer)) {
-    const cells = getGeneratorLayerCells(layer, frame, canvasWidth, canvasHeight);
+    const cells = getGeneratorLayerCells(layer, frame, canvasWidth, canvasHeight, {
+      editPreview: options?.generatorEditPreview,
+    });
     return cells.size > 0 ? cells : null;
   }
   return getContentFrameAtTime(layer, frame)?.data ?? null;

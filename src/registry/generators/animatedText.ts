@@ -11,6 +11,7 @@ import type { EffectPropertyDefinition } from '../../types/effectBlock';
 import type { CellsGeneratorEntry, GeneratorFrameContext } from '../generatorRegistry';
 import { layoutText, type TextAlign, type TextLayout, type TextShape } from '../../utils/generators/animatedTextLayout';
 import { boolProp, defaultsFromDefinitions, n, numberProp, s, selectProp, b } from './propertyHelpers';
+import { useToolStore } from '../../stores/toolStore';
 
 export const ANIMATED_TEXT_GENERATOR_TYPE = 'animated-text';
 
@@ -112,11 +113,25 @@ export function getAnimatedTextBox(settings: Record<string, unknown>): AnimatedT
     height: n(settings, 'box.height', 3),
     align: s<TextAlign>(settings, 'align', 'left'),
   });
+  // Hugging boxes reserve a trailing column so the typewriter cursor fits after the longest line
+  const reserveCursorColumn = s<string>(settings, 'shape', 'hug') !== 'fixed'
+    && s<string>(settings, 'effect', 'none') === 'typewriter'
+    && b(settings, 'typewriter.cursor', false);
   return {
     x: Math.round(n(settings, 'position.x', 0)),
     y: Math.round(n(settings, 'position.y', 0)),
-    layout,
+    layout: reserveCursorColumn ? { ...layout, width: layout.width + 1 } : layout,
   };
+}
+
+/** Keep a caret cell inside the box: wrap to the next row, or clamp on the last row */
+function caretInsideBox(caret: { col: number; row: number }, layout: TextLayout, align: TextAlign): { col: number; row: number } {
+  if (caret.col < layout.width) return caret;
+  if (caret.row + 1 < layout.height) {
+    const col = align === 'center' ? Math.floor(layout.width / 2) : align === 'right' ? layout.width - 1 : 0;
+    return { col, row: caret.row + 1 };
+  }
+  return { col: layout.width - 1, row: caret.row };
 }
 
 /** Visible [start, end) character-index range for the typewriter effect */
@@ -208,7 +223,11 @@ function renderAnimatedText(
 
   if (effect === 'typewriter' && b(settings, 'typewriter.cursor', false)) {
     const caretSource = range.end < layout.charCount ? layout.sourceOfIndex[range.end] : s(settings, 'text', '').length;
-    const caret = layout.carets[caretSource] ?? { col: 0, row: 0 };
+    const caret = caretInsideBox(
+      layout.carets[caretSource] ?? { col: 0, row: 0 },
+      layout,
+      s<TextAlign>(settings, 'align', 'left'),
+    );
     const paused = previousSettings === undefined || revealedEnd(previousSettings) === range.end;
     let visible = true;
     if (paused && b(settings, 'typewriter.cursorBlink', true)) {
@@ -235,9 +254,12 @@ export const animatedTextGenerator: CellsGeneratorEntry = {
   phaseProperties: ['wave.speed'],
   getCanvasDefaults: (w, h) => {
     const text = 'Text';
+    const foreground = useToolStore.getState().selectedColor;
     return {
       'position.x': Math.floor((w - text.length) / 2),
       'position.y': Math.floor((h - 1) / 2),
+      // New boxes use the current foreground color (white when it is transparent)
+      textColor: foreground && foreground !== TRANSPARENT ? foreground : '#ffffff',
     };
   },
   renderCells: renderAnimatedText,
