@@ -1,12 +1,27 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "2.2.2";
-export const BUILD_DATE = "2026-10-05T22:45:29.380Z";
-export const BUILD_HASH = "6e3ab51";
+export const VERSION = "2.2.3";
+export const BUILD_DATE = "2026-10-06T17:11:52.000Z";
+export const BUILD_HASH = "94d1b35";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "2.2.3",
+    "date": "2026-10-06T17:11:52.000Z",
+    "commits": [
+      "chore: sync web and premium submodule pointers",
+      "Merge pull request #170 from CameronFoxly/cameronfoxly-pure-ansi-export",
+      "Add pure ANSI terminal export",
+      "Merge pull request #168 from CameronFoxly/cameronfoxly-new-layer-first-frame",
+      "Merge pull request #169 from CameronFoxly/cameronfoxly-issue-165-type-050445",
+      "Create new layers' first frame at the playhead",
+      "Stop text box input once the final cell is filled",
+      "Add click-and-drag text box mode to the text tool",
+      "Release v2.2.2"
+    ]
+  },
   {
     "version": "2.2.2",
     "date": "2026-10-05T22:45:29.380Z",

@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 // Configuration
 const VERSION_FILE = path.join(__dirname, '../src/constants/version.ts');
 const PACKAGE_FILE = path.join(__dirname, '../package.json');
+const README_FILE = path.join(__dirname, '../README.md');
 
 // Get command line arguments
 const bumpType = process.argv[2] || 'patch';
@@ -90,6 +91,14 @@ function formatVersion(version) {
   return `${version.major}.${version.minor}.${version.patch}`;
 }
 
+function assertGitTagDoesNotExist(version) {
+  const tagName = `v${version}`;
+  const existingTag = execSync(`git tag --list ${tagName}`, { encoding: 'utf8' }).trim();
+  if (existingTag) {
+    throw new Error(`Git tag ${tagName} already exists`);
+  }
+}
+
 function readCurrentVersion() {
   try {
     const content = fs.readFileSync(VERSION_FILE, 'utf8');
@@ -128,6 +137,21 @@ function updatePackageJson(newVersion) {
   }
 }
 
+function updateReadmeVersion(newVersion) {
+  const readme = fs.readFileSync(README_FILE, 'utf8');
+  const updatedReadme = readme.replace(
+    /version-\d+\.\d+\.\d+-green/,
+    `version-${newVersion}-green`
+  );
+
+  if (updatedReadme === readme) {
+    throw new Error('Could not find the version badge in README.md');
+  }
+
+  fs.writeFileSync(README_FILE, updatedReadme);
+  console.log('✅ Updated README.md version badge');
+}
+
 function generateVersionFile(newVersion, buildDate, buildHash, versionHistory) {
   const content = `// Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
@@ -144,12 +168,9 @@ export const VERSION_HISTORY = ${JSON.stringify(versionHistory, null, 2)};`;
 }
 
 function createGitTag(version) {
-  try {
-    execSync(`git tag v${version}`, { stdio: 'inherit' });
-    console.log(`✅ Created git tag v${version}`);
-  } catch (error) {
-    console.warn('⚠️  Could not create git tag:', error.message);
-  }
+  const tagName = `v${version}`;
+  execSync(`git tag ${tagName}`, { stdio: 'inherit' });
+  console.log(`✅ Created git tag ${tagName}`);
 }
 
 // Main execution
@@ -168,6 +189,7 @@ function main() {
   const newVersionString = formatVersion(newVersion);
   
   console.log(`📈 New version: v${newVersionString}`);
+  assertGitTagDoesNotExist(newVersionString);
   
   // Get build metadata
   const buildDate = new Date().toISOString();
@@ -192,6 +214,7 @@ function main() {
   // Generate files
   generateVersionFile(newVersionString, buildDate, buildHash, updatedHistory);
   updatePackageJson(newVersionString);
+  updateReadmeVersion(newVersionString);
   
   // Create git tag
   createGitTag(newVersionString);
