@@ -1,12 +1,43 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "2.2.3";
-export const BUILD_DATE = "2026-10-06T17:11:52.000Z";
-export const BUILD_HASH = "94d1b35";
+export const VERSION = "2.2.4";
+export const BUILD_DATE = "2026-10-14T15:41:24.000Z";
+export const BUILD_HASH = "c554907";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "2.2.4",
+    "date": "2026-10-14T15:41:24.000Z",
+    "commits": [
+      "Merge pull request #177 from CameronFoxly/cameronfoxly-animated-text-generator",
+      "chore: align release metadata with v2.2.3",
+      "Point web submodule at merged documentation",
+      "Merge pull request #176 from CameronFoxly/cameronfoxly-animated-text-generator",
+      "Merge origin/main into cameronfoxly-animated-text-generator",
+      "Fix Animated Text review findings",
+      "Merge pull request #175 from CameronFoxly/cameronfoxly-text-box-editing",
+      "Fix text box draft edge cases",
+      "Test generator layers across all export formats, live and baked",
+      "Add text box editing mode to the Text tool",
+      "Make cursor Blink Rate blinks per second (0.1–3)",
+      "Fix animated text background fill and typewriter controls",
+      "Update web submodule with Animated Text generator documentation",
+      "Animated Text: foreground default color, in-box cursor, canvas-only edit preview",
+      "Show full text when typewriter span is a single frame",
+      "Add Animated Text generator",
+      "Merge pull request #174 from CameronFoxly/cameronfoxly-procedural-keyframeable-generators",
+      "Address PR review: session palettes in previews, typed keyframe value controls",
+      "Update marketing submodule with procedural generator documentation",
+      "Add generator history, palette editors, and particle origin controls",
+      "Port generators to procedural, keyframeable generator layers",
+      "Merge pull request #173 from CameronFoxly/cameronfoxly-fix-sign-in-modal",
+      "Fail deployed builds when premium submodule is missing",
+      "Merge pull request #171 from CameronFoxly/cameronfoxly-keyframe-navigation-selection",
+      "Select keyframes during timeline navigation"
+    ]
+  },
   {
     "version": "2.2.3",
     "date": "2026-10-06T17:11:52.000Z",
