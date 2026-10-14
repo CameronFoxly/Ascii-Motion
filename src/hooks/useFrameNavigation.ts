@@ -96,7 +96,7 @@ export const useFrameNavigation = () => {
     navigatePrevious,
     navigateFirst,
     navigateLast,
-    canNavigate: !isPlaying && !isPlaybackMode && !textToolState.isTyping,
+    canNavigate: !isPlaying && !isPlaybackMode && (!textToolState.isTyping || !!textToolState.boxEdit),
     currentFrameIndex,
     totalFrames
   };

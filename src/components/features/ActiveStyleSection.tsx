@@ -24,6 +24,7 @@ import { ColorReadout } from './ColorReadout';
 import { ColorPickerOverlay } from './ColorPickerOverlay';
 import { useToolStore } from '../../stores/toolStore';
 import { useCanvasStore } from '../../stores/canvasStore';
+import type { TextBoxEdit } from '../../types';
 
 interface ActiveStyleSectionProps {
   className?: string;
@@ -42,6 +43,7 @@ export function ActiveStyleSection({ className = '' }: ActiveStyleSectionProps) 
   // Store original colors for cancel functionality
   const [originalForegroundColor, setOriginalForegroundColor] = useState<string>('');
   const [originalBackgroundColor, setOriginalBackgroundColor] = useState<string>('');
+  const originalTextEditRef = useRef<TextBoxEdit | null>(null);
   
   const characterPreviewRef = useRef<HTMLButtonElement>(null);
   
@@ -69,6 +71,7 @@ export function ActiveStyleSection({ className = '' }: ActiveStyleSectionProps) 
     // Store original colors for cancel functionality
     setOriginalForegroundColor(selectedColor);
     setOriginalBackgroundColor(selectedBgColor);
+    originalTextEditRef.current = useToolStore.getState().textToolState.boxEdit;
     
     setIsColorPickerOpen(true);
   };
@@ -81,6 +84,7 @@ export function ActiveStyleSection({ className = '' }: ActiveStyleSectionProps) 
       setSelectedBgColor(newColor);
     }
     setIsColorPickerOpen(false);
+    originalTextEditRef.current = null;
   };
 
   // Handle real-time color changes (for live preview)
@@ -96,6 +100,12 @@ export function ActiveStyleSection({ className = '' }: ActiveStyleSectionProps) 
   const handleColorPickerCancel = () => {
     setSelectedColor(originalForegroundColor);
     setSelectedBgColor(originalBackgroundColor);
+    const original = originalTextEditRef.current;
+    const current = useToolStore.getState().textToolState.boxEdit;
+    if (original && current && current.text === original.text) {
+      useToolStore.getState().updateTextBoxEdit({ styles: original.styles });
+    }
+    originalTextEditRef.current = null;
     setIsColorPickerOpen(false);
   };
 

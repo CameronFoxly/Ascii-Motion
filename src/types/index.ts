@@ -138,6 +138,19 @@ export interface TextToolState {
   textBox: TextBoxRegion | null; // Active text box constraining typing (null = free typing)
   textBoxDraft: { start: { x: number; y: number }; current: { x: number; y: number } } | null; // In-progress drag
   textBoxFull: boolean; // True when the last cell of the text box is filled and input must stop
+  boxEdit: TextBoxEdit | null;
+}
+
+export type TextAlignment = 'left' | 'center' | 'right';
+export type TextCharacterStyle = Pick<Cell, 'color' | 'bgColor'>;
+
+export interface TextBoxEdit {
+  text: string;
+  styles: TextCharacterStyle[];
+  anchor: number;
+  caret: number;
+  alignment: TextAlignment;
+  preferredColumn: number | null;
 }
 
 export interface CharacterPalette {

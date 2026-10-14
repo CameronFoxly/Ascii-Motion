@@ -15,6 +15,7 @@ import { ZoomControls } from './ZoomControls';
 import { CanvasOverlay } from './CanvasOverlay';
 import { usePostEffectsRenderer } from '../../hooks/usePostEffectsRenderer';
 import { PlaybackStatusBar } from './PlaybackStatusBar';
+import { TextBoxEditingOverlay } from './TextBoxEditingOverlay';
 import type { Tool } from '../../types';
 
 interface CanvasGridProps {
@@ -461,6 +462,7 @@ export const CanvasGrid: React.FC<CanvasGridProps> = ({ className = '' }) => {
         )}
         <CanvasOverlay />
       </div>
+      <TextBoxEditingOverlay />
       
       {/* Zoom controls and status info positioned outside canvas */}
       <div className="mt-2 mb-2 flex justify-between items-center gap-4">

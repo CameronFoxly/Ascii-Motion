@@ -17,6 +17,12 @@ interface BezierActionButtonsProps {
   onCancel: () => void;
 }
 
+interface CanvasCommitCancelButtonsProps extends BezierActionButtonsProps {
+  acceptLabel?: string;
+  cancelLabel?: string;
+  acceptShortcut?: string;
+}
+
 export const BezierActionButtons: React.FC<BezierActionButtonsProps> = ({
   onAccept,
   onCancel,
@@ -29,8 +35,17 @@ export const BezierActionButtons: React.FC<BezierActionButtonsProps> = ({
     return null;
   }
 
+  return <CanvasCommitCancelButtons onAccept={onAccept} onCancel={onCancel} />;
+};
+
+export const CanvasCommitCancelButtons: React.FC<CanvasCommitCancelButtonsProps> = ({
+  onAccept, onCancel, acceptLabel = 'Accept', cancelLabel = 'Cancel', acceptShortcut = 'Enter',
+}) => {
   return (
-    <div className="absolute bottom-4 left-4 z-30 flex gap-2 pointer-events-auto opacity-50 hover:opacity-100 transition-opacity">
+    <div
+      className="absolute bottom-4 left-4 z-30 flex gap-2 pointer-events-auto opacity-50 hover:opacity-100 transition-opacity"
+      onMouseDown={(event) => event.preventDefault()}
+    >
       <TooltipProvider delayDuration={300}>
         {/* Accept Button */}
         <Tooltip>
@@ -39,13 +54,14 @@ export const BezierActionButtons: React.FC<BezierActionButtonsProps> = ({
               size="icon"
               variant="default"
               className="h-10 w-10 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg"
+              aria-label={acceptLabel}
               onClick={onAccept}
             >
               <Check className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="right">
-            <p>Accept (Enter)</p>
+            <p>{acceptLabel} ({acceptShortcut})</p>
           </TooltipContent>
         </Tooltip>
 
@@ -56,13 +72,14 @@ export const BezierActionButtons: React.FC<BezierActionButtonsProps> = ({
               size="icon"
               variant="default"
               className="h-10 w-10 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-lg"
+              aria-label={cancelLabel}
               onClick={onCancel}
             >
               <X className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="right">
-            <p>Cancel (Esc)</p>
+            <p>{cancelLabel} (Esc)</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
