@@ -17,6 +17,27 @@ function getComposedTransform(layer: Layer, groups: LayerGroup[], frame: number)
   return transform;
 }
 
+/** Map a layer-local cell point to canvas space using the layer + group transform. */
+export function layerLocalPointToCanvas(
+  layer: Layer,
+  groups: LayerGroup[],
+  frame: number,
+  point: { x: number; y: number },
+  cellAspectRatio: number,
+): { x: number; y: number } {
+  const transform = getComposedTransform(layer, groups, frame);
+  const { rotatedX, rotatedY } = applyRotation(
+    (point.x - transform.anchorPointX) * transform.scaleX,
+    (point.y - transform.anchorPointY) * transform.scaleY,
+    transform.rotation,
+    cellAspectRatio,
+  );
+  return {
+    x: rotatedX + transform.anchorPointX + transform.positionX,
+    y: rotatedY + transform.anchorPointY + transform.positionY,
+  };
+}
+
 /** Locate the emitter in canvas space using the same transform composition as rendered cells. */
 export function getParticleOriginAtFrame(
   layer: Layer,
@@ -26,17 +47,9 @@ export function getParticleOriginAtFrame(
   cellAspectRatio: number,
 ): { x: number; y: number } {
   const settings = resolveGeneratorSettings(source, frame);
-  const transform = getComposedTransform(layer, groups, frame);
-  const { rotatedX, rotatedY } = applyRotation(
-    (n(settings, 'originX', 40) - transform.anchorPointX) * transform.scaleX,
-    (n(settings, 'originY', 12) - transform.anchorPointY) * transform.scaleY,
-    transform.rotation,
-    cellAspectRatio,
+  return layerLocalPointToCanvas(
+    layer, groups, frame, { x: n(settings, 'originX', 40), y: n(settings, 'originY', 12) }, cellAspectRatio,
   );
-  return {
-    x: rotatedX + transform.anchorPointX + transform.positionX,
-    y: rotatedY + transform.anchorPointY + transform.positionY,
-  };
 }
 
 /**

@@ -172,14 +172,17 @@ export interface EffectPropertyDefinition {
   max?: number;
   step?: number;
   unit?: string;
-  /** Optional numeric UI presentation; omitted properties use a scrub input. */
-  control?: 'slider';
+  /** Optional UI presentation: numeric slider, or a multiline textarea for strings. */
+  control?: 'slider' | 'multiline';
 
   // Select options (for valueType: 'select')
   options?: Array<{ label: string; value: string }>;
 
   /** Conditional visibility — only show this property when another property matches one of the given values */
   visibleWhen?: { path: string; values: string[] };
+
+  /** Additional visibility conditions; all must match (combined with `visibleWhen`) */
+  visibleWhenAll?: Array<{ path: string; values: string[] }>;
 }
 
 // ============================================

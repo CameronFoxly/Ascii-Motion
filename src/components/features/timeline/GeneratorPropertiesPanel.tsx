@@ -19,6 +19,9 @@ import {
   recordGeneratorChange,
   setGeneratorValueAtFrame,
 } from '../../../utils/generators/generatorHistory';
+import { ANIMATED_TEXT_GENERATOR_TYPE, getAnimatedTextRangeDefinition } from '../../../registry/generators/animatedText';
+import { applyTypewriterDefaultKeyframes, convertTypewriterUnits } from '../../../utils/generators/animatedTextActions';
+import { ColorPickerOverlay } from '../ColorPickerOverlay';
 import { Button } from '../../ui/button';
 import { Slider } from '../../ui/slider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../ui/tooltip';
@@ -283,6 +286,47 @@ const GeneratorPropertyRow: React.FC<GeneratorPropertyRowProps> = ({
     );
   }
 
+  if (definition.valueType === 'color') {
+    return (
+      <GeneratorColorRow
+        layerId={layerId}
+        definition={definition}
+        value={typeof value === 'string' ? value : String(definition.defaultValue)}
+        onChange={onChange}
+        keyframeDiamond={keyframeDiamond}
+        label={label}
+      />
+    );
+  }
+
+  if (definition.valueType === 'string' && definition.control === 'multiline') {
+    const textValue = isFocused ? localValue : String(value ?? definition.defaultValue);
+    return (
+      <div className="py-0.5">
+        <div className="flex items-center gap-1.5">
+          {keyframeDiamond}
+          {label}
+        </div>
+        <textarea
+          aria-label={definition.displayName}
+          value={textValue}
+          rows={Math.min(6, Math.max(2, textValue.split('\n').length))}
+          onChange={(e) => setLocalValue(e.target.value)}
+          onFocus={() => { setIsFocused(true); setLocalValue(String(value ?? definition.defaultValue)); }}
+          onBlur={() => {
+            setIsFocused(false);
+            if (localValue !== value) onChange(localValue);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') (e.target as HTMLTextAreaElement).blur();
+            e.stopPropagation();
+          }}
+          className="mt-0.5 w-full text-[10px] px-1 py-0.5 rounded border border-border/50 bg-background text-foreground outline-none focus:ring-1 focus:ring-ring font-mono resize-y whitespace-pre"
+        />
+      </div>
+    );
+  }
+
   if (definition.valueType === 'select' && definition.options) {
     const options = definition.options;
     return (
@@ -310,6 +354,7 @@ const GeneratorPropertyRow: React.FC<GeneratorPropertyRowProps> = ({
       {keyframeDiamond}
       {label}
       <input
+        aria-label={definition.displayName}
         type="text"
         inputMode={isText ? 'text' : 'decimal'}
         value={displayValue}
@@ -325,6 +370,83 @@ const GeneratorPropertyRow: React.FC<GeneratorPropertyRowProps> = ({
     </div>
   );
 };
+
+const CHECKERBOARD = 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)';
+
+/** Color swatch row; live picker changes are grouped into one history entry */
+function GeneratorColorRow({
+  layerId, definition, value, onChange, keyframeDiamond, label,
+}: {
+  layerId: LayerId;
+  definition: EffectPropertyDefinition;
+  value: string;
+  onChange: (value: unknown, recordHistory?: boolean) => void;
+  keyframeDiamond: React.ReactNode;
+  label: React.ReactNode;
+}) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const swatchRef = useRef<HTMLDivElement>(null);
+  const before = useRef<{ source: GeneratorSource; value: string } | null>(null);
+  const isTransparent = value === 'transparent';
+
+  const open = (next: boolean) => {
+    if (next && !before.current) {
+      const source = useTimelineStore.getState().getLayer(layerId)?.generator;
+      if (source) before.current = { source, value };
+    }
+    setPickerOpen(next);
+  };
+  const finish = useCallback(() => {
+    if (before.current) recordGeneratorChange(layerId, `Update ${definition.displayName}`, before.current.source);
+    before.current = null;
+  }, [layerId, definition.displayName]);
+
+  useEffect(() => () => finish(), [finish]);
+
+  const togglePicker = () => {
+    if (pickerOpen) finish();
+    open(!pickerOpen);
+  };
+
+  return (
+    <div className="flex items-center gap-1.5 py-0.5">
+      {keyframeDiamond}
+      {label}
+      <div
+        ref={swatchRef}
+        role="button"
+        aria-label={`Edit ${definition.displayName}`}
+        className="w-5 h-5 rounded border border-border/50 cursor-pointer hover:ring-1 hover:ring-primary flex-shrink-0"
+        style={isTransparent
+          ? { backgroundImage: CHECKERBOARD, backgroundSize: '6px 6px', backgroundPosition: '0 0, 0 3px, 3px -3px, -3px 0px' }
+          : { backgroundColor: value }}
+        title={value}
+        onClick={togglePicker}
+      />
+      <span className="text-[10px] text-muted-foreground/60 flex-1 min-w-0 truncate select-none">{value}</span>
+      <ColorPickerOverlay
+        isOpen={pickerOpen}
+        onOpenChange={(next) => { open(next); if (!next) finish(); }}
+        onColorSelect={(color) => { onChange(color, false); finish(); setPickerOpen(false); }}
+        onColorChange={(color) => onChange(color, false)}
+        onCancel={() => {
+          if (before.current) {
+            useTimelineStore.setState((state) => ({
+              layers: state.layers.map((layer) => layer.id === layerId
+                ? { ...layer, generator: before.current!.source } : layer),
+            }));
+          }
+          before.current = null;
+          setPickerOpen(false);
+        }}
+        initialColor={isTransparent || /^#[0-9a-fA-F]{6}$/.test(value) ? value : '#000000'}
+        showTransparentOption
+        triggerRef={swatchRef as React.RefObject<HTMLElement | null>}
+        anchorPosition="bottom-left"
+      />
+    </div>
+  );
+}
 
 /** Start / duration fields for the generator span */
 const GeneratorTimingRows: React.FC<{ layerId: LayerId; source: GeneratorSource }> = ({ layerId, source }) => {
@@ -383,7 +505,9 @@ export const GeneratorPropertiesPanel: React.FC = () => {
   const Icon = entry.icon;
 
   const categories = new Map<string, EffectPropertyDefinition[]>();
-  for (const def of entry.propertyDefinitions) {
+  for (const original of entry.propertyDefinitions) {
+    const def = source.generatorType === ANIMATED_TEXT_GENERATOR_TYPE
+      ? getAnimatedTextRangeDefinition(original, resolved) : original;
     if (!categories.has(def.category)) categories.set(def.category, []);
     categories.get(def.category)!.push(def);
   }
@@ -392,7 +516,17 @@ export const GeneratorPropertiesPanel: React.FC = () => {
     const current = useTimelineStore.getState().layers.find((l) => l.id === layerId)?.generator;
     if (!current) return;
     if (resolveGeneratorSettings(current, currentFrame)[def.path] === newValue) return;
-    const mutate = () => setGeneratorValueAtFrame(layerId, def.path, newValue as KeyframeValue, currentFrame);
+    const mutate = () => {
+      if (source.generatorType === ANIMATED_TEXT_GENERATOR_TYPE && def.path === 'typewriter.units' &&
+          (newValue === 'percent' || newValue === 'index')) {
+        convertTypewriterUnits(layerId, newValue, currentFrame);
+        return;
+      }
+      setGeneratorValueAtFrame(layerId, def.path, newValue as KeyframeValue, currentFrame);
+      if (source.generatorType === ANIMATED_TEXT_GENERATOR_TYPE && def.path === 'effect' && newValue === 'typewriter') {
+        applyTypewriterDefaultKeyframes(layerId);
+      }
+    };
     if (recordHistory) withGeneratorHistory(layerId, `Update ${def.displayName}`, mutate);
     else mutate();
   };
@@ -448,8 +582,11 @@ export const GeneratorPropertiesPanel: React.FC = () => {
         {[...categories.entries()].map(([category, defs]) => {
           const visibleDefs = defs.filter((def) => {
             if (def.path === 'mapping.characterSet') return false;
-            if (!def.visibleWhen) return true;
-            return def.visibleWhen.values.includes(String(resolved[def.visibleWhen.path]));
+            const conditions = [
+              ...(def.visibleWhen ? [def.visibleWhen] : []),
+              ...(def.visibleWhenAll ?? []),
+            ];
+            return conditions.every((c) => c.values.includes(String(resolved[c.path])));
           });
           if (visibleDefs.length === 0) return null;
           return (
@@ -463,7 +600,9 @@ export const GeneratorPropertiesPanel: React.FC = () => {
                   layerId={layerId}
                   source={source}
                   definition={def}
-                  value={resolved[def.path]}
+                  value={typeof resolved[def.path] === 'number' && def.max !== undefined
+                    ? Math.max(def.min ?? -Infinity, Math.min(def.max, resolved[def.path] as number))
+                    : resolved[def.path]}
                   currentFrame={currentFrame}
                   onChange={(v, recordHistory) => handleChange(def, v, recordHistory)}
                 />

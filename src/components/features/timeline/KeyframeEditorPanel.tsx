@@ -18,6 +18,9 @@ import React, { useMemo, useState, useRef } from 'react';
 import { useTimelineStore } from '../../../stores/timelineStore';
 import { PROPERTY_DEFINITIONS } from '../../../types/timeline';
 import { getGenerator } from '../../../registry/generatorRegistry';
+import { ANIMATED_TEXT_GENERATOR_TYPE, getAnimatedTextRangeDefinition } from '../../../registry/generators/animatedText';
+import { resolveGeneratorSettings } from '../../../utils/generators/generatorRuntime';
+import { convertTypewriterUnits } from '../../../utils/generators/animatedTextActions';
 import { EasingCurveEditor } from './EasingCurveEditor';
 import { useScrubInput } from '../../../hooks/useScrubInput';
 import { withGeneratorHistory, recordGeneratorChange } from '../../../utils/generators/generatorHistory';
@@ -236,7 +239,11 @@ export const KeyframeEditorPanel: React.FC = () => {
   const kfDef = useMemo((): KeyframeValueDefinition | undefined => {
     if (!kfData) return undefined;
     if ('generatorType' in kfData && kfData.generatorType) {
-      const def = getGenerator(kfData.generatorType)?.propertyDefinitions.find((d) => d.path === kfData.track.propertyPath);
+      const original = getGenerator(kfData.generatorType)?.propertyDefinitions.find((d) => d.path === kfData.track.propertyPath);
+      const source = layers.find((layer) => layer.id === kfData.layerId)?.generator;
+      const def = original && source?.generatorType === ANIMATED_TEXT_GENERATOR_TYPE
+        ? getAnimatedTextRangeDefinition(original, resolveGeneratorSettings(source, kfData.keyframe.frame))
+        : original;
       if (def) {
         return {
           displayName: def.displayName, valueType: def.valueType, options: def.options,
@@ -245,7 +252,7 @@ export const KeyframeEditorPanel: React.FC = () => {
       }
     }
     return PROPERTY_DEFINITIONS[kfData.track.propertyPath];
-  }, [kfData]);
+  }, [kfData, layers]);
   const isNumericValue = typeof kfData?.keyframe.value === 'number'
     && (kfDef?.valueType === undefined || kfDef.valueType === 'number');
   const valueScrub = useScrubInput({
@@ -272,15 +279,39 @@ export const KeyframeEditorPanel: React.FC = () => {
 
   const handleValueChange = (value: string) => {
     const num = parseFloat(value);
-    if (!isNaN(num)) updateKeyframe(layerId, trackId, keyframe.id, { value: num });
+    if (isNaN(num)) return;
+    const source = layers.find((layer) => layer.id === layerId)?.generator;
+    const propertyPath = source?.propertyTracks.find((propertyTrack) => propertyTrack.id === String(trackId))?.propertyPath;
+    const isTypewriterRange = source?.generatorType === ANIMATED_TEXT_GENERATOR_TYPE
+      && (propertyPath === 'typewriter.start' || propertyPath === 'typewriter.end');
+    const nextValue = isTypewriterRange
+      ? Math.max(definition?.min ?? -Infinity, Math.min(definition?.max ?? Infinity, num))
+      : num;
+    updateKeyframe(layerId, trackId, keyframe.id, { value: nextValue });
   };
 
-  const setValue = (value: Keyframe['value']) => updateKeyframe(layerId, trackId, keyframe.id, { value });
+  const handleValueBlur = () => {
+    if (!isNumericValue || typeof keyframe.value !== 'number') return;
+    const committed = Math.max(definition?.min ?? -Infinity, Math.min(definition?.max ?? Infinity, keyframe.value));
+    if (committed !== keyframe.value) updateKeyframe(layerId, trackId, keyframe.id, { value: committed });
+  };
+
+  const setValue = (value: Keyframe['value']) => {
+    if ('generatorType' in kfData && kfData.generatorType === ANIMATED_TEXT_GENERATOR_TYPE &&
+        layers.find((layer) => layer.id === layerId)?.generator?.propertyTracks
+          .find((propertyTrack) => propertyTrack.id === String(trackId))?.propertyPath === 'typewriter.units' &&
+        (value === 'percent' || value === 'index')) {
+      withGeneratorHistory(layerId, 'Change typewriter units', () => convertTypewriterUnits(layerId, value, keyframe.frame));
+      return;
+    }
+    updateKeyframe(layerId, trackId, keyframe.id, { value });
+  };
 
   const renderValueControl = () => {
     if (isNumericValue) {
       return (
         <Input type="number" value={keyframe.value as number} onChange={(e) => handleValueChange(e.target.value)}
+          onBlur={handleValueBlur}
           className="h-6 text-xs mt-0.5" min={definition?.min} max={definition?.max} step={definition?.step ?? 1} />
       );
     }

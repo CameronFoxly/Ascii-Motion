@@ -14,6 +14,7 @@
 import type { LucideIcon } from 'lucide-react';
 import type { EffectPropertyDefinition } from '../types/effectBlock';
 import type { IntensityBuffer } from '../utils/generators/intensityMapping';
+import type { Cell } from '../types';
 
 /** Per-frame evaluation context passed to generator functions */
 export interface GeneratorFrameContext {
@@ -26,6 +27,8 @@ export interface GeneratorFrameContext {
   time: number;
   /** Simulation time step relative to the 30fps reference (30 / fps) */
   dt: number;
+  /** True while the user is editing this generator on the canvas (cells mode only) */
+  editing?: boolean;
 }
 
 interface GeneratorRegistryEntryBase {
@@ -77,7 +80,32 @@ export interface SimulationGeneratorEntry<S = unknown> extends GeneratorRegistry
   cloneState: (state: S) => S;
 }
 
-export type GeneratorRegistryEntry = StatelessGeneratorEntry | SimulationGeneratorEntry<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+/**
+ * Direct-cell generators emit literal characters and colors instead of an
+ * intensity buffer, so the shared `mapping.*` settings are not used.
+ */
+export interface CellsGeneratorEntry extends GeneratorRegistryEntryBase {
+  mode: 'cells';
+  /** Same semantics as {@link StatelessGeneratorEntry.phaseProperties} */
+  phaseProperties?: string[];
+  renderCells: (
+    ctx: GeneratorFrameContext,
+    settings: Record<string, unknown>,
+    phases: Record<string, number>,
+    /** Settings at the previous local frame (undefined at frame 0) */
+    previousSettings?: Record<string, unknown>,
+  ) => Map<string, Cell>;
+}
+
+export type GeneratorRegistryEntry =
+  | StatelessGeneratorEntry
+  | SimulationGeneratorEntry<any> // eslint-disable-line @typescript-eslint/no-explicit-any
+  | CellsGeneratorEntry;
+
+/** True when the generator maps an intensity buffer through the shared mapping settings */
+export function usesIntensityMapping(entry: Pick<GeneratorRegistryEntry, 'mode'>): boolean {
+  return entry.mode !== 'cells';
+}
 
 // ============================================
 // SHARED MAPPING PROPERTIES
@@ -156,6 +184,10 @@ export function registerGenerator(entry: GeneratorRegistryEntry): void {
   if (registry.has(entry.type)) {
     throw new Error(`Generator type "${entry.type}" is already registered.`);
   }
+  if (!usesIntensityMapping(entry)) {
+    registry.set(entry.type, { ...entry, defaultSettings: { ...entry.defaultSettings } });
+    return;
+  }
   const ownPaths = new Set(entry.propertyDefinitions.map((d) => d.path));
   const mappingDefaults = { ...DEFAULT_MAPPING_SETTINGS, ...(entry.defaultMappingSettings ?? {}) };
   const mappingDefs = MAPPING_PROPERTY_DEFINITIONS
@@ -193,7 +225,7 @@ export function getGeneratorInitialSettings(
   if (!entry) return null;
   return {
     ...entry.defaultSettings,
-    'mapping.characterPaletteId': DEFAULT_GENERATOR_CHARACTER_PALETTE_ID,
+    ...(usesIntensityMapping(entry) ? { 'mapping.characterPaletteId': DEFAULT_GENERATOR_CHARACTER_PALETTE_ID } : {}),
     ...(entry.getCanvasDefaults?.(canvasWidth, canvasHeight) ?? {}),
   };
 }

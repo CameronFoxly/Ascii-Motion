@@ -242,6 +242,20 @@ describe('generator timeline keyframes', () => {
     expect(source()).toEqual(after);
   });
 
+  it('allows partial numeric keyframe input before validating on blur', () => {
+    const { keyframeId } = addTrack();
+    useTimelineStore.getState().setEditingKeyframe(keyframeId);
+    render(<KeyframeEditorPanel />);
+    const value = screen.getAllByRole('spinbutton')[1];
+    fireEvent.change(value, { target: { value: '0' } });
+    expect(source().propertyTracks[0].keyframes[0].value).toBe(0);
+    fireEvent.change(value, { target: { value: '0.5' } });
+    expect(source().propertyTracks[0].keyframes[0].value).toBe(0.5);
+    fireEvent.change(value, { target: { value: '0' } });
+    fireEvent.blur(value);
+    expect(source().propertyTracks[0].keyframes[0].value).toBe(0.1);
+  });
+
   it('copies and pastes generator keyframes with easing and restores replaced keys', () => {
     const { trackId, keyframeId } = addTrack();
     const tl = useTimelineStore.getState();
