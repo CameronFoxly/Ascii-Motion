@@ -15,6 +15,8 @@
 import { useMemo } from 'react';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useTimelineStore } from '../stores/timelineStore';
+import { usePaletteStore } from '../stores/paletteStore';
+import { useCharacterPaletteStore } from '../stores/characterPaletteStore';
 import type { Cell } from '../types';
 import type { Layer } from '../types/timeline';
 import {
@@ -22,6 +24,7 @@ import {
   getContentFrameAtTime,
   getVisibleLayers,
 } from '../utils/layerCompositing';
+import { isGeneratorLayer } from '../utils/generators/generatorRuntime';
 
 /**
  * Hook that provides composited cells from all layers for rendering.
@@ -45,6 +48,11 @@ export function useCompositedCanvas() {
   const canvasWidth = useCanvasStore((s) => s.width);
   const canvasHeight = useCanvasStore((s) => s.height);
   const canvasCells = useCanvasStore((s) => s.cells);
+  // Generator layers map intensities through palettes — re-composite on palette edits
+  const palettes = usePaletteStore((s) => s.palettes);
+  const customPalettes = usePaletteStore((s) => s.customPalettes);
+  const characterPalettes = useCharacterPaletteStore((s) => s.availablePalettes);
+  const customCharacterPalettes = useCharacterPaletteStore((s) => s.customPalettes);
 
   // Determine if we're in layer mode (have layers loaded)
   const isLayerMode = layers.length > 0;
@@ -56,7 +64,7 @@ export function useCompositedCanvas() {
     }
 
     // Fast path: single layer with NO transforms — skip compositing entirely
-    if (layers.length === 1 && layers[0].id === activeLayerId) {
+    if (layers.length === 1 && layers[0].id === activeLayerId && !isGeneratorLayer(layers[0])) {
       const layer = layers[0];
       const hasTransforms = layer.propertyTracks.length > 0 ||
         Object.keys(layer.staticProperties).some(k => {
@@ -104,7 +112,8 @@ export function useCompositedCanvas() {
       layerGroups,
       globalEffects,
     );
-  }, [layers, layerGroups, globalEffects, currentFrame, activeLayerId, canvasCells, canvasWidth, canvasHeight, isLayerMode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layers, layerGroups, globalEffects, currentFrame, activeLayerId, canvasCells, canvasWidth, canvasHeight, isLayerMode, palettes, customPalettes, characterPalettes, customCharacterPalettes]);
 
   // Cell getter function for the renderer
   const getCompositedCell = useMemo(() => {

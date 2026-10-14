@@ -159,7 +159,7 @@ export interface EffectPropertyDefinition {
   category: string;
 
   /** Value type determines the UI control rendered */
-  valueType: 'number' | 'boolean' | 'string' | 'color' | 'select' | 'mapping';
+  valueType: 'number' | 'boolean' | 'string' | 'color' | 'select' | 'mapping' | 'palette' | 'characterSet';
 
   /** Default value when the effect is first created */
   defaultValue: number | boolean | string | Record<string, string>;
@@ -172,6 +172,8 @@ export interface EffectPropertyDefinition {
   max?: number;
   step?: number;
   unit?: string;
+  /** Optional numeric UI presentation; omitted properties use a scrub input. */
+  control?: 'slider';
 
   // Select options (for valueType: 'select')
   options?: Array<{ label: string; value: string }>;

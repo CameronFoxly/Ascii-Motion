@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
@@ -32,6 +33,7 @@ interface ColorPickerOverlayProps {
   initialColor?: string;
   title?: string;
   showTransparentOption?: boolean; // whether to show the transparent quick-set button
+  modal?: boolean;
   triggerRef?: React.RefObject<HTMLElement | null>; // Reference to trigger element for positioning
   anchorPosition?: 'left-slide' | 'right-slide' | 'bottom-left' | 'bottom-right' | 'gradient-panel' | 'import-media-panel';
 }
@@ -45,6 +47,7 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
   initialColor = '#000000',
   title = 'Color Picker',
   showTransparentOption = false,
+  modal = false,
   triggerRef,
   anchorPosition = 'left-slide'
 }) => {
@@ -812,7 +815,7 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
 
   const position = getPickerPosition();
 
-  return createPortal(
+  const picker = (
     <div
       ref={pickerRef}
       className={`fixed z-[99999] ${
@@ -822,16 +825,19 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
         }` : ''
       }`}
       style={{
-        top: position.top + positionOffset.y,
-        right: position.right !== 'auto' && typeof position.right === 'number' ? position.right - positionOffset.x : undefined,
-        left: position.left !== 'auto' && typeof position.left === 'number' ? position.left + positionOffset.x : undefined,
+        top: (modal ? Math.max(16, (window.innerHeight - 650) / 2) : position.top) + positionOffset.y,
+        right: !modal && position.right !== 'auto' && typeof position.right === 'number' ? position.right - positionOffset.x : undefined,
+        left: modal ? Math.max(16, (window.innerWidth - 400) / 2) + positionOffset.x : position.left !== 'auto' && typeof position.left === 'number' ? position.left + positionOffset.x : undefined,
         maxWidth: '400px',
-        width: '400px',
+        width: modal ? 'min(400px, calc(100vw - 32px))' : '400px',
+        maxHeight: modal ? 'calc(100vh - 32px)' : undefined,
+        overflowY: modal ? 'auto' : undefined,
         transition: isDraggingDialog ? 'none' : undefined
       }}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
+      {modal && <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>}
       <Card className="border border-border/50 shadow-lg">
         <DraggableDialogBar 
           title={title} 
@@ -1241,7 +1247,14 @@ export const ColorPickerOverlay: React.FC<ColorPickerOverlayProps> = ({
         </div>
         </CardContent>
       </Card>
-    </div>,
-    document.body
+    </div>
   );
+  return modal ? (
+    <DialogPrimitive.Root open={isOpen} onOpenChange={onOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[99998] bg-black/30" />
+        <DialogPrimitive.Content asChild aria-describedby={undefined}>{picker}</DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
+  ) : createPortal(picker, document.body);
 };

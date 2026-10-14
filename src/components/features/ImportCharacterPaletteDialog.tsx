@@ -15,11 +15,13 @@ import type { CharacterPaletteExportFormat } from '../../types/palette';
 interface ImportCharacterPaletteDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  onPaletteImported?: (paletteId: string) => void;
 }
 
 export const ImportCharacterPaletteDialog: React.FC<ImportCharacterPaletteDialogProps> = ({
   isOpen,
-  onOpenChange
+  onOpenChange,
+  onPaletteImported,
 }) => {
   const { importPalette } = useCharacterPaletteStore();
   
@@ -75,6 +77,7 @@ export const ImportCharacterPaletteDialog: React.FC<ImportCharacterPaletteDialog
     
     try {
       const newPalette = importPalette(previewData);
+      onPaletteImported?.(newPalette.id);
       setImportSuccess(newPalette.name);
       
       // Clear form after successful import

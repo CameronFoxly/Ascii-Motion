@@ -25,6 +25,7 @@ import { interpolateKeyframes } from '../types/easing';
 import { CELL_ASPECT_RATIO } from '../utils/fontMetrics';
 import { applyEffectsToLayer, hasActiveEffectsAtFrame } from './effectsPipeline';
 import { getEffect } from '../registry/effectRegistry';
+import { getGeneratorLayerCells, isGeneratorLayer } from './generators/generatorRuntime';
 
 // ============================================
 // MAIN COMPOSITING FUNCTION
@@ -80,9 +81,9 @@ export function compositeLayersAtFrame(
     // If any layer is solo'd, only render solo'd layers
     if (hasSoloLayer && !layer.solo) continue;
 
-    // Get content frame at this time
-    const contentFrame = getContentFrameAtTime(layer, frame);
-    if (!contentFrame) continue;
+    // Get source cells at this time (content frame or procedural generator output)
+    const sourceCells = getLayerSourceCellsAtFrame(layer, frame, canvasWidth, canvasHeight);
+    if (!sourceCells) continue;
 
     // Split effects into local-space and screen-space
     const localEffects = (layer.effectTracks ?? []).filter((t) => {
@@ -95,7 +96,7 @@ export function compositeLayersAtFrame(
     });
 
     // Apply per-layer procedural effects (non-destructive, in local space)
-    let cellData = contentFrame.data;
+    let cellData = sourceCells;
     if (localEffects.length > 0 && hasActiveEffectsAtFrame(localEffects, frame)) {
       cellData = applyEffectsToLayer(cellData, localEffects, frame, {
         canvasBackgroundColor: '#000000',
@@ -429,6 +430,25 @@ export function getContentFrameAtTime(layer: Layer, frame: number): ContentFrame
   return null;
 }
 
+/**
+ * Source cells for a layer at a frame, before effects and transforms.
+ * Generator layers are evaluated procedurally; content layers use their
+ * active content frame. Returns null when there is nothing to render.
+ * The returned map may be shared/cached — callers must not mutate it.
+ */
+export function getLayerSourceCellsAtFrame(
+  layer: Layer,
+  frame: number,
+  canvasWidth: number,
+  canvasHeight: number,
+): Map<string, Cell> | null {
+  if (isGeneratorLayer(layer)) {
+    const cells = getGeneratorLayerCells(layer, frame, canvasWidth, canvasHeight);
+    return cells.size > 0 ? cells : null;
+  }
+  return getContentFrameAtTime(layer, frame)?.data ?? null;
+}
+
 // ============================================
 // PROPERTY VALUE INTERPOLATION
 // ============================================
@@ -557,7 +577,7 @@ export function getVisibleLayers(layers: Layer[]): Layer[] {
  * Check if a layer is editable (visible and not locked).
  */
 export function isLayerEditable(layer: Layer): boolean {
-  return layer.visible && !layer.locked;
+  return layer.visible && !layer.locked && !isGeneratorLayer(layer);
 }
 
 /**
@@ -642,11 +662,11 @@ function compositeOneLayerToScreenSpace(
 ): Map<string, Cell> {
   const layerCells = new Map<string, Cell>();
 
-  const contentFrame = getContentFrameAtTime(layer, frame);
-  if (!contentFrame) return layerCells;
+  const sourceCells = getLayerSourceCellsAtFrame(layer, frame, canvasWidth, canvasHeight);
+  if (!sourceCells) return layerCells;
 
   // Apply only non-screen-space (local) effects
-  let cellData = contentFrame.data;
+  let cellData = sourceCells;
   const localEffects = (layer.effectTracks ?? []).filter((t) => {
     const entry = getEffect(t.effectBlock.effectType);
     return !entry?.screenSpace;

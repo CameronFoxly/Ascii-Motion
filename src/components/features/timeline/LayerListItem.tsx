@@ -18,6 +18,9 @@ import { EffectTrackRow } from './EffectTrackRow';
 import { useEffectBlockHistory } from '../../../hooks/useEffectBlockHistory';
 import { getAllEffects, getEffect } from '../../../registry/effectRegistry';
 import { evaluateEffectBlock } from '../../../utils/effectsPipeline';
+import { getGenerator } from '../../../registry/generatorRegistry';
+import { resolveGeneratorSettings } from '../../../utils/generators/generatorRuntime';
+import { withGeneratorHistory } from '../../../utils/generators/generatorHistory';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -312,6 +315,30 @@ export const LayerListItem: React.FC<LayerListItemProps> = React.memo(function L
           </TooltipContent>
         </Tooltip>
 
+        {/* Generator badge (procedural generator layers) */}
+        {layer.generator && (() => {
+          const GenIcon = getGenerator(layer.generator.generatorType)?.icon;
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className={cn(
+                    'p-0.5 hover:bg-muted rounded flex-shrink-0',
+                    layer.generator.enabled ? 'text-teal-400' : 'text-muted-foreground/40',
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    useTimelineStore.getState().selectGeneratorLayer(layer.id);
+                  }}
+                >
+                  {GenIcon ? <GenIcon className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">Edit generator settings</TooltipContent>
+            </Tooltip>
+          );
+        })()}
+
         {/* Name */}
         <div className="flex-1 min-w-0 mx-1">
           {isEditing ? (
@@ -532,6 +559,103 @@ export const LayerListItem: React.FC<LayerListItemProps> = React.memo(function L
               </DropdownMenu>
             );
           })()}
+
+          {/* Generator property track labels (procedural generator layers) */}
+          {layer.generator && layer.generator.propertyTracks.map((pt) => {
+            const source = layer.generator!;
+            const propDef = getGenerator(source.generatorType)?.propertyDefinitions.find((d) => d.path === pt.propertyPath);
+            const label = propDef?.displayName ?? pt.propertyPath;
+            const existingKfAtFrame = pt.keyframes.find((kf) => kf.frame === currentFrame);
+            const trackId = pt.id as unknown as import('../../../types/timeline').PropertyTrackId;
+            return (
+              <div
+                key={pt.id}
+                className="flex items-center px-1.5 py-0.5 min-h-[24px] text-xs text-teal-300/80 group/genprop"
+              >
+                <span
+                  className="flex-1 truncate cursor-pointer hover:text-foreground"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const kfIds = pt.keyframes.map((kf) => kf.id as unknown as import('../../../types/timeline').KeyframeId);
+                    if (kfIds.length === 0) return;
+                    if (e.shiftKey || e.metaKey || e.ctrlKey) addKeyframesToSelection(kfIds);
+                    else selectKeyframes(kfIds);
+                    setEditingKeyframe(kfIds[kfIds.length - 1]);
+                  }}
+                >
+                  {label}
+                </span>
+                <button
+                  className="p-0.5 hover:bg-muted rounded"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const prev = pt.keyframes.map((kf) => kf.frame).filter((f) => f < currentFrame).sort((a, b) => b - a)[0];
+                    if (prev !== undefined) goToFrame(prev);
+                  }}
+                  disabled={!pt.keyframes.some((kf) => kf.frame < currentFrame)}
+                >
+                  <ChevronLeft className="w-3 h-3 text-muted-foreground" />
+                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      className="p-0.5 hover:bg-muted rounded"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (existingKfAtFrame) {
+                          removeKeyframe(layer.id, trackId, existingKfAtFrame.id as unknown as import('../../../types/timeline').KeyframeId);
+                          setEditingKeyframe(null);
+                        } else {
+                          const value = resolveGeneratorSettings(source, currentFrame)[pt.propertyPath];
+                          const kfId = addKeyframe(layer.id, trackId, currentFrame, value as number);
+                          if (kfId) {
+                            selectKeyframes([kfId]);
+                            setEditingKeyframe(kfId);
+                          }
+                        }
+                      }}
+                    >
+                      {existingKfAtFrame ? (
+                        <Diamond className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                      ) : (
+                        <Diamond className="w-3 h-3 text-yellow-500 hover:text-yellow-400" />
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    {existingKfAtFrame ? 'Remove keyframe at current frame' : 'Add keyframe at current frame'}
+                  </TooltipContent>
+                </Tooltip>
+                <button
+                  className="p-0.5 hover:bg-muted rounded"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const next = pt.keyframes.map((kf) => kf.frame).filter((f) => f > currentFrame).sort((a, b) => a - b)[0];
+                    if (next !== undefined) goToFrame(next);
+                  }}
+                  disabled={!pt.keyframes.some((kf) => kf.frame > currentFrame)}
+                >
+                  <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      className="p-0.5 hover:bg-muted rounded"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        withGeneratorHistory(layer.id, `Remove ${label} animation`, () => {
+                          useTimelineStore.getState().removeGeneratorPropertyTrack(layer.id, pt.id, currentFrame);
+                        });
+                      }}
+                    >
+                      <X className="w-3 h-3 text-muted-foreground hover:text-destructive" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Remove animation (keeps current value)</TooltipContent>
+                </Tooltip>
+              </div>
+            );
+          })}
         </div>
       )}
 

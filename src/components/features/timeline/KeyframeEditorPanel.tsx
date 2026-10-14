@@ -14,18 +14,34 @@
  * See: docs/LAYER_TIMELINE_REFACTOR_PLAN.md §3.10
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { useTimelineStore } from '../../../stores/timelineStore';
 import { PROPERTY_DEFINITIONS } from '../../../types/timeline';
+import { getGenerator } from '../../../registry/generatorRegistry';
 import { EasingCurveEditor } from './EasingCurveEditor';
 import { useScrubInput } from '../../../hooks/useScrubInput';
+import { withGeneratorHistory, recordGeneratorChange } from '../../../utils/generators/generatorHistory';
+import type { GeneratorSource } from '../../../types/generatorLayer';
+import type { LayerId } from '../../../types/timeline';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Switch } from '../../ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Button } from '../../ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../ui/tooltip';
 import { X, Diamond, Copy, ClipboardPaste } from 'lucide-react';
-import type { EasingCurve } from '../../../types/timeline';
+import type { EasingCurve, Keyframe } from '../../../types/timeline';
+import type { EffectPropertyDefinition } from '../../../types/effectBlock';
+
+interface KeyframeValueDefinition {
+  displayName: string;
+  valueType?: EffectPropertyDefinition['valueType'];
+  options?: EffectPropertyDefinition['options'];
+  min?: number;
+  max?: number;
+  step?: number;
+  unit?: string;
+}
 
 // Clipboard state for ease copy/paste (module-level, persists across re-renders)
 let copiedEasing: EasingCurve | null = null;
@@ -38,13 +54,27 @@ export const KeyframeEditorPanel: React.FC = () => {
   const globalEffects = useTimelineStore((s) => s.globalEffects);
   const postEffectTracks = useTimelineStore((s) => s.postEffectTracks);
   const setEditingKeyframe = useTimelineStore((s) => s.setEditingKeyframe);
-  const moveKeyframe = useTimelineStore((s) => s.moveKeyframe);
-  const updateKeyframe = useTimelineStore((s) => s.updateKeyframe);
-  const setKeyframeLooping = useTimelineStore((s) => s.setKeyframeLooping);
-  const removeKeyframe = useTimelineStore((s) => s.removeKeyframe);
+  const moveKeyframeDirect = useTimelineStore((s) => s.moveKeyframe);
+  const updateKeyframeDirect = useTimelineStore((s) => s.updateKeyframe);
+  const setKeyframeLoopingDirect = useTimelineStore((s) => s.setKeyframeLooping);
+  const removeKeyframeDirect = useTimelineStore((s) => s.removeKeyframe);
   const clearKeyframeSelection = useTimelineStore((s) => s.clearKeyframeSelection);
 
   const [hasCopiedEase, setHasCopiedEase] = useState(!!copiedEasing);
+  const scrubSnapshot = useRef<{ layerId: LayerId; source: GeneratorSource } | null>(null);
+
+  const mutateWithHistory = (layerId: LayerId, description: string, mutate: () => void) => {
+    if (scrubSnapshot.current) mutate();
+    else withGeneratorHistory(layerId, description, mutate);
+  };
+  const moveKeyframe: typeof moveKeyframeDirect = (layerId, trackId, id, frame) =>
+    mutateWithHistory(layerId, 'Move generator keyframe', () => moveKeyframeDirect(layerId, trackId, id, frame));
+  const updateKeyframe: typeof updateKeyframeDirect = (layerId, trackId, id, updates) =>
+    mutateWithHistory(layerId, 'Update generator keyframe', () => updateKeyframeDirect(layerId, trackId, id, updates));
+  const removeKeyframe: typeof removeKeyframeDirect = (layerId, trackId, id) =>
+    mutateWithHistory(layerId, 'Remove generator keyframe', () => removeKeyframeDirect(layerId, trackId, id));
+  const setKeyframeLooping: typeof setKeyframeLoopingDirect = (layerId, trackId, looping) =>
+    mutateWithHistory(layerId, 'Change generator keyframe looping', () => setKeyframeLoopingDirect(layerId, trackId, looping));
 
   const multiSelectCount = selectedKeyframeIds.size;
 
@@ -62,6 +92,10 @@ export const KeyframeEditorPanel: React.FC = () => {
           const kf = pt.keyframes.find((k) => k.id === editingKeyframeId);
           if (kf) return { layerId: layer.id, trackId: pt.id as unknown as typeof layer.propertyTracks[0]['id'], keyframe: kf as unknown as typeof layer.propertyTracks[0]['keyframes'][0], track: pt as unknown as typeof layer.propertyTracks[0] };
         }
+      }      // Search generator property tracks
+      for (const pt of (layer.generator?.propertyTracks ?? [])) {
+        const kf = pt.keyframes.find((k) => k.id === editingKeyframeId);
+        if (kf) return { layerId: layer.id, trackId: pt.id as unknown as typeof layer.propertyTracks[0]['id'], keyframe: kf as unknown as typeof layer.propertyTracks[0]['keyframes'][0], track: pt as unknown as typeof layer.propertyTracks[0], generatorType: layer.generator!.generatorType };
       }
     }
     for (const group of layerGroups) {
@@ -125,6 +159,13 @@ export const KeyframeEditorPanel: React.FC = () => {
     // Search effect property tracks across layers, groups, global, and post effects
     const proxyId = layers.length > 0 ? layers[0].id : ('' as typeof layers[0]['id']);
     for (const layer of layers) {
+      for (const pt of (layer.generator?.propertyTracks ?? [])) {
+        for (const kf of pt.keyframes) {
+          if (selectedKeyframeIds.has(kf.id as unknown as typeof layers[0]['propertyTracks'][0]['keyframes'][0]['id'])) {
+            entries.push({ layerId: layer.id, trackId: pt.id as unknown as typeof layers[0]['propertyTracks'][0]['id'], keyframe: kf as unknown as typeof layers[0]['propertyTracks'][0]['keyframes'][0] });
+          }
+        }
+      }
       for (const et of (layer.effectTracks ?? [])) {
         for (const pt of et.effectBlock.propertyTracks) {
           for (const kf of pt.keyframes) {
@@ -168,6 +209,19 @@ export const KeyframeEditorPanel: React.FC = () => {
     return entries;
   }, [selectedKeyframeIds, layers, layerGroups, globalEffects, postEffectTracks]);
 
+  const onScrubStart = () => {
+    if (!kfData) return;
+    const source = useTimelineStore.getState().getLayer(kfData.layerId)?.generator;
+    if (source) scrubSnapshot.current = { layerId: kfData.layerId, source };
+  };
+  const onScrubEnd = () => {
+    const snapshot = scrubSnapshot.current;
+    if (snapshot) {
+      recordGeneratorChange(snapshot.layerId, 'Edit generator keyframe', snapshot.source);
+      scrubSnapshot.current = null;
+    }
+  };
+
   const frameScrub = useScrubInput({
     value: kfData?.keyframe.frame ?? 0,
     onChange: (v) => {
@@ -175,17 +229,35 @@ export const KeyframeEditorPanel: React.FC = () => {
     },
     step: 1,
     min: 0,
+    onScrubStart,
+    onScrubEnd,
   });
 
-  const kfDef = kfData ? PROPERTY_DEFINITIONS[kfData.track.propertyPath] : undefined;
+  const kfDef = useMemo((): KeyframeValueDefinition | undefined => {
+    if (!kfData) return undefined;
+    if ('generatorType' in kfData && kfData.generatorType) {
+      const def = getGenerator(kfData.generatorType)?.propertyDefinitions.find((d) => d.path === kfData.track.propertyPath);
+      if (def) {
+        return {
+          displayName: def.displayName, valueType: def.valueType, options: def.options,
+          min: def.min, max: def.max, step: def.step, unit: def.unit,
+        };
+      }
+    }
+    return PROPERTY_DEFINITIONS[kfData.track.propertyPath];
+  }, [kfData]);
+  const isNumericValue = typeof kfData?.keyframe.value === 'number'
+    && (kfDef?.valueType === undefined || kfDef.valueType === 'number');
   const valueScrub = useScrubInput({
-    value: (kfData?.keyframe.value as number) ?? 0,
+    value: isNumericValue ? (kfData!.keyframe.value as number) : 0,
     onChange: (v) => {
       if (kfData) updateKeyframe(kfData.layerId, kfData.trackId, kfData.keyframe.id, { value: v });
     },
     step: kfDef?.step ?? 1,
     min: kfDef?.min,
     max: kfDef?.max,
+    onScrubStart,
+    onScrubEnd,
   });
 
   if (!kfData) return null;
@@ -201,6 +273,47 @@ export const KeyframeEditorPanel: React.FC = () => {
   const handleValueChange = (value: string) => {
     const num = parseFloat(value);
     if (!isNaN(num)) updateKeyframe(layerId, trackId, keyframe.id, { value: num });
+  };
+
+  const setValue = (value: Keyframe['value']) => updateKeyframe(layerId, trackId, keyframe.id, { value });
+
+  const renderValueControl = () => {
+    if (isNumericValue) {
+      return (
+        <Input type="number" value={keyframe.value as number} onChange={(e) => handleValueChange(e.target.value)}
+          className="h-6 text-xs mt-0.5" min={definition?.min} max={definition?.max} step={definition?.step ?? 1} />
+      );
+    }
+    if (definition?.valueType === 'boolean' || typeof keyframe.value === 'boolean') {
+      return (
+        <div className="h-6 mt-0.5 flex items-center">
+          <Switch checked={keyframe.value === true} onCheckedChange={setValue} className="scale-[0.6]" />
+        </div>
+      );
+    }
+    if (definition?.valueType === 'select' && definition.options?.length) {
+      return (
+        <Select value={String(keyframe.value)} onValueChange={setValue}>
+          <SelectTrigger className="h-6 text-xs mt-0.5"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {definition.options.map((o) => (
+              <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+    }
+    if (definition?.valueType === 'color') {
+      return (
+        <Input type="color" value={String(keyframe.value)} onChange={(e) => setValue(e.target.value)}
+          className="h-6 mt-0.5 p-0.5" />
+      );
+    }
+    // Palette, character set, and other non-numeric values are edited from the generator panel
+    return (
+      <Input value={String(keyframe.value)} readOnly disabled title={String(keyframe.value)}
+        className="h-6 text-xs mt-0.5" />
+    );
   };
 
   const handleEasingChange = (easing: EasingCurve) => {
@@ -267,11 +380,13 @@ export const KeyframeEditorPanel: React.FC = () => {
               className="h-6 text-xs mt-0.5" min={0} />
           </div>
           <div className="flex-1">
-            <Label className="text-[10px] text-muted-foreground cursor-ew-resize" onMouseDown={valueScrub.onMouseDown}>
-              Value{definition?.unit ? ` (${definition.unit})` : ''}
+            <Label
+              className={`text-[10px] text-muted-foreground${isNumericValue ? ' cursor-ew-resize' : ''}`}
+              onMouseDown={isNumericValue ? valueScrub.onMouseDown : undefined}
+            >
+              Value{isNumericValue && definition?.unit ? ` (${definition.unit})` : ''}
             </Label>
-            <Input type="number" value={keyframe.value as number} onChange={(e) => handleValueChange(e.target.value)}
-              className="h-6 text-xs mt-0.5" min={definition?.min} max={definition?.max} step={definition?.step ?? 1} />
+            {renderValueControl()}
           </div>
         </div>
 

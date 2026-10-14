@@ -13,6 +13,7 @@ import { useSelectionStore } from '../stores/selectionStore';
 import { useProjectMetadataStore } from '../stores/projectMetadataStore';
 import { useTimelineStore } from '../stores/timelineStore';
 import { getContentFrameAtTime } from '../utils/layerCompositing';
+import { serializeGeneratorSource } from '../utils/generators/generatorSerialization';
 import { SessionImporter } from '../utils/sessionImporter';
 import { MCPCommandDispatcher } from './commandDispatcher';
 import { navigateToFrameAtomically } from './frameNavigation';
@@ -228,6 +229,9 @@ export class MCPClient {
           opacity: l.opacity,
           parentGroupId: l.parentGroupId,
           syncKeyframesToFrames: l.syncKeyframesToFrames,
+          ...(l.kind === 'generator' && l.generator
+            ? { kind: l.kind, generator: serializeGeneratorSource(l.generator) }
+            : {}),
           contentFrames: l.contentFrames.map(cf => {
             const cfData: Record<string, { char: string; color: string; bgColor: string }> = {};
             cf.data.forEach((cell, key) => {

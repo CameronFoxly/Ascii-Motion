@@ -36,7 +36,7 @@ type AnimationStoreState = ReturnType<typeof useAnimationStore.getState>;
 /**
  * Helper function to process different types of history actions
  */
-const processHistoryAction = (
+export const processHistoryAction = (
   action: AnyHistoryAction,
   isRedo: boolean,
   canvasStore: CanvasStoreForHistory,
@@ -940,7 +940,12 @@ const processHistoryAction = (
           : null;
         useTimelineStore.setState({
           layers: newLayers,
-          view: { ...tl.view, activeLayerId: newActive },
+          view: {
+            ...tl.view,
+            activeLayerId: newActive,
+            selectedGeneratorLayerId:
+              tl.view.selectedGeneratorLayerId === action.data.layerId ? null : tl.view.selectedGeneratorLayerId,
+          },
         });
       }
       break;
@@ -1358,6 +1363,54 @@ const processHistoryAction = (
           animationStore.setFrameData(animationStore.currentFrameIndex, data as Map<string, import('../types').Cell>);
           canvasStore.setCanvasData(data as Map<string, import('../types').Cell>);
         }
+      }
+      break;
+    }
+
+    case 'palette_edit': {
+      const data = action.data;
+      if (data.kind === 'character') {
+        const state = useCharacterPaletteStore.getState();
+        const customPalettes = structuredClone(isRedo ? data.newPalettes : data.previousPalettes);
+        const activePalette = [...state.availablePalettes, ...customPalettes]
+          .find((p) => p.id === state.activePalette.id) ?? state.availablePalettes[0];
+        useCharacterPaletteStore.setState({ customPalettes, activePalette });
+      } else {
+        const state = usePaletteStore.getState();
+        const customPalettes = structuredClone(isRedo ? data.newPalettes : data.previousPalettes);
+        const activePaletteId = [...state.palettes, ...customPalettes].some((p) => p.id === state.activePaletteId)
+          ? state.activePaletteId : state.palettes[0].id;
+        usePaletteStore.setState({ customPalettes, activePaletteId });
+      }
+      break;
+    }
+
+    case 'generator_update': {
+      const genAction = action as import('../types').GeneratorUpdateHistoryAction;
+      const source = isRedo ? genAction.data.newSource : genAction.data.previousSource;
+      useTimelineStore.getState().setGeneratorSource(genAction.data.layerId as LayerId, structuredClone(source));
+      break;
+    }
+
+    case 'generator_bake': {
+      const bakeAction = action as import('../types').GeneratorBakeHistoryAction;
+      const tl = useTimelineStore.getState();
+      const layerId = bakeAction.data.layerId as LayerId;
+      const targetLayer = structuredClone(isRedo ? bakeAction.data.newLayer : bakeAction.data.previousLayer);
+      useTimelineStore.setState({
+        layers: tl.layers.map((l) => (l.id === layerId ? targetLayer : l)),
+        view: {
+          ...tl.view,
+          selectedGeneratorLayerId: !isRedo && tl.view.activeLayerId === layerId ? layerId : (
+            tl.view.selectedGeneratorLayerId === layerId ? null : tl.view.selectedGeneratorLayerId
+          ),
+        },
+      });
+      if (tl.view.activeLayerId === layerId) {
+        const cf = targetLayer.contentFrames.find(
+          (c) => tl.view.currentFrame >= c.startFrame && tl.view.currentFrame < c.startFrame + c.durationFrames,
+        );
+        canvasStore.setCanvasData(cf ? new Map(cf.data) : new Map());
       }
       break;
     }

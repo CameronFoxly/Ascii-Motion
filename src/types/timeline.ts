@@ -8,6 +8,7 @@
 import type { Cell } from './index';
 import type { EffectTrack, SessionEffectTrackV2 } from './effectBlock';
 import type { PostEffectBlockId, SessionPostEffectTrackV2 } from './postEffect';
+import type { GeneratorSource, LayerKind, SessionGeneratorSourceV2 } from './generatorLayer';
 
 // ============================================
 // BRANDED ID TYPES
@@ -102,6 +103,12 @@ export interface Layer {
 
   // Procedural effect tracks (non-destructive, timeline-based)
   effectTracks: EffectTrack[];
+
+  /** Layer kind — absent means a regular content layer */
+  kind?: LayerKind;
+
+  /** Procedural generator source (only when kind === 'generator') */
+  generator?: GeneratorSource;
 }
 
 /**
@@ -419,6 +426,9 @@ export interface TimelineViewState {
   editingEffectKeyframeId: KeyframeId | null;
   globalEffectsExpanded: boolean;
 
+  // Generator layer selection (shows GeneratorPropertiesPanel)
+  selectedGeneratorLayerId: LayerId | null;
+
   // Post effect selection & expansion (WebGL shader-based post-processing)
   selectedPostEffectBlockId: PostEffectBlockId | null;
   expandedPostEffectTrackIds: Set<PostEffectBlockId>;
@@ -465,9 +475,10 @@ export interface EffectInstance {
  * Session data format version 2.x with layer support.
  * v2.0.0: Initial layer timeline system
  * v2.1.0: Added effectTracks to layers, groups, and globalEffects
+ * v2.2.0: Added procedural generator layers (layer.kind / layer.generator)
  */
 export interface SessionDataV2 {
-  version: '2.0.0' | '2.1.0';
+  version: '2.0.0' | '2.1.0' | '2.2.0';
 
   // Project metadata
   name?: string;
@@ -541,6 +552,10 @@ export interface SessionLayerV2 {
 
   // Procedural effect tracks
   effectTracks?: SessionEffectTrackV2[];
+
+  // Procedural generator layer (v2.2.0)
+  kind?: LayerKind;
+  generator?: SessionGeneratorSourceV2;
 }
 
 /**

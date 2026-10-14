@@ -73,8 +73,8 @@ export function detectSessionVersion(data: unknown): '1.0.0' | '2.0.0' | 'unknow
 
   const session = data as Record<string, unknown>;
 
-  // v2 detection: has version '2.0.0' or '2.1.0' and layers array
-  if ((session.version === '2.0.0' || session.version === '2.1.0') && Array.isArray(session.layers)) {
+  // v2 detection: has version '2.0.0', '2.1.0' or '2.2.0' and layers array
+  if ((session.version === '2.0.0' || session.version === '2.1.0' || session.version === '2.2.0') && Array.isArray(session.layers)) {
     return '2.0.0';
   }
 

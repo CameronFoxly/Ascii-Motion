@@ -18,6 +18,8 @@ interface UseScrubInputOptions {
   value: number;
   /** Called with the new value during and after scrub */
   onChange: (value: number) => void;
+  onScrubStart?: () => void;
+  onScrubEnd?: () => void;
   /** Value change per pixel of drag (default: step or 1) */
   sensitivity?: number;
   /** Step size for rounding (default: 1) */
@@ -36,6 +38,8 @@ interface UseScrubInputResult {
 export function useScrubInput({
   value,
   onChange,
+  onScrubStart,
+  onScrubEnd,
   sensitivity,
   step = 1,
   min,
@@ -91,6 +95,7 @@ export function useScrubInput({
           document.body.style.userSelect = 'none';
           // Blur input to prevent text selection during drag
           if (input) input.blur();
+          onScrubStart?.();
         }
 
         const delta = dx / pxPerStep * step;
@@ -106,6 +111,7 @@ export function useScrubInput({
           document.body.style.cursor = '';
           document.body.style.userSelect = '';
           isDragging.current = false;
+          onScrubEnd?.();
         } else {
           // No drag — focus the input for direct editing
           if (input) {
@@ -118,7 +124,7 @@ export function useScrubInput({
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
     },
-    [value, onChange, sensitivity, step, clamp],
+    [value, onChange, onScrubStart, onScrubEnd, sensitivity, step, clamp],
   );
 
   return { onMouseDown };

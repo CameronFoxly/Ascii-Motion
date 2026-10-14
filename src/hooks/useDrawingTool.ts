@@ -78,7 +78,9 @@ export const useDrawingTool = () => {
     // Eyedropper is read-only, always allowed
     if (tool === 'eyedropper') return true;
     if (!isLayerEditable(activeLayer)) {
-      if (activeLayer.locked) {
+      if (activeLayer.kind === 'generator') {
+        toast.info('Generator layers are procedural — bake the layer to draw on it', { duration: 2500 });
+      } else if (activeLayer.locked) {
         toast.info('Layer is locked', { duration: 2000 });
       } else if (!activeLayer.visible) {
         toast.info('Layer is hidden', { duration: 2000 });

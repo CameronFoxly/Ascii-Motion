@@ -15,11 +15,13 @@ import type { PaletteExportFormat } from '../../types/palette';
 interface ExportPaletteDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  paletteId?: string;
 }
 
 export const ExportPaletteDialog: React.FC<ExportPaletteDialogProps> = ({
   isOpen,
-  onOpenChange
+  onOpenChange,
+  paletteId,
 }) => {
   const { 
     activePaletteId, 
@@ -38,7 +40,7 @@ export const ExportPaletteDialog: React.FC<ExportPaletteDialogProps> = ({
   useEffect(() => {
     if (isOpen) {
       const activePalette = getActivePalette();
-      const data = exportPalette(activePaletteId);
+      const data = exportPalette(paletteId ?? activePaletteId);
       
       if (data && activePalette) {
         setExportData(data);
@@ -46,7 +48,7 @@ export const ExportPaletteDialog: React.FC<ExportPaletteDialogProps> = ({
         setJsonString(JSON.stringify(data, null, 2));
       }
     }
-  }, [isOpen, activePaletteId, getActivePalette, exportPalette]);
+  }, [isOpen, activePaletteId, paletteId, getActivePalette, exportPalette]);
 
   // Live sanitization for typing - minimal processing, just convert spaces to dashes
   const liveProcessFileName = (name: string): string => {

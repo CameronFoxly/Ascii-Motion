@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -27,6 +28,7 @@ interface EnhancedCharacterPickerProps {
   anchorPosition?: 'bottom-right' | 'left-slide' | 'left-bottom' | 'left-bottom-aligned' | 'gradient-panel';
   initialValue?: string;
   title?: string;
+  modal?: boolean;
 }
 
 const CATEGORY_ICONS = {
@@ -47,7 +49,8 @@ export const EnhancedCharacterPicker: React.FC<EnhancedCharacterPickerProps> = (
   triggerRef,
   anchorPosition = 'left-slide',
   initialValue = '',
-  title = 'Select Character'
+  title = 'Select Character',
+  modal = false,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState("Basic Text");
   const [positionOffset, setPositionOffset] = useState({ x: 0, y: 0 });
@@ -232,7 +235,7 @@ export const EnhancedCharacterPicker: React.FC<EnhancedCharacterPickerProps> = (
 
   const position = getPickerPosition();
 
-  return createPortal(
+  const picker = (
     <div
       ref={pickerRef}
       className={`fixed z-[99999] ${
@@ -241,16 +244,19 @@ export const EnhancedCharacterPicker: React.FC<EnhancedCharacterPickerProps> = (
         }` : ''
       }`}
       style={{
-        top: position.top + positionOffset.y,
-        right: position.right !== 'auto' && typeof position.right === 'number' ? position.right - positionOffset.x : undefined,
-        left: position.left !== 'auto' && typeof position.left === 'number' ? position.left + positionOffset.x : undefined,
+        top: (modal ? Math.max(16, (window.innerHeight - 500) / 2) : position.top) + positionOffset.y,
+        right: !modal && position.right !== 'auto' && typeof position.right === 'number' ? position.right - positionOffset.x : undefined,
+        left: modal ? Math.max(16, (window.innerWidth - 400) / 2) + positionOffset.x : position.left !== 'auto' && typeof position.left === 'number' ? position.left + positionOffset.x : undefined,
         maxWidth: '400px',
-        width: '400px',
+        width: modal ? 'min(400px, calc(100vw - 32px))' : '400px',
+        maxHeight: modal ? 'calc(100vh - 32px)' : undefined,
+        overflowY: modal ? 'auto' : undefined,
         transition: isDraggingDialog ? 'none' : undefined
       }}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
+      {modal && <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>}
       <Card className="border border-border/50 shadow-lg">
         <DraggableDialogBar 
           title={title} 
@@ -343,7 +349,14 @@ export const EnhancedCharacterPicker: React.FC<EnhancedCharacterPickerProps> = (
           </div>
         </div>
       </Card>
-    </div>,
-    document.body
+    </div>
   );
+  return modal ? (
+    <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[99998] bg-black/30" />
+        <DialogPrimitive.Content asChild aria-describedby={undefined}>{picker}</DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
+  ) : createPortal(picker, document.body);
 };

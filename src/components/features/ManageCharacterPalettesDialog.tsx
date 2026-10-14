@@ -12,18 +12,27 @@ interface ManageCharacterPalettesDialogProps {
   onOpenChange: (open: boolean) => void;
   onImportClick: () => void;
   onExportClick: () => void;
+  paletteId?: string;
+  onPaletteSelect?: (paletteId: string) => void;
 }
 
 export const ManageCharacterPalettesDialog: React.FC<ManageCharacterPalettesDialogProps> = ({
   isOpen,
   onOpenChange,
   onImportClick,
-  onExportClick
+  onExportClick,
+  paletteId,
+  onPaletteSelect,
 }) => {
   const availablePalettes = useCharacterPaletteStore(state => state.availablePalettes);
   const customPalettes = useCharacterPaletteStore(state => state.customPalettes);
-  const activePalette = useCharacterPaletteStore(state => state.activePalette);
-  const setActivePalette = useCharacterPaletteStore(state => state.setActivePalette);
+  const storeActivePalette = useCharacterPaletteStore(state => state.activePalette);
+  const setStoreActivePalette = useCharacterPaletteStore(state => state.setActivePalette);
+  const activePalette = [...availablePalettes, ...customPalettes].find((p) => p.id === paletteId) ?? storeActivePalette;
+  const setActivePalette = (palette: CharacterPalette) => {
+    if (onPaletteSelect) onPaletteSelect(palette.id);
+    else setStoreActivePalette(palette);
+  };
   const deleteCustomPalette = useCharacterPaletteStore(state => state.deleteCustomPalette);
   const updateCustomPalette = useCharacterPaletteStore(state => state.updateCustomPalette);
   const duplicatePalette = useCharacterPaletteStore(state => state.duplicatePalette);
@@ -53,6 +62,9 @@ export const ManageCharacterPalettesDialog: React.FC<ManageCharacterPalettesDial
   const handleDelete = (paletteId: string) => {
     if (confirm('Are you sure you want to delete this palette?')) {
       deleteCustomPalette(paletteId);
+      if (onPaletteSelect && paletteId === activePalette.id) {
+        onPaletteSelect(availablePalettes[0].id);
+      }
     }
   };
 
@@ -85,7 +97,7 @@ export const ManageCharacterPalettesDialog: React.FC<ManageCharacterPalettesDial
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button size="sm" variant="outline" onClick={onImportClick} className="h-7 w-7 p-0">
+                      <Button aria-label="Import character palette" size="sm" variant="outline" onClick={onImportClick} className="h-7 w-7 p-0">
                         <Upload className="h-3 w-3" />
                       </Button>
                     </TooltipTrigger>
@@ -98,7 +110,7 @@ export const ManageCharacterPalettesDialog: React.FC<ManageCharacterPalettesDial
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button size="sm" variant="outline" onClick={onExportClick} className="h-7 w-7 p-0">
+                      <Button aria-label="Export character palette" size="sm" variant="outline" onClick={onExportClick} className="h-7 w-7 p-0">
                         <Download className="h-3 w-3" />
                       </Button>
                     </TooltipTrigger>

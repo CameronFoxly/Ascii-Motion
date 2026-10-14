@@ -1,41 +1,24 @@
 /**
  * GeneratorsSection - Collapsible generators section for the right panel
- * 
- * Features:
- * - Collapsible section header with generators icon
- * - Generator buttons with icons and names
- * - Defaults to collapsed state
- * - Opens generator panel and starts preview on click
+ *
+ * Clicking a generator adds a procedural generator layer to the timeline.
+ * Generator settings are edited (and keyframed) from the timeline's
+ * generator properties panel.
  */
 
 import { useState } from 'react';
 import { Button } from '../ui/button';
-import { 
+import {
   Collapsible,
   CollapsibleContent,
 } from '../ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
-import { useGeneratorActions } from '../../stores/generatorsStore';
-import { GENERATOR_DEFINITIONS } from '../../constants/generators';
-import type { GeneratorId } from '../../types/generators';
-import { 
-  Zap,
-  Radio,
-  Wind,
-  Sparkles,
-  Droplets,
-  CloudHail
-} from 'lucide-react';
-
-// Icon mapping for generator buttons
-const GENERATOR_ICONS = {
-  'Radio': Radio,
-  'Wind': Wind,
-  'Sparkles': Sparkles,
-  'Droplets': Droplets,
-  'CloudHail': CloudHail
-} as const;
+import { getAllGenerators } from '../../registry/generatorRegistry';
+import { addGeneratorLayerWithHistory } from '../../utils/generators/generatorHistory';
+import { useTimelineStore } from '../../stores/timelineStore';
+import { useLayerLimit } from '../../hooks/useLayerLimit';
+import { Zap } from 'lucide-react';
 
 interface GeneratorsSectionProps {
   className?: string;
@@ -43,11 +26,15 @@ interface GeneratorsSectionProps {
 
 export function GeneratorsSection({ className = '' }: GeneratorsSectionProps) {
   const [isOpen, setIsOpen] = useState(false); // Collapsed by default
-  
-  const { openGenerator, isGenerating } = useGeneratorActions();
+  const { canAddLayer } = useLayerLimit();
 
-  const handleGeneratorClick = (generatorId: GeneratorId) => {
-    openGenerator(generatorId);
+  const handleGeneratorClick = (generatorType: string) => {
+    const layerId = addGeneratorLayerWithHistory(generatorType);
+    if (!layerId) return;
+    const tl = useTimelineStore.getState();
+    if (!tl.view.expandedLayerIds.has(layerId)) {
+      tl.toggleLayerExpanded(layerId);
+    }
   };
 
   return (
@@ -59,44 +46,40 @@ export function GeneratorsSection({ className = '' }: GeneratorsSectionProps) {
             Generators
           </div>
         </CollapsibleHeader>
-        
+
         <CollapsibleContent className="collapsible-content mt-2">
-          <div className="space-y-3">
-            {/* Generator Buttons */}
-            <div className="space-y-2">
-              <TooltipProvider>
-                {GENERATOR_DEFINITIONS.map(generator => {
-                  const IconComponent = GENERATOR_ICONS[generator.icon as keyof typeof GENERATOR_ICONS];
-                  
-                  return (
-                    <Tooltip key={generator.id}>
-                      <TooltipTrigger asChild>
+          <div className="space-y-2">
+            <TooltipProvider>
+              {getAllGenerators().map((generator) => {
+                const IconComponent = generator.icon;
+                return (
+                  <Tooltip key={generator.type}>
+                    <TooltipTrigger asChild>
+                      {/* Wrapper keeps the tooltip working when the button is disabled */}
+                      <span className="block">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleGeneratorClick(generator.id)}
-                          disabled={isGenerating}
+                          onClick={() => handleGeneratorClick(generator.type)}
+                          disabled={!canAddLayer}
                           className="w-full justify-start gap-2 h-8 text-xs"
                         >
-                          {IconComponent && <IconComponent className="w-3 h-3" />}
+                          <IconComponent className="w-3 h-3" />
                           {generator.name}
                         </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="left">
-                        <p className="text-xs">{generator.description}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  );
-                })}
-              </TooltipProvider>
-            </div>
-            
-            {/* Generating Status */}
-            {isGenerating && (
-              <div className="text-xs text-muted-foreground animate-pulse">
-                Generating preview...
-              </div>
-            )}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="left">
+                      <p className="text-xs">
+                        {canAddLayer
+                          ? generator.description
+                          : 'Layer limit reached. Upgrade to Pro for unlimited layers.'}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </TooltipProvider>
           </div>
         </CollapsibleContent>
       </Collapsible>
