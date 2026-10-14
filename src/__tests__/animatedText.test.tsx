@@ -141,15 +141,20 @@ describe('animated text rendering', () => {
   it('places a block cursor at the next character and blinks only while paused', () => {
     const at = (end: number) => settings({
       text: 'abcd', effect: 'typewriter', 'typewriter.units': 'index', 'typewriter.end': end,
-      'typewriter.cursor': true, 'typewriter.cursorBlinkFrames': 2,
+      'typewriter.cursor': true, 'typewriter.cursorBlinkRate': 3,
     });
     // Advancing: cursor always shown
     expect(rows(textGen.renderCells(ctx(3), at(2), {}, at(1)))).toEqual(['ab█']);
-    // Paused: on for 2 frames, off for 2
+    // Paused at 3 blinks/s (30fps): on for 5 frames, off for 5
     expect(rows(textGen.renderCells(ctx(4), at(2), {}, at(2)))).toEqual(['ab█']);
-    expect(rows(textGen.renderCells(ctx(2), at(2), {}, at(2)))).toEqual(['ab']);
+    expect(rows(textGen.renderCells(ctx(7), at(2), {}, at(2)))).toEqual(['ab']);
+    expect(rows(textGen.renderCells(ctx(12), at(2), {}, at(2)))).toEqual(['ab█']);
+    // Slowest rate (0.1/s): on for 5s, off for 5s
+    const slow = { ...at(2), 'typewriter.cursorBlinkRate': 0.1 };
+    expect(rows(textGen.renderCells(ctx(140), slow, {}, slow))).toEqual(['ab█']);
+    expect(rows(textGen.renderCells(ctx(160), slow, {}, slow))).toEqual(['ab']);
     const noBlink = { ...at(2), 'typewriter.cursorBlink': false };
-    expect(rows(textGen.renderCells(ctx(2), noBlink, {}, noBlink))).toEqual(['ab█']);
+    expect(rows(textGen.renderCells(ctx(7), noBlink, {}, noBlink))).toEqual(['ab█']);
     // Fully revealed: cursor after the last character
     expect(rows(textGen.renderCells(ctx(0), at(4), {}))).toEqual(['abcd█']);
   });

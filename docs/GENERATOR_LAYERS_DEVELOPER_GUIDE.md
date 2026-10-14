@@ -100,7 +100,7 @@ caret always matches the output:
   - **Typewriter** shows indices in [Start, End), in percent or index units. Picking it
     auto-keys End 0 → 100 across the span (`applyTypewriterDefaultKeyframes`) unless End is
     already animated. The optional block cursor sits at the next character and blinks only
-    while paused, with its own keyframeable Cursor Color (white by default). Start and End
+    while paused at Blink Rate full cycles per second (0.1–3, from `ctx.time`), with its own keyframeable Cursor Color (white by default). Start and End
     are limited to 100 in Percentage mode or the character count in Index mode. Switching
     units converts both values and their keyframes together, preserving the reveal.
     Pause detection compares against `previousSettings`. Hug boxes reserve a

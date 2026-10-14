@@ -73,8 +73,8 @@ const propertyDefinitions: EffectPropertyDefinition[] = [
   boolProp('typewriter.cursorBlink', 'Cursor Blink', ANIMATION, true, {
     visibleWhen: effectIs('typewriter'), visibleWhenAll: [{ path: 'typewriter.cursor', values: ['true'] }],
   }),
-  numberProp('typewriter.cursorBlinkFrames', 'Blink Rate', ANIMATION, 15, 1, 240, 1, {
-    unit: 'fr',
+  numberProp('typewriter.cursorBlinkRate', 'Blink Rate', ANIMATION, 1, 0.1, 3, 0.1, {
+    unit: '/s',
     interpolation: 'hold',
     visibleWhen: effectIs('typewriter'),
     visibleWhenAll: [
@@ -254,8 +254,9 @@ function renderAnimatedText(
     const paused = previousSettings === undefined || revealedEnd(previousSettings) === range.end;
     let visible = true;
     if (paused && b(settings, 'typewriter.cursorBlink', true)) {
-      const rate = Math.max(1, Math.round(n(settings, 'typewriter.cursorBlinkFrames', 15)));
-      visible = Math.floor(ctx.localFrame / rate) % 2 === 0;
+      // Blinks per second: one blink is a full on + off cycle
+      const rate = Math.min(3, Math.max(0.1, n(settings, 'typewriter.cursorBlinkRate', 1)));
+      visible = Math.floor(ctx.time * rate * 2) % 2 === 0;
     }
     if (visible && caret.row < layout.height) {
       const cursorChar = Array.from(s(settings, 'typewriter.cursorChar', '█'))[0] ?? '█';
