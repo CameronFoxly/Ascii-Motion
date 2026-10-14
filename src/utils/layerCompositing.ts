@@ -27,6 +27,11 @@ import { applyEffectsToLayer, hasActiveEffectsAtFrame } from './effectsPipeline'
 import { getEffect } from '../registry/effectRegistry';
 import { getGeneratorLayerCells, isGeneratorLayer } from './generators/generatorRuntime';
 
+function hasVisibleCellContent(cell: Cell): boolean {
+  return Boolean((cell.char && cell.char !== ' ') ||
+    (cell.bgColor && cell.bgColor !== 'transparent'));
+}
+
 export interface CompositeOptions {
   /** Show generator layers being edited on the canvas in their edit-preview form (main canvas only) */
   generatorEditPreview?: boolean;
@@ -246,7 +251,7 @@ export function compositeLayersAtFrame(
           const sourceKey = `${source.x},${source.y}`;
           const cell = cellData.get(sourceKey);
 
-          if (cell && cell.char && cell.char !== ' ') {
+          if (cell && hasVisibleCellContent(cell)) {
             target.set(`${sx},${sy}`, cell);
           }
         }
@@ -267,7 +272,7 @@ export function compositeLayersAtFrame(
     } else {
       // No transform — use coordinates directly (fast path, forward mapping is fine)
       for (const [coordKey, cell] of cellData) {
-        if (!cell.char || cell.char === ' ') continue;
+        if (!hasVisibleCellContent(cell)) continue;
 
         const commaIdx = coordKey.indexOf(',');
         const finalX = parseInt(coordKey.substring(0, commaIdx), 10);
@@ -784,14 +789,14 @@ function compositeOneLayerToScreenSpace(
         if (clip && (sx < 0 || sx >= canvasWidth || sy < 0 || sy >= canvasHeight)) continue;
         const source = inverseTransformPoint(sx, sy, transform);
         const cell = cellData.get(`${source.x},${source.y}`);
-        if (cell && cell.char && cell.char !== ' ') {
+        if (cell && hasVisibleCellContent(cell)) {
           layerCells.set(`${sx},${sy}`, cell);
         }
       }
     }
   } else {
     for (const [coordKey, cell] of cellData) {
-      if (!cell.char || cell.char === ' ') continue;
+      if (!hasVisibleCellContent(cell)) continue;
       const commaIdx = coordKey.indexOf(',');
       const finalX = parseInt(coordKey.substring(0, commaIdx), 10);
       const finalY = parseInt(coordKey.substring(commaIdx + 1), 10);

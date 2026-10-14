@@ -100,7 +100,10 @@ caret always matches the output:
   - **Typewriter** shows indices in [Start, End), in percent or index units. Picking it
     auto-keys End 0 → 100 across the span (`applyTypewriterDefaultKeyframes`) unless End is
     already animated. The optional block cursor sits at the next character and blinks only
-    while the reveal is paused, compared against `previousSettings`. Hug boxes reserve a
+    while paused, with its own keyframeable Cursor Color (white by default). Start and End
+    are limited to 100 in Percentage mode or the character count in Index mode. Switching
+    units converts both values and their keyframes together, preserving the reveal.
+    Pause detection compares against `previousSettings`. Hug boxes reserve a
     trailing column for the cursor. In Fixed Size boxes, a cursor past the last column wraps to
     the next row, or stays on the last cell when there is no next row.
   - **Blink** uses On/Off frames and a phase offset, either for the whole text or per character

@@ -65,6 +65,11 @@ const propertyDefinitions: EffectPropertyDefinition[] = [
     defaultValue: '█', interpolation: 'hold',
     visibleWhen: effectIs('typewriter'), visibleWhenAll: [{ path: 'typewriter.cursor', values: ['true'] }],
   },
+  {
+    path: 'typewriter.cursorColor', displayName: 'Cursor Color', category: ANIMATION, valueType: 'color',
+    defaultValue: '#ffffff', interpolation: 'hold',
+    visibleWhen: effectIs('typewriter'), visibleWhenAll: [{ path: 'typewriter.cursor', values: ['true'] }],
+  },
   boolProp('typewriter.cursorBlink', 'Cursor Blink', ANIMATION, true, {
     visibleWhen: effectIs('typewriter'), visibleWhenAll: [{ path: 'typewriter.cursor', values: ['true'] }],
   }),
@@ -105,6 +110,24 @@ export interface AnimatedTextBox {
   layout: TextLayout;
 }
 
+export function getAnimatedTextCharacterCount(text: string): number {
+  return Array.from(text).filter((char) => char !== '\n').length;
+}
+
+export function getAnimatedTextRangeDefinition(
+  definition: EffectPropertyDefinition,
+  settings: Record<string, unknown>,
+): EffectPropertyDefinition {
+  if (definition.path !== 'typewriter.start' && definition.path !== 'typewriter.end') return definition;
+  const percentage = settings['typewriter.units'] !== 'index';
+  return {
+    ...definition,
+    min: 0,
+    max: percentage ? 100 : getAnimatedTextCharacterCount(s(settings, 'text', '')),
+    unit: percentage ? '%' : undefined,
+  };
+}
+
 /** Resolve the text box (position + layout) for already-resolved settings */
 export function getAnimatedTextBox(settings: Record<string, unknown>): AnimatedTextBox {
   const layout = layoutText(s(settings, 'text', ''), {
@@ -143,8 +166,8 @@ export function getTypewriterRange(settings: Record<string, unknown>, charCount:
     start = Math.round((Math.min(100, Math.max(0, start)) / 100) * charCount);
     end = Math.round((Math.min(100, Math.max(0, end)) / 100) * charCount);
   } else {
-    start = Math.floor(Math.max(0, start));
-    end = Math.floor(Math.max(0, end));
+    start = Math.round(Math.max(0, start));
+    end = Math.round(Math.max(0, end));
   }
   start = Math.min(start, charCount);
   end = Math.min(end, charCount);
@@ -184,12 +207,12 @@ function renderAnimatedText(
   const hasBg = bgColor !== TRANSPARENT;
   const effect: AnimatedTextEffect = ctx.editing ? 'none' : s<AnimatedTextEffect>(settings, 'effect', 'none');
 
-  const put = (col: number, row: number, char: string) => {
+  const put = (col: number, row: number, char: string, foreground = color) => {
     const x = boxX + col;
     const y = boxY + row;
     if (x < 0 || y < 0 || x >= ctx.width || y >= ctx.height) return;
     if ((char === ' ' || char === '') && !hasBg) return;
-    out.set(`${x},${y}`, { char, color, bgColor });
+    out.set(`${x},${y}`, { char, color: foreground, bgColor });
   };
 
   if (hasBg && b(settings, 'fillBox', false)) {
@@ -234,9 +257,9 @@ function renderAnimatedText(
       const rate = Math.max(1, Math.round(n(settings, 'typewriter.cursorBlinkFrames', 15)));
       visible = Math.floor(ctx.localFrame / rate) % 2 === 0;
     }
-    if (visible) {
+    if (visible && caret.row < layout.height) {
       const cursorChar = Array.from(s(settings, 'typewriter.cursorChar', '█'))[0] ?? '█';
-      put(caret.col, caret.row, cursorChar);
+      put(caret.col, caret.row, cursorChar, s(settings, 'typewriter.cursorColor', '#ffffff'));
     }
   }
 

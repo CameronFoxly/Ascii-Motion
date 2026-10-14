@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { registerAllGenerators } from '../registry/generators';
 import { getGenerator, getGeneratorInitialSettings, type GeneratorFrameContext } from '../registry/generatorRegistry';
@@ -9,7 +9,7 @@ import {
 } from '../registry/generators/animatedText';
 import { layoutText } from '../utils/generators/animatedTextLayout';
 import { compositeLayersAtFrame } from '../utils/layerCompositing';
-import { applyTypewriterDefaultKeyframes } from '../utils/generators/animatedTextActions';
+import { applyTypewriterDefaultKeyframes, convertTypewriterUnits } from '../utils/generators/animatedTextActions';
 import {
   renderGeneratorFrame,
   resolveGeneratorSettings,
@@ -121,6 +121,15 @@ describe('animated text rendering', () => {
     expect(textGen.renderCells(ctx(0), { ...base, backgroundColor: 'transparent', fillBox: true }, {}).size).toBe(3);
   });
 
+  it('uses white for the cursor by default, independently of the text color', () => {
+    const s = settings({
+      text: 'Hi', textColor: '#ff0000', effect: 'typewriter', 'typewriter.cursor': true,
+      'typewriter.cursorBlink': false,
+    });
+    expect(textGen.renderCells(ctx(0), s, {}).get('2,0')?.color).toBe('#ffffff');
+    expect(textGen.renderCells(ctx(0), { ...s, 'typewriter.cursorColor': '#00ff00' }, {}).get('2,0')?.color).toBe('#00ff00');
+  });
+
   it('typewriter reveals [start, end) by percent or index, ignoring newlines', () => {
     const s = settings({ text: 'ab\ncd', effect: 'typewriter', 'typewriter.end': 50 });
     expect(getTypewriterRange(s, 4)).toEqual({ start: 0, end: 2 });
@@ -190,6 +199,46 @@ describe('animated text rendering', () => {
 });
 
 describe('animated text generator integration', () => {
+  it('preserves filled background cells through compositing, transforms, and baking', () => {
+    const tl = useTimelineStore.getState();
+    const id = tl.addGeneratorLayer('animated-text', { durationFrames: 1 })!;
+    tl.updateGeneratorSettings(id, {
+      text: 'a', shape: 'fixed', 'box.width': 4, 'box.height': 2,
+      'position.x': 0, 'position.y': 0, backgroundColor: '#0000ff', fillBox: true,
+    });
+    const composite = () => compositeLayersAtFrame(useTimelineStore.getState().layers, 0, 80, 24);
+    expect(composite().size).toBe(8);
+    expect(composite().get('3,1')).toMatchObject({ char: ' ', bgColor: '#0000ff' });
+    useTimelineStore.setState((state) => ({
+      layers: state.layers.map((layer) => layer.id === id
+        ? { ...layer, staticProperties: { ...layer.staticProperties, 'transform.position.x': 2 } }
+        : layer),
+    }));
+    expect(composite().size).toBe(8);
+    expect(composite().get('5,1')).toMatchObject({ char: ' ', bgColor: '#0000ff' });
+    tl.bakeGeneratorLayer(id);
+    expect(composite().size).toBe(8);
+    expect(composite().get('5,1')?.bgColor).toBe('#0000ff');
+  });
+
+  it('converts both range values and all existing keys while preserving the reveal', () => {
+    const tl = useTimelineStore.getState();
+    const id = tl.addGeneratorLayer('animated-text', { durationFrames: 11 })!;
+    tl.updateGeneratorSettings(id, { text: 'ab\n😀cdef', effect: 'typewriter', 'typewriter.start': 15 });
+    applyTypewriterDefaultKeyframes(id);
+    const source = () => tl.getLayer(id)!.generator!;
+    const before = Array.from({ length: 11 }, (_, f) => rows(renderGeneratorFrame(source(), f, 80, 24)));
+    convertTypewriterUnits(id, 'index', 5);
+    expect(source().settings['typewriter.units']).toBe('index');
+    expect(source().propertyTracks.find((track) => track.propertyPath === 'typewriter.end')?.keyframes.map((key) => key.value)).toEqual([0, 7]);
+    expect(Array.from({ length: 11 }, (_, f) => rows(renderGeneratorFrame(source(), f, 80, 24)))).toEqual(before);
+    convertTypewriterUnits(id, 'percent', 5);
+    expect(Array.from({ length: 11 }, (_, f) => rows(renderGeneratorFrame(source(), f, 80, 24)))).toEqual(before);
+    tl.updateGeneratorSettings(id, { text: '' });
+    convertTypewriterUnits(id, 'index', 0);
+    convertTypewriterUnits(id, 'percent', 0);
+    expect(source().settings['typewriter.end']).toBe(0);
+  });
   it('uses direct cells without intensity mapping settings and centers by default', () => {
     const entry = getGenerator('animated-text')!;
     expect(entry.propertyDefinitions.some((d) => d.path.startsWith('mapping.'))).toBe(false);
@@ -253,6 +302,48 @@ describe('animated text generator integration', () => {
 });
 
 describe('animated text panel', () => {
+  it('toggles background fill and exposes a cursor color picker only when enabled', () => {
+    const tl = useTimelineStore.getState();
+    const id = tl.addGeneratorLayer('animated-text')!;
+    tl.updateGeneratorSettings(id, {
+      text: 'a', shape: 'fixed', 'box.width': 4, 'box.height': 2,
+      backgroundColor: '#0000ff', effect: 'typewriter', 'typewriter.end': 100,
+    });
+    render(<GeneratorPropertiesPanel />);
+    fireEvent.click(within(screen.getByText('Fill Box Background').parentElement!).getByRole('button', { name: 'Off' }));
+    expect(tl.getLayer(id)!.generator!.settings.fillBox).toBe(true);
+    expect(compositeLayersAtFrame(useTimelineStore.getState().layers, 0, 80, 24).size).toBe(8);
+    expect(screen.queryByLabelText('Edit Cursor Color')).toBeNull();
+    fireEvent.click(within(screen.getByText('Block Cursor').parentElement!).getByRole('button', { name: 'Off' }));
+    expect(screen.getByLabelText('Edit Cursor Color').getAttribute('title')).toBe('#ffffff');
+  });
+
+  it('caps range inputs by units and converts a switch in one undo entry', () => {
+    const tl = useTimelineStore.getState();
+    const id = tl.addGeneratorLayer('animated-text')!;
+    tl.updateGeneratorSettings(id, { text: 'abcdef', effect: 'typewriter', 'typewriter.start': 0, 'typewriter.end': 50 });
+    render(<GeneratorPropertiesPanel />);
+    const units = screen.getAllByRole('combobox').find((element) =>
+      Array.from((element as HTMLSelectElement).options).some((option) => option.value === 'percent'))!;
+    fireEvent.change(units, { target: { value: 'index' } });
+    expect((screen.getByLabelText('End') as HTMLInputElement).value).toBe('3');
+    expect(useToolStore.getState().historyStack).toHaveLength(1);
+    replay();
+    expect((screen.getByLabelText('End') as HTMLInputElement).value).toBe('50');
+    expect(tl.getLayer(id)!.generator!.settings['typewriter.units']).toBe('percent');
+    replay(true);
+    const end = screen.getByLabelText('End') as HTMLInputElement;
+    fireEvent.focus(end);
+    fireEvent.change(end, { target: { value: '999' } });
+    fireEvent.blur(end);
+    expect(end.value).toBe('6');
+    fireEvent.change(units, { target: { value: 'percent' } });
+    expect(end.value).toBe('100');
+    fireEvent.focus(end);
+    fireEvent.change(end, { target: { value: '999' } });
+    fireEvent.blur(end);
+    expect(end.value).toBe('100');
+  });
   it('shows effect controls conditionally and auto-keys typewriter in one undo entry', () => {
     const tl = useTimelineStore.getState();
     const id = tl.addGeneratorLayer('animated-text')!;

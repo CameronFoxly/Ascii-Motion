@@ -19,8 +19,8 @@ import {
   recordGeneratorChange,
   setGeneratorValueAtFrame,
 } from '../../../utils/generators/generatorHistory';
-import { ANIMATED_TEXT_GENERATOR_TYPE } from '../../../registry/generators/animatedText';
-import { applyTypewriterDefaultKeyframes } from '../../../utils/generators/animatedTextActions';
+import { ANIMATED_TEXT_GENERATOR_TYPE, getAnimatedTextRangeDefinition } from '../../../registry/generators/animatedText';
+import { applyTypewriterDefaultKeyframes, convertTypewriterUnits } from '../../../utils/generators/animatedTextActions';
 import { ColorPickerOverlay } from '../ColorPickerOverlay';
 import { Button } from '../../ui/button';
 import { Slider } from '../../ui/slider';
@@ -354,6 +354,7 @@ const GeneratorPropertyRow: React.FC<GeneratorPropertyRowProps> = ({
       {keyframeDiamond}
       {label}
       <input
+        aria-label={definition.displayName}
         type="text"
         inputMode={isText ? 'text' : 'decimal'}
         value={displayValue}
@@ -491,7 +492,9 @@ export const GeneratorPropertiesPanel: React.FC = () => {
   const Icon = entry.icon;
 
   const categories = new Map<string, EffectPropertyDefinition[]>();
-  for (const def of entry.propertyDefinitions) {
+  for (const original of entry.propertyDefinitions) {
+    const def = source.generatorType === ANIMATED_TEXT_GENERATOR_TYPE
+      ? getAnimatedTextRangeDefinition(original, resolved) : original;
     if (!categories.has(def.category)) categories.set(def.category, []);
     categories.get(def.category)!.push(def);
   }
@@ -501,6 +504,11 @@ export const GeneratorPropertiesPanel: React.FC = () => {
     if (!current) return;
     if (resolveGeneratorSettings(current, currentFrame)[def.path] === newValue) return;
     const mutate = () => {
+      if (source.generatorType === ANIMATED_TEXT_GENERATOR_TYPE && def.path === 'typewriter.units' &&
+          (newValue === 'percent' || newValue === 'index')) {
+        convertTypewriterUnits(layerId, newValue, currentFrame);
+        return;
+      }
       setGeneratorValueAtFrame(layerId, def.path, newValue as KeyframeValue, currentFrame);
       if (source.generatorType === ANIMATED_TEXT_GENERATOR_TYPE && def.path === 'effect' && newValue === 'typewriter') {
         applyTypewriterDefaultKeyframes(layerId);
@@ -579,7 +587,9 @@ export const GeneratorPropertiesPanel: React.FC = () => {
                   layerId={layerId}
                   source={source}
                   definition={def}
-                  value={resolved[def.path]}
+                  value={typeof resolved[def.path] === 'number' && def.max !== undefined
+                    ? Math.max(def.min ?? -Infinity, Math.min(def.max, resolved[def.path] as number))
+                    : resolved[def.path]}
                   currentFrame={currentFrame}
                   onChange={(v, recordHistory) => handleChange(def, v, recordHistory)}
                 />
