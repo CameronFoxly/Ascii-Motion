@@ -93,6 +93,21 @@ export const TextBoxEditingOverlay: React.FC = () => {
       }
     }
   };
+  const resizeByKeyboard = (corner: number, key: string) => {
+    const current = useToolStore.getState().textToolState.textBox;
+    if (!current) return;
+    const region = { ...current };
+    if (key === 'ArrowLeft' || key === 'ArrowRight') {
+      const delta = key === 'ArrowLeft' ? -1 : 1;
+      if (corner === 0 || corner === 3) region.left = Math.min(region.right, Math.max(0, region.left + delta));
+      else region.right = Math.max(region.left, region.right + delta);
+    } else {
+      const delta = key === 'ArrowUp' ? -1 : 1;
+      if (corner === 0 || corner === 1) region.top = Math.min(region.bottom, Math.max(0, region.top + delta));
+      else region.bottom = Math.max(region.top, region.bottom + delta);
+    }
+    useToolStore.getState().updateTextBoxEdit({ preferredColumn: null }, region);
+  };
   const alignments: { value: TextAlignment; icon: typeof AlignLeft; label: string }[] = [
     { value: 'left', icon: AlignLeft, label: 'Align left' },
     { value: 'center', icon: AlignCenter, label: 'Align center' },
@@ -127,12 +142,20 @@ export const TextBoxEditingOverlay: React.FC = () => {
         }}
       />
       {corners.map((corner, index) => (
-        <div
+        <button
           key={index}
-          role="button"
+          type="button"
           aria-label={`Resize text box ${['top left', 'top right', 'bottom right', 'bottom left'][index]}`}
-          className="absolute pointer-events-auto"
+          title="Use arrow keys to resize the text box"
+          className="absolute pointer-events-auto rounded-sm border border-white/90 bg-[#9382ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           style={{ left: corner.x - 8, top: corner.y - 8, width: 16, height: 16, cursor: index % 2 === 0 ? 'nwse-resize' : 'nesw-resize' }}
+          onKeyDown={(event) => {
+            if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+              event.preventDefault();
+              event.stopPropagation();
+              resizeByKeyboard(index, event.key);
+            }
+          }}
           onPointerDown={(event) => {
             if (event.button !== 0) return;
             event.preventDefault();

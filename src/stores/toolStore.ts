@@ -20,7 +20,10 @@ import { useAnimationStore } from './animationStore';
 import { usePreviewStore } from './previewStore';
 import { useTimelineStore } from './timelineStore';
 import { getContentFrameAtTime } from '../utils/layerCompositing';
-import { layoutTextBox, textBoxCaret, updateTextBoxStyles, colorTextBoxSelection } from '../utils/textBoxLayout';
+import {
+  layoutTextBox, textBoxCaret, updateTextBoxStyles, colorTextBoxSelection,
+  normalizeTextOffset,
+} from '../utils/textBoxLayout';
 import { toast } from 'sonner';
 
 interface ToolStoreState extends ToolState {
@@ -1237,8 +1240,8 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
         color: get().selectedColor, bgColor: get().selectedBgColor,
       });
     }
-    edit.caret = Math.max(0, Math.min(edit.text.length, edit.caret));
-    edit.anchor = Math.max(0, Math.min(edit.text.length, edit.anchor));
+    edit.caret = normalizeTextOffset(edit.text, edit.caret);
+    edit.anchor = normalizeTextOffset(edit.text, edit.anchor);
     const box = { ...(region ?? state.textBox) };
     box.right = Math.max(box.left, box.right);
     box.bottom = Math.max(box.top, box.bottom);
@@ -1269,18 +1272,18 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     const frame = getContentFrameAtTime(layer, timeline.view.currentFrame);
     const canvas = useCanvasStore.getState();
     // Only merge the working buffer when it belongs to this exact destination.
-    const bufferMatches = frame && canvas.activeLayerId === layer.id &&
+    const bufferMatches = canvas.activeLayerId === layer.id &&
       canvas.activeFrameIndex === timeline.view.currentFrame && canvas.isDirty;
     const previous = new Map(bufferMatches ? canvas.cells : frame?.data);
     const next = new Map(previous);
     for (const line of layoutTextBox(boxEdit.text, textBox, boxEdit.alignment)) {
-      for (let column = 0; column < line.text.length; column++) {
+      for (let column = 0; column < line.characters.length; column++) {
         const local = screenToLocal(line.x + column, line.y);
         const key = createCellKey(local.x, local.y);
-        const char = line.text[column];
-        const style = boxEdit.styles[line.start + column];
-        if (char === ' ' && style.bgColor === 'transparent') next.delete(key);
-        else next.set(key, { char, ...style });
+        const character = line.characters[column];
+        const style = boxEdit.styles[character.styleIndex];
+        if (character.text === ' ' && style.bgColor === 'transparent') next.delete(key);
+        else next.set(key, { char: character.text, ...style });
       }
     }
     if (frame) {

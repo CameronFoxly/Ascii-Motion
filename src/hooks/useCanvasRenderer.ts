@@ -502,7 +502,7 @@ export const useCanvasRenderer = () => {
       const selectionStart = Math.min(edit.anchor, edit.caret);
       const selectionEnd = Math.max(edit.anchor, edit.caret);
       for (const line of lines) {
-        for (let column = 0; column < line.text.length; column++) {
+        for (let column = 0; column < line.characters.length; column++) {
           const x = line.x + column;
           const y = line.y;
           const px = x * effectiveCellWidth + panOffset.x;
@@ -511,9 +511,9 @@ export const useCanvasRenderer = () => {
             ? (theme === 'dark' ? '#000000' : '#ffffff')
             : canvasBackgroundColor;
           ctx.fillRect(px, py, effectiveCellWidth, effectiveCellHeight);
-          const char = line.text[column];
-          drawCell(ctx, x, y, { char, ...edit.styles[line.start + column] });
-          if (line.start + column >= selectionStart && line.start + column < selectionEnd) {
+          const character = line.characters[column];
+          drawCell(ctx, x, y, { char: character.text, ...edit.styles[character.styleIndex] });
+          if (character.start < selectionEnd && character.end > selectionStart) {
             ctx.fillStyle = 'rgba(168, 85, 247, 0.35)';
             ctx.fillRect(px, py, effectiveCellWidth, effectiveCellHeight);
           }

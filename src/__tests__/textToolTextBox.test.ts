@@ -79,6 +79,15 @@ describe('text box layout', () => {
     expect(layoutTextBox('AB C', { ...BOX, right: 1 }, 'left').map((line) => line.text)).toEqual(['A', 'B', 'C']);
   });
 
+  it('keeps non-BMP characters intact and maps visual columns to textarea offsets', () => {
+    const lines = layoutTextBox('A😀BC', { ...BOX, right: 2 }, 'left');
+    expect(lines.map((line) => line.text)).toEqual(['A😀', 'BC']);
+    expect(lines[0].characters.map((character) => character.text)).toEqual(['A', '😀']);
+    expect(lines[1].start).toBe(3);
+    expect(textBoxOffsetAt(lines, 1, 2)).toBe(3);
+    expect(textBoxCaret(lines, 3)).toEqual({ x: 1, y: 2 });
+  });
+
   it('places alignment controls below the corner, flips above, and clamps offscreen boxes', () => {
     expect(textBoxToolbarPosition(300, 100, 600, 400)).toEqual({ left: 192, top: 108 });
     expect(textBoxToolbarPosition(300, 390, 600, 400)).toEqual({ left: 192, top: 346 });
@@ -292,6 +301,39 @@ describe('dragged text box editing', () => {
     const data = useTimelineStore.getState().layers[0].contentFrames[0].data;
     expect(data.has('8,8')).toBe(false);
     expect(data.get('9,9')?.char).toBe('unsaved');
+  });
+
+  it('preserves a matching dirty working buffer when committing into a timeline gap', () => {
+    const timeline = useTimelineStore.getState();
+    const layer = timeline.layers[0];
+    timeline.setDuration(10);
+    for (const frame of layer.contentFrames) timeline.removeContentFrame(layer.id, frame.id);
+    timeline.goToFrame(5);
+    useCanvasStore.setState({
+      cells: new Map([['9,9', cell('unsaved')]]),
+      activeLayerId: layer.id,
+      activeFrameIndex: 5,
+      isDirty: true,
+    });
+    useToolStore.getState().updateTextBoxEdit({ text: 'A' });
+    expect(useToolStore.getState().commitTextBox()).toBe(true);
+    const frame = useTimelineStore.getState().getLayer(layer.id)!.contentFrames[0];
+    expect(frame.startFrame).toBe(5);
+    expect(frame.data.get('9,9')?.char).toBe('unsaved');
+    expect(frame.data.get('1,1')?.char).toBe('A');
+  });
+
+  it('moves and commits non-BMP characters as single text cells', () => {
+    const store = useToolStore.getState();
+    store.updateTextBoxEdit({ text: 'A😀B', caret: 3, anchor: 3 }, { ...BOX, right: 2 });
+    const { result } = renderHook(() => useTextTool());
+    pressKey(result, 'ArrowLeft');
+    expect(edit().caret).toBe(1);
+    store.commitTextBox();
+    const data = useTimelineStore.getState().layers[0].contentFrames[0].data;
+    expect(data.get('1,1')?.char).toBe('A');
+    expect(data.get('2,1')?.char).toBe('😀');
+    expect(data.get('1,2')?.char).toBe('B');
   });
 
   it('keeps frame synchronization and autosave free of draft text across visited frames', () => {

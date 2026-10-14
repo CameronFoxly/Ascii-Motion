@@ -4,7 +4,7 @@ import { useCanvasStore } from '../stores/canvasStore';
 import { useTimelineStore } from '../stores/timelineStore';
 import { screenToLocal } from '../utils/layerTransformUtils';
 import type { TextBoxRegion } from '../types';
-import { layoutTextBox, textBoxCaret, textBoxOffsetAt } from '../utils/textBoxLayout';
+import { layoutTextBox, moveTextCodePointOffset, textBoxCaret, textBoxOffsetAt } from '../utils/textBoxLayout';
 
 /**
  * Text Tool Hook - Handles text input functionality
@@ -461,7 +461,7 @@ export const useTextTool = () => {
           caret = backwards
             ? edit.caret - (edit.text.slice(0, edit.caret).match(/\S+\s*$/)?.[0].length ?? edit.caret)
             : edit.caret + (edit.text.slice(edit.caret).match(/^\s*\S+\s*/)?.[0].length ?? edit.text.length - edit.caret);
-        } else caret += backwards ? -1 : 1;
+        } else caret = moveTextCodePointOffset(edit.text, caret, backwards ? -1 : 1);
       } else if (event.key === 'Home' || event.key === 'End') {
         caret = modifier ? (event.key === 'Home' ? 0 : edit.text.length) : (event.key === 'Home' ? line.start : line.end);
       } else {
@@ -495,7 +495,7 @@ export const useTextTool = () => {
         const from = start === end && event.key === 'Backspace' ? Math.max(0, start - 1) : start;
         const to = start === end && event.key === 'Delete' ? Math.min(edit.text.length, end + 1) : end;
         store.updateTextBoxEdit({ text: edit.text.slice(0, from) + edit.text.slice(to), caret: from, anchor: from, preferredColumn: null });
-      } else if (event.key === 'Enter' || (event.key.length === 1 && !modifier)) {
+      } else if (event.key === 'Enter' || (Array.from(event.key).length === 1 && !modifier)) {
         event.preventDefault();
         replaceSelection(event.key === 'Enter' ? '\n' : event.key);
       }
