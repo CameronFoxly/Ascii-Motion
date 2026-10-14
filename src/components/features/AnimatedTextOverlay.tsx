@@ -9,10 +9,14 @@ import { recordGeneratorChange, setGeneratorValueAtFrame } from '../../utils/gen
 import { isFrameInGeneratorRange, resolveGeneratorSettings } from '../../utils/generators/generatorRuntime';
 import { ANIMATED_TEXT_GENERATOR_TYPE, getAnimatedTextBox } from '../../registry/generators/animatedText';
 import type { GeneratorSource } from '../../types/generatorLayer';
+import type { Tool } from '../../types';
 import type { LayerId } from '../../types/timeline';
 import { MotionPathDots } from './MotionPathDots';
 
 const POSITION_LIMIT = 1000;
+const NON_DRAWING_TOOLS: ReadonlySet<Tool> = new Set<Tool>([
+  'select', 'lasso', 'magicwand', 'eyedropper', 'layertransform', 'fliphorizontal', 'flipvertical',
+]);
 
 interface BoxDrag {
   pointerId: number;
@@ -49,14 +53,15 @@ export function AnimatedTextOverlay() {
   const aspectRatio = cellWidth / cellHeight;
   const shown = !!layer && !!source && isText && layer.visible && source.enabled
     && isFrameInGeneratorRange(source, currentFrame) && !playback.isActive;
-  const isEditing = shown && editingLayerId === layer?.id;
+  const editable = shown && !layer?.locked;
+  const isEditing = editable && editingLayerId === layer?.id;
 
   // Leave edit mode when the edited layer is no longer shown here
   useEffect(() => {
-    if (editingLayerId && (!shown || editingLayerId !== layer?.id)) {
+    if (editingLayerId && (!editable || editingLayerId !== layer?.id)) {
       useAnimatedTextEditStore.getState().stopEditing();
     }
-  }, [editingLayerId, shown, layer?.id]);
+  }, [editingLayerId, editable, layer?.id]);
 
   // Focus the hidden textarea when editing starts
   useEffect(() => {
@@ -113,7 +118,7 @@ export function AnimatedTextOverlay() {
     toCanvas(box.layout.width, box.layout.height), toCanvas(0, box.layout.height),
   ].map(toPixel);
   const topLeft = corners[0];
-  const interactive = activeTool !== 'layertransform' && !altKeyDown;
+  const interactive = editable && !NON_DRAWING_TOOLS.has(activeTool) && !altKeyDown;
 
   const pointerToCell = (clientX: number, clientY: number) => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -211,10 +216,15 @@ export function AnimatedTextOverlay() {
     if (el) setSelection({ start: el.selectionStart, end: el.selectionEnd });
   };
 
-  const cellW = cellWidth * zoom;
   const cellH = cellHeight * zoom;
   const caret = isEditing && selection.start === selection.end
     ? toPixel(toCanvas(box.layout.carets[selection.start]?.col ?? 0, box.layout.carets[selection.start]?.row ?? 0))
+    : null;
+  const caretEnd = isEditing && selection.start === selection.end
+    ? toPixel(toCanvas(
+      box.layout.carets[selection.start]?.col ?? 0,
+      (box.layout.carets[selection.start]?.row ?? 0) + 1,
+    ))
     : null;
   const selectedGlyphs = isEditing && selection.start !== selection.end
     ? box.layout.glyphs.filter((g) => g.sourceIndex >= selection.start && g.sourceIndex < selection.end)
@@ -235,8 +245,11 @@ export function AnimatedTextOverlay() {
       <MotionPathDots points={path} currentFrame={currentFrame} toPixelX={toPixelX} toPixelY={toPixelY} />
       <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none">
         {selectedGlyphs.map((g) => {
-          const p = toPixel(toCanvas(g.col, g.row));
-          return <rect key={`${g.col},${g.row}`} x={p.x} y={p.y} width={cellW} height={cellH} className="fill-sky-400/40" />;
+          const glyphCorners = [
+            toCanvas(g.col, g.row), toCanvas(g.col + 1, g.row),
+            toCanvas(g.col + 1, g.row + 1), toCanvas(g.col, g.row + 1),
+          ].map(toPixel);
+          return <polygon key={`${g.col},${g.row}`} points={glyphCorners.map((p) => `${p.x},${p.y}`).join(' ')} className="fill-sky-400/40" />;
         })}
         <polygon
           data-testid="animated-text-box"
@@ -256,7 +269,7 @@ export function AnimatedTextOverlay() {
         {caret && (
           <line
             data-testid="animated-text-caret"
-            x1={caret.x} y1={caret.y} x2={caret.x} y2={caret.y + cellH}
+            x1={caret.x} y1={caret.y} x2={caretEnd?.x ?? caret.x} y2={caretEnd?.y ?? caret.y + cellH}
             className="stroke-sky-400 animate-pulse" strokeWidth={2}
           />
         )}
@@ -270,7 +283,9 @@ export function AnimatedTextOverlay() {
         title="Drag to move the text box"
         onPointerDown={(event) => {
           if (isEditing) {
+            event.preventDefault();
             event.stopPropagation();
+            placeCaret(event.clientX, event.clientY);
             return;
           }
           handleBoxPointerDown(event);

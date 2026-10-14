@@ -396,9 +396,16 @@ function GeneratorColorRow({
     }
     setPickerOpen(next);
   };
-  const finish = () => {
+  const finish = useCallback(() => {
     if (before.current) recordGeneratorChange(layerId, `Update ${definition.displayName}`, before.current.source);
     before.current = null;
+  }, [layerId, definition.displayName]);
+
+  useEffect(() => () => finish(), [finish]);
+
+  const togglePicker = () => {
+    if (pickerOpen) finish();
+    open(!pickerOpen);
   };
 
   return (
@@ -414,7 +421,7 @@ function GeneratorColorRow({
           ? { backgroundImage: CHECKERBOARD, backgroundSize: '6px 6px', backgroundPosition: '0 0, 0 3px, 3px -3px, -3px 0px' }
           : { backgroundColor: value }}
         title={value}
-        onClick={() => open(!pickerOpen)}
+        onClick={togglePicker}
       />
       <span className="text-[10px] text-muted-foreground/60 flex-1 min-w-0 truncate select-none">{value}</span>
       <ColorPickerOverlay
@@ -423,8 +430,14 @@ function GeneratorColorRow({
         onColorSelect={(color) => { onChange(color, false); finish(); setPickerOpen(false); }}
         onColorChange={(color) => onChange(color, false)}
         onCancel={() => {
-          if (before.current) onChange(before.current.value, false);
+          if (before.current) {
+            useTimelineStore.setState((state) => ({
+              layers: state.layers.map((layer) => layer.id === layerId
+                ? { ...layer, generator: before.current!.source } : layer),
+            }));
+          }
           before.current = null;
+          setPickerOpen(false);
         }}
         initialColor={isTransparent || /^#[0-9a-fA-F]{6}$/.test(value) ? value : '#000000'}
         showTransparentOption

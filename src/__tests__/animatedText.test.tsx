@@ -226,6 +226,23 @@ describe('animated text generator integration', () => {
     expect(composite().get('5,1')?.bgColor).toBe('#0000ff');
   });
 
+  it('clips text only after applying the layer transform', () => {
+    const tl = useTimelineStore.getState();
+    const id = tl.addGeneratorLayer('animated-text', { durationFrames: 1 })!;
+    tl.updateGeneratorSettings(id, { text: 'abc', 'position.x': -2, 'position.y': 0 });
+    const source = tl.getLayer(id)!.generator!;
+    expect(renderGeneratorFrame(source, 0, 80, 24).has('-2,0')).toBe(true);
+    useTimelineStore.setState((state) => ({
+      layers: state.layers.map((layer) => layer.id === id
+        ? { ...layer, staticProperties: { ...layer.staticProperties, 'transform.position.x': 2 } }
+        : layer),
+    }));
+    const composite = compositeLayersAtFrame(useTimelineStore.getState().layers, 0, 80, 24);
+    expect(composite.get('0,0')?.char).toBe('a');
+    expect(composite.get('1,0')?.char).toBe('b');
+    expect(composite.get('2,0')?.char).toBe('c');
+  });
+
   it('converts both range values and all existing keys while preserving the reveal', () => {
     const tl = useTimelineStore.getState();
     const id = tl.addGeneratorLayer('animated-text', { durationFrames: 11 })!;
@@ -235,7 +252,10 @@ describe('animated text generator integration', () => {
     const before = Array.from({ length: 11 }, (_, f) => rows(renderGeneratorFrame(source(), f, 80, 24)));
     convertTypewriterUnits(id, 'index', 5);
     expect(source().settings['typewriter.units']).toBe('index');
-    expect(source().propertyTracks.find((track) => track.propertyPath === 'typewriter.end')?.keyframes.map((key) => key.value)).toEqual([0, 7]);
+    const convertedEnd = source().propertyTracks.find((track) => track.propertyPath === 'typewriter.end')?.keyframes;
+    expect(convertedEnd).toHaveLength(2);
+    expect(convertedEnd?.[0].value).toBe(0);
+    expect(convertedEnd?.[1].value).toBe(7);
     expect(Array.from({ length: 11 }, (_, f) => rows(renderGeneratorFrame(source(), f, 80, 24)))).toEqual(before);
     convertTypewriterUnits(id, 'percent', 5);
     expect(Array.from({ length: 11 }, (_, f) => rows(renderGeneratorFrame(source(), f, 80, 24)))).toEqual(before);
@@ -243,6 +263,29 @@ describe('animated text generator integration', () => {
     convertTypewriterUnits(id, 'index', 0);
     convertTypewriterUnits(id, 'percent', 0);
     expect(source().settings['typewriter.end']).toBe(0);
+  });
+
+  it('preserves the reveal when text length changes while converting units', () => {
+    const tl = useTimelineStore.getState();
+    const id = tl.addGeneratorLayer('animated-text', { durationFrames: 11 })!;
+    tl.updateGeneratorSettings(id, { text: 'abcd', effect: 'typewriter', 'typewriter.end': 50 });
+    const textTrack = tl.addGeneratorPropertyTrack(id, 'text')!;
+    tl.addGeneratorKeyframe(id, textTrack, 5, 'abcdefgh');
+    const source = () => useTimelineStore.getState().getLayer(id)!.generator!;
+    const before = Array.from({ length: 11 }, (_, f) => rows(renderGeneratorFrame(source(), f, 80, 24)));
+    convertTypewriterUnits(id, 'index', 0);
+    expect(Array.from({ length: 11 }, (_, f) => rows(renderGeneratorFrame(source(), f, 80, 24)))).toEqual(before);
+    convertTypewriterUnits(id, 'percent', 0);
+    expect(Array.from({ length: 11 }, (_, f) => rows(renderGeneratorFrame(source(), f, 80, 24)))).toEqual(before);
+  });
+
+  it('keeps the typewriter cursor visible while the fractional reveal boundary advances', () => {
+    const previous = settings({
+      text: 'abcd', effect: 'typewriter', 'typewriter.end': 25,
+      'typewriter.cursor': true, 'typewriter.cursorBlinkRate': 3,
+    });
+    const current = { ...previous, 'typewriter.end': 26 };
+    expect(rows(textGen.renderCells(ctx(7), current, {}, previous))).toEqual(['a█']);
   });
   it('uses direct cells without intensity mapping settings and centers by default', () => {
     const entry = getGenerator('animated-text')!;
@@ -321,6 +364,26 @@ describe('animated text panel', () => {
     expect(screen.queryByLabelText('Edit Cursor Color')).toBeNull();
     fireEvent.click(within(screen.getByText('Block Cursor').parentElement!).getByRole('button', { name: 'Off' }));
     expect(screen.getByLabelText('Edit Cursor Color').getAttribute('title')).toBe('#ffffff');
+  });
+
+  it('records live color changes when the open swatch closes the picker', () => {
+    const tl = useTimelineStore.getState();
+    const id = tl.addGeneratorLayer('animated-text')!;
+    render(<GeneratorPropertiesPanel />);
+    const swatch = screen.getByLabelText('Edit Text Color');
+    fireEvent.click(swatch);
+    fireEvent.change(screen.getByPlaceholderText('#000000'), { target: { value: '#123456' } });
+    expect(useTimelineStore.getState().getLayer(id)!.generator!.settings.textColor).toBe('#123456');
+    fireEvent.click(swatch);
+    expect(screen.queryByText('Cancel')).toBeNull();
+    expect(useToolStore.getState().historyStack).toHaveLength(1);
+
+    fireEvent.click(swatch);
+    fireEvent.change(screen.getByPlaceholderText('#000000'), { target: { value: '#abcdef' } });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByText('Cancel')).toBeNull();
+    expect(useTimelineStore.getState().getLayer(id)!.generator!.settings.textColor).toBe('#123456');
+    expect(useToolStore.getState().historyStack).toHaveLength(1);
   });
 
   it('caps range inputs by units and converts a switch in one undo entry', () => {
@@ -405,6 +468,77 @@ describe('animated text overlay', () => {
     expect(handle.style.top).toBe('244px');
     expect(screen.getByTestId('animated-text-box').getAttribute('points'))
       .toBe('103,244 203,244 203,284 103,284');
+  });
+
+  it('keeps text editing focused when the position handle is clicked', () => {
+    const id = addText();
+    act(() => useAnimatedTextEditStore.getState().startEditing(id));
+    render(<AnimatedTextOverlay />);
+    const input = screen.getByTestId('animated-text-input');
+    const handle = screen.getByLabelText('Text box position');
+    fireEvent.pointerDown(handle, { ...clientFor(5, 6), button: 0 });
+    expect(document.activeElement).toBe(input);
+    expect(useAnimatedTextEditStore.getState().editingLayerId).toBe(id);
+  });
+
+  it('does not let locked layers edit or drag', () => {
+    const id = addText();
+    act(() => {
+      useTimelineStore.setState((state) => ({
+        layers: state.layers.map((layer) => layer.id === id ? { ...layer, locked: true } : layer),
+      }));
+      useAnimatedTextEditStore.getState().startEditing(id);
+    });
+    const { rerender } = render(<AnimatedTextOverlay />);
+    expect(useAnimatedTextEditStore.getState().editingLayerId).toBeNull();
+    expect(screen.queryByTestId('animated-text-input')).toBeNull();
+    const before = useTimelineStore.getState().getLayer(id)!.generator!.settings['position.x'];
+    fireEvent.pointerDown(screen.getByTestId('animated-text-box'), { ...clientFor(6, 6), button: 0 });
+    fireEvent.pointerMove(screen.getByTestId('animated-text-box'), clientFor(10, 8));
+    fireEvent.pointerUp(screen.getByTestId('animated-text-box'), clientFor(10, 8));
+    rerender(<AnimatedTextOverlay />);
+    expect(useTimelineStore.getState().getLayer(id)!.generator!.settings['position.x']).toBe(before);
+  });
+
+  it('lets non-drawing tools pass through the text overlay', () => {
+    const id = addText();
+    useToolStore.getState().setActiveTool('eyedropper');
+    render(<AnimatedTextOverlay />);
+    const before = useTimelineStore.getState().getLayer(id)!.generator!.settings['position.x'];
+    fireEvent.pointerDown(screen.getByTestId('animated-text-box'), { ...clientFor(6, 6), button: 0 });
+    fireEvent.pointerMove(screen.getByTestId('animated-text-box'), clientFor(10, 8));
+    fireEvent.pointerUp(screen.getByTestId('animated-text-box'), clientFor(10, 8));
+    expect(useTimelineStore.getState().getLayer(id)!.generator!.settings['position.x']).toBe(before);
+  });
+
+  it('transforms the whole selection and caret with the layer', () => {
+    const id = addText();
+    act(() => {
+      useTimelineStore.setState((state) => ({
+        layers: state.layers.map((layer) => layer.id === id ? {
+          ...layer,
+          staticProperties: {
+            ...layer.staticProperties,
+            'transform.anchorPoint.x': 0,
+            'transform.anchorPoint.y': 0,
+            'transform.position.x': 0,
+            'transform.position.y': 0,
+            'transform.scale.x': 2,
+            'transform.scale.y': 2,
+          },
+        } : layer),
+      }));
+      useAnimatedTextEditStore.getState().startEditing(id, { selectAll: true });
+    });
+    render(<AnimatedTextOverlay />);
+    const glyph = screen.getByTestId('animated-text-overlay').querySelector('polygon.fill-sky-400\\/40')!;
+    expect(glyph.getAttribute('points')).toBe('203,484 243,484 243,564 203,564');
+    const input = screen.getByTestId('animated-text-input') as HTMLTextAreaElement;
+    input.setSelectionRange(5, 5);
+    fireEvent.select(input);
+    const caret = screen.getByTestId('animated-text-caret');
+    expect(caret.getAttribute('x2')).toBe(caret.getAttribute('x1'));
+    expect(Number(caret.getAttribute('y2')) - Number(caret.getAttribute('y1'))).toBe(80);
   });
 
   it('drags the box with one undo entry and shows a motion trail when animated', () => {

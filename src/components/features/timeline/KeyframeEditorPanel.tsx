@@ -279,9 +279,21 @@ export const KeyframeEditorPanel: React.FC = () => {
 
   const handleValueChange = (value: string) => {
     const num = parseFloat(value);
-    if (!isNaN(num)) updateKeyframe(layerId, trackId, keyframe.id, {
-      value: Math.max(definition?.min ?? -Infinity, Math.min(definition?.max ?? Infinity, num)),
-    });
+    if (isNaN(num)) return;
+    const source = layers.find((layer) => layer.id === layerId)?.generator;
+    const propertyPath = source?.propertyTracks.find((propertyTrack) => propertyTrack.id === String(trackId))?.propertyPath;
+    const isTypewriterRange = source?.generatorType === ANIMATED_TEXT_GENERATOR_TYPE
+      && (propertyPath === 'typewriter.start' || propertyPath === 'typewriter.end');
+    const nextValue = isTypewriterRange
+      ? Math.max(definition?.min ?? -Infinity, Math.min(definition?.max ?? Infinity, num))
+      : num;
+    updateKeyframe(layerId, trackId, keyframe.id, { value: nextValue });
+  };
+
+  const handleValueBlur = () => {
+    if (!isNumericValue || typeof keyframe.value !== 'number') return;
+    const committed = Math.max(definition?.min ?? -Infinity, Math.min(definition?.max ?? Infinity, keyframe.value));
+    if (committed !== keyframe.value) updateKeyframe(layerId, trackId, keyframe.id, { value: committed });
   };
 
   const setValue = (value: Keyframe['value']) => {
@@ -299,6 +311,7 @@ export const KeyframeEditorPanel: React.FC = () => {
     if (isNumericValue) {
       return (
         <Input type="number" value={keyframe.value as number} onChange={(e) => handleValueChange(e.target.value)}
+          onBlur={handleValueBlur}
           className="h-6 text-xs mt-0.5" min={definition?.min} max={definition?.max} step={definition?.step ?? 1} />
       );
     }

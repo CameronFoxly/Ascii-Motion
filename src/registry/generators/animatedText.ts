@@ -174,9 +174,17 @@ export function getTypewriterRange(settings: Record<string, unknown>, charCount:
   return { start, end: Math.max(start, end) };
 }
 
-function revealedEnd(settings: Record<string, unknown>): number {
+function revealedBoundary(settings: Record<string, unknown>): number {
   const { layout } = getAnimatedTextBox(settings);
-  return getTypewriterRange(settings, layout.charCount).end;
+  const count = layout.charCount;
+  const units = s<string>(settings, 'typewriter.units', 'percent');
+  const convert = (path: string, fallback: number) => {
+    const raw = n(settings, path, fallback);
+    return units === 'percent'
+      ? (Math.min(100, Math.max(0, raw)) / 100) * count
+      : Math.min(count, Math.max(0, raw));
+  };
+  return Math.max(convert('typewriter.start', 0), convert('typewriter.end', 100));
 }
 
 function mod(a: number, m: number): number {
@@ -210,7 +218,6 @@ function renderAnimatedText(
   const put = (col: number, row: number, char: string, foreground = color) => {
     const x = boxX + col;
     const y = boxY + row;
-    if (x < 0 || y < 0 || x >= ctx.width || y >= ctx.height) return;
     if ((char === ' ' || char === '') && !hasBg) return;
     out.set(`${x},${y}`, { char, color: foreground, bgColor });
   };
@@ -251,7 +258,7 @@ function renderAnimatedText(
       layout,
       s<TextAlign>(settings, 'align', 'left'),
     );
-    const paused = previousSettings === undefined || revealedEnd(previousSettings) === range.end;
+    const paused = previousSettings === undefined || revealedBoundary(previousSettings) === revealedBoundary(settings);
     let visible = true;
     if (paused && b(settings, 'typewriter.cursorBlink', true)) {
       // Blinks per second: one blink is a full on + off cycle
