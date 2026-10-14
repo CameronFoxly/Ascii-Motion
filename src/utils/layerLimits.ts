@@ -10,7 +10,7 @@
  * - pasteLayer() (clipboard)
  * - importSession() (file load — silently truncate excess layers)
  * - MCP add_layer tool (return error response)
- * - Generator applyGenerator() (show upgrade prompt)
+ * - addGeneratorLayer() (generator buttons disabled with upgrade tooltip)
  * 
  * Part of the Layer Timeline Refactor (Phase 2)
  * See: docs/LAYER_TIMELINE_REFACTOR_PLAN.md §2.1

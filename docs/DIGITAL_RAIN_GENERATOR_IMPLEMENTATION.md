@@ -1,5 +1,9 @@
 # Digital Rain (Matrix) Generator - Implementation Summary
 
+> **Superseded:** generators are now procedural timeline layers. See
+> [GENERATOR_LAYERS_DEVELOPER_GUIDE.md](./GENERATOR_LAYERS_DEVELOPER_GUIDE.md). This document is
+> kept only as history; the files it references have been removed.
+
 **Date:** October 31, 2025  
 **Status:** ✅ Implemented  
 **Feature ID:** `digital-rain`  

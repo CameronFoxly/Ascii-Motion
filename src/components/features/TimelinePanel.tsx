@@ -23,6 +23,7 @@ import { LayerPropertiesPanel } from './timeline/LayerPropertiesPanel';
 import { GroupPropertiesPanel } from './timeline/GroupPropertiesPanel';
 import { EffectPropertiesPanel } from './timeline/EffectPropertiesPanel';
 import { PostEffectPropertiesPanel } from './timeline/PostEffectPropertiesPanel';
+import { GeneratorPropertiesPanel } from './timeline/GeneratorPropertiesPanel';
 import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Slider } from '../ui/slider';
@@ -169,6 +170,7 @@ export const TimelinePanel: React.FC = () => {
   const editingKeyframeId = useTimelineStore((s) => s.view.editingKeyframeId);
   const selectedEffectBlockId = useTimelineStore((s) => s.view.selectedEffectBlockId);
   const selectedPostEffectBlockId = useTimelineStore((s) => s.view.selectedPostEffectBlockId);
+  const selectedGeneratorLayerId = useTimelineStore((s) => s.view.selectedGeneratorLayerId);
   const showLayerProperties = useTimelineStore((s) => s.view.showLayerProperties);
   const setShowLayerProperties = useTimelineStore((s) => s.setShowLayerProperties);
   const activeTool = useToolStore((s) => s.activeTool);
@@ -259,7 +261,7 @@ export const TimelinePanel: React.FC = () => {
             </div>
 
             {/* Right: Keyframe editor or Layer/Group properties */}
-            {editingKeyframeId ? <KeyframeEditorPanel /> : selectedPostEffectBlockId ? <PostEffectPropertiesPanel /> : selectedEffectBlockId ? <EffectPropertiesPanel /> : showLayerProperties ? <LayerPropertiesPanel /> : <GroupPropertiesPanel />}
+            {editingKeyframeId ? <KeyframeEditorPanel /> : selectedPostEffectBlockId ? <PostEffectPropertiesPanel /> : selectedEffectBlockId ? <EffectPropertiesPanel /> : selectedGeneratorLayerId ? <GeneratorPropertiesPanel /> : showLayerProperties ? <LayerPropertiesPanel /> : <GroupPropertiesPanel />}
           </div>
         </div>
   );

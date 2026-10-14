@@ -1,5 +1,9 @@
 # Generator Canvas Preview Optimization
 
+> **Superseded:** generators are now procedural timeline layers. See
+> [GENERATOR_LAYERS_DEVELOPER_GUIDE.md](./GENERATOR_LAYERS_DEVELOPER_GUIDE.md). This document is
+> kept only as history; the files it references have been removed.
+
 **Date:** October 29, 2025  
 **Status:** ✅ Implemented  
 **Related:** `GENERATOR_PREVIEW_RACE_CONDITION_FIX.md`

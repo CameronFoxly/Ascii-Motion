@@ -41,10 +41,15 @@ import {
   Tag,
   ChevronRight,
   XCircle,
+  Dices,
+  RotateCcw,
+  Layers,
 } from 'lucide-react';
 import type { LayerId, ContentFrameId, PropertyTrackId, KeyframeId } from '../../../types/timeline';
 import { getPropertyValueAtFrame, getGroupPropertyValue } from '../../../utils/layerCompositing';
 import { evaluateEffectBlock } from '../../../utils/effectsPipeline';
+import { resolveGeneratorSettings } from '../../../utils/generators/generatorRuntime';
+import { withGeneratorHistory, bakeGeneratorLayerWithHistory } from '../../../utils/generators/generatorHistory';
 import type { ContentFrameReorderHistoryAction } from '../../../types';
 
 // ============================================
@@ -55,7 +60,8 @@ export type TimelineContextMenuType =
   | { kind: 'frame'; layerId: LayerId; frameIds: ContentFrameId[]; clickFrame: number }
   | { kind: 'empty-track'; layerId: LayerId; clickFrame: number }
   | { kind: 'property-track'; layerId: LayerId; trackId: PropertyTrackId; clickFrame: number }
-  | { kind: 'keyframe'; layerId: LayerId; trackId: PropertyTrackId; keyframeIds: KeyframeId[] };
+  | { kind: 'keyframe'; layerId: LayerId; trackId: PropertyTrackId; keyframeIds: KeyframeId[] }
+  | { kind: 'generator'; layerId: LayerId };
 
 export interface TimelineContextMenuState {
   x: number;
@@ -307,6 +313,11 @@ export const TimelineContextMenu: React.FC<Props> = ({ menu, onClose }) => {
           if (pt) { targetPropertyPath = pt.propertyPath; break; }
         }
       }
+      // Search generator property tracks
+      if (!targetPropertyPath) {
+        const gpt = targetLayer.generator?.propertyTracks.find((t) => (t.id as string) === (trackId as string));
+        if (gpt) targetPropertyPath = gpt.propertyPath;
+      }
     }
     if (!targetPropertyPath) {
       for (const group of tl.layerGroups) {
@@ -375,6 +386,11 @@ export const TimelineContextMenu: React.FC<Props> = ({ menu, onClose }) => {
               const pt = et.effectBlock.propertyTracks.find((t) => t.propertyPath === entry.propertyPath);
               if (pt) { destTrackId2 = pt.id as unknown as typeof trackId; break; }
             }
+          }
+          // Search generator property tracks
+          if (!destTrackId2) {
+            const gpt = targetLayer.generator?.propertyTracks.find((t) => t.propertyPath === entry.propertyPath);
+            if (gpt) destTrackId2 = gpt.id as unknown as typeof trackId;
           }
         }
         if (!destTrackId2) {
@@ -588,6 +604,12 @@ export const TimelineContextMenu: React.FC<Props> = ({ menu, onClose }) => {
                     addKeyframe(ctx.layerId, ctx.trackId, ctx.clickFrame, currentValue);
                     return;
                   }
+                  const gpt = layer.generator?.propertyTracks.find((t) => (t.id as string) === (ctx.trackId as string));
+                  if (gpt && layer.generator) {
+                    const currentValue = resolveGeneratorSettings(layer.generator, ctx.clickFrame)[gpt.propertyPath];
+                    addKeyframe(ctx.layerId, ctx.trackId, ctx.clickFrame, currentValue as number);
+                    return;
+                  }
                 }
                 // Fall back to groups
                 const tl = useTimelineStore.getState();
@@ -629,6 +651,53 @@ export const TimelineContextMenu: React.FC<Props> = ({ menu, onClose }) => {
         );
       }
 
+      case 'generator': {
+        const layer = layers.find((l) => l.id === ctx.layerId);
+        const source = layer?.generator;
+        if (!source) return null;
+        const tl = useTimelineStore.getState();
+        return (
+          <>
+            <MenuItem
+              icon={<Pencil className="w-4 h-4" />}
+              label="Edit generator"
+              onClick={() => act(() => tl.selectGeneratorLayer(ctx.layerId))}
+            />
+            <MenuItem
+              icon={source.enabled ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              label={source.enabled ? 'Disable generator' : 'Enable generator'}
+              onClick={() => act(() => withGeneratorHistory(
+                ctx.layerId,
+                source.enabled ? 'Disable generator' : 'Enable generator',
+                () => tl.toggleGeneratorEnabled(ctx.layerId),
+              ))}
+            />
+            {'seed' in source.settings && (
+              <MenuItem
+                icon={<Dices className="w-4 h-4" />}
+                label="Randomize seed"
+                onClick={() => act(() => withGeneratorHistory(ctx.layerId, 'Randomize seed', () => {
+                  tl.randomizeGeneratorSeed(ctx.layerId, currentFrame);
+                }))}
+              />
+            )}
+            <MenuItem
+              icon={<RotateCcw className="w-4 h-4" />}
+              label="Reset settings"
+              onClick={() => act(() => withGeneratorHistory(ctx.layerId, 'Reset generator', () => {
+                tl.resetGeneratorSettings(ctx.layerId);
+              }))}
+            />
+            <MenuSeparator />
+            <MenuItem
+              icon={<Layers className="w-4 h-4" />}
+              label="Bake to frames"
+              onClick={() => act(() => bakeGeneratorLayerWithHistory(ctx.layerId))}
+            />
+          </>
+        );
+      }
+
       case 'keyframe': {
         const isMulti = ctx.keyframeIds.length > 1;
         const label = isMulti ? 'keyframes' : 'keyframe';
@@ -651,7 +720,7 @@ export const TimelineContextMenu: React.FC<Props> = ({ menu, onClose }) => {
                   // Try layer/group property tracks first
                   const layer = layers.find((l) => l.id === ctx.layerId);
                   const layerTrack = layer?.propertyTracks.find((pt) => pt.id === ctx.trackId);
-                  if (layerTrack) {
+                  if (layerTrack || layer?.generator?.propertyTracks.some((pt) => (pt.id as string) === (ctx.trackId as string))) {
                     removeKeyframe(ctx.layerId, ctx.trackId, kfId);
                     continue;
                   }

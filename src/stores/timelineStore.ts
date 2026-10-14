@@ -55,6 +55,11 @@ import {
   generatePostEffectPropertyTrackId,
 } from '../types/postEffect';
 import { getPostEffect } from '../registry/postEffectRegistry';
+import { serializeGeneratorSource } from '../utils/generators/generatorSerialization';
+import { setGeneratorFrameRate, renderGeneratorFrame, resolveGeneratorSettings } from '../utils/generators/generatorRuntime';
+import { getGenerator, getGeneratorInitialSettings } from '../registry/generatorRegistry';
+import type { GeneratorSource } from '../types/generatorLayer';
+import { generateGeneratorSourceId } from '../types/generatorLayer';
 
 /** Helper: find a track and a keyframe at a specific frame across layers, groups, and effect blocks */
 function findTrackKeyframeByFrame(
@@ -75,6 +80,12 @@ function findTrackKeyframeByFrame(
         const kf = ept.keyframes.find((k) => k.frame === frame);
         return { track: ept as unknown as typeof layer.propertyTracks[0], kf: (kf ?? null) as typeof layer.propertyTracks[0]['keyframes'][0] | null };
       }
+    }
+    // Search generator property tracks
+    const gpt = layer.generator?.propertyTracks.find((t) => (t.id as string) === (trackId as string));
+    if (gpt) {
+      const kf = gpt.keyframes.find((k) => k.frame === frame);
+      return { track: gpt as unknown as typeof layer.propertyTracks[0], kf: (kf ?? null) as typeof layer.propertyTracks[0]['keyframes'][0] | null };
     }
   }
   for (const group of state.layerGroups) {
@@ -139,6 +150,23 @@ function updateEffectPropertyTrackKeyframes(
           }),
         };
       }
+    }
+  }
+  // Search generator layers
+  for (const layer of state.layers) {
+    const gen = layer.generator;
+    if (gen && gen.propertyTracks.some((pt) => (pt.id as string) === trackId)) {
+      return {
+        layers: state.layers.map((l) => l.id !== layer.id || !l.generator ? l : {
+          ...l,
+          generator: {
+            ...l.generator,
+            propertyTracks: l.generator.propertyTracks.map((pt) =>
+              (pt.id as string) !== trackId ? pt : { ...pt, keyframes: updater(pt.keyframes) },
+            ),
+          },
+        }),
+      };
     }
   }
   // Search groups
@@ -218,10 +246,20 @@ function computeMergedContentFrames(
 ): ContentFrame[] {
   // Collect all boundary points from all source layers' content frames
   const boundaries = new Set<number>();
+  const contentBoundaries = new Set<number>();
   for (const layer of sourceLayers) {
     for (const cf of layer.contentFrames) {
       boundaries.add(cf.startFrame);
       boundaries.add(cf.startFrame + cf.durationFrames);
+      contentBoundaries.add(cf.startFrame);
+      contentBoundaries.add(cf.startFrame + cf.durationFrames);
+    }
+    // Generator layers animate every frame of their span
+    if (layer.kind === 'generator' && layer.generator) {
+      const { startFrame, durationFrames } = layer.generator;
+      contentBoundaries.add(startFrame);
+      contentBoundaries.add(startFrame + durationFrames);
+      for (let f = startFrame + 1; f < startFrame + durationFrames; f++) boundaries.add(f);
     }
   }
 
@@ -251,6 +289,19 @@ function computeMergedContentFrames(
       false,
       groups,
     );
+
+    // Coalesce identical consecutive generator frames (content-frame cuts are preserved)
+    const prev = mergedContentFrames[mergedContentFrames.length - 1];
+    if (
+      prev &&
+      !contentBoundaries.has(segStart) &&
+      compositedCells.size > 0 &&
+      prev.startFrame + prev.durationFrames === segStart &&
+      cellMapsEqual(prev.data, compositedCells)
+    ) {
+      prev.durationFrames += segDuration;
+      continue;
+    }
 
     // Only create a content frame if there's actual content
     if (compositedCells.size > 0) {
@@ -589,6 +640,90 @@ export interface TimelineState {
   ) => void;
 
   // ============================================
+  // GENERATOR LAYER ACTIONS (Procedural Generators)
+  // ============================================
+
+  /** Create a procedural generator layer (inserted above the active layer) */
+  addGeneratorLayer: (
+    generatorType: string,
+    options?: { startFrame?: number; durationFrames?: number; name?: string },
+  ) => LayerId | null;
+
+  /** Replace the generator source of a layer (used by undo/redo) */
+  setGeneratorSource: (layerId: LayerId, source: GeneratorSource) => void;
+
+  /** Merge static generator settings */
+  updateGeneratorSettings: (layerId: LayerId, settings: Record<string, unknown>) => void;
+
+  /**
+   * Update the generator span. When `shiftKeyframes` is true (block move),
+   * all generator keyframes shift by the start delta.
+   */
+  updateGeneratorTiming: (
+    layerId: LayerId,
+    startFrame: number,
+    durationFrames: number,
+    shiftKeyframes?: boolean,
+  ) => void;
+
+  /** Toggle generator bypass */
+  toggleGeneratorEnabled: (layerId: LayerId) => void;
+
+  /** Add a generator property track (or return the existing one) */
+  addGeneratorPropertyTrack: (
+    layerId: LayerId,
+    propertyPath: string,
+  ) => import('../types/effectBlock').EffectPropertyTrackId | null;
+
+  /**
+   * Remove a generator property track. The value at `frame` becomes the
+   * static setting so the output does not jump.
+   */
+  removeGeneratorPropertyTrack: (
+    layerId: LayerId,
+    trackId: import('../types/effectBlock').EffectPropertyTrackId,
+    frame: number,
+  ) => void;
+
+  /** Add (or replace at the same frame) a generator keyframe */
+  addGeneratorKeyframe: (
+    layerId: LayerId,
+    trackId: import('../types/effectBlock').EffectPropertyTrackId,
+    frame: number,
+    value: EffectKeyframe['value'],
+  ) => KeyframeId | null;
+
+  /** Remove a generator keyframe */
+  removeGeneratorKeyframe: (
+    layerId: LayerId,
+    trackId: import('../types/effectBlock').EffectPropertyTrackId,
+    keyframeId: KeyframeId,
+  ) => void;
+
+  /** Update a generator keyframe */
+  updateGeneratorKeyframe: (
+    layerId: LayerId,
+    trackId: import('../types/effectBlock').EffectPropertyTrackId,
+    keyframeId: KeyframeId,
+    updates: Partial<Pick<EffectKeyframe, 'frame' | 'value' | 'easing'>>,
+  ) => void;
+
+  /** Reset settings to defaults and remove all generator keyframes */
+  resetGeneratorSettings: (layerId: LayerId) => void;
+
+  /** Pick a new random seed (static value, or keyframe at `frame` if seed is keyframed) */
+  randomizeGeneratorSeed: (layerId: LayerId, frame: number) => void;
+
+  /** Select a generator layer (shows the generator properties panel) */
+  selectGeneratorLayer: (layerId: LayerId | null) => void;
+
+  /**
+   * Bake a generator layer into regular content frames (one per frame of the span).
+   * The layer keeps its id, transforms and effects but becomes a normal content layer.
+   */
+  bakeGeneratorLayer: (layerId: LayerId) => void;
+
+  // ============================================
   // POST EFFECT ACTIONS (WebGL Shader Effects)
   // ============================================
 
@@ -712,6 +847,7 @@ const INITIAL_VIEW: TimelineViewState = {
   expandedEffectTrackIds: new Set(),
   editingEffectKeyframeId: null,
   globalEffectsExpanded: true,
+  selectedGeneratorLayerId: null,
   selectedPostEffectBlockId: null,
   expandedPostEffectTrackIds: new Set(),
   editingPostEffectKeyframeId: null,
@@ -721,6 +857,37 @@ const INITIAL_VIEW: TimelineViewState = {
 // ============================================
 // HELPER: update a single layer in the layers array
 // ============================================
+
+/** Clip a generator span to [start, end) and shift it (and its keyframes) to start at 0 */
+function trimGeneratorSource(source: GeneratorSource, start: number, end: number): GeneratorSource {
+  const trimDuration = end - start;
+  const srcEnd = source.startFrame + source.durationFrames;
+  const clippedStart = Math.min(Math.max(source.startFrame, start), end - 1);
+  const clippedEnd = Math.max(clippedStart + 1, Math.min(srcEnd, end));
+  return {
+    ...source,
+    startFrame: Math.max(0, clippedStart - start),
+    durationFrames: Math.max(1, Math.min(trimDuration, clippedEnd - clippedStart)),
+    propertyTracks: source.propertyTracks.map((track) => ({
+      ...track,
+      keyframes: track.keyframes
+        .filter((kf) => kf.frame >= start && kf.frame < end)
+        .map((kf) => ({ ...kf, frame: kf.frame - start })),
+    })),
+  };
+}
+
+function cellMapsEqual(a: Map<string, Cell>, b: Map<string, Cell>): boolean {
+  if (a === b) return true;
+  if (a.size !== b.size) return false;
+  for (const [key, cell] of a) {
+    const other = b.get(key);
+    if (!other || other.char !== cell.char || other.color !== cell.color || other.bgColor !== cell.bgColor) {
+      return false;
+    }
+  }
+  return true;
+}
 
 function updateLayer(
   layers: Layer[],
@@ -836,7 +1003,11 @@ export const useTimelineStore = create<TimelineState>()(
 
       set({
         layers: newLayers,
-        view: { ...view, activeLayerId: newActiveId },
+        view: {
+          ...view,
+          activeLayerId: newActiveId,
+          selectedGeneratorLayerId: view.selectedGeneratorLayerId === layerId ? null : view.selectedGeneratorLayerId,
+        },
       });
     },
 
@@ -869,6 +1040,20 @@ export const useTimelineStore = create<TimelineState>()(
             id: generateKeyframeId(),
           })),
         })),
+        ...(source.generator
+          ? {
+              generator: {
+                ...source.generator,
+                id: generateGeneratorSourceId(),
+                settings: { ...source.generator.settings },
+                propertyTracks: source.generator.propertyTracks.map((pt) => ({
+                  ...pt,
+                  id: generateEffectPropertyTrackId(),
+                  keyframes: pt.keyframes.map((kf) => ({ ...kf, id: generateKeyframeId() })),
+                })),
+              },
+            }
+          : {}),
       };
 
       const sourceIndex = layers.findIndex((l) => l.id === layerId);
@@ -992,7 +1177,13 @@ export const useTimelineStore = create<TimelineState>()(
 
     setActiveLayer: (layerId) => {
       set((state) => ({
-        view: { ...state.view, activeLayerId: layerId, activeGroupId: null, selectedEffectBlockId: null },
+        view: {
+          ...state.view,
+          activeLayerId: layerId,
+          activeGroupId: null,
+          selectedEffectBlockId: null,
+          selectedGeneratorLayerId: state.view.selectedGeneratorLayerId === layerId ? layerId : null,
+        },
       }));
     },
 
@@ -1056,6 +1247,8 @@ export const useTimelineStore = create<TimelineState>()(
       const { layers } = get();
       const layer = layers.find((l) => l.id === layerId);
       if (!layer) return null;
+      // Generator layers are procedural; their content comes from the generator span
+      if (layer.kind === 'generator') return null;
 
       const newFrame: ContentFrame = {
         id: generateContentFrameId(),
@@ -2340,6 +2533,7 @@ export const useTimelineStore = create<TimelineState>()(
             .filter((kf) => kf.frame >= workAreaStart && kf.frame < workAreaEnd)
             .map((kf) => ({ ...kf, frame: kf.frame - workAreaStart })),
         })),
+        ...(layer.generator ? { generator: trimGeneratorSource(layer.generator, workAreaStart, workAreaEnd) } : {}),
       }));
 
       set({
@@ -2431,7 +2625,7 @@ export const useTimelineStore = create<TimelineState>()(
       const canvasHeight = useCanvasStore.getState().height;
 
       const allFrames = visibleLayers.flatMap(l => l.contentFrames);
-      if (allFrames.length === 0) return null;
+      if (allFrames.length === 0 && !visibleLayers.some((l) => l.kind === 'generator')) return null;
 
       // Use boundary-based merge to correctly handle overlapping frame blocks
       const mergedContentFrames = computeMergedContentFrames(
@@ -2490,6 +2684,8 @@ export const useTimelineStore = create<TimelineState>()(
       const { layers } = get();
       const layer = layers.find((l) => l.id === layerId);
       if (!layer) return;
+      // Generator layers have no content frames to flatten into (bake first)
+      if (layer.kind === 'generator') return;
 
       // Only flatten if there are transforms to bake
       const hasTransforms = layer.propertyTracks.length > 0 ||
@@ -3098,6 +3294,7 @@ export const useTimelineStore = create<TimelineState>()(
           selectedEffectBlockId: blockId,
           editingKeyframeId: blockId ? null : state.view.editingKeyframeId,
           selectedPostEffectBlockId: blockId ? null : state.view.selectedPostEffectBlockId,
+          selectedGeneratorLayerId: blockId ? null : state.view.selectedGeneratorLayerId,
         },
       }));
     },
@@ -3309,6 +3506,335 @@ export const useTimelineStore = create<TimelineState>()(
             useCanvasStore.getState().setCanvasData(cf.data);
           }
         }
+      }
+    },
+
+    // ============================================
+    // GENERATOR LAYER ACTIONS
+    // ============================================
+
+    addGeneratorLayer: (generatorType, options = {}) => {
+      const entry = getGenerator(generatorType);
+      if (!entry) {
+        console.warn(`[Timeline] Unknown generator type: ${generatorType}`);
+        return null;
+      }
+      if (!canAddLayer()) {
+        console.warn('Layer limit reached. Cannot add more layers.');
+        return null;
+      }
+
+      const { layers, view, config } = get();
+      const { width, height } = useCanvasStore.getState();
+      const settings = getGeneratorInitialSettings(generatorType, width, height) ?? {};
+      if ('seed' in settings) {
+        settings.seed = Math.floor(Math.random() * 100000);
+      }
+
+      const startFrame = Math.max(0, Math.floor(options.startFrame ?? 0));
+      const durationFrames = Math.max(
+        1,
+        Math.floor(options.durationFrames ?? Math.max(1, config.durationFrames - startFrame)),
+      );
+
+      const sameTypeCount = layers.filter((l) => l.generator?.generatorType === generatorType).length;
+      const id = generateLayerId();
+      const newLayer: Layer = {
+        id,
+        name: options.name ?? (sameTypeCount > 0 ? `${entry.name} ${sameTypeCount + 1}` : entry.name),
+        visible: true,
+        solo: false,
+        locked: false,
+        opacity: 100,
+        kind: 'generator',
+        generator: {
+          id: generateGeneratorSourceId(),
+          generatorType,
+          startFrame,
+          durationFrames,
+          enabled: true,
+          settings,
+          propertyTracks: [],
+        },
+        contentFrames: [],
+        propertyTracks: [],
+        staticProperties: {
+          'transform.anchorPoint.x': Math.floor(width / 2),
+          'transform.anchorPoint.y': Math.floor(height / 2),
+        },
+        effectTracks: [],
+      };
+
+      const activeIndex = view.activeLayerId
+        ? layers.findIndex((l) => l.id === view.activeLayerId)
+        : -1;
+      const insertIndex = activeIndex !== -1 ? activeIndex + 1 : layers.length;
+
+      get().ensureTimelineContains(startFrame + durationFrames - 1);
+
+      set((state) => ({
+        layers: [...state.layers.slice(0, insertIndex), newLayer, ...state.layers.slice(insertIndex)],
+        view: {
+          ...state.view,
+          activeLayerId: id,
+          activeGroupId: null,
+          selectedGeneratorLayerId: id,
+          selectedEffectBlockId: null,
+          selectedPostEffectBlockId: null,
+          editingKeyframeId: null,
+        },
+      }));
+
+      return id;
+    },
+
+    setGeneratorSource: (layerId, source) => {
+      set((state) => ({
+        layers: updateLayer(state.layers, layerId, (l) => (l.generator ? { ...l, generator: source } : l)),
+      }));
+    },
+
+    updateGeneratorSettings: (layerId, settings) => {
+      set((state) => ({
+        layers: updateLayer(state.layers, layerId, (l) => (l.generator
+          ? { ...l, generator: { ...l.generator, settings: { ...l.generator.settings, ...settings } } }
+          : l)),
+      }));
+    },
+
+    updateGeneratorTiming: (layerId, startFrame, durationFrames, shiftKeyframes = false) => {
+      const nextStart = Math.max(0, Math.round(startFrame));
+      const nextDuration = Math.max(1, Math.round(durationFrames));
+      set((state) => ({
+        layers: updateLayer(state.layers, layerId, (l) => {
+          if (!l.generator) return l;
+          const delta = nextStart - l.generator.startFrame;
+          const propertyTracks = shiftKeyframes && delta !== 0
+            ? l.generator.propertyTracks.map((pt) => ({
+                ...pt,
+                keyframes: pt.keyframes.map((kf) => ({ ...kf, frame: Math.max(0, kf.frame + delta) })),
+              }))
+            : l.generator.propertyTracks;
+          return {
+            ...l,
+            generator: { ...l.generator, startFrame: nextStart, durationFrames: nextDuration, propertyTracks },
+          };
+        }),
+      }));
+      get().ensureTimelineContains(nextStart + nextDuration - 1);
+    },
+
+    toggleGeneratorEnabled: (layerId) => {
+      set((state) => ({
+        layers: updateLayer(state.layers, layerId, (l) => (l.generator
+          ? { ...l, generator: { ...l.generator, enabled: !l.generator.enabled } }
+          : l)),
+      }));
+    },
+
+    addGeneratorPropertyTrack: (layerId, propertyPath) => {
+      const layer = get().layers.find((l) => l.id === layerId);
+      if (!layer?.generator) return null;
+      const existing = layer.generator.propertyTracks.find((pt) => pt.propertyPath === propertyPath);
+      if (existing) return existing.id;
+
+      const ptId = generateEffectPropertyTrackId();
+      set((state) => ({
+        layers: updateLayer(state.layers, layerId, (l) => (l.generator
+          ? {
+              ...l,
+              generator: {
+                ...l.generator,
+                propertyTracks: [
+                  ...l.generator.propertyTracks,
+                  { id: ptId, propertyPath, keyframes: [], loopKeyframes: false },
+                ],
+              },
+            }
+          : l)),
+      }));
+      return ptId;
+    },
+
+    removeGeneratorPropertyTrack: (layerId, trackId, frame) => {
+      const layer = get().layers.find((l) => l.id === layerId);
+      const source = layer?.generator;
+      if (!source) return;
+      const track = source.propertyTracks.find((pt) => pt.id === trackId);
+      if (!track) return;
+      const valueAtFrame = resolveGeneratorSettings(source, frame)[track.propertyPath];
+      set((state) => ({
+        layers: updateLayer(state.layers, layerId, (l) => (l.generator
+          ? {
+              ...l,
+              generator: {
+                ...l.generator,
+                settings: valueAtFrame !== undefined
+                  ? { ...l.generator.settings, [track.propertyPath]: valueAtFrame }
+                  : l.generator.settings,
+                propertyTracks: l.generator.propertyTracks.filter((pt) => pt.id !== trackId),
+              },
+            }
+          : l)),
+      }));
+    },
+
+    addGeneratorKeyframe: (layerId, trackId, frame, value) => {
+      const layer = get().layers.find((l) => l.id === layerId);
+      if (!layer?.generator?.propertyTracks.some((pt) => pt.id === trackId)) return null;
+      const kfId = generateKeyframeId();
+      get().ensureTimelineContains(frame);
+      set((state) => ({
+        layers: updateLayer(state.layers, layerId, (l) => (l.generator
+          ? {
+              ...l,
+              generator: {
+                ...l.generator,
+                propertyTracks: l.generator.propertyTracks.map((pt) => (pt.id === trackId
+                  ? {
+                      ...pt,
+                      keyframes: [
+                        ...pt.keyframes.filter((kf) => kf.frame !== frame),
+                        { id: kfId, frame, value, easing: defaultEasing() },
+                      ].sort((a, b) => a.frame - b.frame),
+                    }
+                  : pt)),
+              },
+            }
+          : l)),
+      }));
+      return kfId;
+    },
+
+    removeGeneratorKeyframe: (layerId, trackId, keyframeId) => {
+      set((state) => ({
+        layers: updateLayer(state.layers, layerId, (l) => (l.generator
+          ? {
+              ...l,
+              generator: {
+                ...l.generator,
+                propertyTracks: l.generator.propertyTracks.map((pt) => (pt.id === trackId
+                  ? { ...pt, keyframes: pt.keyframes.filter((kf) => kf.id !== keyframeId) }
+                  : pt)),
+              },
+            }
+          : l)),
+      }));
+    },
+
+    updateGeneratorKeyframe: (layerId, trackId, keyframeId, updates) => {
+      set((state) => ({
+        layers: updateLayer(state.layers, layerId, (l) => (l.generator
+          ? {
+              ...l,
+              generator: {
+                ...l.generator,
+                propertyTracks: l.generator.propertyTracks.map((pt) => (pt.id === trackId
+                  ? {
+                      ...pt,
+                      keyframes: pt.keyframes
+                        .map((kf) => (kf.id === keyframeId ? { ...kf, ...updates } : kf))
+                        .sort((a, b) => a.frame - b.frame),
+                    }
+                  : pt)),
+              },
+            }
+          : l)),
+      }));
+    },
+
+    resetGeneratorSettings: (layerId) => {
+      const layer = get().layers.find((l) => l.id === layerId);
+      if (!layer?.generator) return;
+      const { width, height } = useCanvasStore.getState();
+      const defaults = getGeneratorInitialSettings(layer.generator.generatorType, width, height) ?? {};
+      if ('seed' in defaults && layer.generator.settings.seed !== undefined) {
+        defaults.seed = layer.generator.settings.seed;
+      }
+      set((state) => ({
+        layers: updateLayer(state.layers, layerId, (l) => (l.generator
+          ? { ...l, generator: { ...l.generator, settings: defaults, propertyTracks: [] } }
+          : l)),
+      }));
+    },
+
+    randomizeGeneratorSeed: (layerId, frame) => {
+      const layer = get().layers.find((l) => l.id === layerId);
+      if (!layer?.generator) return;
+      const seed = Math.floor(Math.random() * 100000);
+      const seedTrack = layer.generator.propertyTracks.find(
+        (pt) => pt.propertyPath === 'seed' && pt.keyframes.length > 0,
+      );
+      if (seedTrack) {
+        get().addGeneratorKeyframe(layerId, seedTrack.id, frame, seed);
+      } else {
+        get().updateGeneratorSettings(layerId, { seed });
+      }
+    },
+
+    selectGeneratorLayer: (layerId) => {
+      set((state) => ({
+        view: {
+          ...state.view,
+          selectedGeneratorLayerId: layerId,
+          ...(layerId
+            ? {
+                activeLayerId: layerId,
+                activeGroupId: null,
+                selectedEffectBlockId: null,
+                selectedPostEffectBlockId: null,
+                editingKeyframeId: null,
+              }
+            : {}),
+        },
+      }));
+    },
+
+    bakeGeneratorLayer: (layerId) => {
+      const layer = get().layers.find((l) => l.id === layerId);
+      const source = layer?.generator;
+      if (!layer || !source) return;
+      const { width, height } = useCanvasStore.getState();
+
+      const contentFrames: ContentFrame[] = [];
+      let previous: Map<string, Cell> | null = null;
+      for (let i = 0; i < source.durationFrames; i++) {
+        const frame = source.startFrame + i;
+        const cells = renderGeneratorFrame(source, frame, width, height);
+        const last = contentFrames[contentFrames.length - 1];
+        if (last && previous && cellMapsEqual(previous, cells)) {
+          last.durationFrames += 1;
+        } else {
+          contentFrames.push({
+            id: generateContentFrameId(),
+            name: `Frame ${contentFrames.length + 1}`,
+            startFrame: frame,
+            durationFrames: 1,
+            data: new Map(cells),
+          });
+        }
+        previous = cells;
+      }
+
+      set((state) => ({
+        layers: updateLayer(state.layers, layerId, (l) => {
+          const { kind: _kind, generator: _generator, ...rest } = l;
+          return { ...rest, contentFrames };
+        }),
+        view: {
+          ...state.view,
+          selectedGeneratorLayerId:
+            state.view.selectedGeneratorLayerId === layerId ? null : state.view.selectedGeneratorLayerId,
+        },
+      }));
+
+      // Sync canvas store if the baked layer is active
+      const { view } = get();
+      if (view.activeLayerId === layerId) {
+        const cf = contentFrames.find(
+          (c) => view.currentFrame >= c.startFrame && view.currentFrame < c.startFrame + c.durationFrames,
+        );
+        useCanvasStore.getState().setCanvasData(cf ? new Map(cf.data) : new Map());
       }
     },
 
@@ -3550,6 +4076,7 @@ export const useTimelineStore = create<TimelineState>()(
           editingPostEffectKeyframeId: null,
           // Deselect standard effect block when selecting post effect
           selectedEffectBlockId: blockId ? null : state.view.selectedEffectBlockId,
+          selectedGeneratorLayerId: blockId ? null : state.view.selectedGeneratorLayerId,
         },
       }));
     },
@@ -3628,7 +4155,7 @@ export const useTimelineStore = create<TimelineState>()(
       const canvasState = useCanvasStore.getState();
 
       return {
-        version: '2.1.0' as const,
+        version: '2.2.0' as const,
         canvas: {
           width: canvasState.width,
           height: canvasState.height,
@@ -3672,6 +4199,8 @@ export const useTimelineStore = create<TimelineState>()(
             ? { ...layer.staticProperties }
             : undefined,
           syncKeyframesToFrames: layer.syncKeyframesToFrames || undefined,
+          kind: layer.kind === 'generator' ? 'generator' as const : undefined,
+          generator: layer.generator ? serializeGeneratorSource(layer.generator) : undefined,
           effectTracks: (layer.effectTracks ?? []).length > 0
             ? (layer.effectTracks ?? []).map((et) => ({
                 id: et.id as string,
@@ -3808,4 +4337,11 @@ export const useTimelineStore = create<TimelineState>()(
       };
     },
   })),
+);
+
+// Keep the procedural generator runtime in sync with the project frame rate
+setGeneratorFrameRate(useTimelineStore.getState().config.frameRate);
+useTimelineStore.subscribe(
+  (state) => state.config.frameRate,
+  (frameRate) => setGeneratorFrameRate(frameRate),
 );

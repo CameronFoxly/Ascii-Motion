@@ -28,6 +28,11 @@ function findTrackAndKeyframe(trackId: PropertyTrackId, kfId: KeyframeId) {
         return { track: ept as unknown as PropertyTrack, kf: (kf ?? null) as Keyframe | null };
       }
     }
+    const gpt = layer.generator?.propertyTracks.find((t) => (t.id as string) === (trackId as string));
+    if (gpt) {
+      const kf = gpt.keyframes.find((k) => k.id === kfId);
+      return { track: gpt as unknown as PropertyTrack, kf: (kf ?? null) as Keyframe | null };
+    }
   }
   for (const group of tl.layerGroups) {
     const track = group.propertyTracks.find((t) => t.id === trackId);
@@ -100,8 +105,9 @@ export const KeyframeDiamond: React.FC<KeyframeDiamondProps> = ({
         selectKeyframes([keyframe.id]);
       }
       setEditingKeyframe(keyframe.id);
-      // Clear effect block selection so keyframe editor takes priority
+      // Clear effect/generator selection so keyframe editor takes priority
       useTimelineStore.getState().selectEffectBlock(null);
+      useTimelineStore.getState().selectGeneratorLayer(null);
     },
     [keyframe.id, selectKeyframes, addKeyframesToSelection, setEditingKeyframe],
   );
@@ -147,6 +153,14 @@ export const KeyframeDiamond: React.FC<KeyframeDiamondProps> = ({
                 if (selectedIds.has(kf.id)) {
                   entries.push({ layerId: layer.id, trackId: pt.id as unknown as PropertyTrackId, kfId: kf.id as KeyframeId, startFrame: kf.frame, value: kf.value as number, easing: kf.easing });
                 }
+              }
+            }
+          }
+          // Search generator property tracks
+          for (const pt of (layer.generator?.propertyTracks ?? [])) {
+            for (const kf of pt.keyframes) {
+              if (selectedIds.has(kf.id)) {
+                entries.push({ layerId: layer.id, trackId: pt.id as unknown as PropertyTrackId, kfId: kf.id as KeyframeId, startFrame: kf.frame, value: kf.value as number, easing: kf.easing });
               }
             }
           }

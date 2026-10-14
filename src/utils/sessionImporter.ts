@@ -1,4 +1,5 @@
 import { useCanvasStore } from '../stores/canvasStore';
+import { deserializeGeneratorSource } from './generators/generatorSerialization';
 import { useAnimationStore } from '../stores/animationStore';
 import { useToolStore } from '../stores/toolStore';
 import { usePaletteStore } from '../stores/paletteStore';
@@ -260,6 +261,21 @@ function validateEffectTrack(value: unknown, path: string): void {
   );
 }
 
+function validateGeneratorSource(value: unknown, path: string): void {
+  const source = requireRecord(value, path);
+  requireString(source.id, `${path}.id`);
+  requireString(source.generatorType, `${path}.generatorType`);
+  requireFrameNumber(source.startFrame, `${path}.startFrame`, 0);
+  requireFrameNumber(source.durationFrames, `${path}.durationFrames`, 1);
+  requireBoolean(source.enabled, `${path}.enabled`);
+  requireRecord(source.settings, `${path}.settings`);
+  requireArray(source.propertyTracks, `${path}.propertyTracks`).forEach(
+    (propertyTrack, index) => {
+      validatePropertyTrack(propertyTrack, `${path}.propertyTracks[${index}]`, true);
+    },
+  );
+}
+
 function validatePostEffectTrack(value: unknown, path: string): void {
   const track = requireRecord(value, path);
   requireString(track.id, `${path}.id`);
@@ -292,8 +308,8 @@ function validateStaticProperties(value: unknown, path: string): void {
 
 function validateSessionDataV2ForImport(value: unknown): asserts value is SessionDataV2 {
   const session = requireRecord(value, 'session');
-  if (session.version !== '2.0.0' && session.version !== '2.1.0') {
-    invalidSession('session.version', 'must be 2.0.0 or 2.1.0');
+  if (session.version !== '2.0.0' && session.version !== '2.1.0' && session.version !== '2.2.0') {
+    invalidSession('session.version', 'must be 2.0.0, 2.1.0 or 2.2.0');
   }
   validateOptionalString(session, 'name', 'session');
   validateOptionalString(session, 'description', 'session');
@@ -372,6 +388,14 @@ function validateSessionDataV2ForImport(value: unknown): asserts value is Sessio
           validateEffectTrack(effectTrack, `${path}.effectTracks[${index}]`);
         },
       );
+    }
+    if (layer.kind !== undefined && layer.kind !== 'content' && layer.kind !== 'generator') {
+      invalidSession(`${path}.kind`, 'must be "content" or "generator"');
+    }
+    if (layer.generator !== undefined) {
+      validateGeneratorSource(layer.generator, `${path}.generator`);
+    } else if (layer.kind === 'generator') {
+      invalidSession(`${path}.generator`, 'is required for generator layers');
     }
   });
 
@@ -959,6 +983,9 @@ export class SessionImporter {
       })),
       staticProperties: sessionLayer.staticProperties ?? {},
       syncKeyframesToFrames: sessionLayer.syncKeyframesToFrames,
+      ...(sessionLayer.kind === 'generator' && sessionLayer.generator
+        ? { kind: 'generator' as const, generator: deserializeGeneratorSource(sessionLayer.generator) }
+        : {}),
       effectTracks: (sessionLayer.effectTracks ?? []).map((et) => ({
         id: et.id as import('../types/effectBlock').EffectTrackId,
         ownerId: et.ownerId as import('../types/timeline').LayerId | import('../types/timeline').LayerGroupId | null,

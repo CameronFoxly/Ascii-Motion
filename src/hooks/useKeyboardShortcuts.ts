@@ -940,7 +940,12 @@ const processHistoryAction = (
           : null;
         useTimelineStore.setState({
           layers: newLayers,
-          view: { ...tl.view, activeLayerId: newActive },
+          view: {
+            ...tl.view,
+            activeLayerId: newActive,
+            selectedGeneratorLayerId:
+              tl.view.selectedGeneratorLayerId === action.data.layerId ? null : tl.view.selectedGeneratorLayerId,
+          },
         });
       }
       break;
@@ -1358,6 +1363,36 @@ const processHistoryAction = (
           animationStore.setFrameData(animationStore.currentFrameIndex, data as Map<string, import('../types').Cell>);
           canvasStore.setCanvasData(data as Map<string, import('../types').Cell>);
         }
+      }
+      break;
+    }
+
+    case 'generator_update': {
+      const genAction = action as import('../types').GeneratorUpdateHistoryAction;
+      const source = isRedo ? genAction.data.newSource : genAction.data.previousSource;
+      useTimelineStore.getState().setGeneratorSource(genAction.data.layerId as LayerId, structuredClone(source));
+      break;
+    }
+
+    case 'generator_bake': {
+      const bakeAction = action as import('../types').GeneratorBakeHistoryAction;
+      const tl = useTimelineStore.getState();
+      const layerId = bakeAction.data.layerId as LayerId;
+      const targetLayer = structuredClone(isRedo ? bakeAction.data.newLayer : bakeAction.data.previousLayer);
+      useTimelineStore.setState({
+        layers: tl.layers.map((l) => (l.id === layerId ? targetLayer : l)),
+        view: {
+          ...tl.view,
+          selectedGeneratorLayerId: !isRedo && tl.view.activeLayerId === layerId ? layerId : (
+            tl.view.selectedGeneratorLayerId === layerId ? null : tl.view.selectedGeneratorLayerId
+          ),
+        },
+      });
+      if (tl.view.activeLayerId === layerId) {
+        const cf = targetLayer.contentFrames.find(
+          (c) => tl.view.currentFrame >= c.startFrame && tl.view.currentFrame < c.startFrame + c.durationFrames,
+        );
+        canvasStore.setCanvasData(cf ? new Map(cf.data) : new Map());
       }
       break;
     }

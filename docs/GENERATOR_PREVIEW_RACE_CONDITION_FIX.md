@@ -1,5 +1,9 @@
 # Generator Preview Race Condition Fix
 
+> **Superseded:** generators are now procedural timeline layers. See
+> [GENERATOR_LAYERS_DEVELOPER_GUIDE.md](./GENERATOR_LAYERS_DEVELOPER_GUIDE.md). This document is
+> kept only as history; the files it references have been removed.
+
 **Date:** October 29, 2025  
 **Status:** ✅ Resolved  
 **Related:** `GENERATORS_IMPLEMENTATION_PLAN.md`

@@ -306,6 +306,8 @@ export type HistoryActionType =
   | 'timeline_duration_change'
   | 'trim_to_work_area'
   | 'apply_transforms'
+  | 'generator_update'
+  | 'generator_bake'
   | 'merge_layers'
   | 'create_group'
   | 'ungroup_layers'
@@ -964,6 +966,8 @@ export type AnyHistoryAction =
   | TimelineDurationChangeHistoryAction
   | TrimToWorkAreaHistoryAction
   | ApplyTransformsHistoryAction
+  | GeneratorUpdateHistoryAction
+  | GeneratorBakeHistoryAction
   | MergeLayersHistoryAction
   | CreateGroupHistoryAction
   | UngroupLayersHistoryAction
@@ -983,6 +987,24 @@ export type AnyHistoryAction =
 
 export interface ApplyTransformsHistoryAction extends HistoryAction {
   type: 'apply_transforms';
+  data: {
+    layerId: string;
+    previousLayer: import('../types/timeline').Layer;
+    newLayer: import('../types/timeline').Layer;
+  };
+}
+
+export interface GeneratorUpdateHistoryAction extends HistoryAction {
+  type: 'generator_update';
+  data: {
+    layerId: string;
+    previousSource: import('../types/generatorLayer').GeneratorSource;
+    newSource: import('../types/generatorLayer').GeneratorSource;
+  };
+}
+
+export interface GeneratorBakeHistoryAction extends HistoryAction {
+  type: 'generator_bake';
   data: {
     layerId: string;
     previousLayer: import('../types/timeline').Layer;

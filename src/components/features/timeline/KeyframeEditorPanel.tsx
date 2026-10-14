@@ -17,6 +17,7 @@
 import React, { useMemo, useState } from 'react';
 import { useTimelineStore } from '../../../stores/timelineStore';
 import { PROPERTY_DEFINITIONS } from '../../../types/timeline';
+import { getGenerator } from '../../../registry/generatorRegistry';
 import { EasingCurveEditor } from './EasingCurveEditor';
 import { useScrubInput } from '../../../hooks/useScrubInput';
 import { Input } from '../../ui/input';
@@ -62,6 +63,10 @@ export const KeyframeEditorPanel: React.FC = () => {
           const kf = pt.keyframes.find((k) => k.id === editingKeyframeId);
           if (kf) return { layerId: layer.id, trackId: pt.id as unknown as typeof layer.propertyTracks[0]['id'], keyframe: kf as unknown as typeof layer.propertyTracks[0]['keyframes'][0], track: pt as unknown as typeof layer.propertyTracks[0] };
         }
+      }      // Search generator property tracks
+      for (const pt of (layer.generator?.propertyTracks ?? [])) {
+        const kf = pt.keyframes.find((k) => k.id === editingKeyframeId);
+        if (kf) return { layerId: layer.id, trackId: pt.id as unknown as typeof layer.propertyTracks[0]['id'], keyframe: kf as unknown as typeof layer.propertyTracks[0]['keyframes'][0], track: pt as unknown as typeof layer.propertyTracks[0], generatorType: layer.generator!.generatorType };
       }
     }
     for (const group of layerGroups) {
@@ -125,6 +130,13 @@ export const KeyframeEditorPanel: React.FC = () => {
     // Search effect property tracks across layers, groups, global, and post effects
     const proxyId = layers.length > 0 ? layers[0].id : ('' as typeof layers[0]['id']);
     for (const layer of layers) {
+      for (const pt of (layer.generator?.propertyTracks ?? [])) {
+        for (const kf of pt.keyframes) {
+          if (selectedKeyframeIds.has(kf.id as unknown as typeof layers[0]['propertyTracks'][0]['keyframes'][0]['id'])) {
+            entries.push({ layerId: layer.id, trackId: pt.id as unknown as typeof layers[0]['propertyTracks'][0]['id'], keyframe: kf as unknown as typeof layers[0]['propertyTracks'][0]['keyframes'][0] });
+          }
+        }
+      }
       for (const et of (layer.effectTracks ?? [])) {
         for (const pt of et.effectBlock.propertyTracks) {
           for (const kf of pt.keyframes) {
@@ -177,7 +189,14 @@ export const KeyframeEditorPanel: React.FC = () => {
     min: 0,
   });
 
-  const kfDef = kfData ? PROPERTY_DEFINITIONS[kfData.track.propertyPath] : undefined;
+  const kfDef = useMemo(() => {
+    if (!kfData) return undefined;
+    if ('generatorType' in kfData && kfData.generatorType) {
+      const def = getGenerator(kfData.generatorType)?.propertyDefinitions.find((d) => d.path === kfData.track.propertyPath);
+      if (def) return { displayName: def.displayName, min: def.min, max: def.max, step: def.step, unit: def.unit };
+    }
+    return PROPERTY_DEFINITIONS[kfData.track.propertyPath];
+  }, [kfData]);
   const valueScrub = useScrubInput({
     value: (kfData?.keyframe.value as number) ?? 0,
     onChange: (v) => {

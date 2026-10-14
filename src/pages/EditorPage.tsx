@@ -20,7 +20,6 @@ import { AsciiTypePreviewDialog } from '../components/features/AsciiTypePreviewD
 import { ImportModal } from '../components/features/ImportModal'
 import { MediaImportPanel } from '../components/features/MediaImportPanel'
 import { GradientPanel } from '../components/features/GradientPanel'
-import { GeneratorsPanel } from '../components/features/GeneratorsPanel'
 import { ImageExportDialog } from '../components/features/ImageExportDialog'
 import { VideoExportDialog } from '../components/features/VideoExportDialog'
 import { SessionExportDialog } from '../components/features/SessionExportDialog'
@@ -191,7 +190,6 @@ export function EditorPage() {
       <ImportModal />
       <MediaImportPanel />
       <GradientPanel />
-      <GeneratorsPanel />
       <ImageExportDialog />
       <VideoExportDialog />
       <SessionExportDialog />

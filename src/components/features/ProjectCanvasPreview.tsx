@@ -10,6 +10,9 @@
 import { useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { CloudProject } from '@ascii-motion/premium';
+import type { SessionGeneratorSourceV2 } from '../../types/generatorLayer';
+import { deserializeGeneratorSource } from '../../utils/generators/generatorSerialization';
+import { renderGeneratorFrame } from '../../utils/generators/generatorRuntime';
 
 interface ProjectCanvasPreviewProps {
   project: CloudProject;
@@ -26,12 +29,16 @@ function getFirstFrameCells(
 ): Record<string, { char: string; color: string; bgColor: string }> | null {
   if (!sessionData) return null;
 
-  // v2 format: layers with content frames
-  if (sessionData.version === '2.0.0' && Array.isArray(sessionData.layers)) {
+  // v2 format: layers with content frames (and procedural generator layers)
+  if (typeof sessionData.version === 'string' && sessionData.version.startsWith('2.') && Array.isArray(sessionData.layers)) {
+    const canvasWidth = sessionData.canvas?.width ?? 80;
+    const canvasHeight = sessionData.canvas?.height ?? 24;
     const composited: Record<string, { char: string; color: string; bgColor: string }> = {};
     // Composite layers bottom-to-top at frame 0 (simple overlay, no transforms)
     for (const layer of sessionData.layers as Array<{
       visible?: boolean;
+      kind?: string;
+      generator?: SessionGeneratorSourceV2;
       contentFrames?: Array<{
         startFrame?: number;
         durationFrames?: number;
@@ -40,6 +47,17 @@ function getFirstFrameCells(
       }>;
     }>) {
       if (layer.visible === false) continue;
+      if (layer.kind === 'generator' && layer.generator) {
+        try {
+          const cells = renderGeneratorFrame(deserializeGeneratorSource(layer.generator), 0, canvasWidth, canvasHeight);
+          for (const [key, cell] of cells) {
+            if (cell.char && cell.char !== ' ') composited[key] = cell;
+          }
+        } catch {
+          // Unknown or invalid generator — skip in the thumbnail
+        }
+        continue;
+      }
       for (const cf of layer.contentFrames ?? []) {
         if (cf.hidden) continue;
         // Frame 0 must be within this content frame's range

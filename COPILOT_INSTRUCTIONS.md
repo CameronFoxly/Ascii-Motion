@@ -140,18 +140,17 @@ Chrome iframes need `credentialless` attribute: `{...({ credentialless: 'true' }
 
 | Store | Purpose |
 |-------|---------|
-| **`useTimelineStore`** | PRIMARY: Layers, content frames, keyframes, property tracks, groups, timeline config, playback |
+| **`useTimelineStore`** | PRIMARY: Layers, content frames, keyframes, property tracks, groups, procedural generator layers, timeline config, playback |
 | `useCanvasStore` | Working buffer for the active layer's current content frame |
 | `useAnimationStore` | **Compatibility adapter** over `timelineStore` — do NOT use for new code |
 | `useToolStore` | Active tool, settings, drawing state, undo/redo history |
 | `useProjectMetadataStore` | Project name, description |
 | `useImportStore` | Media import workflow |
 | `useExportStore` | Export dialog state |
-| `useGeneratorsStore` | Generator definitions and output |
 | `usePaletteStore` | Color palettes |
 | `useCharacterPaletteStore` | Character palettes and mapping |
 | `useBezierStore` | Bezier pen tool state |
-| `usePreviewStore` | Preview overlay for effects/generators |
+| `usePreviewStore` | Preview overlay for effects, media import and type placement |
 
 ### Data Flow
 

@@ -159,7 +159,7 @@ export interface EffectPropertyDefinition {
   category: string;
 
   /** Value type determines the UI control rendered */
-  valueType: 'number' | 'boolean' | 'string' | 'color' | 'select' | 'mapping';
+  valueType: 'number' | 'boolean' | 'string' | 'color' | 'select' | 'mapping' | 'palette' | 'characterSet';
 
   /** Default value when the effect is first created */
   defaultValue: number | boolean | string | Record<string, string>;

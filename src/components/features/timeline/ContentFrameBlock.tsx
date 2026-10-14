@@ -63,7 +63,10 @@ export const ContentFrameBlock: React.FC<ContentFrameBlockProps> = React.memo(fu
     for (const el of els) {
       const rect = el.getBoundingClientRect();
       if (clientY >= rect.top && clientY < rect.bottom) {
-        return el.dataset.layerId as LayerId;
+        const hovered = el.dataset.layerId as LayerId;
+        // Content frames can't be dropped onto procedural generator layers
+        const isGenerator = useTimelineStore.getState().layers.some((l) => l.id === hovered && l.kind === 'generator');
+        return isGenerator ? layerId : hovered;
       }
     }
     return layerId;

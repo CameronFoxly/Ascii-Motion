@@ -17,6 +17,9 @@ import { ContentFrameBlock } from './ContentFrameBlock';
 import { KeyframeDiamond } from './KeyframeDiamond';
 import { EffectBlockComponent } from './EffectBlock';
 import { PostEffectBlockComponent } from './PostEffectBlock';
+import { GeneratorBlock } from './GeneratorBlock';
+import { getGenerator } from '../../../registry/generatorRegistry';
+import { resolveGeneratorSettings } from '../../../utils/generators/generatorRuntime';
 import { PROPERTY_DISPLAY_ORDER, generateKeyframeId } from '../../../types/timeline';
 import { defaultEasing } from '../../../types/easing';
 import { usePlaybackOnlySnapshot } from '../../../hooks/usePlaybackOnlySnapshot';
@@ -158,6 +161,7 @@ export const TimelineTrackArea: React.FC<TimelineTrackAreaProps> = ({ scrollRef 
       const EFFECT_TRACK_ROW_H = 24; // effect track row height
       const EFFECT_PT_ROW_H = 24; // effect property track row height
       const EFFECT_ADD_ROW_H = 24; // "+ Add Effect" spacer
+      const GENERATOR_PT_ROW_H = 24; // generator property track row height
 
       const result: KeyframeId[] = [];
       let yOffset = 0;
@@ -277,6 +281,19 @@ export const TimelineTrackArea: React.FC<TimelineTrackAreaProps> = ({ scrollRef 
           }
           // Add Property spacer
           yOffset += ADD_PROP_ROW_H;
+
+          // Generator property track rows
+          for (const pt of (layer.generator?.propertyTracks ?? [])) {
+            const trackTop = yOffset;
+            const trackBottom = yOffset + GENERATOR_PT_ROW_H;
+            for (const kf of pt.keyframes) {
+              const kfX = kf.frame * pxPerFrame;
+              if (kfX >= left - 6 && kfX <= right + 6 && trackBottom > top && trackTop < bottom) {
+                result.push(kf.id as unknown as KeyframeId);
+              }
+            }
+            yOffset += GENERATOR_PT_ROW_H;
+          }
 
           // Effect track rows
           for (const et of (layer.effectTracks ?? [])) {
@@ -798,12 +815,21 @@ export const TimelineTrackArea: React.FC<TimelineTrackAreaProps> = ({ scrollRef 
                 // Only trigger if clicking on empty space (not on a content frame)
                 if ((e.target as HTMLElement).closest('[data-content-frame]')) return;
                 e.preventDefault();
+                if (layer.generator) {
+                  setContextMenu({ x: e.clientX, y: e.clientY, context: { kind: 'generator', layerId: layer.id } });
+                  return;
+                }
                 const rect = e.currentTarget.getBoundingClientRect();
                 const clickX = e.clientX - rect.left + (internalRef.current?.scrollLeft ?? 0);
                 const clickFrame = Math.max(0, Math.round(clickX / pxPerFrame));
                 setContextMenu({ x: e.clientX, y: e.clientY, context: { kind: 'empty-track', layerId: layer.id, clickFrame } });
               }}
             >
+              {/* Procedural generator span */}
+              {layer.generator && (
+                <GeneratorBlock layer={layer} pxPerFrame={pxPerFrame} />
+              )}
+
               {/* Content frame blocks — virtualized: only render visible ones */}
               {layer.contentFrames.filter((cf) => {
                 const blockLeft = cf.startFrame * pxPerFrame;
@@ -834,6 +860,11 @@ export const TimelineTrackArea: React.FC<TimelineTrackAreaProps> = ({ scrollRef 
                     for (const kf of pt.keyframes) {
                       kfFrames.add(kf.frame);
                     }
+                  }
+                }
+                for (const pt of (layer.generator?.propertyTracks ?? [])) {
+                  for (const kf of pt.keyframes) {
+                    kfFrames.add(kf.frame);
                   }
                 }
                 if (kfFrames.size === 0) return null;
@@ -1041,6 +1072,59 @@ export const TimelineTrackArea: React.FC<TimelineTrackAreaProps> = ({ scrollRef 
             {expandedLayerIds.has(layer.id) && (
               <div className="min-h-[24px] border-b border-border/30 bg-muted/5" />
             )}
+
+            {/* Generator property keyframe rows (procedural generator layers) */}
+            {expandedLayerIds.has(layer.id) && layer.generator && layer.generator.propertyTracks.map((pt) => (
+              <div
+                key={`gpt-${pt.id}`}
+                className="relative border-b border-border/20 min-h-[24px] bg-teal-500/5 cursor-crosshair"
+                onDoubleClick={(e) => {
+                  const source = useTimelineStore.getState().layers.find((l) => l.id === layer.id)?.generator;
+                  if (!source) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const frame = Math.max(0, Math.round((e.clientX - rect.left) / pxPerFrame));
+                  const value = resolveGeneratorSettings(source, frame)[pt.propertyPath];
+                  const kfId = addKeyframe(
+                    layer.id,
+                    pt.id as unknown as import('../../../types/timeline').PropertyTrackId,
+                    frame,
+                    value as number,
+                  );
+                  if (kfId) {
+                    selectKeyframes([kfId]);
+                    setEditingKeyframe(kfId);
+                  }
+                }}
+                onContextMenu={(e) => {
+                  if ((e.target as HTMLElement).closest('[data-keyframe]')) return;
+                  e.preventDefault();
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const clickX = e.clientX - rect.left + (internalRef.current?.scrollLeft ?? 0);
+                  const clickFrame = Math.max(0, Math.round(clickX / pxPerFrame));
+                  setContextMenu({ x: e.clientX, y: e.clientY, context: { kind: 'property-track', layerId: layer.id, trackId: pt.id as unknown as import('../../../types/timeline').PropertyTrackId, clickFrame } });
+                }}
+                title={getGenerator(layer.generator!.generatorType)?.propertyDefinitions.find((d) => d.path === pt.propertyPath)?.displayName}
+              >
+                {pt.keyframes.map((kf) => (
+                  <KeyframeDiamond
+                    key={kf.id}
+                    layerId={layer.id}
+                    trackId={pt.id as unknown as import('../../../types/timeline').PropertyTrackId}
+                    keyframe={kf as unknown as import('../../../types/timeline').Keyframe}
+                    pxPerFrame={pxPerFrame}
+                    scrollX={scrollX}
+                    isSelected={selectedKeyframeIds.has(kf.id)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const selKfIds = useTimelineStore.getState().view.selectedKeyframeIds;
+                      const kfIds = selKfIds.has(kf.id) && selKfIds.size > 0 ? [...selKfIds] : [kf.id];
+                      setContextMenu({ x: e.clientX, y: e.clientY, context: { kind: 'keyframe', layerId: layer.id, trackId: pt.id as unknown as import('../../../types/timeline').PropertyTrackId, keyframeIds: kfIds } });
+                    }}
+                  />
+                ))}
+              </div>
+            ))}
 
             {/* Effect track rows (when layer is expanded) */}
             {expandedLayerIds.has(layer.id) && (layer.effectTracks ?? []).map((track) => (
