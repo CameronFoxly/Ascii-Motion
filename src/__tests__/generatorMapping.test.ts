@@ -48,6 +48,28 @@ describe('generator palette mapping', () => {
       expect([...after.values()].every((cell) => cell.char === 'B')).toBe(true);
     });
 
+  it('resolves palette IDs through an explicit lookup without touching the live-store cache', () => {
+    const palette = useCharacterPaletteStore.getState().createCustomPalette('Characters', ['A', 'A']);
+    const source: GeneratorSource = {
+      id: 'generator' as GeneratorSourceId, generatorType: 'turbulent-noise', startFrame: 0, durationFrames: 30, enabled: true,
+      settings: {
+        ...getGeneratorInitialSettings('turbulent-noise', 20, 10),
+        'mapping.characterPaletteId': palette.id,
+        'mapping.textColorPaletteId': 'saved-colors',
+      },
+      propertyTracks: [],
+    };
+    const paletteLookup = {
+      colors: (id: string) => (id === 'saved-colors' ? ['#00ff00'] : undefined),
+      characters: (id: string) => (id === palette.id ? ['Z', 'Z'] : undefined),
+    };
+    const saved = renderGeneratorFrame(source, 15, 20, 10, { paletteLookup });
+    expect(saved.size).toBeGreaterThan(0);
+    expect([...saved.values()].every((cell) => cell.char === 'Z' && cell.color === '#00ff00')).toBe(true);
+    const live = renderGeneratorFrame(source, 15, 20, 10);
+    expect([...live.values()].every((cell) => cell.char === 'A')).toBe(true);
+  });
+
   it('refreshes cached colors when a shared color palette is edited', () => {
     const paletteId = usePaletteStore.getState().createCustomPalette('Colors', ['#ff0000']);
     const source: GeneratorSource = {

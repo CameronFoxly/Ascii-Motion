@@ -101,8 +101,22 @@ export function isFrameInGeneratorRange(source: GeneratorSource, frame: number):
 // MAPPING RESOLUTION
 // ============================================
 
-function findPaletteColors(paletteId: unknown): string[] {
+/**
+ * Optional palette resolver. When supplied, palette IDs resolve through it
+ * instead of the live palette stores (e.g. rendering a saved project preview).
+ */
+export interface GeneratorPaletteLookup {
+  colors: (paletteId: string) => string[] | undefined;
+  characters: (paletteId: string) => string[] | undefined;
+}
+
+export interface RenderGeneratorFrameOptions {
+  paletteLookup?: GeneratorPaletteLookup;
+}
+
+function findPaletteColors(paletteId: unknown, lookup?: GeneratorPaletteLookup): string[] {
   if (typeof paletteId !== 'string' || !paletteId) return [];
+  if (lookup) return lookup.colors(paletteId) ?? [];
   const { palettes, customPalettes } = usePaletteStore.getState();
   const palette = palettes.find((p) => p.id === paletteId) ?? customPalettes.find((p) => p.id === paletteId);
   return palette ? palette.colors.map((c) => c.value) : [];
@@ -119,24 +133,29 @@ function num(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
-export function resolveMappingSettings(settings: Record<string, unknown>): ResolvedMappingSettings {
+export function resolveMappingSettings(
+  settings: Record<string, unknown>,
+  lookup?: GeneratorPaletteLookup,
+): ResolvedMappingSettings {
   const characterPaletteId = settings['mapping.characterPaletteId'];
-  const characterPalette = typeof characterPaletteId === 'string' && characterPaletteId
-    ? useCharacterPaletteStore.getState().getPaletteById(characterPaletteId)
+  const paletteCharacters = typeof characterPaletteId === 'string' && characterPaletteId
+    ? (lookup
+      ? lookup.characters(characterPaletteId)
+      : useCharacterPaletteStore.getState().getPaletteById(characterPaletteId)?.characters)
     : undefined;
   return {
     enableCharacterMapping: settings['mapping.enableCharacterMapping'] !== false,
-    characterSet: characterPalette ? characterPalette.characters : toCharacterArray(settings['mapping.characterSet']),
+    characterSet: paletteCharacters ?? toCharacterArray(settings['mapping.characterSet']),
     characterDitherMode: (settings['mapping.characterDitherMode'] as CharacterDitherMode) ?? 'by-index',
     ditherStrength: num(settings['mapping.ditherStrength'], 0.5),
     reverseCharacterIndex: settings['mapping.reverseCharacterIndex'] === true,
     enableTextColorMapping: settings['mapping.enableTextColorMapping'] !== false,
-    textColors: findPaletteColors(settings['mapping.textColorPaletteId']),
+    textColors: findPaletteColors(settings['mapping.textColorPaletteId'], lookup),
     textColorMappingMode: (settings['mapping.textColorMappingMode'] as ColorMappingMode) ?? 'by-index',
     textColorDitherStrength: num(settings['mapping.textColorDitherStrength'], 0.5),
     reverseTextColorIndex: settings['mapping.reverseTextColorIndex'] === true,
     enableBackgroundColorMapping: settings['mapping.enableBackgroundColorMapping'] === true,
-    backgroundColors: findPaletteColors(settings['mapping.backgroundColorPaletteId']),
+    backgroundColors: findPaletteColors(settings['mapping.backgroundColorPaletteId'], lookup),
     backgroundColorMappingMode: (settings['mapping.backgroundColorMappingMode'] as ColorMappingMode) ?? 'by-index',
     backgroundColorDitherStrength: num(settings['mapping.backgroundColorDitherStrength'], 0.5),
     reverseBackgroundColorIndex: settings['mapping.reverseBackgroundColorIndex'] === true,
@@ -295,6 +314,7 @@ export function renderGeneratorFrame(
   frame: number,
   width: number,
   height: number,
+  options?: RenderGeneratorFrameOptions,
 ): Map<string, Cell> {
   if (!source.enabled || !isFrameInGeneratorRange(source, frame) || width <= 0 || height <= 0) {
     return new Map();
@@ -303,7 +323,9 @@ export function renderGeneratorFrame(
   if (!entry) return new Map();
 
   const localFrame = frame - source.startFrame;
-  const cached = entry.output.get(localFrame);
+  const lookup = options?.paletteLookup;
+  // Output cache is keyed to the live palette stores; bypass it for custom lookups
+  const cached = lookup ? undefined : entry.output.get(localFrame);
   if (cached) {
     // Refresh LRU position
     entry.output.delete(localFrame);
@@ -330,7 +352,8 @@ export function renderGeneratorFrame(
     sim.render(state, settings, ctx, buffer);
   }
 
-  const cells = mapIntensityToCells(buffer, resolveMappingSettings(settings));
+  const cells = mapIntensityToCells(buffer, resolveMappingSettings(settings, lookup));
+  if (lookup) return cells;
   if (entry.output.size >= OUTPUT_CACHE_LIMIT) {
     const oldest = entry.output.keys().next().value;
     if (oldest !== undefined) entry.output.delete(oldest);

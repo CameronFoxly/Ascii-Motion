@@ -26,10 +26,22 @@ import type { LayerId } from '../../../types/timeline';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Switch } from '../../ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Button } from '../../ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../ui/tooltip';
 import { X, Diamond, Copy, ClipboardPaste } from 'lucide-react';
-import type { EasingCurve } from '../../../types/timeline';
+import type { EasingCurve, Keyframe } from '../../../types/timeline';
+import type { EffectPropertyDefinition } from '../../../types/effectBlock';
+
+interface KeyframeValueDefinition {
+  displayName: string;
+  valueType?: EffectPropertyDefinition['valueType'];
+  options?: EffectPropertyDefinition['options'];
+  min?: number;
+  max?: number;
+  step?: number;
+  unit?: string;
+}
 
 // Clipboard state for ease copy/paste (module-level, persists across re-renders)
 let copiedEasing: EasingCurve | null = null;
@@ -221,16 +233,23 @@ export const KeyframeEditorPanel: React.FC = () => {
     onScrubEnd,
   });
 
-  const kfDef = useMemo(() => {
+  const kfDef = useMemo((): KeyframeValueDefinition | undefined => {
     if (!kfData) return undefined;
     if ('generatorType' in kfData && kfData.generatorType) {
       const def = getGenerator(kfData.generatorType)?.propertyDefinitions.find((d) => d.path === kfData.track.propertyPath);
-      if (def) return { displayName: def.displayName, min: def.min, max: def.max, step: def.step, unit: def.unit };
+      if (def) {
+        return {
+          displayName: def.displayName, valueType: def.valueType, options: def.options,
+          min: def.min, max: def.max, step: def.step, unit: def.unit,
+        };
+      }
     }
     return PROPERTY_DEFINITIONS[kfData.track.propertyPath];
   }, [kfData]);
+  const isNumericValue = typeof kfData?.keyframe.value === 'number'
+    && (kfDef?.valueType === undefined || kfDef.valueType === 'number');
   const valueScrub = useScrubInput({
-    value: (kfData?.keyframe.value as number) ?? 0,
+    value: isNumericValue ? (kfData!.keyframe.value as number) : 0,
     onChange: (v) => {
       if (kfData) updateKeyframe(kfData.layerId, kfData.trackId, kfData.keyframe.id, { value: v });
     },
@@ -254,6 +273,47 @@ export const KeyframeEditorPanel: React.FC = () => {
   const handleValueChange = (value: string) => {
     const num = parseFloat(value);
     if (!isNaN(num)) updateKeyframe(layerId, trackId, keyframe.id, { value: num });
+  };
+
+  const setValue = (value: Keyframe['value']) => updateKeyframe(layerId, trackId, keyframe.id, { value });
+
+  const renderValueControl = () => {
+    if (isNumericValue) {
+      return (
+        <Input type="number" value={keyframe.value as number} onChange={(e) => handleValueChange(e.target.value)}
+          className="h-6 text-xs mt-0.5" min={definition?.min} max={definition?.max} step={definition?.step ?? 1} />
+      );
+    }
+    if (definition?.valueType === 'boolean' || typeof keyframe.value === 'boolean') {
+      return (
+        <div className="h-6 mt-0.5 flex items-center">
+          <Switch checked={keyframe.value === true} onCheckedChange={setValue} className="scale-[0.6]" />
+        </div>
+      );
+    }
+    if (definition?.valueType === 'select' && definition.options?.length) {
+      return (
+        <Select value={String(keyframe.value)} onValueChange={setValue}>
+          <SelectTrigger className="h-6 text-xs mt-0.5"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {definition.options.map((o) => (
+              <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+    }
+    if (definition?.valueType === 'color') {
+      return (
+        <Input type="color" value={String(keyframe.value)} onChange={(e) => setValue(e.target.value)}
+          className="h-6 mt-0.5 p-0.5" />
+      );
+    }
+    // Palette, character set, and other non-numeric values are edited from the generator panel
+    return (
+      <Input value={String(keyframe.value)} readOnly disabled title={String(keyframe.value)}
+        className="h-6 text-xs mt-0.5" />
+    );
   };
 
   const handleEasingChange = (easing: EasingCurve) => {
@@ -320,11 +380,13 @@ export const KeyframeEditorPanel: React.FC = () => {
               className="h-6 text-xs mt-0.5" min={0} />
           </div>
           <div className="flex-1">
-            <Label className="text-[10px] text-muted-foreground cursor-ew-resize" onMouseDown={valueScrub.onMouseDown}>
-              Value{definition?.unit ? ` (${definition.unit})` : ''}
+            <Label
+              className={`text-[10px] text-muted-foreground${isNumericValue ? ' cursor-ew-resize' : ''}`}
+              onMouseDown={isNumericValue ? valueScrub.onMouseDown : undefined}
+            >
+              Value{isNumericValue && definition?.unit ? ` (${definition.unit})` : ''}
             </Label>
-            <Input type="number" value={keyframe.value as number} onChange={(e) => handleValueChange(e.target.value)}
-              className="h-6 text-xs mt-0.5" min={definition?.min} max={definition?.max} step={definition?.step ?? 1} />
+            {renderValueControl()}
           </div>
         </div>
 
