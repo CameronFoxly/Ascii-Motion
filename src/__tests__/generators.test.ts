@@ -58,12 +58,12 @@ function snapshot(cells: Map<string, Cell>): string {
 // ============================================
 
 describe('generator registry', () => {
-  it('registers all five generators', () => {
+  it('registers all generators', () => {
     const types = getAllGenerators().map((g) => g.type).sort();
-    expect(types).toEqual([...GENERATOR_TYPES].sort());
+    expect(types).toEqual([...GENERATOR_TYPES, 'animated-text'].sort());
   });
 
-  it.each(GENERATOR_TYPES)('%s has unique property definitions with defaults', (type) => {
+  it.each([...GENERATOR_TYPES, 'animated-text'])('%s has unique property definitions with defaults', (type) => {
     const entry = getGenerator(type)!;
     const paths = entry.propertyDefinitions.map((d) => d.path);
     expect(new Set(paths).size).toBe(paths.length);

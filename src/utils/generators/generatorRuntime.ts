@@ -56,6 +56,24 @@ export function getGeneratorFrameRate(): number {
 export { hash3, mulberry32, frameRng } from './random';
 
 // ============================================
+// EDIT PREVIEW
+// ============================================
+
+let editPreviewSourceId: string | null = null;
+
+/**
+ * Mark a generator source as being edited on the canvas. Cells-mode generators
+ * receive `ctx.editing` so they can show their full content while typing.
+ */
+export function setGeneratorEditPreview(sourceId: string | null): void {
+  editPreviewSourceId = sourceId;
+}
+
+export function getGeneratorEditPreview(): string | null {
+  return editPreviewSourceId;
+}
+
+// ============================================
 // SETTINGS RESOLUTION
 // ============================================
 
@@ -324,8 +342,9 @@ export function renderGeneratorFrame(
 
   const localFrame = frame - source.startFrame;
   const lookup = options?.paletteLookup;
-  // Output cache is keyed to the live palette stores; bypass it for custom lookups
-  const cached = lookup ? undefined : entry.output.get(localFrame);
+  const editing = editPreviewSourceId !== null && editPreviewSourceId === source.id;
+  // Output cache is keyed to the live palette stores; bypass it for custom lookups and edit previews
+  const cached = lookup || editing ? undefined : entry.output.get(localFrame);
   if (cached) {
     // Refresh LRU position
     entry.output.delete(localFrame);
@@ -336,6 +355,29 @@ export function renderGeneratorFrame(
   const generator = entry.generator;
   const settings = settingsAt(source, entry, localFrame);
   const ctx = makeContext(entry, localFrame);
+
+  if (generator.mode === 'cells') {
+    const phases: Record<string, number> = {};
+    for (const path of generator.phaseProperties ?? []) {
+      phases[path] = phaseAt(source, entry, path, localFrame);
+    }
+    if (editing) ctx.editing = true;
+    const cells = generator.renderCells(
+      ctx,
+      settings,
+      phases,
+      localFrame > 0 ? settingsAt(source, entry, localFrame - 1) : undefined,
+    );
+    // Edit previews bypass the cache so leaving edit mode restores normal output
+    if (lookup || editing) return cells;
+    if (entry.output.size >= OUTPUT_CACHE_LIMIT) {
+      const oldest = entry.output.keys().next().value;
+      if (oldest !== undefined) entry.output.delete(oldest);
+    }
+    entry.output.set(localFrame, cells);
+    return cells;
+  }
+
   const buffer = entry.buffer;
   buffer.intensity.fill(0);
   buffer.coverage.fill(0);

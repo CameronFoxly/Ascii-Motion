@@ -17,6 +17,7 @@ import { useCanvasStore } from '../stores/canvasStore';
 import { useTimelineStore } from '../stores/timelineStore';
 import { usePaletteStore } from '../stores/paletteStore';
 import { useCharacterPaletteStore } from '../stores/characterPaletteStore';
+import { useAnimatedTextEditStore } from '../stores/animatedTextEditStore';
 import type { Cell } from '../types';
 import type { Layer } from '../types/timeline';
 import {
@@ -53,6 +54,8 @@ export function useCompositedCanvas() {
   const customPalettes = usePaletteStore((s) => s.customPalettes);
   const characterPalettes = useCharacterPaletteStore((s) => s.availablePalettes);
   const customCharacterPalettes = useCharacterPaletteStore((s) => s.customPalettes);
+  // Animated text renders without its effect while being edited
+  const editingTextLayerId = useAnimatedTextEditStore((s) => s.editingLayerId);
 
   // Determine if we're in layer mode (have layers loaded)
   const isLayerMode = layers.length > 0;
@@ -113,7 +116,7 @@ export function useCompositedCanvas() {
       globalEffects,
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layers, layerGroups, globalEffects, currentFrame, activeLayerId, canvasCells, canvasWidth, canvasHeight, isLayerMode, palettes, customPalettes, characterPalettes, customCharacterPalettes]);
+  }, [layers, layerGroups, globalEffects, currentFrame, activeLayerId, canvasCells, canvasWidth, canvasHeight, isLayerMode, palettes, customPalettes, characterPalettes, customCharacterPalettes, editingTextLayerId]);
 
   // Cell getter function for the renderer
   const getCompositedCell = useMemo(() => {

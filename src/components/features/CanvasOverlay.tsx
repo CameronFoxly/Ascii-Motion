@@ -15,6 +15,7 @@ import { InteractiveBezierOverlay } from './InteractiveBezierOverlay';
 import { InteractiveVectorShapeOverlay } from './InteractiveVectorShapeOverlay';
 import { AnchorPointOverlay } from './AnchorPointOverlay';
 import { ParticleOriginOverlay } from './ParticleOriginOverlay';
+import { AnimatedTextOverlay } from './AnimatedTextOverlay';
 import { LayerTransformOverlay } from './LayerTransformOverlay';
 import { ImportTransformOverlay } from './ImportTransformOverlay';
 import { transformCellMapToScreen } from '../../utils/layerTransformUtils';
@@ -969,6 +970,7 @@ export const CanvasOverlay: React.FC = React.memo(() => {
       />
       {!importTransformActive && <InteractiveGradientOverlay />}
       {!importTransformActive && <ParticleOriginOverlay />}
+      {!importTransformActive && <AnimatedTextOverlay />}
       {!importTransformActive && activeTool === 'beziershape' && (
         <InteractiveBezierOverlay key={bezierRemountKey} />
       )}

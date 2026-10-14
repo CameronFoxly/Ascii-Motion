@@ -18,6 +18,8 @@ import { getAllGenerators } from '../../registry/generatorRegistry';
 import { addGeneratorLayerWithHistory } from '../../utils/generators/generatorHistory';
 import { useTimelineStore } from '../../stores/timelineStore';
 import { useLayerLimit } from '../../hooks/useLayerLimit';
+import { useAnimatedTextEditStore } from '../../stores/animatedTextEditStore';
+import { ANIMATED_TEXT_GENERATOR_TYPE } from '../../registry/generators/animatedText';
 import { Zap } from 'lucide-react';
 
 interface GeneratorsSectionProps {
@@ -34,6 +36,9 @@ export function GeneratorsSection({ className = '' }: GeneratorsSectionProps) {
     const tl = useTimelineStore.getState();
     if (!tl.view.expandedLayerIds.has(layerId)) {
       tl.toggleLayerExpanded(layerId);
+    }
+    if (generatorType === ANIMATED_TEXT_GENERATOR_TYPE) {
+      useAnimatedTextEditStore.getState().startEditing(layerId, { selectAll: true });
     }
   };
 

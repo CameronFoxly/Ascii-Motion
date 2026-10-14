@@ -1,6 +1,7 @@
 # Generator Layers — Developer Guide
 
-Generators (Radio Waves, Turbulent Noise, Particle Physics, Rain Drops, Digital Rain) are
+Generators (Radio Waves, Turbulent Noise, Particle Physics, Rain Drops, Digital Rain,
+Animated Text) are
 **procedural layers**. They render live every frame from their settings and keyframe tracks,
 like effects and transforms do. Nothing is baked unless the user picks **Bake to frames**.
 
@@ -45,12 +46,13 @@ automatically under the `Mapping` category.
 Generators output **intensity** (0..1) and **coverage** into an `IntensityBuffer`.
 `mapIntensityToCells` (`utils/generators/intensityMapping.ts`) turns that into ASCII cells.
 
-There are two modes:
+There are three modes:
 
 | Mode | Use when | Contract |
 |------|----------|----------|
 | `stateless` | Output is a pure function of time (waves, noise) | `render(ctx, settings, phases, out)`. Paths in `phaseProperties` are per-second speeds integrated over time, so keyframed speeds never jump. |
 | `simulation` | Output depends on history (particles, rain) | `createState`, `step` (called for every frame from 0), `render`, `cloneState`. Use `frameRng(seed, frame, salt)` so randomness is deterministic. |
+| `cells` | Output is literal characters and colors (Animated Text) | `renderCells(ctx, settings, phases, previousSettings?)` returns a cell map directly. No `Mapping` properties are added (`usesIntensityMapping` is false). `previousSettings` are the settings at the previous local frame. `ctx.editing` is set while the source is being edited on the canvas (`setGeneratorEditPreview`), and those renders skip the output cache. |
 
 `ctx.dt` is `30 / fps`, so simulations tuned at 30 fps keep the same speed at any frame rate.
 
@@ -82,6 +84,37 @@ inverts layer/group transforms back to layer-local cells. Edits go through
 `setGeneratorValueAtFrame` (shared with the properties panel), so animated origins auto-key
 at the playhead, and each drag records a single `generator_update` undo entry.
 
+### Animated Text
+
+`animated-text` (`registry/generators/animatedText.ts`) draws text in a box. Layout lives in
+`utils/generators/animatedTextLayout.ts` and is shared by the renderer and the overlay, so the
+caret always matches the output:
+
+- **Hug Contents** sizes the box to the longest line × line count. **Fixed Size** uses
+  keyframeable width/height, word-wraps (breaking long words), and clips overflowing rows.
+- Alignment (left/center/right) is applied per line. Text uses hold interpolation.
+- Text and background colors are keyframeable (hold). The background is transparent by
+  default; **Fill Box Background** fills the whole box instead of just glyph cells.
+- One effect at a time. Character indices exclude newlines.
+  - **Typewriter** shows indices in [Start, End), in percent or index units. Picking it
+    auto-keys End 0 → 100 across the span (`applyTypewriterDefaultKeyframes`) unless End is
+    already animated. The optional block cursor sits at the next character and blinks only
+    while the reveal is paused, compared against `previousSettings`.
+  - **Blink** uses On/Off frames and a phase offset, either for the whole text or per character
+    with a stagger.
+  - **Wave** mirrors Wave Warp (axis, frequency, amplitude, integrated speed, phase). Characters
+    may move outside the box.
+
+`AnimatedTextOverlay` shows the selected layer's box outline, a draggable top-left position
+handle and, when position or transforms are animated, a `MotionPathDots` trail. Dragging the
+box or handle writes `position.x/y` through `setGeneratorValueAtFrame` with one undo entry.
+Double-clicking the box (or adding the generator) enters edit mode via
+`useAnimatedTextEditStore`. A hidden, focused textarea provides native typing, selection,
+paste and IME. Edits auto-key at the playhead. While editing, the layer renders without its
+effect. Esc or clicking outside exits and records one `Edit text` undo entry.
+`layerLocalPointToCanvas` / `canvasPointToParticleOrigin` convert through layer and group
+transforms.
+
 ### Adding a generator
 
 1. Create `src/registry/generators/myGenerator.ts`. Use the helpers in `propertyHelpers.ts`
@@ -89,7 +122,9 @@ at the playhead, and each drag records a single `generator_update` undo entry.
 2. Add it to `registerAllGenerators()` in `src/registry/generators/index.ts`.
 3. Add the type to `GeneratorId` in `src/types/generators.ts`.
 4. Add it to the `GENERATOR_TYPES` list in `src/__tests__/generators.test.ts`. The shared tests
-   then cover determinism, random access versus sequential playback, and animation.
+   then cover determinism, random access versus sequential playback, and animation. (Cells-mode
+   generators without default animation, like Animated Text, are only added to the registry
+   expectations.)
 
 ## Runtime (`src/utils/generators/generatorRuntime.ts`)
 
@@ -147,10 +182,13 @@ These rules protect the procedural model:
   randomize seed, reset, and bake.
 - **Properties:** `GeneratorPropertiesPanel` edits settings by category. The diamond next to each
   property adds or removes a keyframe at the current frame, creating the track if needed.
+  Definitions can set `visibleWhen` plus `visibleWhenAll` (every condition must match) and
+  `control: 'multiline'` (textarea committed on blur). Color properties use a swatch that opens
+  `ColorPickerOverlay` (with a transparent option), and each picker session is one undo entry.
 
 ### Palette mapping and reusable editors
 
-All generators select character palettes with `mapping.characterPaletteId`, just as text
+Intensity generators select character palettes with `mapping.characterPaletteId`, just as text
 and background mappings select color palettes. Palette buttons open `PaletteEditorDialog`,
 which embeds the existing character/color mapping editors in palette-only mode. Creation,
 editing, ordering, management, import/export, and nested pickers remain available without

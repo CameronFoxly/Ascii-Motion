@@ -6,7 +6,7 @@
  */
 
 /** Built-in generator type ids */
-export type GeneratorId = 'radio-waves' | 'turbulent-noise' | 'particle-physics' | 'rain-drops' | 'digital-rain';
+export type GeneratorId = 'radio-waves' | 'turbulent-noise' | 'particle-physics' | 'rain-drops' | 'digital-rain' | 'animated-text';
 
 /** Noise type options for the turbulent noise generator */
 export type NoiseType = 'perlin' | 'simplex' | 'worley';
