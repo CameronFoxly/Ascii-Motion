@@ -5,6 +5,7 @@ import { DEFAULT_CANVAS_SIZES } from '../constants';
 import { useSelectionStore } from './selectionStore';
 import { isCellDrawableWithState } from '../utils/selectionConstraint';
 import type { LayerId } from '../types/timeline';
+import { useTimelineStore } from './timelineStore';
 
 interface CanvasState extends Canvas {
   // Canvas display settings
@@ -14,6 +15,8 @@ interface CanvasState extends Canvas {
   // Layer sync state
   /** The layer currently being edited. Canvas cells represent this layer's active content frame. */
   activeLayerId: LayerId | null;
+  /** Playhead position at which this working buffer was installed. */
+  activeFrameIndex: number;
   /** Whether the canvas has unsaved changes not yet synced to the timeline store. */
   isDirty: boolean;
   
@@ -45,6 +48,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   canvasBackgroundColor: '#000000',
   showGrid: true,
   activeLayerId: null,
+  activeFrameIndex: 0,
   isDirty: false,
 
   // Actions
@@ -252,7 +256,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   setCanvasData: (cells: Map<string, Cell>) => {
-    set({ cells: new Map(cells) });
+    set({ cells: new Map(cells), activeFrameIndex: useTimelineStore.getState().view.currentFrame });
     // Note: setCanvasData does NOT mark dirty — it's used for sync-in (loading from timeline)
   },
 

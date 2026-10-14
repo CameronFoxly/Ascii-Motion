@@ -83,6 +83,7 @@ export const ForegroundBackgroundSelector: React.FC<ForegroundBackgroundSelector
                 <TooltipTrigger asChild>
                   <button
                     ref={backgroundButtonRef}
+                    aria-label="Edit background color"
                     className="w-8 h-8 rounded border-2 border-border hover:border-primary transition-colors shadow-sm relative overflow-hidden"
                     style={{ 
                       backgroundColor: isBackgroundTransparent ? '#ffffff' : selectedBgColor,
@@ -134,6 +135,7 @@ export const ForegroundBackgroundSelector: React.FC<ForegroundBackgroundSelector
                 <TooltipTrigger asChild>
                   <button
                     ref={foregroundButtonRef}
+                    aria-label="Edit foreground color"
                     className="w-8 h-8 rounded border-2 border-background shadow-md hover:border-primary transition-colors ring-1 ring-border"
                     style={{ backgroundColor: selectedColor }}
                     onClick={handleForegroundClick}

@@ -21,6 +21,7 @@ import { notifyCanvasRendered } from '../utils/renderScheduler';
 import { markFullRedraw } from '../utils/dirtyTracker';
 import { calculateAdaptiveGridColor } from '../utils/gridColor';
 import type { Cell } from '../types';
+import { layoutTextBox } from '../utils/textBoxLayout';
 
 /**
  * Setup high-DPI canvas for crisp text rendering
@@ -495,6 +496,31 @@ export const useCanvasRenderer = () => {
       }
     }
 
+    const edit = textToolState.boxEdit;
+    if (activeTool === 'text' && edit && textToolState.textBox) {
+      const lines = layoutTextBox(edit.text, textToolState.textBox, edit.alignment);
+      const selectionStart = Math.min(edit.anchor, edit.caret);
+      const selectionEnd = Math.max(edit.anchor, edit.caret);
+      for (const line of lines) {
+        for (let column = 0; column < line.characters.length; column++) {
+          const x = line.x + column;
+          const y = line.y;
+          const px = x * effectiveCellWidth + panOffset.x;
+          const py = y * effectiveCellHeight + panOffset.y;
+          ctx.fillStyle = canvasBackgroundColor === 'transparent'
+            ? (theme === 'dark' ? '#000000' : '#ffffff')
+            : canvasBackgroundColor;
+          ctx.fillRect(px, py, effectiveCellWidth, effectiveCellHeight);
+          const character = line.characters[column];
+          drawCell(ctx, x, y, { char: character.text, ...edit.styles[character.styleIndex] });
+          if (character.start < selectionEnd && character.end > selectionStart) {
+            ctx.fillStyle = 'rgba(168, 85, 247, 0.35)';
+            ctx.fillRect(px, py, effectiveCellWidth, effectiveCellHeight);
+          }
+        }
+      }
+    }
+
     // Draw text box overlay (active box or in-progress drag)
     if (activeTool === 'text') {
       const draft = textToolState.textBoxDraft;
@@ -505,7 +531,7 @@ export const useCanvasRenderer = () => {
             right: Math.max(draft.start.x, draft.current.x),
             bottom: Math.max(draft.start.y, draft.current.y)
           }
-        : textToolState.textBox;
+        : edit ? null : textToolState.textBox;
 
       if (region) {
         const boxLeft = Math.max(0, region.left);
@@ -539,7 +565,7 @@ export const useCanvasRenderer = () => {
         ctx.fillRect(
           Math.round(x * effectiveCellWidth + panOffset.x),
           Math.round(y * effectiveCellHeight + panOffset.y),
-          Math.round(effectiveCellWidth),
+          edit ? 2 : Math.round(effectiveCellWidth),
           Math.round(effectiveCellHeight)
         );
       }
