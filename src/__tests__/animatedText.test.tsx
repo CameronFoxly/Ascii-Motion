@@ -210,6 +210,15 @@ describe('animated text generator integration', () => {
     applyTypewriterDefaultKeyframes(id);
     expect(tl.getLayer(id)!.generator!.propertyTracks[0].keyframes.map((k) => k.value)).toEqual([0, 50]);
   });
+
+  it('shows the full text instead of auto-keying when the span is a single frame', () => {
+    const tl = useTimelineStore.getState();
+    const id = tl.addGeneratorLayer('animated-text', { startFrame: 0, durationFrames: 1 })!;
+    applyTypewriterDefaultKeyframes(id);
+    const source = tl.getLayer(id)!.generator!;
+    expect(source.propertyTracks).toHaveLength(0);
+    expect(source.settings['typewriter.end']).toBe(100);
+  });
 });
 
 describe('animated text panel', () => {

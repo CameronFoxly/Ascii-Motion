@@ -17,11 +17,16 @@ export function applyTypewriterDefaultKeyframes(layerId: LayerId): void {
   const existing = source.propertyTracks.find((pt) => pt.propertyPath === 'typewriter.end');
   if (existing && existing.keyframes.length > 0) return;
 
+  const first = source.startFrame;
+  const last = source.startFrame + Math.max(1, source.durationFrames) - 1;
+  // A single-frame span can't animate; show the full text instead of hiding it
+  if (last <= first) {
+    tl.updateGeneratorSettings(layerId, { 'typewriter.units': 'percent', 'typewriter.start': 0, 'typewriter.end': 100 });
+    return;
+  }
   tl.updateGeneratorSettings(layerId, { 'typewriter.units': 'percent', 'typewriter.start': 0 });
   const trackId = tl.addGeneratorPropertyTrack(layerId, 'typewriter.end');
   if (!trackId) return;
-  const first = source.startFrame;
-  const last = source.startFrame + Math.max(1, source.durationFrames) - 1;
   tl.addGeneratorKeyframe(layerId, trackId, first, 0);
-  if (last > first) tl.addGeneratorKeyframe(layerId, trackId, last, 100);
+  tl.addGeneratorKeyframe(layerId, trackId, last, 100);
 }
