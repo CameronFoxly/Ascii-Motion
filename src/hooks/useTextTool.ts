@@ -4,6 +4,7 @@ import { useCanvasStore } from '../stores/canvasStore';
 import { useTimelineStore } from '../stores/timelineStore';
 import { screenToLocal } from '../utils/layerTransformUtils';
 import type { TextBoxRegion } from '../types';
+import { layoutTextBox, moveTextCodePointOffset, textBoxCaret, textBoxOffsetAt } from '../utils/textBoxLayout';
 
 /**
  * Text Tool Hook - Handles text input functionality
@@ -11,6 +12,7 @@ import type { TextBoxRegion } from '../types';
  * Features:
  * - Click to place cursor and start typing
  * - Click and drag to define a text box that constrains and wraps typing
+ * - Text boxes keep a draft until Cmd/Ctrl+Enter, explicit commit, or a tool switch
  * - Arrow key navigation with boundary constraints
  * - Enter key for new lines (moves to line start)
  * - Backspace with line boundary stopping
@@ -361,6 +363,14 @@ export const useTextTool = () => {
 
   // Mouse down - begin a potential text box drag
   const handleTextToolMouseDown = useCallback((x: number, y: number) => {
+    const { boxEdit, textBox: box } = useToolStore.getState().textToolState;
+    if (boxEdit && box) {
+      if (x >= box.left && x <= box.right && y >= box.top && y <= box.bottom) {
+        const offset = textBoxOffsetAt(layoutTextBox(boxEdit.text, box, boxEdit.alignment), x, y);
+        useToolStore.getState().updateTextBoxEdit({ anchor: offset, caret: offset, preferredColumn: null });
+      }
+      return;
+    }
     dragStartRef.current = { x, y };
     startTextBoxDraft(x, y);
   }, [startTextBoxDraft]);
@@ -389,8 +399,7 @@ export const useTextTool = () => {
       commitCurrentWord();
     }
 
-    // A drag spanning more than one column creates a text box
-    if (right > left) {
+    if (right > left || bottom > top) {
       const region: TextBoxRegion = { left, top, right, bottom };
       startTyping(region.left, region.top, region);
     } else if (
@@ -413,6 +422,86 @@ export const useTextTool = () => {
     clearTextBoxDraft();
   }, [clearTextBoxDraft]);
 
+  const handleTextBoxKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.isComposing) return;
+    const store = useToolStore.getState();
+    const { boxEdit: edit, textBox: box } = store.textToolState;
+    if (!edit || !box) return;
+    const nativeInput = event.target instanceof HTMLTextAreaElement;
+    const modifier = event.ctrlKey || event.metaKey;
+    const replaceSelection = (text: string) => {
+      const start = Math.min(edit.anchor, edit.caret);
+      const end = Math.max(edit.anchor, edit.caret);
+      const caret = start + text.length;
+      store.updateTextBoxEdit({
+        text: edit.text.slice(0, start) + text + edit.text.slice(end),
+        anchor: caret, caret, preferredColumn: null,
+      });
+    };
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      store.stopTyping();
+    } else if (event.key === 'Enter' && modifier) {
+      event.preventDefault();
+      store.commitTextBox();
+    } else if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) {
+      event.preventDefault();
+      const lines = layoutTextBox(edit.text, box, edit.alignment);
+      const position = textBoxCaret(lines, edit.caret);
+      const line = lines[position.y - box.top];
+      let caret = edit.caret;
+      let preferredColumn: number | null = null;
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        const backwards = event.key === 'ArrowLeft';
+        if (!event.shiftKey && edit.anchor !== edit.caret) {
+          caret = backwards ? Math.min(edit.anchor, edit.caret) : Math.max(edit.anchor, edit.caret);
+        } else if (event.metaKey) {
+          caret = backwards ? line.start : line.end;
+        } else if (event.ctrlKey) {
+          caret = backwards
+            ? edit.caret - (edit.text.slice(0, edit.caret).match(/\S+\s*$/)?.[0].length ?? edit.caret)
+            : edit.caret + (edit.text.slice(edit.caret).match(/^\s*\S+\s*/)?.[0].length ?? edit.text.length - edit.caret);
+        } else caret = moveTextCodePointOffset(edit.text, caret, backwards ? -1 : 1);
+      } else if (event.key === 'Home' || event.key === 'End') {
+        caret = modifier ? (event.key === 'Home' ? 0 : edit.text.length) : (event.key === 'Home' ? line.start : line.end);
+      } else {
+        preferredColumn = edit.preferredColumn ?? position.x - box.left;
+        caret = textBoxOffsetAt(lines, box.left + preferredColumn, position.y + (event.key === 'ArrowUp' ? -1 : 1));
+      }
+      caret = Math.max(0, Math.min(edit.text.length, caret));
+      store.updateTextBoxEdit({ caret, anchor: event.shiftKey ? edit.anchor : caret, preferredColumn });
+    } else if (!nativeInput) {
+      if (modifier && event.key.toLowerCase() === 'a') {
+        event.preventDefault();
+        store.updateTextBoxEdit({ anchor: 0, caret: edit.text.length });
+      } else if (modifier && ['c', 'x', 'v'].includes(event.key.toLowerCase())) {
+        event.preventDefault();
+        const key = event.key.toLowerCase();
+        if (key === 'v') {
+          void navigator.clipboard.readText().then((text) => {
+            if (useToolStore.getState().textToolState.boxEdit !== edit) return;
+            replaceSelection(text.replace(/\r\n?/g, '\n'));
+          }).catch((error) => console.error('Failed to read clipboard:', error));
+        } else {
+          void navigator.clipboard.writeText(edit.text.slice(Math.min(edit.anchor, edit.caret), Math.max(edit.anchor, edit.caret)))
+            .then(() => {
+              if (key === 'x' && useToolStore.getState().textToolState.boxEdit === edit) replaceSelection('');
+            }).catch((error) => console.error('Failed to write clipboard:', error));
+        }
+      } else if (event.key === 'Backspace' || event.key === 'Delete') {
+        event.preventDefault();
+        const start = Math.min(edit.anchor, edit.caret);
+        const end = Math.max(edit.anchor, edit.caret);
+        const from = start === end && event.key === 'Backspace' ? Math.max(0, start - 1) : start;
+        const to = start === end && event.key === 'Delete' ? Math.min(edit.text.length, end + 1) : end;
+        store.updateTextBoxEdit({ text: edit.text.slice(0, from) + edit.text.slice(to), caret: from, anchor: from, preferredColumn: null });
+      } else if (event.key === 'Enter' || (Array.from(event.key).length === 1 && !modifier)) {
+        event.preventDefault();
+        replaceSelection(event.key === 'Enter' ? '\n' : event.key);
+      }
+    }
+  }, []);
+
   // Handle keyboard input
   const handleTextToolKeyDown = useCallback((event: KeyboardEvent) => {
     if (!textToolState.isTyping) return;
@@ -427,6 +516,11 @@ export const useTextTool = () => {
       target.getAttribute('role') === 'textbox' ||
       target.closest('[role="dialog"], [data-radix-popper-content-wrapper]')
     ) {
+      return;
+    }
+
+    if (useToolStore.getState().textToolState.boxEdit) {
+      handleTextBoxKeyDown(event);
       return;
     }
 
@@ -472,7 +566,7 @@ export const useTextTool = () => {
         }
         break;
     }
-  }, [textToolState.isTyping, moveCursor, handleEnter, handleBackspace, commitCurrentWord, stopTyping, insertCharacter, handlePaste]);
+  }, [textToolState.isTyping, moveCursor, handleEnter, handleBackspace, commitCurrentWord, stopTyping, insertCharacter, handlePaste, handleTextBoxKeyDown]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -497,6 +591,7 @@ export const useTextTool = () => {
     handleTextToolMouseUp,
     cancelTextBoxDrag,
     handleTextToolKeyDown,
+    handleTextBoxKeyDown,
     commitCurrentWord,
     
     // Utilities

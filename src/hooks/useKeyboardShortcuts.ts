@@ -1031,12 +1031,22 @@ export const processHistoryAction = (
         const layer = tl.layers.find((l) => l.id === action.data.layerId);
         if (layer) {
           const frameData = action.data.frameData;
-          tl.addContentFrame(
+          const restoredId = tl.addContentFrame(
             action.data.layerId as LayerId,
             frameData.startFrame,
             frameData.durationFrames,
             frameData.data instanceof Map ? frameData.data : new Map(Object.entries(frameData.data ?? {})),
           );
+          if (restoredId) {
+            useTimelineStore.setState((state) => ({
+              layers: state.layers.map((entry) => entry.id === layer.id ? {
+                ...entry,
+                contentFrames: entry.contentFrames.map((frame) => frame.id === restoredId
+                  ? { ...frameData, data: new Map(frame.data) }
+                  : frame),
+              } : entry),
+            }));
+          }
         }
       } else {
         // Remove the added content frame
@@ -2076,6 +2086,7 @@ export const useKeyboardShortcuts = () => {
   }, []);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    if (textToolState.boxEdit) return;
     // If any modal dialog is open, disable all keyboard shortcuts
     // Check for shadcn/ui dialogs that are actually open and visible
     const openDialogs = Array.from(document.querySelectorAll('[role="dialog"]')).filter(dialog => {

@@ -44,6 +44,38 @@ Added toggle options for all drawing tools and the eyedropper to selectively aff
 - Updated character insertion, deletion, and paste operations
 - Maintains proper text editing behavior while respecting toggles
 
+#### Free typing and text-box editing
+
+A single-cell click retains free typing: characters are written immediately, Enter
+starts a new line, and Escape finishes typing without discarding it.
+
+Dragging a text box starts an uncommitted editing session. Type or paste text,
+click or drag within the box to position the caret or select text, and use arrow
+keys, Home/End, Backspace, and Delete to edit. Enter inserts a line break;
+Cmd+Enter (Ctrl+Enter on Windows/Linux) or the check button commits, and Escape or the cancel button discards the
+draft. Switching tools also commits. Clicking outside the box leaves it open.
+
+Corner handles resize the text box and reflow its contents without transforming
+the layer. Text wraps by words (long words wrap by characters), and the box grows
+vertically as needed, including beyond the canvas without changing canvas size.
+Floating left, center, and right alignment buttons follow its bottom-right corner
+and move above it when there is not enough viewport space below.
+Commit/cancel use the same green/red circular controls as the bezier pen tool.
+
+Foreground and background colors are stored per character when typing or pasting,
+and are preserved through editing, wrapping, resizing, alignment, and commit.
+Changing the main color picker with a text selection recolors only the selected
+characters; without a selection, it changes colors for subsequent input only.
+Background colors also apply to spaces.
+
+Frame navigation and layer selection leave the draft uncommitted and editable.
+Commit bakes ordinary cells into the currently selected content layer at the
+current playhead, preserving existing cells outside the text. In a timeline gap,
+it creates a one-frame content block. Each commit is one layer-addressed undo/redo
+operation; cancel does not modify canvas data or history. Locked layers, locked
+groups, generator layers, and playback reject commits with a notification and
+retain the draft.
+
 ### UI Component (`ToolPalette.tsx`)
 - Integrated toggles into existing tool options pattern
 - Conditional display based on active tool

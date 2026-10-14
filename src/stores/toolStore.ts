@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Tool, ToolState, Selection, LassoSelection, MagicWandSelection, TextToolState, TextBoxRegion, AnyHistoryAction, CanvasHistoryAction, BrushShape, BrushSettings, Cell } from '../types';
+import type { Tool, ToolState, Selection, LassoSelection, MagicWandSelection, TextToolState, TextBoxRegion, TextBoxEdit, AnyHistoryAction, CanvasHistoryAction, BrushShape, BrushSettings, Cell } from '../types';
 import { createCellKey } from '../types';
 import { DEFAULT_COLORS } from '../constants';
 import { 
@@ -18,6 +18,13 @@ import { useAsciiTypeStore } from './asciiTypeStore';
 import { useCanvasStore } from './canvasStore';
 import { useAnimationStore } from './animationStore';
 import { usePreviewStore } from './previewStore';
+import { useTimelineStore } from './timelineStore';
+import { getContentFrameAtTime } from '../utils/layerCompositing';
+import {
+  layoutTextBox, textBoxCaret, updateTextBoxStyles, colorTextBoxSelection,
+  normalizeTextOffset,
+} from '../utils/textBoxLayout';
+import { toast } from 'sonner';
 
 interface ToolStoreState extends ToolState {
   // Rectangular selection state
@@ -189,6 +196,8 @@ interface ToolStoreState extends ToolState {
   // Text tool actions
   startTyping: (x: number, y: number, textBox?: TextBoxRegion | null) => void;
   stopTyping: () => void;
+  updateTextBoxEdit: (edit: Partial<TextBoxEdit>, region?: TextBoxRegion) => void;
+  commitTextBox: () => boolean;
   setCursorPosition: (x: number, y: number) => void;
   setCursorVisible: (visible: boolean) => void;
   setTextBoxFull: (full: boolean) => void;
@@ -333,7 +342,8 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
     lineStartX: 0,
     textBox: null,
     textBoxDraft: null,
-    textBoxFull: false
+    textBoxFull: false,
+    boxEdit: null
   },
   
   // Clipboard state
@@ -358,6 +368,7 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   // Tool actions
   setActiveTool: (tool: Tool) => {
     const previousTool = get().activeTool;
+    if (tool !== 'text' && get().textToolState.boxEdit && !get().commitTextBox()) return;
     set({ activeTool: tool });
     const asciiStore = useAsciiTypeStore.getState();
     if (tool === 'asciitype') {
@@ -456,8 +467,16 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
   },
 
   setSelectedChar: (char: string) => set({ selectedChar: char }),
-  setSelectedColor: (color: string) => set({ selectedColor: color }),
-  setSelectedBgColor: (color: string) => set({ selectedBgColor: color }),
+  setSelectedColor: (color: string) => {
+    set({ selectedColor: color });
+    const edit = get().textToolState.boxEdit;
+    if (edit && edit.anchor !== edit.caret) get().updateTextBoxEdit({ styles: colorTextBoxSelection(edit, 'color', color).styles });
+  },
+  setSelectedBgColor: (color: string) => {
+    set({ selectedBgColor: color });
+    const edit = get().textToolState.boxEdit;
+    if (edit && edit.anchor !== edit.caret) get().updateTextBoxEdit({ styles: colorTextBoxSelection(edit, 'bgColor', color).styles });
+  },
   setBrushSize: (size: number, tool?: 'pencil' | 'eraser') => {
     const clampedSize = Math.max(1, Math.min(20, size));
     const targetTool = tool ?? (get().activeTool === 'eraser' ? 'eraser' : 'pencil');
@@ -1190,7 +1209,8 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
         lineStartX: x,
         textBox,
         textBoxDraft: null,
-        textBoxFull: false
+        textBoxFull: false,
+        boxEdit: textBox ? { text: '', styles: [], anchor: 0, caret: 0, alignment: 'left', preferredColumn: null } : null
       }
     });
   },
@@ -1205,9 +1225,90 @@ export const useToolStore = create<ToolStoreState>((set, get) => ({
         textBuffer: '',
         textBox: null,
         textBoxDraft: null,
-        textBoxFull: false
+        textBoxFull: false,
+        boxEdit: null
       }
     });
+  },
+
+  updateTextBoxEdit: (changes, region) => {
+    const state = get().textToolState;
+    if (!state.boxEdit || !state.textBox) return;
+    const edit = { ...state.boxEdit, ...changes };
+    if (changes.text !== undefined && changes.styles === undefined) {
+      edit.styles = updateTextBoxStyles(state.boxEdit, edit.text, changes.caret ?? edit.caret, {
+        color: get().selectedColor, bgColor: get().selectedBgColor,
+      });
+    }
+    edit.caret = normalizeTextOffset(edit.text, edit.caret);
+    edit.anchor = normalizeTextOffset(edit.text, edit.anchor);
+    const box = { ...(region ?? state.textBox) };
+    box.right = Math.max(box.left, box.right);
+    box.bottom = Math.max(box.top, box.bottom);
+    const lines = layoutTextBox(edit.text, box, edit.alignment);
+    box.bottom = Math.max(box.bottom, box.top + lines.length - 1);
+    set({
+      textToolState: {
+        ...state, boxEdit: edit, textBox: box,
+        cursorPosition: textBoxCaret(lines, edit.caret), cursorVisible: true,
+      },
+    });
+  },
+
+  commitTextBox: () => {
+    const { boxEdit, textBox } = get().textToolState;
+    if (!boxEdit || !textBox) return true;
+    if (!boxEdit.text) {
+      get().stopTyping();
+      return true;
+    }
+    const timeline = useTimelineStore.getState();
+    const layer = timeline.layers.find((entry) => entry.id === timeline.view.activeLayerId);
+    const group = timeline.layerGroups.find((entry) => entry.id === layer?.parentGroupId);
+    if (!layer || layer.locked || group?.locked || layer.kind === 'generator' || timeline.view.isPlaying) {
+      toast.error('Select an unlocked content layer and stop playback to commit text.');
+      return false;
+    }
+    const frame = getContentFrameAtTime(layer, timeline.view.currentFrame);
+    const canvas = useCanvasStore.getState();
+    // Only merge the working buffer when it belongs to this exact destination.
+    const bufferMatches = canvas.activeLayerId === layer.id &&
+      canvas.activeFrameIndex === timeline.view.currentFrame && canvas.isDirty;
+    const previous = new Map(bufferMatches ? canvas.cells : frame?.data);
+    const next = new Map(previous);
+    for (const line of layoutTextBox(boxEdit.text, textBox, boxEdit.alignment)) {
+      for (let column = 0; column < line.characters.length; column++) {
+        const local = screenToLocal(line.x + column, line.y);
+        const key = createCellKey(local.x, local.y);
+        const character = line.characters[column];
+        const style = boxEdit.styles[character.styleIndex];
+        if (character.text === ' ' && style.bgColor === 'transparent') next.delete(key);
+        else next.set(key, { char: character.text, ...style });
+      }
+    }
+    if (frame) {
+      timeline.updateContentFrameData(layer.id, frame.id, next);
+      get().pushToHistory({
+        type: 'content_frame_data', timestamp: Date.now(), description: 'Commit text box',
+        data: { layerId: layer.id, frameId: frame.id, previousData: previous, newData: next },
+      });
+    } else {
+      const id = timeline.addContentFrame(layer.id, timeline.view.currentFrame, 1, next);
+      const added = useTimelineStore.getState().getLayer(layer.id)?.contentFrames.find((entry) => entry.id === id);
+      if (!added) {
+        toast.error('Could not create a content frame for the text box.');
+        return false;
+      }
+      get().pushToHistory({
+        type: 'content_frame_add', timestamp: Date.now(), description: 'Commit text box',
+        data: { layerId: layer.id, frameId: added.id, frameData: { ...added, data: new Map(next) } },
+      });
+    }
+    canvas.setActiveLayerId(layer.id);
+    canvas.setCanvasData(next);
+    canvas.setDirty(false);
+    get().stopTyping();
+    return true;
   },
 
   startTextBoxDraft: (x: number, y: number) => {
