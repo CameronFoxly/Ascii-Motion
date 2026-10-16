@@ -56,7 +56,56 @@ function mergeSettings(format: ExportFormat, overrides: Record<string, unknown>)
     if (extra.length) throw invalid(`Unsupported svgSettings: ${extra.join(', ')}`, { allowed: Object.keys(defaults.svgSettings) });
     merged.svgSettings = { ...defaults.svgSettings, ...overrides.svgSettings };
   }
+  for (const [key, value] of Object.entries(overrides)) {
+    if (key === 'svgSettings' && isRecord(value)) {
+      for (const [sub, subValue] of Object.entries(value)) checkSetting(format, sub, subValue, `svgSettings.${sub}`);
+    } else {
+      checkSetting(format, key, value, key);
+    }
+  }
   return merged;
+}
+
+type SettingRule = (value: unknown) => boolean;
+const isInt = (min: number, max: number): SettingRule => (v) => typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max;
+const isNum = (min: number, max: number): SettingRule => (v) => typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max;
+const oneOf = (...values: unknown[]): SettingRule => (v) => values.includes(v);
+const isBool: SettingRule = (v) => typeof v === 'boolean';
+const isText: SettingRule = (v) => typeof v === 'string' && v.trim().length > 0;
+const isVideo = (format: ExportFormat) => format === 'webm' || format === 'mp4';
+
+/** Allowed values per export setting, mirroring the app's export setting types. */
+function settingRule(format: ExportFormat, key: string): { rule: SettingRule; expected: string } | undefined {
+  switch (key) {
+    case 'frame': case 'frameRange': case 'sequenceRange': return undefined; // validated when applied
+    case 'svgSettings': return { rule: isRecord, expected: 'an object' };
+    case 'sizeMultiplier': return isVideo(format) ? { rule: oneOf(1, 2, 4), expected: '1, 2, or 4' } : { rule: oneOf(1, 2, 3, 4), expected: '1, 2, 3, or 4' };
+    case 'quality': return format === 'webm' ? { rule: oneOf('high', 'medium', 'low'), expected: '"high", "medium", or "low"' } : { rule: isInt(1, 100), expected: 'an integer 1-100' };
+    case 'frameRate': return { rule: (v) => v === 'auto' || isInt(1, 60)(v), expected: '"auto" or an integer 1-60' };
+    case 'crf': return { rule: isInt(0, 51), expected: 'an integer 0-51' };
+    case 'loops': return { rule: oneOf('none', '2x', '4x', '8x'), expected: '"none", "2x", "4x", or "8x"' };
+    case 'format': return { rule: oneOf('png', 'jpg', 'svg'), expected: '"png", "jpg", or "svg"' };
+    case 'colorMode': {
+      const modes = format === 'ansi' ? ['ansi', '256', 'truecolor'] : format === 'bubbletea' ? ['hex', '256', 'semantic'] : ['ansi', '256', 'hex'];
+      return { rule: oneOf(...modes), expected: modes.map((m) => `"${m}"`).join(', ') };
+    }
+    case 'outputMode': return { rule: oneOf('single-frame', 'animation'), expected: '"single-frame" or "animation"' };
+    case 'playbackStyle': return { rule: oneOf('autoplay', 'keyboard', 'api'), expected: '"autoplay", "keyboard", or "api"' };
+    case 'fontFamily': return { rule: oneOf('project', 'monospace', 'courier', 'consolas'), expected: '"project", "monospace", "courier", or "consolas"' };
+    case 'fontSize': return { rule: isNum(8, 24), expected: 'a number 8-24' };
+    case 'animationSpeed': return { rule: isNum(0.1, 5), expected: 'a number 0.1-5' };
+    case 'backgroundColor': return { rule: (v) => typeof v === 'string' && /^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v), expected: 'a hex color like "#000000"' };
+    // Exporters sanitize names into valid identifiers, so any non-empty text is usable.
+    case 'fileName': case 'packageName': return { rule: isText, expected: 'a non-empty string' };
+    default: return { rule: isBool, expected: 'a boolean' };
+  }
+}
+
+function checkSetting(format: ExportFormat, key: string, value: unknown, label: string): void {
+  const spec = settingRule(format, key);
+  if (spec && !spec.rule(value)) {
+    throw invalid(`Invalid ${format} export setting ${label}: expected ${spec.expected}`, { setting: label, value });
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

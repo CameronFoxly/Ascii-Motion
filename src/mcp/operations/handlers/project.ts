@@ -72,7 +72,8 @@ export const projectHandlers: Record<string, OperationHandler> = {
     if ((name === undefined || name === meta.projectName) && (description === undefined || description === meta.projectDescription)) ctx.noChange();
     if (name !== undefined) meta.setProjectName(name);
     if (description !== undefined) meta.setProjectDescription(description);
-    return { name: meta.projectName, description: useProjectMetadataStore.getState().projectDescription };
+    const applied = useProjectMetadataStore.getState();
+    return { name: applied.projectName, description: applied.projectDescription };
   },
 
   resize_canvas: (input, ctx) => {

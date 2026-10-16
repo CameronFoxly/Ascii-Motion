@@ -334,13 +334,13 @@ export class MediaProcessor {
     if (window.maxFrames !== undefined) totalFrames = Math.min(totalFrames, window.maxFrames);
     
     for (let i = 0; i < totalFrames; i++) {
-      // Sample at the CENTER of each frame's time window to avoid boundary issues
-      // Frame i spans from (i/fps) to ((i+1)/fps), so center is at ((i + 0.5) / fps)
-      // This prevents the browser from rounding to an adjacent frame at exact boundaries
-      const targetTimestamp = windowStart + (i + 0.5) / estimatedFrameRate;
-      
-      // Stop if we exceed the sampled window
-      if (targetTimestamp >= windowEnd) break;
+      // Sample at the CENTER of each frame's time window to avoid boundary issues.
+      // Frame i spans (i/fps)..((i+1)/fps), truncated to the sampled window so a
+      // window shorter than one frame interval still yields a frame.
+      const intervalStart = windowStart + i / estimatedFrameRate;
+      if (intervalStart >= windowEnd) break;
+      const intervalEnd = Math.min(windowEnd, windowStart + (i + 1) / estimatedFrameRate);
+      const targetTimestamp = (intervalStart + intervalEnd) / 2;
       
       // Seek to the target timestamp
       video.currentTime = targetTimestamp;

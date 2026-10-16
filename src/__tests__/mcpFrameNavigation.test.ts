@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useFrameSynchronization } from '../hooks/useFrameSynchronization';
 import { navigateToFrameAtomically } from '../mcp/frameNavigation';
+import { syncCanvasFromTimeline } from '../mcp/operations/state';
 import { useAnimationStore } from '../stores/animationStore';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useTimelineStore } from '../stores/timelineStore';
@@ -193,6 +194,34 @@ describe('atomic MCP frame navigation', () => {
     });
 
     expect(useCanvasStore.getState().cells.get('1,0')).toEqual(cell('target'));
+    unmount();
+  });
+});
+
+describe('external canvas reloads', () => {
+  beforeEach(resetStores);
+
+  it('does not flush a restored layer buffer into the previously active layer', async () => {
+    const timeline = useTimelineStore.getState();
+    const layerA = timeline.layers[0];
+    timeline.updateContentFrameData(layerA.id, layerA.contentFrames[0].id, new Map([['0,0', cell('A')]]));
+    const layerBId = useTimelineStore.getState().addLayer('B')!;
+    const layerB = useTimelineStore.getState().layers.find((l) => l.id === layerBId)!;
+    useTimelineStore.getState().updateContentFrameData(layerBId, layerB.contentFrames[0].id, new Map([['1,1', cell('B')]]));
+    useTimelineStore.getState().setActiveLayer(layerBId);
+    useCanvasStore.setState({ cells: new Map([['1,1', cell('B')]]), activeLayerId: layerBId });
+
+    const { unmount } = renderHook(() => useFrameSynchronization());
+    await act(async () => {
+      useTimelineStore.getState().setActiveLayer(layerA.id);
+      syncCanvasFromTimeline();
+    });
+
+    const after = useTimelineStore.getState();
+    const dataOf = (id: string) => after.layers.find((l) => l.id === id)!.contentFrames[0].data;
+    expect(dataOf(layerBId)).toEqual(new Map([['1,1', cell('B')]]));
+    expect(dataOf(layerA.id)).toEqual(new Map([['0,0', cell('A')]]));
+    expect(useCanvasStore.getState().cells).toEqual(new Map([['0,0', cell('A')]]));
     unmount();
   });
 });

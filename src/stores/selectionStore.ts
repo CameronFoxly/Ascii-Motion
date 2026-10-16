@@ -399,7 +399,8 @@ export const useSelectionStore = create<SelectionState>((set, get) => ({
       // Normal copy from canvas
       selectedCells.forEach((cellKey) => {
         const cell = canvasData.get(cellKey);
-        if (cell && cell.char !== ' ') {
+        // Background-only cells are visible artwork too.
+        if (cell && (cell.char !== ' ' || (cell.bgColor && cell.bgColor !== 'transparent'))) {
           clipboard.set(cellKey, { ...cell });
         }
       });

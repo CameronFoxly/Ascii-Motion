@@ -4,8 +4,12 @@ import { useCanvasStore } from '../../../stores/canvasStore';
 import { useToolStore } from '../../../stores/toolStore';
 import { processHistoryAction } from '../../../hooks/useKeyboardShortcuts';
 import type { OperationHandler, OperationContext } from '../runtime';
-import { flushCanvasToTimeline } from '../state';
+import { flushCanvasToTimeline, syncCanvasFromTimeline } from '../state';
 import { readHistory } from './document';
+
+// These entries restore the canvas store as the source of truth; every other
+// entry restores the timeline directly, so the canvas must be reloaded from it.
+const CANVAS_BACKED_ACTIONS = new Set(['canvas_edit', 'bezier_commit', 'apply_effect', 'import_media']);
 
 function step(isRedo: boolean, ctx: OperationContext) {
   // The history stack itself is the record; never add a bridge snapshot on top.
@@ -23,8 +27,8 @@ function step(isRedo: boolean, ctx: OperationContext) {
   useToolStore.setState({ isProcessingHistory: true });
   try {
     processHistoryAction(action, isRedo, { setCanvasData: useCanvasStore.getState().setCanvasData }, useAnimationStore.getState());
-    // canvas_edit entries restore the canvas store only; persist into the timeline.
-    flushCanvasToTimeline();
+    if (CANVAS_BACKED_ACTIONS.has(action.type)) flushCanvasToTimeline();
+    else syncCanvasFromTimeline();
   } finally {
     useToolStore.setState({ isProcessingHistory: false });
   }

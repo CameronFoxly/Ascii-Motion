@@ -132,10 +132,11 @@ export const timelineHandlers: Record<string, OperationHandler> = {
   },
   remove_blank_space: (input, ctx) => {
     const layer = requireEditableLayer(input.layerId as string);
-    const before = JSON.stringify(layer.contentFrames.map((cf) => [cf.id, cf.startFrame]));
+    const snapshot = (l: typeof layer) => JSON.stringify([tl().config.durationFrames, l.contentFrames.map((cf) => [cf.id, cf.startFrame])]);
+    const before = snapshot(layer);
     tl().removeBlankSpace(layer.id, input.frame as number);
     const after = requireLayer(layer.id);
-    if (JSON.stringify(after.contentFrames.map((cf) => [cf.id, cf.startFrame])) === before) {
+    if (snapshot(after) === before) {
       ctx.noChange();
       return { layerId: layer.id, changed: false };
     }

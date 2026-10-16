@@ -6,7 +6,7 @@ import { useToolStore } from '../stores/toolStore';
 import { useSelectionStore } from '../stores/selectionStore';
 import { getContentFrameAtTime } from '../utils/layerCompositing';
 import type { Cell } from '../types';
-import { registerAtomicFrameNavigator } from '../mcp/frameNavigation';
+import { registerAtomicFrameNavigator, registerCanvasReloadListener } from '../mcp/frameNavigation';
 
 /**
  * Hook that manages synchronization between canvas state and animation frames.
@@ -322,6 +322,20 @@ export const useFrameSynchronization = (
     () => registerAtomicFrameNavigator(navigateToFrameAtomically),
     [navigateToFrameAtomically],
   );
+
+  // An external reload (snapshot restore, undo) already installed the active
+  // layer's frame: take ownership of it so the layer/frame effects below see no
+  // switch and don't save the new buffer into the previous layer or frame.
+  useEffect(() => registerCanvasReloadListener(() => {
+    const tl = useTimelineStore.getState();
+    const cells = useCanvasStore.getState().cells;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    cellsRef.current = cells;
+    lastCellsRef.current = cells;
+    frameWasEmptyOnLoadRef.current = cells.size === 0;
+    lastActiveLayerIdRef.current = tl.view.activeLayerId;
+    lastFrameIndexRef.current = tl.layers.length > 0 ? tl.view.currentFrame : useAnimationStore.getState().currentFrameIndex;
+  }), []);
 
   // Handle frame switching
   useEffect(() => {

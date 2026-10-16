@@ -14,6 +14,7 @@ import {
 import { calculateFontMetrics } from '../../utils/fontMetrics';
 import { getFontStack } from '../../constants/fonts';
 import { useCanvasStore } from '../../stores/canvasStore';
+import { notifyCanvasReloaded } from '../frameNavigation';
 import { useTimelineStore } from '../../stores/timelineStore';
 import { useProjectMetadataStore } from '../../stores/projectMetadataStore';
 import { usePaletteStore } from '../../stores/paletteStore';
@@ -107,7 +108,8 @@ export function captureDocumentState(): DocumentState {
       color: { customPalettes: p.customPalettes as unknown[], activePaletteId: p.activePaletteId },
       character: { customPalettes: cp.customPalettes as unknown[], activePaletteId: cp.activePalette?.id ?? '' },
     },
-  }) as DocumentState;
+    typography: getTypographyState(),
+  } satisfies DocumentState);
 }
 
 export function restoreDocumentState(state: DocumentState): void {
@@ -127,7 +129,7 @@ export function restoreDocumentState(state: DocumentState): void {
       ...prev.view,
       looping: s.timeline.looping,
       activeLayerId: activeLayerId as typeof prev.view.activeLayerId,
-      currentFrame: Math.min(prev.view.currentFrame, Math.max(0, s.timeline.config.durationFrames - 1)),
+      currentFrame: Math.min(Math.max(0, s.timeline.currentFrame), Math.max(0, s.timeline.config.durationFrames - 1)),
       workAreaStart: s.timeline.workArea.start,
       workAreaEnd: s.timeline.workArea.end,
       workAreaEnabled: s.timeline.workArea.enabled,
@@ -208,4 +210,5 @@ export function syncCanvasFromTimeline(): void {
   canvas.setActiveLayerId(activeLayer?.id ?? null);
   canvas.setCanvasData(activeFrame ? new Map(activeFrame.data) : new Map<string, Cell>());
   canvas.setDirty(false);
+  notifyCanvasReloaded();
 }

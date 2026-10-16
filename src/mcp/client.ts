@@ -14,7 +14,7 @@ import { useProjectMetadataStore } from '../stores/projectMetadataStore';
 import { useTimelineStore } from '../stores/timelineStore';
 import { getContentFrameAtTime } from '../utils/layerCompositing';
 import { SessionImporter } from '../utils/sessionImporter';
-import { navigateToFrameAtomically } from './frameNavigation';
+import { navigateToFrameAtomically, notifyCanvasReloaded } from './frameNavigation';
 import { useMCPStore } from './store';
 import { serializeSnapshotLayer } from './snapshotSerialization';
 import { executeGeneratorCommand, isGeneratorCommand } from './generatorCommands';
@@ -302,6 +302,7 @@ export class MCPClient {
     canvas.setActiveLayerId(activeLayer?.id ?? null);
     canvas.setCanvasData(activeFrame ? new Map(activeFrame.data) : new Map<string, Cell>());
     canvas.setDirty(false);
+    notifyCanvasReloaded();
   }
 
   private generateSessionId(): string {

@@ -2,7 +2,7 @@
 import { usePaletteStore } from '../../../stores/paletteStore';
 import { useCharacterPaletteStore } from '../../../stores/characterPaletteStore';
 import { validateCharacterPaletteJSON } from '../../../utils/characterPaletteValidation';
-import { isValidCharacter } from '../../../types/palette';
+import { generateColorId, isValidCharacter } from '../../../types/palette';
 import type { OperationHandler } from '../runtime';
 import { invalid, notFound } from '../errors';
 
@@ -41,10 +41,15 @@ function activate(kind: Kind, id: string): void {
   else useCharacterPaletteStore.getState().setActivePalette(characterPalette(id));
 }
 
+/** Replace a custom palette's colors in one update (removeColor refuses to empty a palette). */
 function replaceColors(id: string, colors: string[]): void {
-  const store = usePaletteStore.getState();
-  colorPalette(id).colors.forEach((c) => store.removeColor(id, c.id));
-  colors.forEach((value) => usePaletteStore.getState().addColor(id, value));
+  if (colors.length === 0) throw invalid('A palette needs at least one color', { paletteId: id });
+  colorPalette(id);
+  const next = colors.map((value) => ({ id: generateColorId(), value }));
+  usePaletteStore.setState((state) => ({
+    customPalettes: state.customPalettes.map((p) => (p.id === id ? { ...p, colors: next } : p)),
+    selectedColorId: state.activePaletteId === id && !next.some((c) => c.id === state.selectedColorId) ? null : state.selectedColorId,
+  }));
 }
 
 /** Character palette entries must each be one code point so saved sessions reload. */
