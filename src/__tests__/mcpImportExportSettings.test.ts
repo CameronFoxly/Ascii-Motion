@@ -9,6 +9,7 @@ import { useTimelineStore } from '../stores/timelineStore';
 import { useProjectMetadataStore } from '../stores/projectMetadataStore';
 import { ExportDataCollector } from '../utils/exportDataCollector';
 import { ExportRenderer } from '../utils/exportRenderer';
+import * as exportRendererModule from '../utils/exportRenderer';
 import type { ExportDataBundle } from '../types/export';
 import type { PostEffectTrack } from '../types/postEffect';
 
@@ -83,6 +84,20 @@ describe('export settings', () => {
     const inner = result.result as Record<string, unknown>;
     expect(inner.frameRange).toEqual({ start: 1, end: 3 });
     expect(inner.frameCount).toBe(3);
+    expect(inner.sourceFrameCount).toBe(5);
+  });
+
+  it.each(['png', 'jpg', 'svg'])('reports one emitted frame and the source count for %s', async (format) => {
+    stubFrames(8);
+    vi.spyOn(ExportRenderer.prototype, 'exportImage').mockResolvedValue(undefined);
+    vi.spyOn(ExportRenderer.prototype, 'exportSvg').mockResolvedValue(undefined);
+    vi.spyOn(exportRendererModule, 'withExportFileSink').mockImplementation(async (sink, render) => {
+      const result = await render();
+      sink(new Blob(['stand-in image bytes']), `image.${format}`);
+      return result;
+    });
+    const result = await ok('export', { format });
+    expect(result.result).toMatchObject({ frameCount: 1, sourceFrameCount: 8, currentFrameIndex: 2 });
   });
 
   it('treats end -1 as the last frame and rejects out-of-range or malformed ranges', async () => {

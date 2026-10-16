@@ -56,9 +56,6 @@ export class WebGLPostProcessor {
   private originalSnapshot: WebGLTexture | null = null;
   private snapshotFb: WebGLFramebuffer | null = null;
 
-  // Passthrough program
-  private passthroughProgram: ShaderProgram | null = null;
-
   // State
   private initialized = false;
 
@@ -97,7 +94,7 @@ export class WebGLPostProcessor {
     this.inputTexture = gl.createTexture();
 
     // Create passthrough program
-    this.passthroughProgram = getOrCreateProgram(
+    getOrCreateProgram(
       gl,
       FULLSCREEN_VERTEX_SHADER,
       PASSTHROUGH_FRAGMENT_SHADER,
@@ -109,9 +106,10 @@ export class WebGLPostProcessor {
   }
 
   /**
-   * Clean up all WebGL resources.
+   * Clean up WebGL resources. Release contexts only for discarded canvases;
+   * the live overlay canvas may be reused by another processor.
    */
-  dispose(): void {
+  dispose({ loseContext = false }: { loseContext?: boolean } = {}): void {
     if (!this.gl) return;
     const gl = this.gl;
 
@@ -134,7 +132,8 @@ export class WebGLPostProcessor {
     if (this.quadVBO) gl.deleteBuffer(this.quadVBO);
     if (this.quadVAO) gl.deleteVertexArray(this.quadVAO);
 
-    clearProgramCache();
+    clearProgramCache(gl);
+    if (loseContext) gl.getExtension('WEBGL_lose_context')?.loseContext();
 
     this.gl = null;
     this.canvas = null;
@@ -143,7 +142,6 @@ export class WebGLPostProcessor {
     this.snapshotFb = null;
     this.quadVAO = null;
     this.quadVBO = null;
-    this.passthroughProgram = null;
     this.initialized = false;
     this.fbWidth = 0;
     this.fbHeight = 0;
@@ -313,8 +311,9 @@ export class WebGLPostProcessor {
     width?: number,
     height?: number,
   ): void {
-    if (!this.gl || !this.canvas || !this.passthroughProgram) return;
+    if (!this.gl || !this.canvas) return;
     const gl = this.gl;
+    const program = getOrCreateProgram(gl, FULLSCREEN_VERTEX_SHADER, PASSTHROUGH_FRAGMENT_SHADER, ['u_texture']);
 
     let texture: WebGLTexture;
     if (sourceCanvasOrTexture instanceof HTMLCanvasElement) {
@@ -331,10 +330,10 @@ export class WebGLPostProcessor {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, width, height);
 
-    gl.useProgram(this.passthroughProgram.program);
+    gl.useProgram(program.program);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    this.setUniform(gl, this.passthroughProgram, 'u_texture', 0, 'int');
+    this.setUniform(gl, program, 'u_texture', 0, 'int');
 
     gl.bindVertexArray(this.quadVAO);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);

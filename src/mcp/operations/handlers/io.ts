@@ -97,6 +97,7 @@ export async function renderExport(format: ExportFormat, overrides: Record<strin
   if (!(format in EXPORT_FORMATS)) throw invalid(`Unknown export format: ${format}`);
   const settings = mergeSettings(format, overrides);
   const data = ExportDataCollector.collect();
+  const sourceFrameCount = Math.max(1, data.frames.length);
   const frame = settings.frame;
   delete settings.frame;
   if (frame !== undefined && frame !== 'current') {
@@ -166,7 +167,8 @@ export async function renderExport(format: ExportFormat, overrides: Record<strin
   const sequence = format === 'image_sequence' && exportedRange;
   const result: Record<string, unknown> = {
     format,
-    frameCount: sequence ? exportedRange!.end - exportedRange!.start + 1 : Math.max(1, data.frames.length),
+    frameCount: !EXPORT_FORMATS[format].animated ? 1 : sequence ? exportedRange!.end - exportedRange!.start + 1 : Math.max(1, data.frames.length),
+    sourceFrameCount,
     currentFrameIndex: data.currentFrameIndex,
     width: data.canvasDimensions.width,
     height: data.canvasDimensions.height,

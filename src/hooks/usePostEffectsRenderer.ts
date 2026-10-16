@@ -301,13 +301,13 @@ export function applyPostEffectsToCanvas(
   tempCanvas.height = sourceCanvas.height;
 
   const processor = new WebGLPostProcessor();
-  const ok = processor.initialize(tempCanvas);
-  if (!ok) {
-    console.warn('[Post Effects Export] WebGL2 not available — skipping post effects');
-    return false;
-  }
-
   try {
+    const ok = processor.initialize(tempCanvas);
+    if (!ok) {
+      console.warn('[Post Effects Export] WebGL2 not available — skipping post effects');
+      return false;
+    }
+
     const time = frame / (frameRate || 12);
     processor.render(sourceCanvas, passes, time, frame, hexToRgb(bgColor || '#000000'));
 
@@ -339,6 +339,6 @@ export function applyPostEffectsToCanvas(
 
     return true;
   } finally {
-    processor.dispose();
+    processor.dispose({ loseContext: true });
   }
 }

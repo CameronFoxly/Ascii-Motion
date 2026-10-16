@@ -120,11 +120,8 @@ export function createShaderProgram(
 // PROGRAM CACHE
 // ============================================
 
-// Cache is keyed by GL context + shader source to avoid cross-context reuse.
-// WebGL programs are tied to a specific GL context — using a program compiled
-// for context A on context B silently produces no output.
-const programCache = new Map<string, ShaderProgram>();
-let cacheContext: WebGL2RenderingContext | null = null;
+// Keep contexts isolated without retaining discarded canvases.
+const programCaches = new WeakMap<WebGL2RenderingContext, Map<string, ShaderProgram>>();
 
 /**
  * Generate a cache key from shader sources.
@@ -141,7 +138,7 @@ function cacheKey(vertexSource: string, fragmentSource: string): string {
 
 /**
  * Get or create a shader program (cached by source).
- * Cache is automatically invalidated when the GL context changes.
+ * Programs are owned by their context, so export cleanup cannot evict live shaders.
  */
 export function getOrCreateProgram(
   gl: WebGL2RenderingContext,
@@ -149,10 +146,10 @@ export function getOrCreateProgram(
   fragmentSource: string,
   uniformNames: string[],
 ): ShaderProgram {
-  // Invalidate cache if context changed — programs are not portable across contexts
-  if (cacheContext !== gl) {
-    programCache.clear();
-    cacheContext = gl;
+  let programCache = programCaches.get(gl);
+  if (!programCache) {
+    programCache = new Map();
+    programCaches.set(gl, programCache);
   }
 
   const key = cacheKey(vertexSource, fragmentSource);
@@ -165,9 +162,11 @@ export function getOrCreateProgram(
 }
 
 /**
- * Clear the program cache — call when the GL context is lost or destroyed.
+ * Delete this context's programs when its processor is disposed.
  */
-export function clearProgramCache(): void {
-  programCache.clear();
-  cacheContext = null;
+export function clearProgramCache(gl: WebGL2RenderingContext): void {
+  const cache = programCaches.get(gl);
+  if (!cache) return;
+  for (const { program } of cache.values()) gl.deleteProgram(program);
+  programCaches.delete(gl);
 }
