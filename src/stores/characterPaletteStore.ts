@@ -260,7 +260,7 @@ export const useCharacterPaletteStore = create<CharacterPaletteState>((set, get)
         }
 
         const cleaned = characters
-          .map(char => (typeof char === 'string' && char.length > 0 ? char[0] : null))
+          .map(char => (typeof char === 'string' && char.length > 0 ? [...char][0] : null))
           .filter((char): char is string => Boolean(char));
 
         return cleaned.length > 0 ? cleaned : [' '];

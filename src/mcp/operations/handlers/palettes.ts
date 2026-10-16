@@ -2,6 +2,7 @@
 import { usePaletteStore } from '../../../stores/paletteStore';
 import { useCharacterPaletteStore } from '../../../stores/characterPaletteStore';
 import { validateCharacterPaletteJSON } from '../../../utils/characterPaletteValidation';
+import { isValidCharacter } from '../../../types/palette';
 import type { OperationHandler } from '../runtime';
 import { invalid, notFound } from '../errors';
 
@@ -46,6 +47,15 @@ function replaceColors(id: string, colors: string[]): void {
   colors.forEach((value) => usePaletteStore.getState().addColor(id, value));
 }
 
+/** Character palette entries must each be one code point so saved sessions reload. */
+function paletteCharacters(value: unknown): string[] | undefined {
+  if (value === undefined) return undefined;
+  const chars = value as string[];
+  const bad = chars.filter((c) => !isValidCharacter(c));
+  if (bad.length) throw invalid(`Palette characters must each be a single character (one code point): ${bad.map((c) => JSON.stringify(c)).join(', ')}`);
+  return [...chars];
+}
+
 export const paletteHandlers: Record<string, OperationHandler> = {
   set_active_palette: (input) => {
     const kind = input.kind as Kind;
@@ -64,7 +74,7 @@ export const paletteHandlers: Record<string, OperationHandler> = {
       id = usePaletteStore.getState().createCustomPalette(name, (input.colors as string[] | undefined) ?? []);
     } else {
       if (input.colors) throw invalid('colors only apply to kind "color"');
-      id = useCharacterPaletteStore.getState().createCustomPalette(name, (input.characters as string[] | undefined) ?? []).id;
+      id = useCharacterPaletteStore.getState().createCustomPalette(name, paletteCharacters(input.characters) ?? []).id;
     }
     if (input.activate) activate(kind, id);
     return describePalette(kind, id);
@@ -82,7 +92,7 @@ export const paletteHandlers: Record<string, OperationHandler> = {
       if (input.colors) throw invalid('colors only apply to kind "color"');
       useCharacterPaletteStore.getState().updateCustomPalette(id, {
         ...(input.name !== undefined ? { name: input.name as string } : {}),
-        ...(input.characters ? { characters: [...(input.characters as string[])] } : {}),
+        ...(input.characters ? { characters: paletteCharacters(input.characters) } : {}),
       });
     }
     return describePalette(kind, id);

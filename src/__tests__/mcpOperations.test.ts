@@ -163,6 +163,18 @@ describe('palettes, generators and export', () => {
     await ok('delete_palette', { kind: 'color', paletteId });
   });
 
+  it('round-trips character palettes containing surrogate-pair characters', async () => {
+    const created = await ok('create_palette', { kind: 'character', name: 'Roundtrip characters', characters: ['A', '😀'] });
+    const { document } = await ok('get_document', {});
+    await ok('load_project', { session: document as Record<string, unknown> });
+    const loaded = await ok('get_catalog', { family: 'palettes' });
+    const palette = (loaded.characterPalettes as Array<{ id: string; characters: string[] }>).find((p) => p.id === created.paletteId);
+    expect(palette?.characters).toEqual(['A', '😀']);
+    const bad = await run('create_palette', { kind: 'character', name: 'Bad', characters: ['ab'] });
+    expect(bad.ok).toBe(false);
+    expect(bad.error?.code).toBe('INVALID_INPUT');
+  });
+
   it('add_generator_layer applies initial keyframe tracks within one history entry', async () => {
     const before = (await ok('get_history')).length as number;
     const result = await ok('add_generator_layer', {

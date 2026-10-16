@@ -133,8 +133,9 @@ export interface CharacterPaletteExportFormat {
 }
 
 // Type guards for character palettes
+/** Exactly one Unicode code point (surrogate pairs such as emoji allowed), matching cell characters. */
 export const isValidCharacter = (char: string): boolean => {
-  return typeof char === 'string' && char.length === 1;
+  return typeof char === 'string' && char.length > 0 && char.length <= 2 && [...char].length === 1;
 };
 
 export const isCharacterPalette = (obj: unknown): obj is CharacterPalette => {
