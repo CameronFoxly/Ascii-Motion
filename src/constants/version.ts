@@ -1,12 +1,36 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "2.2.5";
-export const BUILD_DATE = "2026-10-16T16:55:14.336Z";
-export const BUILD_HASH = "cb879bf";
+export const VERSION = "2.2.6";
+export const BUILD_DATE = "2026-10-16T21:58:56.095Z";
+export const BUILD_HASH = "1ca0396";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "2.2.6",
+    "date": "2026-10-16T21:58:56.095Z",
+    "commits": [
+      "Merge pull request #180 from CameronFoxly/cameronfoxly-app-mcp-parity-research",
+      "Address PR review feedback on MCP bridge operations",
+      "Read export blobs without Blob.arrayBuffer when unavailable",
+      "Fix MCP parity CI without premium and address CodeQL alerts",
+      "Point web submodule at merged MCP docs",
+      "Point web submodule at MCP Copilot setup and usage docs",
+      "Keep parity CI workspaces aligned with the committed lock",
+      "Await WebM encoder flush before closing",
+      "Release export WebGL contexts and clarify emitted frame counts",
+      "Correct image import character ordering guidance",
+      "Add non-destructive image overlay import mode",
+      "Fix tools catalog import settings result contract",
+      "Fix WebM container duration dropping the last frame",
+      "Fix character palette round-trip for surrogate-pair characters",
+      "MCP bridge: exact import/export setting semantics",
+      "MCP bridge: real cloud save errors and gallery remix",
+      "feat(mcp): typed v3 bridge contract, canonical operations, parity CI",
+      "chore: record v2.2.5 production release"
+    ]
+  },
   {
     "version": "2.2.5",
     "date": "2026-10-16T16:55:14.336Z",
