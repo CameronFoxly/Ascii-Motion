@@ -14,10 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # The premium submodule is private; the app builds against src/lib/premium-stub.ts without it.
+          # The lock covers root/core only; initializing docs adds unlocked workspaces.
+          # Premium is private; the app typechecks against src/lib/premium-stub.ts without it.
           submodules: false
-      - name: Init public docs submodule (npm workspaces)
-        run: git submodule update --init packages/web
       - uses: actions/setup-node@v4
         with:
           node-version: 22
