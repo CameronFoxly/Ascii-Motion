@@ -12,6 +12,7 @@ import { GalleryMobileMenu } from './components/features/GalleryMobileMenu'
 import { ExportImportButtons } from './components/features/ExportImportButtons'
 import { useCloudDialogState } from './hooks/useCloudDialogState'
 import { useCloudProjectActions } from './hooks/useCloudProjectActions'
+import { CloudBridgeHost } from './components/features/CloudBridgeHost'
 import { useAuth, usePasswordRecoveryCallback, useEmailVerificationCallback, UpdatePasswordDialog, SignInDialog } from '@ascii-motion/premium'
 import { registerSubscriptionLayerLimit, FREE_TIER_MAX_LAYERS, UNLIMITED_LAYERS } from './utils/layerLimits'
 import { AsciiMotionLogo } from './components/common/AsciiMotionLogo'
@@ -386,6 +387,9 @@ function AppContent() {
         {/* Performance Overlay for Development */}
         <PerformanceOverlay />
         
+        {/* Exposes signed-in cloud APIs to MCP bridge operations */}
+        <CloudBridgeHost />
+
         {/* Toast Notifications */}
         <Toaster />
         

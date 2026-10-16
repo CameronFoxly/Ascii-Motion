@@ -14,12 +14,12 @@
  * - Converts between app's ExportDataBundle and premium's SessionData format
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCloudProject, supabase } from '@ascii-motion/premium';
 import { generatePreview, uploadPreviewImage } from '@ascii-motion/premium';
 import { getFontStack } from '../constants/fonts';
 import { formatFontStack } from '../utils/fontStack';
-import type { SessionData } from '@ascii-motion/premium';
+import type { CloudProject, SessionData } from '@ascii-motion/premium';
 import type { ExportDataBundle } from '../types/export';
 import { saveAs } from 'file-saver';
 import { useSessionImporter } from '../utils/sessionImporter';
@@ -30,8 +30,24 @@ export function useCloudProjectActions() {
   const [showProjectsDialog, setShowProjectsDialog] = useState(false);
   const [projectsRefreshTrigger, setProjectsRefreshTrigger] = useState(0);
 
-  const { saveToCloud, saveProgress, saveProgressMessage } = useCloudProject();
+  const { saveToCloud, saveProgress, saveProgressMessage, error: cloudError } = useCloudProject();
   const { importSession } = useSessionImporter();
+
+  // saveToCloud reports failures through hook state and returns null. Track the
+  // committed value so callers that need the reason can read it after a commit.
+  const cloudErrorRef = useRef<string | null>(cloudError);
+  const commitWaiters = useRef<Array<() => void>>([]);
+  useEffect(() => {
+    cloudErrorRef.current = cloudError;
+    commitWaiters.current.splice(0).forEach((resolve) => resolve());
+  });
+  const afterCommit = useCallback(
+    () => new Promise<void>((resolve) => {
+      commitWaiters.current.push(resolve);
+      setTimeout(resolve, 250);
+    }),
+    []
+  );
 
   /**
    * Convert export data to SessionData format.
@@ -172,103 +188,113 @@ export function useCloudProjectActions() {
   );
 
   /**
-   * Save current project to cloud
+   * Save current project to cloud. Throws with the underlying failure reason.
+   */
+  const saveToCloudOrThrow = useCallback(
+    async (exportData: ExportDataBundle, projectName?: string, description?: string, forceNew?: boolean): Promise<CloudProject> => {
+      // Create session data from current state
+      const sessionData = createSessionData(exportData);
+
+      // Check if updating an existing published project
+      const isUpdatingPublished = !forceNew && currentProjectId && await checkIfPublished(currentProjectId);
+
+      // Save to cloud
+      // If forceNew is true, don't pass projectId to create a new project
+      const project = await saveToCloud(sessionData, {
+        name: projectName || exportData.name || 'Untitled Project',
+        description,
+        projectId: forceNew ? undefined : (currentProjectId || undefined),
+      });
+
+      if (project) {
+        setCurrentProjectId(project.id);
+
+        // If we're updating a published project, regenerate preview images
+        if (isUpdatingPublished) {
+          console.log('[CloudActions] Regenerating preview image for published project');
+          try {
+            // Get current frame from composited animation frames
+            const frameIndex = exportData.currentFrameIndex || 0;
+            const frames = sessionData.animation?.frames;
+            const frame = frames?.[frameIndex];
+            
+            if (!frame) {
+              throw new Error('Selected frame not found');
+            }
+
+            // Generate new preview only (no thumbnail to save storage)
+            const preview = await generatePreview(
+              [frame],
+              {
+                frameIndex: 0,
+                width: sessionData.canvas.width,
+                height: sessionData.canvas.height,
+                backgroundColor: sessionData.canvas.canvasBackgroundColor,
+                fontSize: sessionData.typography?.fontSize || 16,
+                fontFamily: formatFontStack(
+                  exportData.fontMetrics?.fontFamily ||
+                    getFontStack(sessionData.typography?.selectedFontId ?? 'auto')
+                ),
+                postEffectTracks: (sessionData as any).postEffectTracks,
+                timelineFrameIndex: frameIndex,
+              }
+            );
+
+            // Upload new preview
+            const uploadResult = await uploadPreviewImage(
+              project.id,
+              preview.blob
+            );
+
+            // Add cache-busting timestamp to URL to force browser/CDN refresh
+            const timestamp = Date.now();
+            const previewUrlWithCache = `${uploadResult.url}?v=${timestamp}`;
+
+            // Update project with new preview URL (name and description already updated by saveToCloud above)
+            console.log('[CloudActions] Updating preview image for published project:', project.id);
+            
+            const { error: updateError } = await supabase
+              .from('projects')
+              .update({
+                preview_image_url: previewUrlWithCache,
+              } as never) // Type assertion to bypass Supabase type inference
+              .eq('id', project.id);
+
+            if (updateError) {
+              console.error('[CloudActions] Failed to update preview image:', updateError);
+            } else {
+              console.log('[CloudActions] Preview image updated successfully for published project');
+            }
+          } catch (previewError) {
+            console.error('[CloudActions] Failed to regenerate preview image:', previewError);
+            // Don't fail the whole save if preview regeneration fails
+          }
+        }
+
+        // Trigger project list refresh
+        setProjectsRefreshTrigger(prev => prev + 1);
+
+        return project;
+      }
+      await afterCommit();
+      throw new Error(cloudErrorRef.current || 'Cloud save failed');
+    },
+    [saveToCloud, currentProjectId, createSessionData, setCurrentProjectId, checkIfPublished, afterCommit]
+  );
+
+  /**
+   * Save current project to cloud (UI entry point: logs failures and returns null).
    */
   const handleSaveToCloud = useCallback(
     async (exportData: ExportDataBundle, projectName?: string, description?: string, forceNew?: boolean) => {
       try {
-        // Create session data from current state
-        const sessionData = createSessionData(exportData);
-
-        // Check if updating an existing published project
-        const isUpdatingPublished = !forceNew && currentProjectId && await checkIfPublished(currentProjectId);
-
-        // Save to cloud
-        // If forceNew is true, don't pass projectId to create a new project
-        const project = await saveToCloud(sessionData, {
-          name: projectName || exportData.name || 'Untitled Project',
-          description,
-          projectId: forceNew ? undefined : (currentProjectId || undefined),
-        });
-
-        if (project) {
-          setCurrentProjectId(project.id);
-
-          // If we're updating a published project, regenerate preview images
-          if (isUpdatingPublished) {
-            console.log('[CloudActions] Regenerating preview image for published project');
-            try {
-              // Get current frame from composited animation frames
-              const frameIndex = exportData.currentFrameIndex || 0;
-              const frames = sessionData.animation?.frames;
-              const frame = frames?.[frameIndex];
-              
-              if (!frame) {
-                throw new Error('Selected frame not found');
-              }
-
-              // Generate new preview only (no thumbnail to save storage)
-              const preview = await generatePreview(
-                [frame],
-                {
-                  frameIndex: 0,
-                  width: sessionData.canvas.width,
-                  height: sessionData.canvas.height,
-                  backgroundColor: sessionData.canvas.canvasBackgroundColor,
-                  fontSize: sessionData.typography?.fontSize || 16,
-                  fontFamily: formatFontStack(
-                    exportData.fontMetrics?.fontFamily ||
-                      getFontStack(sessionData.typography?.selectedFontId ?? 'auto')
-                  ),
-                  postEffectTracks: (sessionData as any).postEffectTracks,
-                  timelineFrameIndex: frameIndex,
-                }
-              );
-
-              // Upload new preview
-              const uploadResult = await uploadPreviewImage(
-                project.id,
-                preview.blob
-              );
-
-              // Add cache-busting timestamp to URL to force browser/CDN refresh
-              const timestamp = Date.now();
-              const previewUrlWithCache = `${uploadResult.url}?v=${timestamp}`;
-
-              // Update project with new preview URL (name and description already updated by saveToCloud above)
-              console.log('[CloudActions] Updating preview image for published project:', project.id);
-              
-              const { error: updateError } = await supabase
-                .from('projects')
-                .update({
-                  preview_image_url: previewUrlWithCache,
-                } as never) // Type assertion to bypass Supabase type inference
-                .eq('id', project.id);
-
-              if (updateError) {
-                console.error('[CloudActions] Failed to update preview image:', updateError);
-              } else {
-                console.log('[CloudActions] Preview image updated successfully for published project');
-              }
-            } catch (previewError) {
-              console.error('[CloudActions] Failed to regenerate preview image:', previewError);
-              // Don't fail the whole save if preview regeneration fails
-            }
-          }
-
-          // Trigger project list refresh
-          setProjectsRefreshTrigger(prev => prev + 1);
-
-          return project;
-        } else {
-          console.error('[CloudActions] Save returned null');
-        }
+        return await saveToCloudOrThrow(exportData, projectName, description, forceNew);
       } catch (err) {
         console.error('[CloudActions] Save failed:', err);
+        return null;
       }
-      return null;
     },
-    [saveToCloud, currentProjectId, createSessionData, setCurrentProjectId, checkIfPublished]
+    [saveToCloudOrThrow]
   );
 
   /**
@@ -358,6 +384,7 @@ export function useCloudProjectActions() {
 
     // Actions
     handleSaveToCloud,
+    saveToCloudOrThrow,
     handleLoadFromCloud,
     handleDownloadProject,
     openProjectsDialog,

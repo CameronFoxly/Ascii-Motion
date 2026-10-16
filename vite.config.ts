@@ -20,13 +20,24 @@ const premiumAlias = hasPremium
   ? path.resolve(__dirname, './packages/premium/src')
   : path.resolve(__dirname, './src/lib/premium-stub.ts')
 
+// The gallery remix hook is not part of premium's public index; the MCP bridge
+// reuses it directly (see src/components/features/CloudBridgeHost.tsx).
+const premiumRemixAlias = hasPremium
+  ? path.resolve(__dirname, './packages/premium/src/community/hooks/useRemix.ts')
+  : path.resolve(__dirname, './src/lib/premium-stub.ts')
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __ASCII_MOTION_PREMIUM__: JSON.stringify(hasPremium),
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@ascii-motion/core": path.resolve(__dirname, "./packages/core/src"),
+      // Must precede the package alias so the subpath is not rewritten into it.
+      "@ascii-motion/premium/remix": premiumRemixAlias,
       "@ascii-motion/premium": premiumAlias,
     },
   },

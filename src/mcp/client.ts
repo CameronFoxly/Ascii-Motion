@@ -1,42 +1,86 @@
 /**
  * MCP WebSocket Client
- * 
- * Connects to the ascii-motion-mcp server running in --live mode.
- * Receives commands and applies them to local Zustand stores.
+ *
+ * Connects to the ascii-motion-mcp server running in --live mode. The browser
+ * is authoritative: v3 servers send typed operations (`op_request`, or
+ * canonical `command_request`) that run through the validated operation
+ * runtime; legacy servers' commands and notifications are adapted onto the
+ * same operations (see legacyAdapters.ts).
  */
 
 import type { Cell } from '../types';
 import { useCanvasStore } from '../stores/canvasStore';
-import { useAnimationStore } from '../stores/animationStore';
-import { useToolStore } from '../stores/toolStore';
-import { useSelectionStore } from '../stores/selectionStore';
 import { useProjectMetadataStore } from '../stores/projectMetadataStore';
 import { useTimelineStore } from '../stores/timelineStore';
 import { getContentFrameAtTime } from '../utils/layerCompositing';
 import { SessionImporter } from '../utils/sessionImporter';
-import { MCPCommandDispatcher } from './commandDispatcher';
-import { navigateToFrameAtomically } from './frameNavigation';
+import { navigateToFrameAtomically, notifyCanvasReloaded } from './frameNavigation';
 import { useMCPStore } from './store';
 import { serializeSnapshotLayer } from './snapshotSerialization';
 import { executeGeneratorCommand, isGeneratorCommand } from './generatorCommands';
+import {
+  BRIDGE_CONTRACT_VERSION,
+  BRIDGE_PROTOCOL,
+  BRIDGE_PROTOCOL_VERSION,
+  exportFormatNames,
+  getOperationContract,
+} from './contract/operations';
+import { BRIDGE_CONTRACT_HASH } from './contract/contractHash.generated';
+import {
+  getDocumentIdentity,
+  markDocumentReplaced,
+  onDocumentChanged,
+  runOperation,
+  type OperationOutcome,
+} from './operations/runtime';
+import { flushCanvasToTimeline } from './operations/state';
+import { registerAllOperationHandlers } from './operations/handlers';
+import { buildCapabilities, EXPORT_FORMATS, readNativeDocument } from './operations/handlers/document';
+import { renderExport } from './operations/handlers/io';
+import { LegacyNotificationAdapter, legacyCommandCall, runLegacyCall } from './legacyAdapters';
+import { VERSION, BUILD_HASH } from '../constants/version';
 import type {
   MCPClientAuth,
   MCPClientHeartbeat,
   MCPClientStateSnapshot,
   MCPCommand,
   MCPCommandApplied,
-  MCPCommandRequest,
+  MCPCommandResult,
   MCPExportRequest,
   MCPExportResult,
   MCPServerMessage,
 } from './types';
 
+type ExportFormat = (typeof exportFormatNames)[number];
+
 const DEFAULT_PORT = 9876;
 const HEARTBEAT_INTERVAL = 30000; // 30 seconds
 const RECONNECT_DELAY = 3000; // 3 seconds
+const LEGACY_RESYNC_DELAY = 100;
+
+/** Command types understood by pre-v3 servers' `command`/`command_request`. */
+const LEGACY_COMMAND_TYPES = new Set([
+  'set_cell', 'set_cells_batch', 'clear_cell', 'resize_canvas', 'set_canvas_data', 'add_frame', 'delete_frame',
+  'go_to_frame', 'set_frame_duration', 'set_frame_rate', 'set_frame_data', 'undo', 'redo', 'new_project',
+  'load_project', 'set_foreground_color', 'set_background_color', 'select_rectangle', 'clear_selection',
+  'add_post_effect', 'remove_post_effect', 'update_post_effect', 'set_post_effect_keyframe',
+  'remove_post_effect_keyframe', 'list_post_effects', 'get_post_effect_presets',
+  'get_generator_catalog', 'add_generator_layer', 'update_generator_layer', 'set_generator_property',
+  'set_generator_keyframes', 'remove_generator_keyframes', 'reset_generator', 'randomize_generator_seed',
+  'get_generator_state', 'render_generator_frames', 'bake_generator_layer',
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function utf8ToBase64(text: string): string {
+  const bytes = new TextEncoder().encode(text);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(binary);
 }
 
 export class MCPClient {
@@ -47,74 +91,75 @@ export class MCPClient {
   private reconnectTimeout: NodeJS.Timeout | null = null;
   private port: number = DEFAULT_PORT;
   private autoReconnect: boolean = true;
-  // Maps MCP server effect block IDs → browser effect block IDs
-  private effectBlockIdMap: Map<string, string> = new Map();
-  private readonly commandDispatcher: MCPCommandDispatcher;
+  /** Set once the server speaks protocol v3; legacy notifications are then ignored. */
+  private v3 = false;
+  private inbox: Promise<void> = Promise.resolve();
+  private unsubscribeDocChanged: (() => void) | null = null;
+  private resyncTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly notifications = new LegacyNotificationAdapter();
 
   constructor() {
     this.sessionId = this.generateSessionId();
-    this.commandDispatcher = new MCPCommandDispatcher(
-      (command) => this.executeCommand(command),
-      (result) => this.send(result),
-    );
+    registerAllOperationHandlers();
   }
 
   /**
    * Connect to the MCP server
    */
   connect(token: string, port: number = DEFAULT_PORT): Promise<void> {
+    // An explicit connect re-enables reconnects after a prior disconnect().
+    this.autoReconnect = true;
     return new Promise((resolve, reject) => {
       this.token = token;
       this.port = port;
-      
+
       const url = `ws://127.0.0.1:${port}?token=${encodeURIComponent(token)}`;
-      
+
       useMCPStore.getState().setConnectionState('connecting');
-      useMCPStore.getState().setServerUrl(url);
-      
+      useMCPStore.getState().setServerUrl(`ws://127.0.0.1:${port}`);
+
       try {
         this.ws = new WebSocket(url);
-        
+
         this.ws.onopen = () => {
           console.log('[MCP] Connected to server');
           useMCPStore.getState().setConnectionState('connected');
           useMCPStore.getState().setSessionId(this.sessionId);
-          
-          // Send auth message
+
+          this.v3 = false;
+          this.notifications.reset();
           this.sendAuth();
-          
-          // Start heartbeat
+          this.sendHello();
           this.startHeartbeat();
-          
-          // Send current state to MCP server so it knows what's in the browser
+          this.unsubscribeDocChanged?.();
+          this.unsubscribeDocChanged = onDocumentChanged((event) => {
+            this.send({ type: 'doc_changed', ...event });
+          });
+
           // Small delay to ensure connection is fully established
-          setTimeout(() => {
-            console.log('[MCP] Sending initial state snapshot');
-            this.sendStateSnapshot();
-          }, 100);
-          
+          setTimeout(() => this.sendStateSnapshot(), 100);
+
           resolve();
         };
-        
+
         this.ws.onmessage = (event) => {
           this.handleMessage(event.data);
         };
-        
+
         this.ws.onerror = (error) => {
           console.error('[MCP] WebSocket error:', error);
           useMCPStore.getState().setError('Connection error');
           reject(new Error('WebSocket connection failed'));
         };
-        
+
         this.ws.onclose = (event) => {
           console.log('[MCP] Disconnected:', event.code, event.reason);
           this.cleanup();
-          
+
           if (this.autoReconnect && this.token) {
             this.scheduleReconnect();
           }
         };
-        
       } catch (error) {
         useMCPStore.getState().setError(String(error));
         reject(error);
@@ -128,12 +173,12 @@ export class MCPClient {
   disconnect(): void {
     this.autoReconnect = false;
     this.cleanup();
-    
+
     if (this.ws) {
       this.ws.close(1000, 'Client disconnected');
       this.ws = null;
     }
-    
+
     useMCPStore.getState().reset();
   }
 
@@ -145,126 +190,67 @@ export class MCPClient {
   }
 
   /**
-   * Send a state snapshot to the server (includes full frame data for sync)
+   * Send a state snapshot. v3 fields carry the native document; the legacy
+   * canvas/animation/layers fields remain for pre-v3 servers.
    */
-  sendStateSnapshot(): void {
+  sendStateSnapshot(requestId?: string): void {
     if (!this.isConnected()) return;
-    
+
+    this.flushCanvasToActiveContentFrame();
+    const { documentId, revision } = getDocumentIdentity();
     const canvas = useCanvasStore.getState();
     const projectMeta = useProjectMetadataStore.getState();
     const timeline = useTimelineStore.getState();
 
-    // Flush current canvas cells into the active layer's content frame
-    // so the timeline store has the latest data for all reads below.
-    this.flushCanvasToActiveContentFrame();
-    
-    // Re-read timeline state after flush
-    const timelineAfterFlush = useTimelineStore.getState();
+    const activeLayer = timeline.layers.find((l) => l.id === timeline.view.activeLayerId) ?? timeline.layers[0];
+    type CellRecord = { char: string; color: string; bgColor: string };
+    const toRecord = (data: Map<string, Cell>): Record<string, CellRecord> => {
+      const out: Record<string, CellRecord> = {};
+      data.forEach((cell, key) => { out[key] = { char: cell.char, color: cell.color, bgColor: cell.bgColor }; });
+      return out;
+    };
+    const contentFrames = activeLayer?.contentFrames ?? [];
+    const frames = contentFrames.map((cf) => ({
+      id: cf.id,
+      name: cf.name,
+      duration: cf.durationFrames * (1000 / timeline.config.frameRate),
+      data: toRecord(cf.data),
+    }));
+    // Legacy servers index `frames` with this value, so send the ordinal of
+    // the content frame under the playhead, not the timeline frame.
+    const current = activeLayer ? getContentFrameAtTime(activeLayer, timeline.view.currentFrame) : null;
+    const ordinal = current ? contentFrames.findIndex((cf) => cf.id === current.id) : -1;
+    const legacyFrameIndex = ordinal >= 0 ? ordinal : Math.max(0, Math.min(contentFrames.length - 1, timeline.view.currentFrame));
 
-    // Build layer data — always present since the app always has ≥1 layer.
-    const isLayerMode = timelineAfterFlush.layers.length > 0;
-
-    // Build animation.frames directly from timeline content frames (source of truth).
-    // The animationStore adapter caches frames and only re-derives on structural
-    // changes — NOT on cell edits — so reading it here produces stale/empty data.
-    type FrameRecord = { id: string; name: string; duration: number; data: Record<string, { char: string; color: string; bgColor: string }> };
-    let frames: FrameRecord[];
-    let frameCount: number;
-    let currentFrameIndex: number;
-    let frameRate: number;
-    let isPlaying: boolean;
-    let looping: boolean;
-
-    if (isLayerMode) {
-      const activeLayer = timelineAfterFlush.layers.find(l => l.id === timelineAfterFlush.view.activeLayerId)
-        ?? timelineAfterFlush.layers[0];
-      frames = activeLayer.contentFrames.map(cf => {
-        const data: Record<string, { char: string; color: string; bgColor: string }> = {};
-        cf.data.forEach((cell, key) => {
-          data[key] = { char: cell.char, color: cell.color, bgColor: cell.bgColor };
-        });
-        return {
-          id: cf.id,
-          name: cf.name,
-          duration: cf.durationFrames * (1000 / timelineAfterFlush.config.frameRate),
-          data,
-        };
-      });
-      frameCount = activeLayer.contentFrames.length;
-      currentFrameIndex = timelineAfterFlush.view.currentFrame;
-      frameRate = timelineAfterFlush.config.frameRate;
-      isPlaying = timelineAfterFlush.view.isPlaying;
-      looping = timelineAfterFlush.view.looping;
-    } else {
-      // Fallback to adapter for non-layer (legacy) mode
-      const animation = useAnimationStore.getState();
-      frames = animation.frames.map(frame => {
-        const data: Record<string, { char: string; color: string; bgColor: string }> = {};
-        frame.data.forEach((cell, key) => {
-          data[key] = { char: cell.char, color: cell.color, bgColor: cell.bgColor };
-        });
-        return { id: frame.id, name: frame.name, duration: frame.duration, data };
-      });
-      frameCount = animation.frames.length;
-      currentFrameIndex = animation.currentFrameIndex;
-      frameRate = animation.frameRate;
-      isPlaying = animation.isPlaying;
-      looping = animation.looping;
-    }
-
-    // Serialize current canvas cells for the snapshot
-    const canvasCells: Record<string, { char: string; color: string; bgColor: string }> = {};
-    canvas.cells.forEach((cell, key) => {
-      canvasCells[key] = { char: cell.char, color: cell.color, bgColor: cell.bgColor };
-    });
-
-    let layerData: Record<string, unknown> | undefined;
-    if (isLayerMode) {
-      layerData = {
-        layers: timelineAfterFlush.layers.map(serializeSnapshotLayer),
-        layerGroups: timelineAfterFlush.layerGroups.map(g => ({
-          id: g.id,
-          name: g.name,
-          childLayerIds: g.childLayerIds,
-          visible: g.visible,
-          solo: g.solo,
-          locked: g.locked,
-          collapsed: g.collapsed,
-          propertyTracks: g.propertyTracks,
-          staticProperties: g.staticProperties,
-        })),
-        activeLayerId: timelineAfterFlush.view.activeLayerId,
-        timeline: {
-          frameRate: timelineAfterFlush.config.frameRate,
-          durationFrames: timelineAfterFlush.config.durationFrames,
-          looping: timelineAfterFlush.view.looping,
-        },
-      };
-    }
-    
-    const snapshot: MCPClientStateSnapshot = {
+    const snapshot: MCPClientStateSnapshot & Record<string, unknown> = {
       type: 'state_snapshot',
+      ...(requestId ? { requestId } : {}),
+      protocolVersion: BRIDGE_PROTOCOL_VERSION,
+      document: readNativeDocument(),
+      documentId,
+      revision,
+      activeLayerId: timeline.view.activeLayerId ?? null,
+      currentFrame: timeline.view.currentFrame,
       canvas: {
         width: canvas.width,
         height: canvas.height,
         cellCount: canvas.getCellCount(),
         backgroundColor: canvas.canvasBackgroundColor,
-        cells: canvasCells,
+        cells: toRecord(canvas.cells),
       },
       animation: {
-        frameCount,
-        currentFrameIndex,
-        isPlaying,
-        looping,
-        frameRate,
+        frameCount: contentFrames.length,
+        currentFrameIndex: legacyFrameIndex,
+        isPlaying: timeline.view.isPlaying,
+        looping: timeline.view.looping,
+        frameRate: timeline.config.frameRate,
         frames,
       },
       project: {
         name: projectMeta.projectName,
       },
-      // Post effects data
-      postEffects: timelineAfterFlush.postEffectTracks.length > 0
-        ? timelineAfterFlush.postEffectTracks.map((t) => ({
+      postEffects: timeline.postEffectTracks.length > 0
+        ? timeline.postEffectTracks.map((t) => ({
             blockId: t.effectBlock.id as string,
             type: t.effectBlock.postEffectType,
             enabled: t.effectBlock.enabled,
@@ -273,11 +259,25 @@ export class MCPClient {
             settings: { ...t.effectBlock.settings },
           }))
         : undefined,
-      // v2 layer data (included when in layer mode)
-      ...(layerData || {}),
+      layers: timeline.layers.map(serializeSnapshotLayer),
+      layerGroups: timeline.layerGroups.map((g) => ({
+        id: g.id,
+        name: g.name,
+        childLayerIds: g.childLayerIds,
+        visible: g.visible,
+        solo: g.solo,
+        locked: g.locked,
+        collapsed: g.collapsed,
+        propertyTracks: g.propertyTracks,
+        staticProperties: g.staticProperties,
+      })),
+      timeline: {
+        frameRate: timeline.config.frameRate,
+        durationFrames: timeline.config.durationFrames,
+        looping: timeline.view.looping,
+      },
     };
-    
-    console.log('[MCP] Sending state snapshot:', isLayerMode ? `${timeline.layers.length} layers` : `${frames.length} frames`);
+
     this.send(snapshot);
   }
 
@@ -285,26 +285,9 @@ export class MCPClient {
   // Private Methods
   // ==========================================================================
 
-  /**
-   * Flush canvasStore cells into the active layer's content frame in
-   * timelineStore.  The canvas ↔ timeline sync is normally debounced (150ms)
-   * via useFrameSynchronization, so the content frame can be stale when the
-   * MCP server requests state or an export. This ensures the timeline has
-   * the latest cell data before we read from it.
-   */
+  /** Persist pending canvas edits into the active content frame (debounced sync). */
   private flushCanvasToActiveContentFrame(): void {
-    const timeline = useTimelineStore.getState();
-    if (timeline.layers.length === 0) return;
-
-    const activeLayer = timeline.layers.find(l => l.id === timeline.view.activeLayerId)
-      ?? timeline.layers[0];
-    if (!activeLayer) return;
-
-    const cf = getContentFrameAtTime(activeLayer, timeline.view.currentFrame);
-    if (!cf) return;
-
-    const cells = useCanvasStore.getState().cells;
-    timeline.updateContentFrameData(activeLayer.id, cf.id, new Map(cells));
+    flushCanvasToTimeline();
   }
 
   private syncCanvasToCurrentContentFrame(): void {
@@ -319,6 +302,7 @@ export class MCPClient {
     canvas.setActiveLayerId(activeLayer?.id ?? null);
     canvas.setCanvasData(activeFrame ? new Map(activeFrame.data) : new Map<string, Cell>());
     canvas.setDirty(false);
+    notifyCanvasReloaded();
   }
 
   private generateSessionId(): string {
@@ -366,16 +350,31 @@ export class MCPClient {
     }, HEARTBEAT_INTERVAL);
   }
 
+  private sendHello(): void {
+    const { documentId, revision } = getDocumentIdentity();
+    const meta = useProjectMetadataStore.getState();
+    this.send({
+      type: 'hello',
+      protocol: BRIDGE_PROTOCOL,
+      protocolVersion: BRIDGE_PROTOCOL_VERSION,
+      contractVersion: BRIDGE_CONTRACT_VERSION,
+      contractHash: BRIDGE_CONTRACT_HASH,
+      app: { version: VERSION, build: BUILD_HASH },
+      sessionId: this.sessionId,
+      document: { documentId, projectId: meta.currentProjectId ?? null, name: meta.projectName, revision },
+      capabilities: buildCapabilities(),
+    });
+  }
+
   private scheduleReconnect(): void {
     if (this.reconnectTimeout) return;
-    
+
     console.log(`[MCP] Reconnecting in ${RECONNECT_DELAY}ms...`);
-    
+
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = null;
-      if (this.token) {
+      if (this.token && this.autoReconnect) {
         this.connect(this.token, this.port).catch(() => {
-          // Retry again
           if (this.autoReconnect) {
             this.scheduleReconnect();
           }
@@ -389,12 +388,20 @@ export class MCPClient {
       clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = null;
     }
-    
+
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
-    
+
+    if (this.resyncTimer) {
+      clearTimeout(this.resyncTimer);
+      this.resyncTimer = null;
+    }
+
+    this.unsubscribeDocChanged?.();
+    this.unsubscribeDocChanged = null;
+
     useMCPStore.getState().setConnectionState('disconnected');
   }
 
@@ -404,64 +411,98 @@ export class MCPClient {
     }
   }
 
+  /** Serialize all inbound work so results are emitted in arrival order. */
+  private enqueue(task: () => Promise<void> | void): void {
+    this.inbox = this.inbox.then(task).catch((error) => console.error('[MCP] Message handling failed:', error));
+  }
+
   private handleMessage(data: string): void {
+    let message: unknown;
     try {
-      const message: unknown = JSON.parse(data);
-
-      if (!isRecord(message)) {
-        throw new Error('MCP message must be an object');
-      }
-      
-      // Handle JSON-RPC style notifications from MCP server
-      if (message.jsonrpc === '2.0' && typeof message.method === 'string') {
-        this.handleNotification(message.method, message.params);
-        return;
-      }
-
-      if (message.type === 'command_request') {
-        this.handleCommandRequest(message);
-        return;
-      }
-      
-      // Handle legacy message format
-      const legacyMessage = message as unknown as MCPServerMessage;
-      
-      switch (legacyMessage.type) {
-        case 'auth_result':
-          if (!legacyMessage.success) {
-            console.error('[MCP] Auth failed:', legacyMessage.error);
-            useMCPStore.getState().setError(legacyMessage.error || 'Authentication failed');
-            this.disconnect();
-          }
-          break;
-          
-        case 'command':
-          if (legacyMessage.command) {
-            void this.executeCommand(legacyMessage.command).then(
-              () => useMCPStore.getState().incrementCommandCount(),
-              (error) => console.error('[MCP] Legacy command failed:', error),
-            );
-          }
-          break;
-          
-        case 'state_request':
-          this.sendStateSnapshot();
-          break;
-          
-        case 'export_request':
-          this.handleExportRequest(message as unknown as MCPExportRequest);
-          break;
-          
-        case 'error':
-          console.error('[MCP] Server error:', legacyMessage.error);
-          break;
-      }
+      message = JSON.parse(data);
     } catch (error) {
       console.error('[MCP] Failed to parse message:', error);
+      return;
+    }
+    if (!isRecord(message)) {
+      console.error('[MCP] MCP message must be an object');
+      return;
+    }
+
+    if (message.protocolVersion === BRIDGE_PROTOCOL_VERSION) this.v3 = true;
+
+    if (message.jsonrpc === '2.0' && typeof message.method === 'string') {
+      const { method, params } = message as { method: string; params: unknown };
+      this.enqueue(() => this.handleNotification(method, params));
+      return;
+    }
+
+    switch (message.type) {
+      case 'op_request':
+        this.v3 = true;
+        this.enqueue(() => this.handleOpRequest(message));
+        return;
+      case 'command_request':
+        this.enqueue(() => this.handleCommandRequest(message));
+        return;
+      case 'state_request': {
+        const requestId = typeof message.requestId === 'string' ? message.requestId : undefined;
+        this.enqueue(() => this.sendStateSnapshot(requestId));
+        return;
+      }
+      case 'export_request':
+        this.enqueue(() => this.handleExportRequest(message as unknown as MCPExportRequest));
+        return;
+    }
+
+    const legacyMessage = message as unknown as MCPServerMessage;
+    switch (legacyMessage.type) {
+      case 'auth_result':
+        if (!legacyMessage.success) {
+          console.error('[MCP] Auth failed:', legacyMessage.error);
+          useMCPStore.getState().setError(legacyMessage.error || 'Authentication failed');
+          this.disconnect();
+        }
+        break;
+
+      case 'command':
+        if (legacyMessage.command) {
+          const command = legacyMessage.command;
+          this.enqueue(async () => {
+            try {
+              await this.executeLegacyCommand(command);
+              useMCPStore.getState().incrementCommandCount();
+            } catch (error) {
+              console.error('[MCP] Legacy command failed:', error);
+            }
+          });
+        }
+        break;
+
+      case 'error':
+        console.error('[MCP] Server error:', legacyMessage.error);
+        break;
     }
   }
 
-  private handleCommandRequest(message: Record<string, unknown>): void {
+  private async handleOpRequest(message: Record<string, unknown>): Promise<void> {
+    const requestId = typeof message.requestId === 'string' ? message.requestId : '';
+    const op = typeof message.op === 'string' ? message.op : '';
+    const expectedRevision = typeof message.expectedRevision === 'number' ? message.expectedRevision : undefined;
+    const outcome = await runOperation(op, message.input ?? {}, { expectedRevision });
+    this.send(outcome.ok
+      ? { type: 'op_result', requestId, op, ok: true, result: outcome.result, revision: outcome.revision, documentId: outcome.documentId }
+      : { type: 'op_result', requestId, op, ok: false, error: outcome.error, revision: outcome.revision, documentId: outcome.documentId });
+    useMCPStore.getState().incrementCommandCount();
+  }
+
+  private isCanonicalRequest(message: Record<string, unknown>, type: string): boolean {
+    if (!getOperationContract(type)) return false;
+    if (message.protocolVersion === BRIDGE_PROTOCOL_VERSION || typeof message.expectedRevision === 'number') return true;
+    return this.v3 || !LEGACY_COMMAND_TYPES.has(type);
+  }
+
+  private async handleCommandRequest(message: Record<string, unknown>): Promise<void> {
     const requestId = message.requestId;
     if (typeof requestId !== 'string' || requestId.length === 0) {
       console.error('[MCP] command_request is missing a requestId');
@@ -470,552 +511,132 @@ export class MCPClient {
 
     const command = message.command;
     if (!isRecord(command) || typeof command.type !== 'string') {
-      void this.commandDispatcher.reject(
-        requestId,
-        'command_request is missing a valid command',
-      ).catch((error) => console.error('[MCP] Failed to emit command result:', error));
+      this.send({ type: 'command_result', requestId, success: false, error: 'command_request is missing a valid command', errorCode: 'INVALID_INPUT' });
       return;
     }
 
-    const request: MCPCommandRequest = {
-      type: 'command_request',
-      requestId,
-      command: command as unknown as MCPCommand,
-    };
-
-    void this.commandDispatcher.dispatch(request).then(
-      () => useMCPStore.getState().incrementCommandCount(),
-      (error) => console.error('[MCP] Failed to emit command result:', error),
-    );
+    if (this.isCanonicalRequest(message, command.type)) {
+      this.v3 = true;
+      const { type, ...input } = command;
+      const expectedRevision = typeof message.expectedRevision === 'number' ? message.expectedRevision : undefined;
+      const outcome = await runOperation(type as string, input, { expectedRevision });
+      this.send(this.toCommandResult(requestId, outcome));
+    } else {
+      let result: MCPCommandResult;
+      try {
+        const applied = await this.executeLegacyCommand(command as unknown as MCPCommand);
+        result = applied
+          ? { type: 'command_result', requestId, success: true, applied }
+          : { type: 'command_result', requestId, success: true };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        result = { type: 'command_result', requestId, success: false, error: message === 'undefined' ? 'Unknown browser command error' : message };
+      }
+      this.send(result);
+    }
+    useMCPStore.getState().incrementCommandCount();
   }
 
-  private handleNotification(method: string, params: unknown): void {
-    console.log('[MCP] Received notification:', method, params);
-    
+  private toCommandResult(requestId: string, outcome: OperationOutcome): Record<string, unknown> {
+    if (outcome.ok) {
+      return { type: 'command_result', requestId, success: true, applied: outcome.result, revision: outcome.revision, documentId: outcome.documentId };
+    }
+    return {
+      type: 'command_result',
+      requestId,
+      success: false,
+      error: outcome.error?.message ?? 'Operation failed',
+      errorCode: outcome.error?.code ?? 'INTERNAL',
+      ...(outcome.error?.details !== undefined ? { errorDetails: outcome.error.details } : {}),
+      revision: outcome.revision,
+      documentId: outcome.documentId,
+    };
+  }
+
+  private async handleNotification(method: string, params: unknown): Promise<void> {
     if (method === 'notifications/connected') {
-      console.log('[MCP] Connected to server');
       return;
     }
-    
+
     if (method === 'notifications/stateChanged') {
-      const { type, data } = params as { type: string; data: unknown };
-      this.handleStateChange(type, data);
+      const { type, data } = (isRecord(params) ? params : {}) as { type?: string; data?: unknown };
+      if (typeof type === 'string') await this.handleStateChange(type, data);
       useMCPStore.getState().incrementCommandCount();
     }
   }
 
-  private handleStateChange(type: string, data: unknown): void {
-    console.log('[MCP] State change:', type, data);
-    
-    switch (type) {
-      case 'new_project': {
-        const projectData = data as { width: number; height: number; name: string; backgroundColor?: string };
-        this.handleNewProject({
-          width: projectData.width,
-          height: projectData.height,
-          name: projectData.name,
-          backgroundColor: projectData.backgroundColor
-        });
-        break;
-      }
-      
-      case 'set_cell': {
-        const cellData = data as { x: number; y: number; cell: Cell };
-        this.handleSetCell(cellData);
-        break;
-      }
-      
-      case 'resize_canvas': {
-        const resizeData = data as { width: number; height: number };
-        this.handleResizeCanvas(resizeData);
-        break;
-      }
-      
-      case 'set_cells_batch': {
-        const batchData = data as { cells: Array<{ x: number; y: number; cell: Cell }> };
-        this.handleSetCellsBatch({ cells: batchData.cells });
-        break;
-      }
-      
-      case 'clear_cell': {
-        const clearData = data as { x: number; y: number };
-        this.handleClearCell(clearData);
-        break;
-      }
-      
-      case 'fill_region': {
-        // Fill region modifies many cells - request a full state refresh
-        // For now, log it; a full sync would require the MCP server to send all cell data
-        console.log('[MCP] Fill region completed, cells filled:', (data as { cellsFilled: number }).cellsFilled);
-        break;
-      }
-      
-      case 'clear_canvas': {
-        // Clear all cells on the current frame
-        useCanvasStore.getState().clearCanvas();
-        break;
-      }
-      
-      case 'add_frame': {
-        // Add a new frame with optional data
-        const addData = data as { frame?: { index?: number; duration?: number; data?: Record<string, Cell> }; totalFrames?: number };
-        const frameIndex = addData.frame?.index;
-        useAnimationStore.getState().addFrame(frameIndex);
-        // If duration is provided, set it
-        if (addData.frame?.duration && frameIndex !== undefined) {
-          useAnimationStore.getState().updateFrameDuration(frameIndex, addData.frame.duration);
-        }
-        // If data is provided, set it
-        if (addData.frame?.data && frameIndex !== undefined) {
-          const cellMap = new Map<string, Cell>();
-          for (const [key, cell] of Object.entries(addData.frame.data)) {
-            cellMap.set(key, cell);
-          }
-          useAnimationStore.getState().setFrameData(frameIndex, cellMap);
-        }
-        break;
-      }
-      
-      case 'delete_frame': {
-        const deleteData = data as { index: number; totalFrames: number };
-        useAnimationStore.getState().removeFrame(deleteData.index);
-        break;
-      }
-      
-      case 'duplicate_frame':
-      case 'copy_frame_and_modify': {
-        // These create new frames with data - trigger a full frame sync
-        // For now, just add a frame and the data will be synced on next interaction
-        const copyData = data as { newFrame: { index: number; id: string; name: string; duration: number; data?: Record<string, Cell> }; totalFrames: number };
-        // Add frame at the correct position
-        useAnimationStore.getState().addFrame(copyData.newFrame.index);
-        // Set the frame duration
-        useAnimationStore.getState().updateFrameDuration(copyData.newFrame.index, copyData.newFrame.duration);
-        // If data is provided, set it
-        if (copyData.newFrame.data) {
-          const cellMap = new Map<string, Cell>();
-          for (const [key, cell] of Object.entries(copyData.newFrame.data)) {
-            cellMap.set(key, cell);
-          }
-          useAnimationStore.getState().setFrameData(copyData.newFrame.index, cellMap);
-        }
-        break;
-      }
-      
-      case 'go_to_frame': {
-        const goToData = data as { index: number };
-        useAnimationStore.getState().goToFrame(goToData.index);
-        break;
-      }
-      
-      case 'set_frame_duration': {
-        const durationData = data as { index: number; duration: number };
-        useAnimationStore.getState().updateFrameDuration(durationData.index, durationData.duration);
-        break;
-      }
-      
-      case 'set_frame_name': {
-        // Frame names are currently not stored in the animation store
-        // Just log for now
-        console.log('[MCP] Frame name set:', data);
-        break;
-      }
-      
-      case 'set_foreground_color': {
-        const colorData = data as { color: string };
-        useToolStore.getState().setSelectedColor(colorData.color);
-        break;
-      }
-      
-      case 'set_background_color': {
-        const colorData = data as { color: string };
-        useToolStore.getState().setSelectedBgColor(colorData.color);
-        break;
-      }
-      
-      case 'set_selected_character': {
-        const charData = data as { character: string };
-        useToolStore.getState().setSelectedChar(charData.character);
-        break;
-      }
-      
-      case 'set_frame_data': {
-        // Set all cell data for a specific frame
-        const frameData = data as { frameIndex: number; data: Record<string, Cell> };
-        const cellMap = new Map<string, Cell>();
-        for (const [key, cell] of Object.entries(frameData.data)) {
-          cellMap.set(key, cell);
-        }
-        useAnimationStore.getState().setFrameData(frameData.frameIndex, cellMap);
-        console.log('[MCP] Set frame data for frame', frameData.frameIndex, 'with', cellMap.size, 'cells');
-        break;
-      }
-
-      // =====================================================================
-      // Layer operations (v2)
-      // =====================================================================
-      case 'add_layer': {
-        const layerData = data as { layer: { id: string; name: string }; totalLayers: number };
-        console.log('[MCP] Layer added:', layerData.layer.name, '- total:', layerData.totalLayers);
-        // Request full state sync to get the new layer
-        this.sendStateSnapshot();
-        break;
-      }
-
-      case 'remove_layer': {
-        const removeData = data as { layerId: string };
-        console.log('[MCP] Layer removed:', removeData.layerId);
-        this.sendStateSnapshot();
-        break;
-      }
-
-      case 'duplicate_layer': {
-        const dupData = data as { sourceLayerId: string; newLayer: { id: string; name: string } };
-        console.log('[MCP] Layer duplicated:', dupData.newLayer.name);
-        this.sendStateSnapshot();
-        break;
-      }
-
-      case 'set_active_layer': {
-        const activeData = data as { layerId: string };
-        console.log('[MCP] Active layer changed:', activeData.layerId);
-        break;
-      }
-
-      case 'rename_layer': {
-        const renameData = data as { layerId: string; name: string };
-        console.log('[MCP] Layer renamed:', renameData.layerId, '→', renameData.name);
-        break;
-      }
-
-      case 'reorder_layers': {
-        const reorderData = data as { fromIndex: number; toIndex: number };
-        console.log('[MCP] Layers reordered:', reorderData.fromIndex, '→', reorderData.toIndex);
-        break;
-      }
-
-      case 'set_layer_visibility': {
-        const visData = data as { layerId: string; visible?: boolean; solo?: boolean; locked?: boolean; opacity?: number };
-        console.log('[MCP] Layer visibility changed:', visData.layerId);
-        break;
-      }
-
-      case 'add_content_frame': {
-        const cfData = data as { layerId: string; contentFrame: { id: string; name: string; startFrame: number; durationFrames: number } };
-        console.log('[MCP] Content frame added to layer:', cfData.layerId, 'at frame', cfData.contentFrame.startFrame);
-        break;
-      }
-
-      case 'remove_content_frame': {
-        const rcfData = data as { layerId: string; contentFrameId: string };
-        console.log('[MCP] Content frame removed:', rcfData.contentFrameId, 'from layer:', rcfData.layerId);
-        break;
-      }
-
-      case 'add_keyframe': {
-        const kfData = data as { layerId: string; propertyPath: string; keyframe: { id: string; frame: number; value: number } };
-        console.log('[MCP] Keyframe added:', kfData.propertyPath, 'at frame', kfData.keyframe.frame, '=', kfData.keyframe.value);
-        break;
-      }
-
-      case 'remove_keyframe': {
-        const rkfData = data as { layerId: string; trackId: string; keyframeId: string };
-        console.log('[MCP] Keyframe removed:', rkfData.keyframeId);
-        break;
-      }
-
-      // =====================================================================
-      // Effect block operations (procedural effects)
-      // =====================================================================
-      case 'add_effect_block': {
-        const ebData = data as {
-          blockId: string;
-          trackId: string;
-          ownerId: string | null;
-          effectType: string;
-          startFrame: number;
-          durationFrames: number;
-          settings?: Record<string, unknown>;
-        };
-        const browserBlockId = useTimelineStore.getState().addEffectBlock(
-          ebData.ownerId as import('../types/timeline').LayerId | import('../types/timeline').LayerGroupId | null,
-          ebData.effectType,
-          ebData.startFrame,
-          ebData.durationFrames,
-        );
-        if (browserBlockId) {
-          // Store mapping from server block ID → browser block ID
-          this.effectBlockIdMap.set(ebData.blockId, browserBlockId);
-        }
-        console.log('[MCP] Effect block added:', ebData.effectType, 'on', ebData.ownerId ?? 'global', '| server:', ebData.blockId, '→ browser:', browserBlockId);
-        break;
-      }
-
-      case 'remove_effect_block': {
-        const rebData = data as { blockId: string };
-        const browserRemoveId = this.effectBlockIdMap.get(rebData.blockId) ?? rebData.blockId;
-        const ts = useTimelineStore.getState();
-        for (const layer of ts.layers) {
-          for (const et of (layer.effectTracks ?? [])) {
-            if (et.effectBlock.id === browserRemoveId) {
-              ts.removeEffectBlock(layer.id, browserRemoveId as import('../types/effectBlock').EffectBlockId);
-              break;
-            }
-          }
-        }
-        for (const group of ts.layerGroups) {
-          for (const et of (group.effectTracks ?? [])) {
-            if (et.effectBlock.id === browserRemoveId) {
-              ts.removeEffectBlock(group.id, browserRemoveId as import('../types/effectBlock').EffectBlockId);
-              break;
-            }
-          }
-        }
-        for (const et of ts.globalEffects) {
-          if (et.effectBlock.id === browserRemoveId) {
-            ts.removeEffectBlock(null, browserRemoveId as import('../types/effectBlock').EffectBlockId);
-            break;
-          }
-        }
-        this.effectBlockIdMap.delete(rebData.blockId);
-        console.log('[MCP] Effect block removed:', rebData.blockId);
-        break;
-      }
-
-      case 'update_effect_block': {
-        const uebData = data as { blockId: string; settings?: Record<string, unknown>; enabled?: boolean };
-        const browserUpdateId = this.effectBlockIdMap.get(uebData.blockId) ?? uebData.blockId;
-        if (uebData.settings) {
-          useTimelineStore.getState().updateEffectBlockSettings(
-            browserUpdateId as import('../types/effectBlock').EffectBlockId,
-            uebData.settings,
-          );
-        }
-        if (uebData.enabled !== undefined) {
-          useTimelineStore.getState().toggleEffectBlockEnabled(
-            browserUpdateId as import('../types/effectBlock').EffectBlockId,
-          );
-        }
-        console.log('[MCP] Effect block updated:', uebData.blockId);
-        break;
-      }
-
-      case 'add_effect_keyframe': {
-        const aekData = data as {
-          blockId: string;
-          propertyPath: string;
-          frame: number;
-          value: number | boolean | string;
-          keyframeId?: string;
-        };
-        // Translate server block ID → browser block ID
-        const browserBlkId = this.effectBlockIdMap.get(aekData.blockId) ?? aekData.blockId;
-        const timeline = useTimelineStore.getState();
-
-        // Find existing property track ID, or create one
-        let propTrackId: string | null = null;
-        const allEffectOwners = [
-          ...timeline.layers.flatMap(l => (l.effectTracks ?? []).map(et => et)),
-          ...timeline.layerGroups.flatMap(g => (g.effectTracks ?? []).map(et => et)),
-          ...timeline.globalEffects,
-        ];
-        for (const et of allEffectOwners) {
-          if (et.effectBlock.id === browserBlkId) {
-            const existingPt = et.effectBlock.propertyTracks.find(
-              pt => pt.propertyPath === aekData.propertyPath
-            );
-            if (existingPt) {
-              propTrackId = existingPt.id as string;
-            }
-            break;
-          }
-        }
-
-        // If no existing track, create one
-        if (!propTrackId) {
-          propTrackId = timeline.addEffectPropertyTrack(
-            browserBlkId as import('../types/effectBlock').EffectBlockId,
-            aekData.propertyPath,
-          );
-        }
-
-        if (propTrackId) {
-          timeline.addEffectKeyframe(
-            browserBlkId as import('../types/effectBlock').EffectBlockId,
-            propTrackId as import('../types/effectBlock').EffectPropertyTrackId,
-            aekData.frame,
-            aekData.value,
-          );
-          console.log('[MCP] Effect keyframe added:', aekData.propertyPath, '=', aekData.value, 'at frame', aekData.frame);
-        } else {
-          console.warn('[MCP] Could not add effect keyframe: property track creation failed for block', browserBlkId);
-        }
-        break;
-      }
-
-      case 'remove_effect_keyframe': {
-        const rekData = data as { blockId: string; keyframeId: string };
-        const browserRekId = this.effectBlockIdMap.get(rekData.blockId) ?? rekData.blockId;
-        const tsState = useTimelineStore.getState();
-        const allOwners = [
-          ...tsState.layers.flatMap(l => (l.effectTracks ?? []).map(et => ({ et, ownerId: l.id }))),
-          ...tsState.layerGroups.flatMap(g => (g.effectTracks ?? []).map(et => ({ et, ownerId: g.id }))),
-          ...tsState.globalEffects.map(et => ({ et, ownerId: null })),
-        ];
-        for (const { et } of allOwners) {
-          if (et.effectBlock.id === browserRekId) {
-            for (const pt of et.effectBlock.propertyTracks) {
-              const kf = pt.keyframes.find(k => k.id === rekData.keyframeId);
-              if (kf) {
-                tsState.removeEffectKeyframe(
-                  browserRekId as import('../types/effectBlock').EffectBlockId,
-                  pt.id,
-                  rekData.keyframeId as import('../types/timeline').KeyframeId,
-                );
-                break;
-              }
-            }
-            break;
-          }
-        }
-        console.log('[MCP] Effect keyframe removed:', rekData.keyframeId);
-        break;
-      }
-
-      case 'create_group': {
-        const grpData = data as { group: { id: string; name: string; childLayerIds: string[] } };
-        console.log('[MCP] Group created:', grpData.group.name);
-        break;
-      }
-
-      case 'ungroup_layers': {
-        const ungroupData = data as { groupId: string };
-        console.log('[MCP] Group dissolved:', ungroupData.groupId);
-        break;
-      }
-
-      case 'set_frame_rate': {
-        const fpsData = data as { fps: number };
-        console.log('[MCP] Frame rate changed:', fpsData.fps, 'fps');
-        break;
-      }
-
-      case 'set_timeline_duration': {
-        const durData = data as { durationFrames: number };
-        console.log('[MCP] Timeline duration changed:', durData.durationFrames, 'frames');
-        break;
-      }
-      
-      default:
-        console.log('[MCP] Unhandled state change type:', type);
+  /**
+   * Legacy servers mutate their own copy, then notify. Replay the change as a
+   * canonical operation, then resend the snapshot so the server adopts the
+   * browser's authoritative state and IDs.
+   */
+  private async handleStateChange(type: string, data: unknown): Promise<void> {
+    if (this.v3) {
+      console.warn('[MCP] Ignoring legacy stateChanged notification from a v3 server:', type);
+      return;
     }
+
+    const d = isRecord(data) ? data : {};
+    try {
+      switch (type) {
+        case 'go_to_frame':
+          await this.handleGoToFrame({ index: d.index as number });
+          break;
+        case 'set_frame_duration':
+          this.handleSetFrameDuration({ index: d.index as number, duration: d.duration as number });
+          break;
+        case 'set_frame_rate':
+          this.handleSetFrameRate({ fps: d.fps as number });
+          break;
+        default: {
+          const call = this.notifications.toCall(type, data);
+          if (!call) {
+            console.warn('[MCP] Unhandled legacy state change:', type);
+            return;
+          }
+          if ('unsupported' in call) {
+            console.warn('[MCP] Cannot replay %s: %s', type, call.unsupported);
+            break;
+          }
+          const outcome = await runOperation(call.op, call.input);
+          if (outcome.ok) this.notifications.learn(type, data, outcome);
+          else console.warn('[MCP] Replaying %s failed:', type, outcome.error);
+        }
+      }
+    } catch (error) {
+      console.warn('[MCP] Replaying %s failed:', type, error);
+    }
+    this.scheduleLegacyResync();
   }
 
-  private async executeCommand(command: MCPCommand): Promise<MCPCommandApplied | undefined> {
-    console.log('[MCP] Executing command:', command.type);
-    
+  private scheduleLegacyResync(): void {
+    if (this.resyncTimer) return;
+    this.resyncTimer = setTimeout(() => {
+      this.resyncTimer = null;
+      this.enqueue(() => this.sendStateSnapshot());
+    }, LEGACY_RESYNC_DELAY);
+  }
+
+  /** Execute a legacy (pre-v3) command, returning its legacy `applied` payload. */
+  private async executeLegacyCommand(command: MCPCommand): Promise<MCPCommandApplied | undefined> {
     switch (command.type) {
-      case 'set_cell':
-        this.handleSetCell(command);
-        break;
-        
-      case 'set_cells_batch':
-        return this.handleSetCellsBatch(command);
-        
-      case 'clear_cell':
-        this.handleClearCell(command);
-        break;
-        
-      case 'resize_canvas':
-        this.handleResizeCanvas(command);
-        break;
-        
-      case 'set_canvas_data':
-        this.handleSetCanvasData(command);
-        break;
-        
-      case 'add_frame':
-        this.handleAddFrame(command);
-        break;
-        
-      case 'delete_frame':
-        this.handleDeleteFrame(command);
-        break;
-        
       case 'go_to_frame':
         return this.handleGoToFrame(command);
-        
       case 'set_frame_duration':
         return this.handleSetFrameDuration(command);
-
       case 'set_frame_rate':
         return this.handleSetFrameRate(command);
-        
-      case 'set_frame_data':
-        this.handleSetFrameData(command);
-        break;
-        
-      case 'undo':
-        this.handleUndo();
-        break;
-        
-      case 'redo':
-        this.handleRedo();
-        break;
-        
-      case 'new_project':
-        this.handleNewProject(command);
-        break;
-        
-      case 'load_project':
-        return this.handleLoadProject(command);
-        
-      case 'set_foreground_color':
-        this.handleSetForegroundColor(command);
-        break;
-        
-      case 'set_background_color':
-        this.handleSetBackgroundColor(command);
-        break;
-        
-      case 'select_rectangle':
-        this.handleSelectRectangle(command);
-        break;
-        
-      case 'clear_selection':
-        this.handleClearSelection();
-        break;
-
-      // Post Effect commands
-      case 'add_post_effect':
-        this.handleAddPostEffect(command);
-        break;
-
-      case 'remove_post_effect':
-        this.handleRemovePostEffect(command);
-        break;
-
-      case 'update_post_effect':
-        this.handleUpdatePostEffect(command);
-        break;
-
-      case 'set_post_effect_keyframe':
-        this.handleSetPostEffectKeyframe(command);
-        break;
-
-      case 'remove_post_effect_keyframe':
-        this.handleRemovePostEffectKeyframe(command);
-        break;
-
+      case 'load_project': {
+        const applied = await this.handleLoadProject(command);
+        markDocumentReplaced();
+        return applied;
+      }
       case 'list_post_effects':
         this.handleListPostEffects();
-        break;
-
+        return undefined;
       case 'get_post_effect_presets':
         this.handleGetPostEffectPresets();
-        break;
-
-      // Procedural generator layer commands
+        return undefined;
       case 'get_generator_catalog':
       case 'add_generator_layer':
       case 'update_generator_layer':
@@ -1028,146 +649,25 @@ export class MCPClient {
       case 'render_generator_frames':
       case 'bake_generator_layer':
         return this.handleGeneratorCommand(command);
-        
-      default:
-        throw new Error(`Unsupported browser command: ${(command as { type: string }).type}`);
     }
+
+    const call = legacyCommandCall(command as unknown as Record<string, unknown>);
+    if (!call) {
+      throw new Error(`Unsupported browser command: ${(command as { type: string }).type}`);
+    }
+    const result = await runLegacyCall(call);
+    if (command.type === 'set_cells_batch') {
+      return {
+        currentFrameIndex: useTimelineStore.getState().view.currentFrame,
+        cellsChanged: typeof result.changedCells === 'number' ? result.changedCells : 0,
+      };
+    }
+    return undefined;
   }
 
   // ==========================================================================
-  // Command Handlers
+  // Legacy acknowledged handlers (already validated and atomic)
   // ==========================================================================
-
-  private handleSetCell(cmd: { x: number; y: number; cell: Cell }): void {
-    useCanvasStore.getState().setCell(cmd.x, cmd.y, cmd.cell);
-  }
-
-  private handleSetCellsBatch(cmd: {
-    cells: Array<{ x: number; y: number; cell: Cell }>;
-    frameIndex?: number;
-  }): MCPCommandApplied {
-    if (!Array.isArray(cmd.cells)) {
-      throw new Error('set_cells_batch cells must be an array');
-    }
-
-    const canvas = useCanvasStore.getState();
-    for (const update of cmd.cells) {
-      if (
-        !isRecord(update)
-        || !Number.isInteger(update.x)
-        || !Number.isInteger(update.y)
-        || update.x < 0
-        || update.x >= canvas.width
-        || update.y < 0
-        || update.y >= canvas.height
-        || !isRecord(update.cell)
-        || typeof update.cell.char !== 'string'
-        || typeof update.cell.color !== 'string'
-        || typeof update.cell.bgColor !== 'string'
-      ) {
-        throw new Error('set_cells_batch contains an invalid or out-of-bounds cell');
-      }
-    }
-
-    if (cmd.frameIndex !== undefined && (!Number.isInteger(cmd.frameIndex) || cmd.frameIndex < 0)) {
-      throw new Error('set_cells_batch frameIndex must be a non-negative integer');
-    }
-
-    this.flushCanvasToActiveContentFrame();
-
-    const timeline = useTimelineStore.getState();
-    const activeLayer = timeline.layers.find((layer) => layer.id === timeline.view.activeLayerId)
-      ?? timeline.layers[0];
-    if (!activeLayer) {
-      throw new Error('set_cells_batch requires an active layer');
-    }
-
-    let targetFrameIndex = cmd.frameIndex;
-    if (targetFrameIndex === undefined) {
-      const currentContentFrame = getContentFrameAtTime(activeLayer, timeline.view.currentFrame);
-      targetFrameIndex = currentContentFrame
-        ? activeLayer.contentFrames.findIndex((frame) => frame.id === currentContentFrame.id)
-        : -1;
-    }
-
-    const targetFrame = activeLayer.contentFrames[targetFrameIndex];
-    if (!targetFrame) {
-      throw new Error(`set_cells_batch frameIndex ${targetFrameIndex} is out of range`);
-    }
-
-    const nextData = new Map(targetFrame.data);
-    let cellsChanged = 0;
-
-    for (const { x, y, cell } of cmd.cells) {
-      const key = `${x},${y}`;
-      const previous = nextData.get(key);
-      const removesCell = cell.char === ' '
-        && cell.color === '#FFFFFF'
-        && cell.bgColor === 'transparent';
-
-      if (removesCell) {
-        if (nextData.delete(key)) {
-          cellsChanged += 1;
-        }
-        continue;
-      }
-
-      if (
-        !previous
-        || previous.char !== cell.char
-        || previous.color !== cell.color
-        || previous.bgColor !== cell.bgColor
-      ) {
-        nextData.set(key, { ...cell });
-        cellsChanged += 1;
-      }
-    }
-
-    timeline.updateContentFrameData(activeLayer.id, targetFrame.id, nextData);
-
-    const currentContentFrame = getContentFrameAtTime(activeLayer, timeline.view.currentFrame);
-    if (currentContentFrame?.id === targetFrame.id) {
-      canvas.setActiveLayerId(activeLayer.id);
-      canvas.setCanvasData(nextData);
-      canvas.setDirty(false);
-    }
-
-    return {
-      currentFrameIndex: timeline.view.currentFrame,
-      cellsChanged,
-    };
-  }
-
-  private handleClearCell(cmd: { x: number; y: number }): void {
-    useCanvasStore.getState().clearCell(cmd.x, cmd.y);
-  }
-
-  private handleResizeCanvas(cmd: { width: number; height: number }): void {
-    useCanvasStore.getState().setCanvasSize(cmd.width, cmd.height);
-  }
-
-  private handleSetCanvasData(cmd: { cells: Array<{ key: string; cell: Cell }> }): void {
-    const newCells = new Map<string, Cell>();
-    for (const { key, cell } of cmd.cells) {
-      newCells.set(key, cell);
-    }
-    useCanvasStore.getState().setCanvasData(newCells);
-  }
-
-  private handleAddFrame(cmd: { atIndex?: number; cells?: Array<{ key: string; cell: Cell }>; duration?: number }): void {
-    let canvasData: Map<string, Cell> | undefined;
-    if (cmd.cells) {
-      canvasData = new Map<string, Cell>();
-      for (const { key, cell } of cmd.cells) {
-        canvasData.set(key, cell);
-      }
-    }
-    useAnimationStore.getState().addFrame(cmd.atIndex, canvasData, cmd.duration);
-  }
-
-  private handleDeleteFrame(cmd: { index: number }): void {
-    useAnimationStore.getState().removeFrame(cmd.index);
-  }
 
   private async handleGoToFrame(cmd: { index: number }): Promise<MCPCommandApplied> {
     const currentFrameIndex = await navigateToFrameAtomically(cmd.index);
@@ -1305,46 +805,6 @@ export class MCPClient {
     };
   }
 
-  private handleSetFrameData(cmd: { index: number; cells: Array<{ key: string; cell: Cell }> }): void {
-    const data = new Map<string, Cell>();
-    for (const { key, cell } of cmd.cells) {
-      data.set(key, cell);
-    }
-    useAnimationStore.getState().setFrameData(cmd.index, data);
-  }
-
-  private handleUndo(): void {
-    useToolStore.getState().undo();
-  }
-
-  private handleRedo(): void {
-    useToolStore.getState().redo();
-  }
-
-  private handleNewProject(cmd: { width: number; height: number; backgroundColor?: string; name?: string }): void {
-    // Reset canvas
-    const canvasStore = useCanvasStore.getState();
-    canvasStore.setCanvasSize(cmd.width, cmd.height);
-    canvasStore.clearCanvas();
-    if (cmd.backgroundColor) {
-      canvasStore.setCanvasBackgroundColor(cmd.backgroundColor);
-    }
-    
-    // Set project name
-    if (cmd.name) {
-      useProjectMetadataStore.getState().setProjectName(cmd.name);
-    }
-    
-    // Reset animation
-    useAnimationStore.getState().resetAnimation();
-    
-    // Clear history
-    useToolStore.getState().clearHistory();
-    
-    // Clear selection
-    useSelectionStore.getState().clearSelection();
-  }
-
   private async handleLoadProject(cmd: { sessionData: unknown }): Promise<MCPCommandApplied> {
     await SessionImporter.importSessionData(cmd.sessionData);
 
@@ -1355,113 +815,6 @@ export class MCPClient {
       durationMs: timeline.config.durationMs,
     };
   }
-
-  private handleSetForegroundColor(cmd: { color: string }): void {
-    useToolStore.getState().setSelectedColor(cmd.color);
-  }
-
-  private handleSetBackgroundColor(cmd: { color: string }): void {
-    useToolStore.getState().setSelectedBgColor(cmd.color);
-  }
-
-  private handleSelectRectangle(cmd: { x: number; y: number; width: number; height: number }): void {
-    // Build a Set of cell keys for the rectangle
-    const cells = new Set<string>();
-    for (let y = cmd.y; y < cmd.y + cmd.height; y++) {
-      for (let x = cmd.x; x < cmd.x + cmd.width; x++) {
-        cells.add(`${x},${y}`);
-      }
-    }
-    useSelectionStore.getState().setSelection(cells);
-  }
-
-  private handleClearSelection(): void {
-    useSelectionStore.getState().clearSelection();
-  }
-
-  // ==========================================================================
-  // Post Effect Command Handlers
-  // ==========================================================================
-
-  private handleAddPostEffect(cmd: { postEffectType: string; startFrame?: number; durationFrames?: number; settings?: Record<string, unknown> }): void {
-    const tl = useTimelineStore.getState();
-    const startFrame = cmd.startFrame ?? 0;
-    const durationFrames = cmd.durationFrames ?? tl.config.durationFrames;
-    const blockId = tl.addPostEffectBlock(cmd.postEffectType, startFrame, durationFrames);
-    if (blockId && cmd.settings) {
-      tl.updatePostEffectBlockSettings(blockId, cmd.settings);
-    }
-    if (blockId) {
-      // Store mapping for server reference
-      this.postEffectBlockIdMap.set(cmd.postEffectType + '-' + Date.now(), blockId as string);
-      console.log('[MCP] Added post effect:', cmd.postEffectType, 'blockId:', blockId);
-    }
-  }
-
-  private handleRemovePostEffect(cmd: { blockId: string }): void {
-    const tl = useTimelineStore.getState();
-    const track = tl.postEffectTracks.find((t) => (t.effectBlock.id as string) === cmd.blockId);
-    if (track) {
-      tl.removePostEffectBlock(track.effectBlock.id);
-      console.log('[MCP] Removed post effect:', cmd.blockId);
-    }
-  }
-
-  private handleUpdatePostEffect(cmd: { blockId: string; settings?: Record<string, unknown>; startFrame?: number; durationFrames?: number; enabled?: boolean }): void {
-    const tl = useTimelineStore.getState();
-    const track = tl.postEffectTracks.find((t) => (t.effectBlock.id as string) === cmd.blockId);
-    if (!track) return;
-    const blockId = track.effectBlock.id;
-
-    if (cmd.settings) {
-      tl.updatePostEffectBlockSettings(blockId, cmd.settings);
-    }
-    if (cmd.startFrame !== undefined || cmd.durationFrames !== undefined) {
-      tl.updatePostEffectBlockTiming(
-        blockId,
-        cmd.startFrame ?? track.effectBlock.startFrame,
-        cmd.durationFrames ?? track.effectBlock.durationFrames,
-      );
-    }
-    if (cmd.enabled !== undefined && cmd.enabled !== track.effectBlock.enabled) {
-      tl.togglePostEffectBlockEnabled(blockId);
-    }
-  }
-
-  private handleSetPostEffectKeyframe(cmd: { blockId: string; propertyPath: string; frame: number; value: number | boolean | string }): void {
-    const tl = useTimelineStore.getState();
-    const track = tl.postEffectTracks.find((t) => (t.effectBlock.id as string) === cmd.blockId);
-    if (!track) return;
-    const blockId = track.effectBlock.id;
-
-    // Ensure property track exists
-    let propTrack = track.effectBlock.propertyTracks.find((pt) => pt.propertyPath === cmd.propertyPath);
-    if (!propTrack) {
-      const ptId = tl.addPostEffectPropertyTrack(blockId, cmd.propertyPath);
-      if (!ptId) return;
-      // Re-read after creating
-      const updatedTrack = useTimelineStore.getState().postEffectTracks.find((t) => t.effectBlock.id === blockId);
-      propTrack = updatedTrack?.effectBlock.propertyTracks.find((pt) => pt.propertyPath === cmd.propertyPath);
-      if (!propTrack) return;
-    }
-
-    tl.addPostEffectKeyframe(blockId, propTrack.id, cmd.frame, cmd.value);
-  }
-
-  private handleRemovePostEffectKeyframe(cmd: { blockId: string; propertyPath: string; frame: number }): void {
-    const tl = useTimelineStore.getState();
-    const track = tl.postEffectTracks.find((t) => (t.effectBlock.id as string) === cmd.blockId);
-    if (!track) return;
-
-    const propTrack = track.effectBlock.propertyTracks.find((pt) => pt.propertyPath === cmd.propertyPath);
-    if (!propTrack) return;
-
-    const kf = propTrack.keyframes.find((k) => k.frame === cmd.frame);
-    if (kf) {
-      tl.removePostEffectKeyframe(track.effectBlock.id, propTrack.id, kf.id);
-    }
-  }
-
   private handleListPostEffects(): void {
     const tl = useTimelineStore.getState();
     const effects = tl.postEffectTracks.map((t) => ({
@@ -1518,160 +871,47 @@ export class MCPClient {
     return executeGeneratorCommand(command);
   }
 
-  // Post effect block ID mapping (server ref → browser ID)
-  private postEffectBlockIdMap = new Map<string, string>();
 
   // ==========================================================================
-  // Export Request Handler
+  // Export Request Handler (legacy export_request → shared export renderer)
   // ==========================================================================
 
   private async handleExportRequest(request: MCPExportRequest): Promise<void> {
-    console.log('[MCP] Export request received:', request.exportType, request.format);
-
+    const fail = (error: string) => this.send({ type: 'export_result', requestId: request.requestId, success: false, error } as MCPExportResult);
     try {
-      // Flush canvas cells to timeline so the export sees latest data
-      this.flushCanvasToActiveContentFrame();
-
-      // Dynamically import to avoid circular deps and keep initial bundle small
-      const { ExportDataCollector } = await import('../utils/exportDataCollector');
-      const { ExportRenderer } = await import('../utils/exportRenderer');
-
-      // Collect export data from current app state
-      const exportData = ExportDataCollector.collect();
-
-      // If a specific frame index was requested, navigate to it first
-      if (request.settings.frameIndex !== undefined && typeof request.settings.frameIndex === 'number') {
-        exportData.currentFrameIndex = request.settings.frameIndex;
+      const settings = (request.settings ?? {}) as Record<string, unknown>;
+      const format = (typeof settings.format === 'string' ? settings.format : request.exportType === 'video' ? 'mp4' : 'png') as ExportFormat;
+      if (!(format in EXPORT_FORMATS)) {
+        fail(`Unsupported export format: ${String(settings.format)}`);
+        return;
       }
-
-      // Create a renderer that captures the blob instead of saving via file-saver
-      let capturedBlob: Blob | null = null;
-      const renderer = new ExportRenderer();
-
-      if (request.exportType === 'image') {
-        const imageSettings = {
-          sizeMultiplier: (request.settings.sizeMultiplier as 1 | 2 | 3 | 4) ?? 1,
-          includeGrid: (request.settings.includeGrid as boolean) ?? false,
-          format: (request.settings.format as 'png' | 'jpg' | 'svg') ?? 'png',
-          quality: (request.settings.quality as number) ?? 90,
-          svgSettings: {
-            includeGrid: (request.settings.includeGrid as boolean) ?? false,
-            textAsOutlines: false,
-            includeBackground: true,
-            prettify: true,
-          },
-        };
-
-        if (imageSettings.format === 'svg') {
-          // SVG export produces a string, not a blob via canvas
-          // We'll capture it by overriding the save
-          capturedBlob = await this.captureExportBlob(
-            () => renderer.exportSvg(exportData, imageSettings, request.filename),
-          );
-        } else {
-          capturedBlob = await this.captureExportBlob(
-            () => renderer.exportImage(exportData, imageSettings, request.filename),
-          );
+      const allowed = EXPORT_FORMATS[format].options as Record<string, unknown>;
+      const overrides: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(settings)) {
+        if (key === 'format' || value === undefined) continue;
+        if (key === 'frameIndex') {
+          if ('frame' in allowed) overrides.frame = value;
+          continue;
         }
-      } else if (request.exportType === 'video') {
-        const videoSettings = {
-          sizeMultiplier: (request.settings.sizeMultiplier as 1 | 2 | 4) ?? 1,
-          frameRate: (request.settings.frameRate as number | 'auto') ?? 'auto',
-          frameRange: request.settings.frameRange === 'all'
-            ? { start: 0, end: exportData.frames.length - 1 }
-            : (request.settings.frameRange as { start: number; end: number }),
-          quality: (request.settings.quality as 'high' | 'medium' | 'low') ?? 'high',
-          crf: (request.settings.crf as number) ?? 24,
-          format: (request.settings.format as 'webm' | 'mp4') ?? 'mp4',
-          includeGrid: (request.settings.includeGrid as boolean) ?? false,
-          loops: (request.settings.loops as 'none' | '2x' | '4x' | '8x') ?? 'none',
-        };
-
-        capturedBlob = await this.captureExportBlob(
-          () => renderer.exportVideo(exportData, videoSettings, request.filename),
-        );
+        if (key === 'frameRange' && value === 'all') continue;
+        if (key in allowed) overrides[key] = value;
       }
-
-      if (capturedBlob) {
-        // Convert blob to base64
-        const base64 = await this.blobToBase64(capturedBlob);
-        const result: MCPExportResult = {
-          type: 'export_result',
-          requestId: request.requestId,
-          success: true,
-          data: base64,
-          mimeType: capturedBlob.type,
-          filename: request.filename,
-          bytes: capturedBlob.size,
-        };
-        this.send(result);
-        console.log('[MCP] Export complete, sent', capturedBlob.size, 'bytes');
-      } else {
-        this.send({
-          type: 'export_result',
-          requestId: request.requestId,
-          success: false,
-          error: 'Export produced no data',
-        } as MCPExportResult);
-      }
-    } catch (err) {
-      console.error('[MCP] Export failed:', err);
-      this.send({
+      const { artifact } = await renderExport(format, overrides, request.filename);
+      const data = artifact.encoding === 'base64' ? artifact.data : utf8ToBase64(artifact.data);
+      const result: MCPExportResult = {
         type: 'export_result',
         requestId: request.requestId,
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-      } as MCPExportResult);
-    }
-  }
-
-  /**
-   * Intercept file-saver's saveAs to capture the blob instead of downloading.
-   * Uses a global intercept that patches the anchor click mechanism.
-   */
-  private async captureExportBlob(exportFn: () => Promise<void>): Promise<Blob | null> {
-    let captured: Blob | null = null;
-
-    // Intercept by patching HTMLAnchorElement.click and URL.createObjectURL
-    // file-saver creates an <a> element with a blob URL and clicks it
-    const originalClick = HTMLAnchorElement.prototype.click;
-    const originalCreateObjectURL = URL.createObjectURL;
-
-    URL.createObjectURL = (obj: Blob | MediaSource) => {
-      if (obj instanceof Blob) {
-        captured = obj;
-      }
-      return originalCreateObjectURL.call(URL, obj);
-    };
-
-    HTMLAnchorElement.prototype.click = function() {
-      // If we captured a blob, suppress the download
-      if (captured) return;
-      return originalClick.call(this);
-    };
-
-    try {
-      await exportFn();
-    } finally {
-      HTMLAnchorElement.prototype.click = originalClick;
-      URL.createObjectURL = originalCreateObjectURL;
-    }
-
-    return captured;
-  }
-
-  private blobToBase64(blob: Blob): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        // Remove the data:...;base64, prefix
-        const base64 = result.split(',')[1] || result;
-        resolve(base64);
+        success: true,
+        data,
+        mimeType: artifact.mimeType,
+        filename: request.filename || artifact.filename,
+        bytes: artifact.bytes,
       };
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
+      this.send(result);
+    } catch (err) {
+      console.error('[MCP] Export failed:', err);
+      fail(err instanceof Error ? err.message : String(err));
+    }
   }
 }
 

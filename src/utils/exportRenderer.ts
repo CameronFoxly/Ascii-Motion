@@ -1,4 +1,4 @@
-import { saveAs } from 'file-saver';
+import { saveAs as fileSaverSaveAs } from 'file-saver';
 import JSZip from 'jszip';
 import type { Font } from 'opentype.js';
 import type { 
@@ -37,6 +37,34 @@ import { FULLSCREEN_VERTEX_SHADER } from './webgl/commonShaders';
 import { buildCanvasFont, formatFontStack, DEFAULT_EXPORT_FONT_STACK } from './fontStack';
 import { getFontById } from '../constants/fonts';
 import { getBundledFontFiles } from './fontLoader';
+import { buildSessionDocument } from './sessionDocument';
+import { setWebMSegmentDuration } from './webmDuration';
+
+/**
+ * Optional file sink. When set (via `withExportFileSink`), exports hand their
+ * finished blobs to the sink instead of triggering a browser download. Used by
+ * programmatic callers such as the MCP bridge `export` operation.
+ */
+export type ExportFileSink = (blob: Blob, filename: string) => void;
+let activeExportFileSink: ExportFileSink | null = null;
+
+export async function withExportFileSink<T>(sink: ExportFileSink, run: () => Promise<T>): Promise<T> {
+  const previous = activeExportFileSink;
+  activeExportFileSink = sink;
+  try {
+    return await run();
+  } finally {
+    activeExportFileSink = previous;
+  }
+}
+
+const saveAs = (blob: Blob, filename: string): void => {
+  if (activeExportFileSink) {
+    activeExportFileSink(blob, filename);
+    return;
+  }
+  fileSaverSaveAs(blob, filename);
+};
 
 interface JsonExportFrameColors {
   foreground?: Record<string, string> | string;
@@ -573,93 +601,7 @@ export class ExportRenderer {
     try {
       this.updateProgress('Serializing data...', 30);
 
-      // Shared tool/palette/typography/UI state for both v1 and v2
-      const sharedState = {
-        tools: {
-          activeTool: data.toolState.activeTool,
-          selectedCharacter: data.toolState.selectedCharacter,
-          selectedColor: data.toolState.selectedColor,
-          selectedBgColor: data.toolState.selectedBgColor,
-          paintBucketContiguous: data.toolState.paintBucketContiguous,
-          rectangleFilled: data.toolState.rectangleFilled
-        },
-        ui: {
-          theme: data.uiState.theme,
-          zoom: data.uiState.zoom,
-          panOffset: data.uiState.panOffset,
-          fontMetrics: data.fontMetrics
-        },
-        typography: {
-          fontSize: data.typography.fontSize,
-          characterSpacing: data.typography.characterSpacing,
-          lineSpacing: data.typography.lineSpacing,
-          selectedFontId: data.typography.selectedFontId
-        },
-        palettes: data.paletteState ? {
-          activePaletteId: data.paletteState.activePaletteId,
-          customPalettes: data.paletteState.customPalettes,
-          recentColors: data.paletteState.recentColors
-        } : undefined,
-        characterPalettes: data.characterPaletteState ? {
-          activePaletteId: data.characterPaletteState.activePaletteId,
-          customPalettes: data.characterPaletteState.customPalettes.map(palette => ({
-            ...palette,
-            characters: [...palette.characters]
-          })),
-          mappingMethod: data.characterPaletteState.mappingMethod,
-          invertDensity: data.characterPaletteState.invertDensity,
-          characterSpacing: data.characterPaletteState.characterSpacing
-        } : undefined
-      };
-
-      let sessionData: Record<string, unknown>;
-
-      if (data.sessionDataV2) {
-        // ─── V2 FORMAT: Full layer structure with keyframes ───
-        sessionData = {
-          ...data.sessionDataV2,
-          // Enrich with project name/description
-          name: data.metadata.projectName || data.name || 'Untitled Project',
-          description: data.metadata.projectDescription || data.description,
-          metadata: settings.includeMetadata ? {
-            exportedAt: new Date().toISOString(),
-            exportVersion: '2.2.0',
-            userAgent: navigator.userAgent
-          } : undefined,
-          // Attach shared state that the timeline store doesn't track
-          ...sharedState,
-        };
-      } else {
-        // ─── V1 FORMAT: Flat frames (legacy / no layers) ───
-        sessionData = {
-          version: '1.0.0',
-          name: data.metadata.projectName || data.name || 'Untitled Project',
-          description: data.metadata.projectDescription || data.description,
-          metadata: settings.includeMetadata ? {
-            exportedAt: new Date().toISOString(),
-            exportVersion: '1.0.0',
-            userAgent: navigator.userAgent
-          } : undefined,
-          canvas: {
-            width: data.canvasDimensions.width,
-            height: data.canvasDimensions.height,
-            canvasBackgroundColor: data.canvasBackgroundColor,
-            showGrid: data.showGrid
-          },
-          animation: {
-            frames: data.frames.map(frame => ({
-              id: frame.id,
-              name: frame.name,
-              duration: frame.duration,
-              data: Object.fromEntries(frame.data.entries())
-            })),
-            currentFrameIndex: data.currentFrameIndex,
-            frameRate: data.frameRate,
-            looping: data.looping
-          },
-          ...sharedState,
-        };
-      }
+      const sessionData = buildSessionDocument(data, { includeMetadata: settings.includeMetadata });
 
       this.updateProgress('Converting to JSON...', 70);
 
@@ -1813,9 +1755,7 @@ ${this.generateWebGLShaderRuntime(htmlShaderBundle!)}
     this.updateProgress('Preparing React component export...', 0);
 
     try {
-      const requestedName = settings.fileName?.trim() || 'ascii-motion-animation';
-      const sanitizedFileName = this.sanitizeReactFileName(requestedName) || 'ascii-motion-animation';
-      const componentName = this.toPascalCase(sanitizedFileName);
+      const { fileName: sanitizedFileName, componentName } = this.deriveComponentNames(settings.fileName, 'ascii-motion-animation');
 
       const fontSize = data.typography?.fontSize ?? data.fontMetrics?.fontSize ?? 16;
       const characterSpacing = data.typography?.characterSpacing ?? 1.0;
@@ -1940,6 +1880,20 @@ ${this.generateWebGLShaderRuntime(htmlShaderBundle!)}
       .replace(/_+/g, '_')
       .replace(/^[-_]+|[-_]+$/g, '')
       .toLowerCase();
+  }
+
+  /** File and component names the React, Ink and OpenTUI exporters derive from a requested file name. */
+  deriveComponentNames(requested: string | undefined, fallback: string): { fileName: string; componentName: string } {
+    const fileName = this.sanitizeReactFileName(requested?.trim() || fallback) || fallback;
+    return { fileName, componentName: this.toPascalCase(fileName) };
+  }
+
+  /** File and Go package names the Bubble Tea exporter derives (the model type is always `Model`). */
+  deriveBubbleteaNames(settings: Pick<BubbleteaExportSettings, 'fileName' | 'packageName'>): { fileName: string; packageName: string } {
+    return {
+      fileName: settings.fileName.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase(),
+      packageName: settings.packageName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase(),
+    };
   }
 
   private toPascalCase(value: string): string {
@@ -2423,9 +2377,7 @@ ${this.generateWebGLShaderRuntime(htmlShaderBundle!)}
     this.updateProgress('Preparing Ink component export...', 0);
 
     try {
-      const requestedName = settings.fileName?.trim() || 'ascii-motion-cli';
-      const sanitizedFileName = this.sanitizeReactFileName(requestedName) || 'ascii-motion-cli';
-      const componentName = this.toPascalCase(sanitizedFileName);
+      const { fileName: sanitizedFileName, componentName } = this.deriveComponentNames(settings.fileName, 'ascii-motion-cli');
 
       this.updateProgress('Building color dictionary...', 20);
 
@@ -2900,9 +2852,7 @@ ${this.generateWebGLShaderRuntime(htmlShaderBundle!)}
     this.updateProgress('Preparing OpenTUI component export...', 0);
 
     try {
-      const requestedName = settings.fileName?.trim() || 'ascii-motion-tui';
-      const sanitizedFileName = this.sanitizeReactFileName(requestedName) || 'ascii-motion-tui';
-      const componentName = this.toPascalCase(sanitizedFileName);
+      const { fileName: sanitizedFileName, componentName } = this.deriveComponentNames(settings.fileName, 'ascii-motion-tui');
 
       this.updateProgress('Building color dictionary...', 20);
 
@@ -3307,13 +3257,7 @@ ${this.generateWebGLShaderRuntime(htmlShaderBundle!)}
     this.updateProgress('Preparing Bubbletea component export...', 0);
 
     try {
-      // Sanitize and format names
-      const sanitizedFileName = settings.fileName
-        .replace(/[^a-zA-Z0-9_]/g, '_')
-        .toLowerCase();
-      const sanitizedPackageName = settings.packageName
-        .replace(/[^a-zA-Z0-9]/g, '')
-        .toLowerCase();
+      const { fileName: sanitizedFileName, packageName: sanitizedPackageName } = this.deriveBubbleteaNames(settings);
 
       this.updateProgress('Processing frames...', 20);
 
@@ -4523,36 +4467,27 @@ ${this.generateWebGLShaderRuntime(htmlShaderBundle!)}
       }
     });
 
-    // Set up VideoEncoder for WebCodecs encoding
-    const encodedChunks: EncodedVideoChunk[] = [];
-    
-    return new Promise((resolve, reject) => {
-      const encoder = new VideoEncoder({
-        output: (chunk) => {
-          encodedChunks.push(chunk);
-          
-          // Add encoded chunk directly to muxer
+    let encodedFrameCount = 0;
+    let encodingError: Error | undefined;
+    const encoder = new VideoEncoder({
+      output: (chunk) => {
+        try {
           muxer.addVideoChunk(chunk);
-          
-          // Update progress
-          const progress = 50 + (encodedChunks.length / frames.length) * 30;
-          this.updateProgress(`Encoding frame ${encodedChunks.length}/${frames.length}...`, progress);
-          
-          // Check if we've encoded all frames
-          if (encodedChunks.length === frames.length) {
-            encoder.close();
-            muxer.finalize();
-            const buffer = muxer.target.buffer;
-            resolve(new Blob([buffer], { type: 'video/webm' }));
-          }
-        },
-        error: (error) => {
-          console.error('VideoEncoder error:', error);
-          encoder.close();
-          reject(error);
+          encodedFrameCount++;
+          const progress = 50 + (encodedFrameCount / frames.length) * 30;
+          this.updateProgress(`Encoding frame ${encodedFrameCount}/${frames.length}...`, progress);
+        } catch (error) {
+          // Output callbacks cannot reject the awaited flush promise themselves.
+          encodingError ??= error instanceof Error ? error : new Error(String(error));
         }
-      });
+      },
+      error: (error) => {
+        console.error('VideoEncoder error:', error);
+        encodingError ??= error;
+      }
+    });
 
+    try {
       // Configure the encoder
       encoder.configure({
         codec: 'vp09.00.10.08', // VP9 codec
@@ -4571,16 +4506,28 @@ ${this.generateWebGLShaderRuntime(htmlShaderBundle!)}
           timestamp: (i * 1000000) / (settings.frameRate as number) // microseconds
         });
         
-        // Encode the frame
-        encoder.encode(frame, { keyFrame: i === 0 || i % 30 === 0 }); // Keyframe every 30 frames
-        
-        // Clean up the frame
-        frame.close();
+        try {
+          encoder.encode(frame, { keyFrame: i === 0 || i % 30 === 0 }); // Keyframe every 30 frames
+        } finally {
+          frame.close();
+        }
       }
-      
-      // Finish encoding
-      encoder.flush();
-    });
+
+      // Closing in the last output callback aborts this still-pending promise.
+      await encoder.flush();
+      if (encodingError) throw encodingError;
+      if (encodedFrameCount !== frames.length) {
+        throw new Error(`VideoEncoder produced ${encodedFrameCount} of ${frames.length} frames`);
+      }
+      muxer.finalize();
+      const buffer = muxer.target.buffer;
+      setWebMSegmentDuration(buffer, (frames.length * 1000) / (settings.frameRate as number));
+      return new Blob([buffer], { type: 'video/webm' });
+    } catch (error) {
+      throw encodingError ?? error;
+    } finally {
+      if (encoder.state !== 'closed') encoder.close();
+    }
   }
 
   /**

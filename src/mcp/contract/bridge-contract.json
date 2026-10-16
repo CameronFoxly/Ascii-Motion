@@ -1,0 +1,6340 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "protocol": "ascii-motion-bridge",
+  "protocolVersion": 3,
+  "contractVersion": "3.0.0",
+  "timeModel": "All frame fields are absolute 0-based integer timeline frames. Content frames are addressed by contentFrameId.",
+  "errorCodes": [
+    "INVALID_INPUT",
+    "UNKNOWN_OPERATION",
+    "NOT_FOUND",
+    "CONFLICT",
+    "LOCKED",
+    "OUT_OF_RANGE",
+    "LIMIT_REACHED",
+    "AUTH_REQUIRED",
+    "ENTITLEMENT_REQUIRED",
+    "UI_NOT_READY",
+    "UNSUPPORTED",
+    "BUSY",
+    "INTERNAL"
+  ],
+  "messages": {
+    "hello": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "hello"
+        },
+        "protocol": {
+          "const": "ascii-motion-bridge"
+        },
+        "protocolVersion": {
+          "const": 3
+        },
+        "contractVersion": {
+          "type": "string"
+        },
+        "contractHash": {
+          "type": "string"
+        },
+        "app": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string"
+            },
+            "build": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "version"
+          ],
+          "additionalProperties": false
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "tabId": {
+          "type": "string"
+        },
+        "document": {
+          "type": "object",
+          "properties": {
+            "documentId": {
+              "type": "string"
+            },
+            "projectId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "name": {
+              "type": "string"
+            },
+            "revision": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "documentId",
+            "revision"
+          ],
+          "additionalProperties": false
+        },
+        "capabilities": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "type",
+        "protocol",
+        "protocolVersion",
+        "contractVersion",
+        "contractHash",
+        "app",
+        "document",
+        "capabilities"
+      ],
+      "additionalProperties": false
+    },
+    "op_request": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "op_request"
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "op": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "type",
+        "requestId",
+        "op"
+      ],
+      "additionalProperties": false
+    },
+    "op_result": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "op_result"
+            },
+            "requestId": {
+              "type": "string"
+            },
+            "op": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            },
+            "result": {},
+            "revision": {
+              "type": "integer"
+            },
+            "documentId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "requestId",
+            "op",
+            "ok",
+            "result",
+            "revision",
+            "documentId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "op_result"
+            },
+            "requestId": {
+              "type": "string"
+            },
+            "op": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            },
+            "error": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "INVALID_INPUT",
+                    "UNKNOWN_OPERATION",
+                    "NOT_FOUND",
+                    "CONFLICT",
+                    "LOCKED",
+                    "OUT_OF_RANGE",
+                    "LIMIT_REACHED",
+                    "AUTH_REQUIRED",
+                    "ENTITLEMENT_REQUIRED",
+                    "UI_NOT_READY",
+                    "UNSUPPORTED",
+                    "BUSY",
+                    "INTERNAL"
+                  ]
+                },
+                "message": {
+                  "type": "string"
+                },
+                "details": {}
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "additionalProperties": false
+            },
+            "revision": {
+              "type": "integer"
+            },
+            "documentId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "requestId",
+            "op",
+            "ok",
+            "error",
+            "revision",
+            "documentId"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "command_request": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "command_request"
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "protocolVersion": {
+          "const": 3,
+          "description": "Set to route `command.type` as a canonical operation even when it shares a legacy command name (load_project, undo, resize_canvas, generators…). Implied by expectedRevision."
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "command": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": true,
+          "description": "Operation name in `type` plus the operation input fields (canonical ops), or a legacy command"
+        }
+      },
+      "required": [
+        "type",
+        "requestId",
+        "command"
+      ],
+      "additionalProperties": false
+    },
+    "command_result": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "command_result"
+        },
+        "requestId": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "applied": {},
+        "revision": {
+          "type": "integer"
+        },
+        "documentId": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        },
+        "errorCode": {
+          "type": "string",
+          "enum": [
+            "INVALID_INPUT",
+            "UNKNOWN_OPERATION",
+            "NOT_FOUND",
+            "CONFLICT",
+            "LOCKED",
+            "OUT_OF_RANGE",
+            "LIMIT_REACHED",
+            "AUTH_REQUIRED",
+            "ENTITLEMENT_REQUIRED",
+            "UI_NOT_READY",
+            "UNSUPPORTED",
+            "BUSY",
+            "INTERNAL"
+          ]
+        },
+        "errorDetails": {}
+      },
+      "required": [
+        "type",
+        "requestId",
+        "success"
+      ],
+      "additionalProperties": false
+    },
+    "state_request": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "state_request"
+        },
+        "requestId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "state_snapshot": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "state_snapshot"
+        },
+        "requestId": {
+          "type": "string",
+          "description": "Echo of state_request.requestId (absent for unsolicited snapshots)"
+        },
+        "protocolVersion": {
+          "const": 3
+        },
+        "document": {
+          "$ref": "#/$defs/Session"
+        },
+        "documentId": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "activeLayerId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentFrame": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "type",
+        "protocolVersion",
+        "document",
+        "documentId",
+        "revision",
+        "currentFrame"
+      ],
+      "additionalProperties": true,
+      "description": "v3 fields; legacy canvas/animation/layers fields are still included for older servers"
+    },
+    "doc_changed": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "doc_changed"
+        },
+        "documentId": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "ui",
+            "bridge",
+            "history",
+            "load"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "documentId",
+        "revision",
+        "source"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "Color": {
+      "type": "string",
+      "pattern": "^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$",
+      "description": "Hex color #RRGGBB or #RRGGBBAA"
+    },
+    "BgColor": {
+      "type": "string",
+      "pattern": "^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$|^transparent$",
+      "description": "Hex color or \"transparent\""
+    },
+    "Char": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2,
+      "description": "Single visible character (one code point; surrogate pairs allowed)"
+    },
+    "Cell": {
+      "type": "object",
+      "properties": {
+        "char": {
+          "$ref": "#/$defs/Char"
+        },
+        "color": {
+          "$ref": "#/$defs/Color"
+        },
+        "bgColor": {
+          "$ref": "#/$defs/BgColor"
+        }
+      },
+      "required": [
+        "char"
+      ],
+      "additionalProperties": false
+    },
+    "CellAt": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "integer"
+        },
+        "y": {
+          "type": "integer"
+        },
+        "char": {
+          "$ref": "#/$defs/Char"
+        },
+        "color": {
+          "$ref": "#/$defs/Color"
+        },
+        "bgColor": {
+          "$ref": "#/$defs/BgColor"
+        },
+        "clear": {
+          "type": "boolean",
+          "description": "Erase the cell instead of writing it"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "additionalProperties": false
+    },
+    "Point": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "additionalProperties": false
+    },
+    "IntPoint": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "integer"
+        },
+        "y": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "additionalProperties": false
+    },
+    "Region": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "integer"
+        },
+        "y": {
+          "type": "integer"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "additionalProperties": false
+    },
+    "Style": {
+      "type": "object",
+      "properties": {
+        "char": {
+          "$ref": "#/$defs/Char"
+        },
+        "color": {
+          "$ref": "#/$defs/Color"
+        },
+        "bgColor": {
+          "$ref": "#/$defs/BgColor"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Drawing style; omitted fields use the current tool state"
+    },
+    "Target": {
+      "type": "object",
+      "properties": {
+        "layerId": {
+          "type": "string",
+          "description": "Defaults to the active layer"
+        },
+        "contentFrameId": {
+          "type": "string",
+          "description": "Explicit content frame; overrides frame"
+        },
+        "frame": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Timeline frame used to resolve the content frame; defaults to the playhead"
+        },
+        "createIfMissing": {
+          "type": "boolean",
+          "description": "Create a 1-frame content frame at `frame` when none covers it (default false → NOT_FOUND)"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Explicit edit target. Edits apply in layer-local cell coordinates."
+    },
+    "Easing": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "linear",
+            "hold",
+            "ease-in",
+            "ease-out",
+            "ease-in-out",
+            "ease-out-back",
+            "ease-in-back",
+            "bounce"
+          ],
+          "description": "Easing preset"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "linear",
+                "hold",
+                "ease-in",
+                "ease-out",
+                "ease-in-out",
+                "ease-out-back",
+                "ease-in-back",
+                "bounce",
+                "custom"
+              ]
+            },
+            "x1": {
+              "type": "number"
+            },
+            "y1": {
+              "type": "number"
+            },
+            "x2": {
+              "type": "number"
+            },
+            "y2": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false,
+          "description": "Easing curve object"
+        }
+      ]
+    },
+    "Value": {
+      "description": "Keyframe/setting value: number, boolean, string or mapping object"
+    },
+    "KeyframeInput": {
+      "type": "object",
+      "properties": {
+        "frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "value": {
+          "$ref": "#/$defs/Value"
+        },
+        "easing": {
+          "$ref": "#/$defs/Easing"
+        }
+      },
+      "required": [
+        "frame",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "Owner": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "layerId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "layerId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "groupId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "groupId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "global": {
+              "const": true
+            }
+          },
+          "required": [
+            "global"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Anchor": {
+      "type": "string",
+      "enum": [
+        "top-left",
+        "top-center",
+        "top-right",
+        "middle-left",
+        "middle-center",
+        "middle-right",
+        "bottom-left",
+        "bottom-center",
+        "bottom-right"
+      ]
+    },
+    "WorkArea": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "start": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "end": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "enabled": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "start",
+            "end"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "Artifact": {
+      "type": "object",
+      "properties": {
+        "filename": {
+          "type": "string"
+        },
+        "mimeType": {
+          "type": "string"
+        },
+        "encoding": {
+          "type": "string",
+          "enum": [
+            "base64",
+            "utf8"
+          ]
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "data": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "filename",
+        "mimeType",
+        "encoding",
+        "bytes",
+        "data"
+      ],
+      "additionalProperties": false,
+      "description": "File produced in the browser without triggering a download"
+    },
+    "Session": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Native .asciimtn session (SessionDataV2) exactly as the app saves it"
+    },
+    "Mutation": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "object",
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "description": "Created/affected ids keyed by kind (e.g. layerId, blockId, keyframeIds). Mirrors the flat *Id/*Ids fields."
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "documentId": {
+          "type": "string"
+        },
+        "noChange": {
+          "type": "boolean",
+          "description": "True when the operation left the document unchanged (no revision bump)"
+        }
+      },
+      "required": [
+        "ids",
+        "revision"
+      ],
+      "additionalProperties": true,
+      "description": "Mutation result: ids map, the new document revision, plus operation-specific fields"
+    },
+    "Bounds": {
+      "type": "object",
+      "properties": {
+        "minX": {
+          "type": "integer"
+        },
+        "minY": {
+          "type": "integer"
+        },
+        "maxX": {
+          "type": "integer"
+        },
+        "maxY": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minX",
+        "minY",
+        "maxX",
+        "maxY"
+      ],
+      "additionalProperties": false,
+      "description": "Inclusive cell bounds"
+    },
+    "CellOut": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "integer"
+        },
+        "y": {
+          "type": "integer"
+        },
+        "char": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
+        },
+        "bgColor": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "char",
+        "color",
+        "bgColor"
+      ],
+      "additionalProperties": false
+    },
+    "PropertyDef": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "valueType": {
+          "type": "string"
+        },
+        "defaultValue": {},
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "step": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "interpolation": {
+          "type": "string"
+        },
+        "control": {
+          "type": "string"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "value": {},
+              "label": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "value"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "animatable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path",
+        "valueType"
+      ],
+      "additionalProperties": true
+    },
+    "CatalogEntry": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "properties": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PropertyDef"
+          }
+        },
+        "defaultSettings": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "initialSettings": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "type",
+        "name",
+        "properties",
+        "defaultSettings"
+      ],
+      "additionalProperties": false
+    },
+    "DocumentSummary": {
+      "type": "object",
+      "properties": {
+        "documentId": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "cloudProjectId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "canvas": {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "integer"
+            },
+            "height": {
+              "type": "integer"
+            },
+            "backgroundColor": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "width",
+            "height",
+            "backgroundColor"
+          ],
+          "additionalProperties": false
+        },
+        "typography": {
+          "type": "object",
+          "properties": {
+            "fontId": {
+              "type": "string"
+            },
+            "fontSize": {
+              "type": "number"
+            },
+            "characterSpacing": {
+              "type": "number"
+            },
+            "lineSpacing": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "fontId",
+            "fontSize",
+            "characterSpacing",
+            "lineSpacing"
+          ],
+          "additionalProperties": false
+        },
+        "timeline": {
+          "type": "object",
+          "properties": {
+            "frameRate": {
+              "type": "integer"
+            },
+            "durationFrames": {
+              "type": "integer"
+            },
+            "currentFrame": {
+              "type": "integer"
+            },
+            "workArea": {
+              "$ref": "#/$defs/WorkArea"
+            },
+            "isPlaying": {
+              "type": "boolean"
+            },
+            "looping": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "frameRate",
+            "durationFrames",
+            "currentFrame",
+            "workArea"
+          ],
+          "additionalProperties": false
+        },
+        "activeLayerId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "layers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "content",
+                  "generator"
+                ]
+              },
+              "index": {
+                "type": "integer",
+                "description": "0 = bottom"
+              },
+              "visible": {
+                "type": "boolean"
+              },
+              "locked": {
+                "type": "boolean"
+              },
+              "solo": {
+                "type": "boolean"
+              },
+              "opacity": {
+                "type": "number"
+              },
+              "blendMode": {
+                "type": "string"
+              },
+              "parentGroupId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "generatorType": {
+                "type": "string"
+              },
+              "contentFrames": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "startFrame": {
+                      "type": "integer"
+                    },
+                    "durationFrames": {
+                      "type": "integer"
+                    },
+                    "cellCount": {
+                      "type": "integer"
+                    },
+                    "hidden": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "startFrame",
+                    "durationFrames",
+                    "cellCount"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "animatedProperties": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "effectBlockIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "kind",
+              "index",
+              "visible",
+              "locked",
+              "parentGroupId",
+              "contentFrames",
+              "effectBlockIds"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "childLayerIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "visible": {
+                "type": "boolean"
+              },
+              "locked": {
+                "type": "boolean"
+              },
+              "collapsed": {
+                "type": "boolean"
+              },
+              "effectBlockIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "childLayerIds",
+              "effectBlockIds"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "blockId": {
+                "type": "string"
+              },
+              "effectType": {
+                "type": "string"
+              },
+              "owner": {
+                "$ref": "#/$defs/Owner"
+              },
+              "startFrame": {
+                "type": "integer"
+              },
+              "durationFrames": {
+                "type": "integer"
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "animatedProperties": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "blockId",
+              "effectType",
+              "owner",
+              "startFrame",
+              "durationFrames",
+              "enabled"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "shaders": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "blockId": {
+                "type": "string"
+              },
+              "shaderType": {
+                "type": "string"
+              },
+              "index": {
+                "type": "integer"
+              },
+              "startFrame": {
+                "type": "integer"
+              },
+              "durationFrames": {
+                "type": "integer"
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "animatedProperties": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "blockId",
+              "shaderType",
+              "index",
+              "startFrame",
+              "durationFrames",
+              "enabled"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "selection": {
+          "type": "object",
+          "properties": {
+            "active": {
+              "type": "boolean"
+            },
+            "count": {
+              "type": "integer"
+            },
+            "bounds": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Bounds"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "active",
+            "count",
+            "bounds"
+          ],
+          "additionalProperties": false
+        },
+        "history": {
+          "type": "object",
+          "properties": {
+            "canUndo": {
+              "type": "boolean"
+            },
+            "canRedo": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "canUndo",
+            "canRedo"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "documentId",
+        "revision",
+        "name",
+        "canvas",
+        "typography",
+        "timeline",
+        "activeLayerId",
+        "layers",
+        "groups",
+        "effects",
+        "shaders",
+        "selection",
+        "history"
+      ],
+      "additionalProperties": false
+    },
+    "ReadCellsResult": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": [
+            "composite",
+            "layer"
+          ]
+        },
+        "frame": {
+          "type": "integer"
+        },
+        "layerId": {
+          "type": "string"
+        },
+        "contentFrameId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "region": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "integer"
+            },
+            "y": {
+              "type": "integer"
+            },
+            "width": {
+              "type": "integer"
+            },
+            "height": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "x",
+            "y",
+            "width",
+            "height"
+          ],
+          "additionalProperties": false
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "text",
+            "cells"
+          ]
+        },
+        "text": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "One string per row of region (format \"text\")"
+        },
+        "cells": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CellOut"
+          },
+          "description": "Non-empty cells in absolute coordinates (format \"cells\")"
+        },
+        "cellCount": {
+          "type": "integer",
+          "description": "Non-empty cells inside region"
+        }
+      },
+      "required": [
+        "scope",
+        "frame",
+        "region",
+        "format",
+        "cellCount"
+      ],
+      "additionalProperties": false
+    },
+    "SelectionResult": {
+      "type": "object",
+      "properties": {
+        "active": {
+          "type": "boolean"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "bounds": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Bounds"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cells": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/IntPoint"
+          },
+          "description": "Selected cells (omitted when truncated)"
+        },
+        "truncated": {
+          "type": "boolean",
+          "description": "True when count exceeds the inline cell limit (2000)"
+        },
+        "moving": {
+          "type": "boolean"
+        },
+        "clipboard": {
+          "type": "object",
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "cellCount": {
+              "type": "integer"
+            },
+            "bounds": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Bounds"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "available",
+            "cellCount",
+            "bounds"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "active",
+        "count",
+        "bounds",
+        "truncated",
+        "moving",
+        "clipboard"
+      ],
+      "additionalProperties": false
+    },
+    "HistoryResult": {
+      "type": "object",
+      "properties": {
+        "position": {
+          "type": "integer",
+          "description": "Index of the last applied entry (-1 when none)"
+        },
+        "length": {
+          "type": "integer"
+        },
+        "canUndo": {
+          "type": "boolean"
+        },
+        "canRedo": {
+          "type": "boolean"
+        },
+        "undoDescription": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "redoDescription": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "index": {
+                "type": "integer"
+              },
+              "type": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "timestamp": {
+                "type": "number"
+              },
+              "applied": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "index",
+              "type",
+              "description",
+              "timestamp",
+              "applied"
+            ],
+            "additionalProperties": false
+          },
+          "description": "Most recent entries (max 50), oldest first"
+        }
+      },
+      "required": [
+        "position",
+        "length",
+        "canUndo",
+        "canRedo",
+        "undoDescription",
+        "redoDescription",
+        "entries"
+      ],
+      "additionalProperties": false
+    },
+    "CatalogResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "family": {
+              "const": "effects"
+            },
+            "entries": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/CatalogEntry"
+              }
+            }
+          },
+          "required": [
+            "family",
+            "entries"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "family": {
+              "const": "shaders"
+            },
+            "entries": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/CatalogEntry"
+              }
+            }
+          },
+          "required": [
+            "family",
+            "entries"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "family": {
+              "const": "generators"
+            },
+            "entries": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/CatalogEntry"
+              }
+            }
+          },
+          "required": [
+            "family",
+            "entries"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "family": {
+              "const": "palettes"
+            },
+            "activeColorPaletteId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "activeCharacterPaletteId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "colorPalettes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "colors": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "isPreset": {
+                    "type": "boolean"
+                  },
+                  "isCustom": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "colors",
+                  "isPreset",
+                  "isCustom"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "characterPalettes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "characters": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "category": {
+                    "type": "string"
+                  },
+                  "isPreset": {
+                    "type": "boolean"
+                  },
+                  "isCustom": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "characters",
+                  "category",
+                  "isPreset",
+                  "isCustom"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "family",
+            "activeColorPaletteId",
+            "activeCharacterPaletteId",
+            "colorPalettes",
+            "characterPalettes"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "family": {
+              "const": "export_formats"
+            },
+            "formats": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "png",
+                      "jpg",
+                      "svg",
+                      "webm",
+                      "mp4",
+                      "image_sequence",
+                      "session",
+                      "text",
+                      "json",
+                      "ansi",
+                      "html",
+                      "react",
+                      "ink",
+                      "opentui",
+                      "bubbletea"
+                    ]
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "mimeType": {
+                    "type": "string"
+                  },
+                  "extension": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "image",
+                      "video",
+                      "text",
+                      "code",
+                      "session"
+                    ]
+                  },
+                  "binary": {
+                    "type": "boolean"
+                  },
+                  "animated": {
+                    "type": "boolean"
+                  },
+                  "browserOnly": {
+                    "type": "boolean"
+                  },
+                  "options": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Format-specific options with defaults"
+                  }
+                },
+                "required": [
+                  "format",
+                  "label",
+                  "mimeType",
+                  "extension",
+                  "category",
+                  "binary",
+                  "animated",
+                  "browserOnly",
+                  "options"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "family",
+            "formats"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "family": {
+              "const": "tools"
+            },
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "activeTool": {
+              "type": "string"
+            },
+            "current": {
+              "type": "object",
+              "properties": {
+                "character": {
+                  "type": "string"
+                },
+                "foregroundColor": {
+                  "type": "string"
+                },
+                "backgroundColor": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "character",
+                "foregroundColor",
+                "backgroundColor"
+              ],
+              "additionalProperties": false
+            },
+            "brushShapes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "shapeKinds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "boxStyles": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "gradientTypes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "importSettings": {
+              "type": "object",
+              "properties": {
+                "defaults": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "description": "Supported import settings with defaults; palette defaults reflect the active palettes"
+                },
+                "enums": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "Allowed values for enumerated import settings"
+                },
+                "notes": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "description": "Import setting semantics and limitations"
+                }
+              },
+              "required": [
+                "defaults",
+                "enums",
+                "notes"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "family",
+            "tools",
+            "activeTool",
+            "current",
+            "brushShapes",
+            "shapeKinds",
+            "boxStyles",
+            "gradientTypes",
+            "importSettings"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "family": {
+              "const": "fonts"
+            },
+            "canvasFonts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "figletFonts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "type": "string"
+                  },
+                  "fonts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "category",
+                  "fonts"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "family",
+            "canvasFonts",
+            "figletFonts"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "GeneratorState": {
+      "type": "object",
+      "properties": {
+        "layerId": {
+          "type": "string"
+        },
+        "currentFrameIndex": {
+          "type": "integer"
+        },
+        "generator": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "generatorType": {
+              "type": "string"
+            },
+            "startFrame": {
+              "type": "integer"
+            },
+            "durationFrames": {
+              "type": "integer"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "settings": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "propertyTracks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "propertyPath": {
+                    "type": "string"
+                  },
+                  "loopKeyframes": {
+                    "type": "boolean"
+                  },
+                  "keyframes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "frame": {
+                          "type": "integer"
+                        },
+                        "value": {},
+                        "easing": {}
+                      },
+                      "required": [
+                        "id",
+                        "frame",
+                        "value"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "propertyPath",
+                  "keyframes"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "id",
+            "generatorType",
+            "startFrame",
+            "durationFrames",
+            "enabled",
+            "settings",
+            "propertyTracks"
+          ],
+          "additionalProperties": false
+        },
+        "resolvedSettings": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Settings after keyframe interpolation at the requested frame"
+        }
+      },
+      "required": [
+        "layerId",
+        "currentFrameIndex",
+        "generator",
+        "resolvedSettings"
+      ],
+      "additionalProperties": false
+    },
+    "GradientProperty": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "stops": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "position": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "position",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 32
+        },
+        "interpolation": {
+          "type": "string",
+          "enum": [
+            "linear",
+            "constant",
+            "bayer2x2",
+            "bayer4x4",
+            "noise"
+          ],
+          "default": "linear"
+        },
+        "ditherStrength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "quantizeSteps": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
+            },
+            {
+              "const": "infinite"
+            }
+          ]
+        }
+      },
+      "required": [
+        "stops"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "operations": [
+    {
+      "destructive": false,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "type": "object",
+        "properties": {
+          "capabilities": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "capabilities"
+        ],
+        "additionalProperties": false
+      },
+      "name": "get_capabilities",
+      "domain": "meta",
+      "kind": "read",
+      "description": "Contract/version info, supported operations, runtime catalogs summary, auth and entitlement state.",
+      "input": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "type": "object",
+        "properties": {
+          "document": {
+            "$ref": "#/$defs/Session"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "document",
+          "documentId",
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "name": "get_document",
+      "domain": "document",
+      "kind": "read",
+      "description": "Full native project session (.asciimtn v2) including layers, groups, effects, shaders, generators, typography, palettes and tool state.",
+      "input": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/DocumentSummary"
+      },
+      "name": "get_document_summary",
+      "domain": "document",
+      "kind": "read",
+      "description": "Compact structure: canvas, timeline, layers/groups with content-frame ranges, effects, shaders, selection and history flags. No cell data.",
+      "input": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/ReadCellsResult"
+      },
+      "name": "read_cells",
+      "domain": "document",
+      "kind": "read",
+      "description": "Read cells at a timeline frame. scope \"composite\" = app compositor output (transforms, effects, generators; shaders excluded). scope \"layer\" = raw content frame data in layer-local coordinates.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": [
+              "composite",
+              "layer"
+            ],
+            "default": "composite"
+          },
+          "frame": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Defaults to the playhead"
+          },
+          "layerId": {
+            "type": "string"
+          },
+          "contentFrameId": {
+            "type": "string"
+          },
+          "region": {
+            "$ref": "#/$defs/Region"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "text",
+              "cells"
+            ],
+            "default": "text"
+          },
+          "includeEffects": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/CatalogResult"
+      },
+      "name": "get_catalog",
+      "domain": "meta",
+      "kind": "read",
+      "description": "Runtime catalogs: effect/shader/generator types with property schemas, palettes, export formats and settings, FIGlet fonts, box styles, brush shapes, autofill palettes.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "family": {
+            "type": "string",
+            "enum": [
+              "effects",
+              "shaders",
+              "generators",
+              "palettes",
+              "export_formats",
+              "tools",
+              "fonts"
+            ]
+          }
+        },
+        "required": [
+          "family"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/SelectionResult"
+      },
+      "name": "get_selection",
+      "domain": "selection",
+      "kind": "read",
+      "description": "Current selection mask (cells, bounds) and clipboard availability.",
+      "input": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/HistoryResult"
+      },
+      "name": "get_history",
+      "domain": "history",
+      "kind": "read",
+      "description": "Undo/redo availability and recent history descriptions.",
+      "input": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "new_project",
+      "domain": "project",
+      "kind": "mutation",
+      "description": "Reset to a new blank project (same as File → New): one layer, cleared history, detached from cloud.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "width": {
+            "type": "integer",
+            "minimum": 4,
+            "maximum": 200
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 4,
+            "maximum": 100
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "backgroundColor": {
+            "$ref": "#/$defs/Color"
+          },
+          "frameRate": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60
+          },
+          "durationFrames": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "load_project",
+      "domain": "project",
+      "kind": "mutation",
+      "description": "Replace the open project with a native session (v1 or v2) using the app importer.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "session": {
+            "$ref": "#/$defs/Session"
+          }
+        },
+        "required": [
+          "session"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "set_project_metadata",
+      "domain": "project",
+      "kind": "mutation",
+      "description": "Set project name and/or description.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "additionalProperties": false,
+        "minProperties": 1
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "resize_canvas",
+      "domain": "project",
+      "kind": "mutation",
+      "description": "Resize canvas across all layers/content frames, keeping content pinned to anchor (default top-left).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "width": {
+            "type": "integer",
+            "minimum": 4,
+            "maximum": 200
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 4,
+            "maximum": 100
+          },
+          "anchor": {
+            "$ref": "#/$defs/Anchor"
+          }
+        },
+        "required": [
+          "width",
+          "height"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "crop_canvas",
+      "domain": "project",
+      "kind": "mutation",
+      "description": "Crop the canvas to a region (or the current selection bounds) across all layers.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "region": {
+            "$ref": "#/$defs/Region"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "set_canvas_background",
+      "domain": "project",
+      "kind": "mutation",
+      "description": "Set canvas background color (\"transparent\" allowed).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "color": {
+            "$ref": "#/$defs/BgColor"
+          }
+        },
+        "required": [
+          "color"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "set_typography",
+      "domain": "project",
+      "kind": "mutation",
+      "description": "Set font, font size, character spacing and line spacing used for rendering/export.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "fontId": {
+            "type": "string"
+          },
+          "fontSize": {
+            "type": "number",
+            "minimum": 4,
+            "maximum": 96
+          },
+          "characterSpacing": {
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 3
+          },
+          "lineSpacing": {
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 3
+          }
+        },
+        "additionalProperties": false,
+        "minProperties": 1
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "set_tool_state",
+      "domain": "project",
+      "kind": "view",
+      "description": "Set current drawing character/colors and active tool (used as defaults by drawing operations).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "character": {
+            "$ref": "#/$defs/Char"
+          },
+          "foregroundColor": {
+            "$ref": "#/$defs/Color"
+          },
+          "backgroundColor": {
+            "$ref": "#/$defs/BgColor"
+          },
+          "tool": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "minProperties": 1
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "set_cells",
+      "domain": "cells",
+      "kind": "mutation",
+      "description": "Write or erase cells in one content frame.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "cells": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/CellAt"
+            },
+            "minItems": 1,
+            "maxItems": 20000
+          }
+        },
+        "required": [
+          "cells"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "clear_cells",
+      "domain": "cells",
+      "kind": "mutation",
+      "description": "Erase a region, the current selection, or the whole content frame.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "region": {
+            "$ref": "#/$defs/Region"
+          },
+          "useSelection": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "fill_region",
+      "domain": "cells",
+      "kind": "mutation",
+      "description": "Fill a rectangular region or the current selection with one cell style.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "region": {
+            "$ref": "#/$defs/Region"
+          },
+          "useSelection": {
+            "type": "boolean"
+          },
+          "cell": {
+            "$ref": "#/$defs/Style"
+          }
+        },
+        "required": [
+          "cell"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "import_text",
+      "domain": "cells",
+      "kind": "mutation",
+      "description": "Place multi-line plain text; spaces become blank cells unless keepSpaces.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 50000
+          },
+          "x": {
+            "type": "integer"
+          },
+          "y": {
+            "type": "integer"
+          },
+          "style": {
+            "$ref": "#/$defs/Style"
+          },
+          "keepSpaces": {
+            "type": "boolean"
+          },
+          "clearFirst": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "shift_content",
+      "domain": "cells",
+      "kind": "mutation",
+      "description": "Shift all cells of a content frame by dx/dy, optionally wrapping around the canvas.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "dx": {
+            "type": "integer"
+          },
+          "dy": {
+            "type": "integer"
+          },
+          "wrap": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "dx",
+          "dy"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "flip_content",
+      "domain": "cells",
+      "kind": "mutation",
+      "description": "Flip a region, the selection, or the whole canvas horizontally/vertically.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "axis": {
+            "type": "string",
+            "enum": [
+              "horizontal",
+              "vertical"
+            ]
+          },
+          "region": {
+            "$ref": "#/$defs/Region"
+          },
+          "useSelection": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "axis"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "replace_in_cells",
+      "domain": "cells",
+      "kind": "mutation",
+      "description": "Find/replace characters and/or colors in non-empty cells of one content frame, a layer, or the whole project. match: {} matches every non-empty cell. region/useSelection restrict the edit to those cells (scope \"content_frame\" only); unmatched fields of each cell are preserved.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "content_frame",
+              "layer",
+              "project"
+            ],
+            "default": "content_frame"
+          },
+          "region": {
+            "$ref": "#/$defs/Region"
+          },
+          "useSelection": {
+            "type": "boolean",
+            "description": "Restrict to the current selection mask (no coordinates need to be transferred)"
+          },
+          "match": {
+            "type": "object",
+            "properties": {
+              "char": {
+                "$ref": "#/$defs/Char"
+              },
+              "color": {
+                "$ref": "#/$defs/Color"
+              },
+              "bgColor": {
+                "$ref": "#/$defs/BgColor"
+              }
+            },
+            "additionalProperties": false,
+            "description": "{} = all non-empty cells"
+          },
+          "replace": {
+            "type": "object",
+            "properties": {
+              "char": {
+                "$ref": "#/$defs/Char"
+              },
+              "color": {
+                "$ref": "#/$defs/Color"
+              },
+              "bgColor": {
+                "$ref": "#/$defs/BgColor"
+              }
+            },
+            "additionalProperties": false,
+            "minProperties": 1
+          }
+        },
+        "required": [
+          "match",
+          "replace"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "draw_brush_stroke",
+      "domain": "drawing",
+      "kind": "mutation",
+      "description": "Pencil/eraser stroke through points with brush size and shape (aspect-ratio aware, respects selection mask).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/IntPoint"
+            },
+            "minItems": 1,
+            "maxItems": 5000
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 1
+          },
+          "shape": {
+            "type": "string",
+            "enum": [
+              "circle",
+              "square",
+              "horizontal",
+              "vertical"
+            ],
+            "default": "circle"
+          },
+          "style": {
+            "$ref": "#/$defs/Style"
+          },
+          "erase": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "points"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "draw_line",
+      "domain": "drawing",
+      "kind": "mutation",
+      "description": "Straight line between two cells (Bresenham), optional brush size.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "from": {
+            "$ref": "#/$defs/IntPoint"
+          },
+          "to": {
+            "$ref": "#/$defs/IntPoint"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "shape": {
+            "type": "string",
+            "enum": [
+              "circle",
+              "square",
+              "horizontal",
+              "vertical"
+            ]
+          },
+          "style": {
+            "$ref": "#/$defs/Style"
+          }
+        },
+        "required": [
+          "from",
+          "to"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "draw_shape",
+      "domain": "drawing",
+      "kind": "mutation",
+      "description": "Rectangle or ellipse via the vector-shape engine (filled or outline, constant/palette/autofill/lineart fill).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "shape": {
+            "type": "string",
+            "enum": [
+              "rectangle",
+              "ellipse"
+            ]
+          },
+          "region": {
+            "$ref": "#/$defs/Region"
+          },
+          "filled": {
+            "type": "boolean",
+            "default": true
+          },
+          "fillMode": {
+            "type": "string",
+            "enum": [
+              "constant",
+              "palette",
+              "autofill",
+              "lineart"
+            ],
+            "default": "constant"
+          },
+          "autofillPaletteId": {
+            "type": "string"
+          },
+          "strokeWidth": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 10
+          },
+          "style": {
+            "$ref": "#/$defs/Style"
+          }
+        },
+        "required": [
+          "shape",
+          "region"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "draw_bezier",
+      "domain": "drawing",
+      "kind": "mutation",
+      "description": "Bezier path (open stroke or closed shape) rasterized by the pen-tool engine. Coordinates are cell units (fractional allowed); handles are relative.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                },
+                "handleIn": {
+                  "$ref": "#/$defs/Point"
+                },
+                "handleOut": {
+                  "$ref": "#/$defs/Point"
+                }
+              },
+              "required": [
+                "x",
+                "y"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 2,
+            "maxItems": 200
+          },
+          "closed": {
+            "type": "boolean",
+            "default": false
+          },
+          "filled": {
+            "type": "boolean",
+            "default": true
+          },
+          "fillMode": {
+            "type": "string",
+            "enum": [
+              "constant",
+              "palette",
+              "autofill",
+              "lineart"
+            ],
+            "default": "constant"
+          },
+          "autofillPaletteId": {
+            "type": "string"
+          },
+          "strokeWidth": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 10,
+            "default": 1
+          },
+          "strokeTaperStart": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "strokeTaperEnd": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "style": {
+            "$ref": "#/$defs/Style"
+          }
+        },
+        "required": [
+          "points"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "fill_area",
+      "domain": "drawing",
+      "kind": "mutation",
+      "description": "Paint-bucket fill from a seed cell (contiguous or global, match by char/color/bgColor).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "x": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "y": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "contiguous": {
+            "type": "boolean",
+            "default": true
+          },
+          "match": {
+            "type": "object",
+            "properties": {
+              "char": {
+                "type": "boolean"
+              },
+              "color": {
+                "type": "boolean"
+              },
+              "bgColor": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          },
+          "style": {
+            "$ref": "#/$defs/Style"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "gradient_fill",
+      "domain": "drawing",
+      "kind": "mutation",
+      "description": "Gradient fill (linear/radial) of a seed fill area or region, interpolating character, text color and/or background color stops.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "linear",
+              "radial"
+            ],
+            "default": "linear"
+          },
+          "start": {
+            "$ref": "#/$defs/IntPoint"
+          },
+          "end": {
+            "$ref": "#/$defs/IntPoint"
+          },
+          "seed": {
+            "$ref": "#/$defs/IntPoint"
+          },
+          "region": {
+            "$ref": "#/$defs/Region"
+          },
+          "contiguous": {
+            "type": "boolean"
+          },
+          "match": {
+            "type": "object",
+            "properties": {
+              "char": {
+                "type": "boolean"
+              },
+              "color": {
+                "type": "boolean"
+              },
+              "bgColor": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          },
+          "character": {
+            "$ref": "#/$defs/GradientProperty"
+          },
+          "textColor": {
+            "$ref": "#/$defs/GradientProperty"
+          },
+          "backgroundColor": {
+            "$ref": "#/$defs/GradientProperty"
+          }
+        },
+        "required": [
+          "start",
+          "end"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "draw_ascii_box",
+      "domain": "drawing",
+      "kind": "mutation",
+      "description": "Box-drawing rectangle or connected line path with junction-aware characters.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "styleId": {
+            "type": "string",
+            "default": "single-line",
+            "description": "Box style id (see get_catalog tools)"
+          },
+          "region": {
+            "$ref": "#/$defs/Region"
+          },
+          "path": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/IntPoint"
+            },
+            "minItems": 2,
+            "maxItems": 2000,
+            "description": "Polyline vertices (horizontal/vertical/diagonal segments)"
+          },
+          "style": {
+            "$ref": "#/$defs/Style"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "place_text",
+      "domain": "drawing",
+      "kind": "mutation",
+      "description": "Type text at a position (text tool); newlines advance rows.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "x": {
+            "type": "integer"
+          },
+          "y": {
+            "type": "integer"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000
+          },
+          "style": {
+            "$ref": "#/$defs/Style"
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "place_figlet_text",
+      "domain": "drawing",
+      "kind": "mutation",
+      "description": "Render FIGlet ASCII-type text with a font/layout and stamp it at a position.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "x": {
+            "type": "integer"
+          },
+          "y": {
+            "type": "integer"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "font": {
+            "type": "string",
+            "default": "Standard"
+          },
+          "horizontalLayout": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "narrow",
+              "squeezed",
+              "fitted",
+              "wide"
+            ]
+          },
+          "verticalLayout": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "narrow",
+              "squeezed",
+              "fitted",
+              "wide"
+            ]
+          },
+          "transparentWhitespace": {
+            "type": "boolean",
+            "default": true
+          },
+          "style": {
+            "$ref": "#/$defs/Style"
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "add_layer",
+      "domain": "layers",
+      "kind": "mutation",
+      "description": "Add a content layer (with an empty content frame spanning the timeline).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "aboveLayerId": {
+            "type": "string"
+          },
+          "empty": {
+            "type": "boolean",
+            "description": "Create without a content frame"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "remove_layer",
+      "domain": "layers",
+      "kind": "mutation",
+      "description": "Delete a layer.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "layerId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "duplicate_layer",
+      "domain": "layers",
+      "kind": "mutation",
+      "description": "Duplicate a layer with all content, keyframes and effects.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "layerId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "reorder_layer",
+      "domain": "layers",
+      "kind": "mutation",
+      "description": "Move a layer to an index (0 = bottom of stack).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "toIndex": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "layerId",
+          "toIndex"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "update_layer",
+      "domain": "layers",
+      "kind": "mutation",
+      "description": "Update layer name, visibility, solo, lock, opacity, keyframe sync or static transform properties.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "solo": {
+            "type": "boolean"
+          },
+          "locked": {
+            "type": "boolean"
+          },
+          "opacity": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "syncKeyframesToFrames": {
+            "type": "boolean"
+          },
+          "staticProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "Static transform values keyed by property path"
+          }
+        },
+        "required": [
+          "layerId"
+        ],
+        "additionalProperties": false,
+        "minProperties": 2
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "set_active_layer",
+      "domain": "layers",
+      "kind": "view",
+      "description": "Select the active (editable) layer.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "layerId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "merge_layers",
+      "domain": "layers",
+      "kind": "mutation",
+      "description": "Merge a layer down, or merge all visible layers.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "down",
+              "visible"
+            ]
+          },
+          "layerId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "flatten_layer",
+      "domain": "layers",
+      "kind": "mutation",
+      "description": "Bake transforms/effects of a layer into its content frames.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "layerId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "create_group",
+      "domain": "layers",
+      "kind": "mutation",
+      "description": "Group layers.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "layerIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 2,
+            "description": "Two or more distinct layers not already in a group (the app has no empty groups)"
+          }
+        },
+        "required": [
+          "layerIds"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "ungroup",
+      "domain": "layers",
+      "kind": "mutation",
+      "description": "Dissolve a group, keeping its layers.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "groupId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "update_group",
+      "domain": "layers",
+      "kind": "mutation",
+      "description": "Update group name, visibility, solo, lock, collapsed or static transform properties.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "solo": {
+            "type": "boolean"
+          },
+          "locked": {
+            "type": "boolean"
+          },
+          "collapsed": {
+            "type": "boolean"
+          },
+          "staticProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "groupId"
+        ],
+        "additionalProperties": false,
+        "minProperties": 2
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "add_content_frame",
+      "domain": "timeline",
+      "kind": "mutation",
+      "description": "Add a content frame to a layer at an explicit time range (must not overlap).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "startFrame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "durationFrames": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "name": {
+            "type": "string"
+          },
+          "cells": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/CellAt"
+            },
+            "maxItems": 20000
+          },
+          "copyFromContentFrameId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "layerId",
+          "startFrame",
+          "durationFrames"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "remove_content_frame",
+      "domain": "timeline",
+      "kind": "mutation",
+      "description": "Delete a content frame.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contentFrameId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "layerId",
+          "contentFrameId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "update_content_frame",
+      "domain": "timeline",
+      "kind": "mutation",
+      "description": "Retime, rename, hide or label a content frame.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contentFrameId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "startFrame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "durationFrames": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "name": {
+            "type": "string"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "labelColor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "layerId",
+          "contentFrameId"
+        ],
+        "additionalProperties": false,
+        "minProperties": 3
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "duplicate_content_frame",
+      "domain": "timeline",
+      "kind": "mutation",
+      "description": "Duplicate a content frame immediately after itself (shifting later frames).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contentFrameId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "layerId",
+          "contentFrameId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "split_content_frame",
+      "domain": "timeline",
+      "kind": "mutation",
+      "description": "Split a content frame at an absolute frame.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contentFrameId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "atFrame": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "layerId",
+          "contentFrameId",
+          "atFrame"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "set_timeline",
+      "domain": "timeline",
+      "kind": "mutation",
+      "description": "Set frame rate, duration, looping and work area.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "frameRate": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60
+          },
+          "maintainDuration": {
+            "type": "boolean"
+          },
+          "durationFrames": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "looping": {
+            "type": "boolean"
+          },
+          "workArea": {
+            "$ref": "#/$defs/WorkArea"
+          }
+        },
+        "additionalProperties": false,
+        "minProperties": 1
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "trim_to_work_area",
+      "domain": "timeline",
+      "kind": "mutation",
+      "description": "Trim the timeline to the enabled work area.",
+      "input": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "remove_blank_space",
+      "domain": "timeline",
+      "kind": "mutation",
+      "description": "Close an empty gap on a layer at a frame (ripple earlier content forward).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "frame": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "layerId",
+          "frame"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "seek",
+      "domain": "playback",
+      "kind": "view",
+      "description": "Move the playhead to an absolute frame.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "frame": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "frame"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "set_playback",
+      "domain": "playback",
+      "kind": "view",
+      "description": "Start/stop preview playback in the browser.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "playing": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "playing"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "set_onion_skin",
+      "domain": "playback",
+      "kind": "view",
+      "description": "Configure onion skinning.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "previousFrames": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10
+          },
+          "nextFrames": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10
+          },
+          "allLayers": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "minProperties": 1
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "set_keyframes",
+      "domain": "keyframes",
+      "kind": "mutation",
+      "description": "Upsert transform keyframes on a layer or group property track (creates the track).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string"
+          },
+          "propertyPath": {
+            "type": "string",
+            "minLength": 1
+          },
+          "keyframes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/KeyframeInput"
+            },
+            "minItems": 1,
+            "maxItems": 500
+          },
+          "replace": {
+            "type": "boolean",
+            "description": "Replace all existing keyframes on the track"
+          },
+          "loop": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "propertyPath",
+          "keyframes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "remove_keyframes",
+      "domain": "keyframes",
+      "kind": "mutation",
+      "description": "Remove transform keyframes by frame or id, or clear the track.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string"
+          },
+          "propertyPath": {
+            "type": "string",
+            "minLength": 1
+          },
+          "frames": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "Remove keyframes at these frames"
+          },
+          "keyframeIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "clearTrack": {
+            "type": "boolean",
+            "description": "Remove the whole property track"
+          }
+        },
+        "required": [
+          "propertyPath"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "add_effect",
+      "domain": "effects",
+      "kind": "mutation",
+      "description": "Add a procedural effect block to a layer, group or global track.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "$ref": "#/$defs/Owner"
+          },
+          "effectType": {
+            "type": "string",
+            "minLength": 1
+          },
+          "startFrame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "durationFrames": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Effect settings keyed by property path (see get_catalog)"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "owner",
+          "effectType"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "update_effect",
+      "domain": "effects",
+      "kind": "mutation",
+      "description": "Update effect settings, enabled state, timing, owner or stack index.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "blockId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "startFrame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "durationFrames": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Effect settings keyed by property path (see get_catalog)"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "owner": {
+            "$ref": "#/$defs/Owner"
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "blockId"
+        ],
+        "additionalProperties": false,
+        "minProperties": 2
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "remove_effect",
+      "domain": "effects",
+      "kind": "mutation",
+      "description": "Remove an effect block.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "blockId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "blockId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "set_effect_keyframes",
+      "domain": "effects",
+      "kind": "mutation",
+      "description": "Upsert keyframes on an effect property.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "blockId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "propertyPath": {
+            "type": "string",
+            "minLength": 1
+          },
+          "keyframes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/KeyframeInput"
+            },
+            "minItems": 1,
+            "maxItems": 500
+          },
+          "replace": {
+            "type": "boolean",
+            "description": "Replace all existing keyframes on the track"
+          }
+        },
+        "required": [
+          "blockId",
+          "propertyPath",
+          "keyframes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "remove_effect_keyframes",
+      "domain": "effects",
+      "kind": "mutation",
+      "description": "Remove effect keyframes.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "blockId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "propertyPath": {
+            "type": "string",
+            "minLength": 1
+          },
+          "frames": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "Remove keyframes at these frames"
+          },
+          "keyframeIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "clearTrack": {
+            "type": "boolean",
+            "description": "Remove the whole property track"
+          }
+        },
+        "required": [
+          "blockId",
+          "propertyPath"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "bake_effect",
+      "domain": "effects",
+      "kind": "mutation",
+      "description": "Apply an effect destructively to layer content and remove the block.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "blockId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "blockId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "add_shader",
+      "domain": "shaders",
+      "kind": "mutation",
+      "description": "Add a shader (post-processing) block.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "shaderType": {
+            "type": "string",
+            "minLength": 1
+          },
+          "startFrame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "durationFrames": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Effect settings keyed by property path (see get_catalog)"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "shaderType"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "update_shader",
+      "domain": "shaders",
+      "kind": "mutation",
+      "description": "Update shader settings, enabled state, timing or chain index.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "blockId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "startFrame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "durationFrames": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Effect settings keyed by property path (see get_catalog)"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "blockId"
+        ],
+        "additionalProperties": false,
+        "minProperties": 2
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "remove_shader",
+      "domain": "shaders",
+      "kind": "mutation",
+      "description": "Remove a shader block.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "blockId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "blockId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "set_shader_keyframes",
+      "domain": "shaders",
+      "kind": "mutation",
+      "description": "Upsert keyframes on a shader property.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "blockId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "propertyPath": {
+            "type": "string",
+            "minLength": 1
+          },
+          "keyframes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/KeyframeInput"
+            },
+            "minItems": 1,
+            "maxItems": 500
+          },
+          "replace": {
+            "type": "boolean",
+            "description": "Replace all existing keyframes on the track"
+          }
+        },
+        "required": [
+          "blockId",
+          "propertyPath",
+          "keyframes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "remove_shader_keyframes",
+      "domain": "shaders",
+      "kind": "mutation",
+      "description": "Remove shader keyframes.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "blockId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "propertyPath": {
+            "type": "string",
+            "minLength": 1
+          },
+          "frames": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "Remove keyframes at these frames"
+          },
+          "keyframeIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "clearTrack": {
+            "type": "boolean",
+            "description": "Remove the whole property track"
+          }
+        },
+        "required": [
+          "blockId",
+          "propertyPath"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "get_generator_catalog",
+      "domain": "generators",
+      "kind": "read",
+      "description": "Generator types with property schemas.",
+      "input": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "add_generator_layer",
+      "domain": "generators",
+      "kind": "mutation",
+      "description": "Add a procedural generator layer, optionally with initial keyframe tracks (one undo entry). Returns layerId plus trackIds/keyframeIds in keyframes[] order.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "generatorType": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string"
+          },
+          "startFrame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "durationFrames": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "keyframes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "propertyPath": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "keyframes": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/KeyframeInput"
+                  },
+                  "minItems": 1,
+                  "maxItems": 500
+                },
+                "replace": {
+                  "type": "boolean",
+                  "description": "Replace all existing keyframes on the track"
+                },
+                "loop": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "propertyPath",
+                "keyframes"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 50
+          }
+        },
+        "required": [
+          "generatorType"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "update_generator_layer",
+      "domain": "generators",
+      "kind": "mutation",
+      "description": "Update generator settings/timing/name/enabled.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "startFrame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "durationFrames": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "shiftKeyframes": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "layerId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "set_generator_property",
+      "domain": "generators",
+      "kind": "mutation",
+      "description": "Set one generator property (keyframes it when animated or frame given).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "propertyPath": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "$ref": "#/$defs/Value"
+          },
+          "frame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "applyEffectDefaults": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "layerId",
+          "propertyPath",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "set_generator_keyframes",
+      "domain": "generators",
+      "kind": "mutation",
+      "description": "Upsert generator property keyframes.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "propertyPath": {
+            "type": "string",
+            "minLength": 1
+          },
+          "keyframes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/KeyframeInput"
+            },
+            "minItems": 1,
+            "maxItems": 500
+          },
+          "replace": {
+            "type": "boolean",
+            "description": "Replace all existing keyframes on the track"
+          },
+          "loop": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "layerId",
+          "propertyPath",
+          "keyframes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "remove_generator_keyframes",
+      "domain": "generators",
+      "kind": "mutation",
+      "description": "Remove generator keyframes.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "propertyPath": {
+            "type": "string",
+            "minLength": 1
+          },
+          "frames": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "Remove keyframes at these frames"
+          },
+          "keyframeIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "clearTrack": {
+            "type": "boolean",
+            "description": "Remove the whole property track"
+          },
+          "frame": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "layerId",
+          "propertyPath"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "reset_generator",
+      "domain": "generators",
+      "kind": "mutation",
+      "description": "Reset generator settings to defaults.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "layerId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "randomize_generator_seed",
+      "domain": "generators",
+      "kind": "mutation",
+      "description": "Randomize generator seed.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "frame": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "layerId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/GeneratorState"
+      },
+      "name": "get_generator_state",
+      "domain": "generators",
+      "kind": "read",
+      "description": "Generator source and evaluated settings at a frame.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "frame": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "layerId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "render_generator_frames",
+      "domain": "generators",
+      "kind": "read",
+      "description": "Render generator output for frames (browser renderer).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "frames": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minItems": 1,
+            "maxItems": 120
+          },
+          "includeCells": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "layerId",
+          "frames"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "bake_generator_layer",
+      "domain": "generators",
+      "kind": "mutation",
+      "description": "Bake generator output into content frames.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "layerId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "layerId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "set_selection",
+      "domain": "selection",
+      "kind": "view",
+      "description": "Select a rectangle, explicit cells, a polygon (lasso) or all cells matching a color/char (magic wand).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "rectangle",
+              "cells",
+              "polygon",
+              "match",
+              "all"
+            ]
+          },
+          "region": {
+            "$ref": "#/$defs/Region"
+          },
+          "cells": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/IntPoint"
+            },
+            "maxItems": 20000
+          },
+          "polygon": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/Point"
+            },
+            "minItems": 3,
+            "maxItems": 2000
+          },
+          "match": {
+            "type": "object",
+            "properties": {
+              "char": {
+                "$ref": "#/$defs/Char"
+              },
+              "color": {
+                "$ref": "#/$defs/Color"
+              },
+              "bgColor": {
+                "$ref": "#/$defs/BgColor"
+              }
+            },
+            "additionalProperties": false,
+            "minProperties": 1
+          },
+          "contiguousFrom": {
+            "$ref": "#/$defs/IntPoint"
+          },
+          "combine": {
+            "type": "string",
+            "enum": [
+              "replace",
+              "add",
+              "subtract"
+            ],
+            "default": "replace"
+          },
+          "target": {
+            "$ref": "#/$defs/Target"
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "clear_selection",
+      "domain": "selection",
+      "kind": "view",
+      "description": "Clear all selections.",
+      "input": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "copy_selection",
+      "domain": "selection",
+      "kind": "mutation",
+      "description": "Copy (or cut) the selected cells of a content frame to the app clipboard. Copy without cut does not create history.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "cut": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "paste_clipboard",
+      "domain": "selection",
+      "kind": "mutation",
+      "description": "Paste the app clipboard at a position (defaults to the original bounds).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "x": {
+            "type": "integer"
+          },
+          "y": {
+            "type": "integer"
+          },
+          "transparent": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "move_selection",
+      "domain": "selection",
+      "kind": "mutation",
+      "description": "Move selected cells by dx/dy (selection follows).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "dx": {
+            "type": "integer"
+          },
+          "dy": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dx",
+          "dy"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "undo",
+      "domain": "history",
+      "kind": "mutation",
+      "description": "Undo the last app history entry (same as Cmd/Ctrl+Z).",
+      "input": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "redo",
+      "domain": "history",
+      "kind": "mutation",
+      "description": "Redo (same as Cmd/Ctrl+Shift+Z).",
+      "input": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false,
+            "description": "Always empty for batches; see results[i].result.ids"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "op": {
+                  "type": "string"
+                },
+                "result": {
+                  "type": "object",
+                  "properties": {
+                    "ids": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "ids"
+                  ],
+                  "additionalProperties": true
+                }
+              },
+              "required": [
+                "op",
+                "result"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "ids",
+          "revision",
+          "results"
+        ],
+        "additionalProperties": true
+      },
+      "name": "apply_operations",
+      "domain": "batch",
+      "kind": "mutation",
+      "description": "Apply up to 100 document mutations atomically: one revision, one undo entry, full rollback on any failure. Sub-operations must be non-nested document mutations (not undo/redo/new_project/load_project/apply_operations, reads, view, or io). Later steps see earlier steps' results; failures report details.index/details.op.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "operations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "op": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "input": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "description": "Input for the sub-operation (validated against its schema)"
+                }
+              },
+              "required": [
+                "op"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 100
+          }
+        },
+        "required": [
+          "operations"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": true,
+      "requires": [],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "set_active_palette",
+      "domain": "palettes",
+      "kind": "view",
+      "description": "Activate a color or character palette.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "color",
+              "character"
+            ]
+          },
+          "paletteId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "kind",
+          "paletteId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "create_palette",
+      "domain": "palettes",
+      "kind": "mutation",
+      "description": "Create a custom color palette (colors) or character palette (characters).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "color",
+              "character"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "colors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/Color"
+            },
+            "maxItems": 256
+          },
+          "characters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/Char"
+            },
+            "maxItems": 512
+          },
+          "activate": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind",
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "update_palette",
+      "domain": "palettes",
+      "kind": "mutation",
+      "description": "Rename a custom palette or replace its colors/characters.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "color",
+              "character"
+            ]
+          },
+          "paletteId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "colors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/Color"
+            },
+            "maxItems": 256
+          },
+          "characters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/Char"
+            },
+            "maxItems": 512
+          }
+        },
+        "required": [
+          "kind",
+          "paletteId"
+        ],
+        "additionalProperties": false,
+        "minProperties": 3
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "delete_palette",
+      "domain": "palettes",
+      "kind": "mutation",
+      "description": "Delete a custom palette.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "color",
+              "character"
+            ]
+          },
+          "paletteId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "kind",
+          "paletteId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "duplicate_palette",
+      "domain": "palettes",
+      "kind": "mutation",
+      "description": "Duplicate any palette as a custom palette.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "color",
+              "character"
+            ]
+          },
+          "paletteId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "paletteId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "import_palette",
+      "domain": "palettes",
+      "kind": "mutation",
+      "description": "Import a palette from the app JSON palette format.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "color",
+              "character"
+            ]
+          },
+          "data": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 1000000
+          },
+          "activate": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind",
+          "data"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "type": "object",
+        "properties": {
+          "artifact": {
+            "$ref": "#/$defs/Artifact"
+          }
+        },
+        "required": [
+          "artifact"
+        ],
+        "additionalProperties": false
+      },
+      "name": "export_palette",
+      "domain": "palettes",
+      "kind": "io",
+      "description": "Export a palette as the app JSON palette file.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "color",
+              "character"
+            ]
+          },
+          "paletteId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "kind",
+          "paletteId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "$ref": "#/$defs/Mutation"
+      },
+      "name": "import_media",
+      "domain": "media",
+      "kind": "mutation",
+      "description": "Convert an image/video (base64) to ASCII with the app import pipeline; place as a new layer or into a target content frame. Image-only overlay merges non-empty converted cells, preserving existing artwork elsewhere.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Base64 file bytes"
+          },
+          "mimeType": {
+            "type": "string",
+            "minLength": 1
+          },
+          "filename": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "new_layer",
+              "replace",
+              "overlay"
+            ],
+            "default": "new_layer"
+          },
+          "target": {
+            "$ref": "#/$defs/Target"
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "matchFrameRate": {
+            "type": "boolean"
+          },
+          "video": {
+            "type": "object",
+            "properties": {
+              "startTime": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Seconds into the clip to start sampling (default 0)"
+              },
+              "duration": {
+                "type": "number",
+                "minimum": 0.01,
+                "description": "Seconds to sample (default: to the end)"
+              },
+              "frameRate": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 120,
+                "description": "Sampling rate in fps; also each frame's duration (default: detected source rate)"
+              },
+              "maxFrames": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000
+              }
+            },
+            "additionalProperties": false,
+            "description": "Video sampling window (video/* only). Omit to import every source frame."
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Import settings overrides; allowed keys, enums and defaults: get_catalog tools.importSettings. Unsupported keys are rejected."
+          }
+        },
+        "required": [
+          "data",
+          "mimeType"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "set_image_trace",
+      "domain": "media",
+      "kind": "view",
+      "description": "Load/clear/configure the image-trace reference overlay (not saved in the project).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "description": "Base64 image/video bytes"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "clear": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "opacity": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "renderOrder": {
+            "type": "string",
+            "enum": [
+              "behind",
+              "inFront"
+            ]
+          },
+          "frameOffset": {
+            "type": "integer"
+          },
+          "position": {
+            "$ref": "#/$defs/Point"
+          },
+          "scale": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 5
+          },
+          "fitToCanvas": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "minProperties": 1
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": false,
+      "requires": [],
+      "result": {
+        "type": "object",
+        "properties": {
+          "artifact": {
+            "$ref": "#/$defs/Artifact"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "artifact",
+          "result"
+        ],
+        "additionalProperties": false
+      },
+      "name": "export",
+      "domain": "io",
+      "kind": "io",
+      "description": "Render an export with the app exporters and return it as an artifact (no browser download). Allowed settings and defaults per format: get_catalog export_formats (unsupported keys are rejected). Animated formats accept frameRange \"all\" | {start,end} (end -1 = last); the result reports the exported frameRange and any derived componentName/packageName/modelName.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string",
+            "enum": [
+              "png",
+              "jpg",
+              "svg",
+              "webm",
+              "mp4",
+              "image_sequence",
+              "session",
+              "text",
+              "json",
+              "ansi",
+              "html",
+              "react",
+              "ink",
+              "opentui",
+              "bubbletea"
+            ]
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "filename": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "format"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": true,
+      "requires": [
+        "auth"
+      ],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "list_cloud_projects",
+      "domain": "cloud",
+      "kind": "io",
+      "description": "List cloud projects (or trash).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [
+        "auth"
+      ],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "save_cloud_project",
+      "domain": "cloud",
+      "kind": "io",
+      "description": "Save the open project to the cloud (update linked project, or create).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "saveAsNew": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [
+        "auth"
+      ],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "open_cloud_project",
+      "domain": "cloud",
+      "kind": "io",
+      "description": "Open a cloud project in the editor.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "projectId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [
+        "auth"
+      ],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "delete_cloud_project",
+      "domain": "cloud",
+      "kind": "io",
+      "description": "Move a cloud project to trash.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "projectId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [
+        "auth"
+      ],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "restore_cloud_project",
+      "domain": "cloud",
+      "kind": "io",
+      "description": "Restore a cloud project from trash.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "projectId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [
+        "auth"
+      ],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "permanently_delete_cloud_project",
+      "domain": "cloud",
+      "kind": "io",
+      "description": "Permanently delete a trashed cloud project.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "projectId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [
+        "auth"
+      ],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "update_cloud_project_metadata",
+      "domain": "cloud",
+      "kind": "io",
+      "description": "Rename or re-describe a cloud project.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "projectId"
+        ],
+        "additionalProperties": false,
+        "minProperties": 2
+      }
+    },
+    {
+      "destructive": false,
+      "idempotent": false,
+      "requires": [
+        "auth"
+      ],
+      "result": {
+        "type": "object",
+        "properties": {
+          "artifact": {
+            "$ref": "#/$defs/Artifact"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "artifact"
+        ],
+        "additionalProperties": false
+      },
+      "name": "download_cloud_project",
+      "domain": "cloud",
+      "kind": "io",
+      "description": "Download a cloud project as a .asciimtn artifact without opening it.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "projectId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [
+        "auth"
+      ],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "upload_session_to_cloud",
+      "domain": "cloud",
+      "kind": "io",
+      "description": "Upload a native session as a new cloud project.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "session": {
+            "$ref": "#/$defs/Session"
+          },
+          "filename": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "session"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [
+        "auth"
+      ],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "publish_cloud_project",
+      "domain": "cloud",
+      "kind": "io",
+      "description": "Publish a saved cloud project to the community gallery (preview rendered in browser).",
+      "input": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 30
+            },
+            "maxItems": 10
+          },
+          "allowRemixes": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "projectId",
+          "title"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "destructive": true,
+      "idempotent": false,
+      "requires": [
+        "auth"
+      ],
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "name": "remix_cloud_project",
+      "domain": "cloud",
+      "kind": "io",
+      "description": "Remix a published gallery project into your cloud projects and open it.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "projectId"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "contractHash": "e76f9c34204f3d25b99d22a97a3ad531022d75e20e0df847c6e15d674a8302de"
+}

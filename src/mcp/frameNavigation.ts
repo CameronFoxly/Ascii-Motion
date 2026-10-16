@@ -21,3 +21,23 @@ export function navigateToFrameAtomically(frameIndex: number): Promise<number> {
 
   return activeNavigator(frameIndex);
 }
+
+export type CanvasReloadListener = () => void;
+
+let reloadListener: CanvasReloadListener | null = null;
+
+/**
+ * Lets the mounted frame synchronizer adopt a canvas buffer that was installed
+ * outside its effects (snapshot restore, undo), so it never flushes the new
+ * buffer into the previously active layer or frame.
+ */
+export function registerCanvasReloadListener(listener: CanvasReloadListener): () => void {
+  reloadListener = listener;
+  return () => {
+    if (reloadListener === listener) reloadListener = null;
+  };
+}
+
+export function notifyCanvasReloaded(): void {
+  reloadListener?.();
+}

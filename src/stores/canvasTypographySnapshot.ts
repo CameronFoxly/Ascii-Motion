@@ -46,3 +46,25 @@ export const setCanvasTypographySnapshot = (next: CanvasTypographySnapshot): voi
 export const resetCanvasTypographySnapshot = (): void => {
   snapshot = createDefaultSnapshot();
 };
+
+/**
+ * Setter bridge registered by the mounted CanvasProvider so non-React callers
+ * (session import, semantic operations / MCP bridge) can change typography
+ * through the same React state the UI uses. Null when no canvas is mounted.
+ */
+export interface CanvasTypographyController {
+  setFontSize: (size: number) => void;
+  setCharacterSpacing: (spacing: number) => void;
+  setLineSpacing: (spacing: number) => void;
+  setSelectedFontId: (fontId: string) => void;
+}
+
+let typographyController: CanvasTypographyController | null = null;
+
+export const registerCanvasTypographyController = (
+  controller: CanvasTypographyController | null,
+): void => {
+  typographyController = controller;
+};
+
+export const getCanvasTypographyController = (): CanvasTypographyController | null => typographyController;

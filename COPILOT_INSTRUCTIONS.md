@@ -8,7 +8,7 @@ ASCII Motion is a React + TypeScript web application for creating and animating 
 
 **Version:** 2.1.0 (Shaders — GPU Post-Processing Effects)
 
-**MCP Server:** The companion `ascii-motion-mcp` package (separate repo) provides an MCP server for AI-assisted creation. It mirrors the app's tool/layer/keyframe API via WebSocket. When adding new tools or features, update the MCP server's tools and state model accordingly. See `ascii-motion-mcp/src/tools/` and `ascii-motion-mcp/src/state.ts`.
+**MCP Server:** The companion `ascii-motion-mcp` server (separate repo) drives this app over a loopback WebSocket. The browser is authoritative: the app owns the typed bridge contract (`src/mcp/contract/operations.ts` → generated `bridge-contract.json`), handlers (`src/mcp/operations/handlers/`) and feature coverage (`src/mcp/contract/coverage.ts`). Any user-facing feature change must update these, run `npm run mcp:contract` and `npm run test:mcp`, and open a companion MCP PR when the contract hash changes. See `docs/MCP_BRIDGE_CONTRACT.md`.
 
 ---
 
@@ -244,7 +244,7 @@ Every new tool must follow this pattern for architectural consistency:
 7. **Implement tool logic** — use existing hooks (`useDrawingTool`, `useCanvasDragAndDrop`) or create a new dedicated hook
 8. **Add tool store settings** if needed in `src/stores/toolStore.ts`
 9. **Add hotkey** in `src/constants/hotkeys.ts` (MANDATORY) + update `KeyboardShortcutsDialog.tsx`
-10. **Add MCP tool** in `ascii-motion-mcp/src/tools/` — expose the new tool's functionality for AI-assisted workflows, update state model if needed
+10. **Classify MCP coverage** — add the tool to `TOOL_COVERAGE` in `src/mcp/contract/coverage.ts` (tsc fails otherwise); add/extend bridge operations + handlers if it adds new authoring semantics; run `npm run mcp:contract` and `npm run test:mcp` (see `docs/MCP_BRIDGE_CONTRACT.md`)
 
 **Hook selection:** Simple click tools → `useDrawingTool`. Drag tools → `useCanvasDragAndDrop`. Complex multi-state tools → create dedicated hook.
 

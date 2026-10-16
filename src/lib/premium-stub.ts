@@ -55,6 +55,7 @@ export interface SessionData {
   layers?: unknown[];
   layerGroups?: unknown[];
   globalEffects?: unknown[];
+  postEffectTracks?: unknown[];
   tools?: SessionToolState;
   ui?: SessionUIState;
   typography?: TypographySettings;
@@ -287,6 +288,42 @@ export function useCloudProject() {
     getProjectForDownload: async (_projectId: string): Promise<CloudProject | null> => null,
     loadProjectsSessionData: async (_projectIds: string[], _onUpdate?: (id: string, sessionData: SessionData) => void): Promise<null> => null,
     getUserProfile: async (): Promise<UserProfile | null> => null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Community gallery (publish)
+// ---------------------------------------------------------------------------
+
+export interface PublishProjectParams {
+  projectId: string;
+  title: string;
+  description: string | null;
+  previewImageUrl: string;
+  thumbnailUrl: string;
+  tags: string[];
+  allowRemixes: boolean;
+}
+
+export function useGallery() {
+  return {
+    isPublishing: false,
+    error: null as string | null,
+    publishProject: async (_params: PublishProjectParams): Promise<string> => {
+      throw new Error('Publishing requires the premium package');
+    },
+    getProjectById: async (_projectId: string): Promise<{ allow_remixes: boolean } | null> => null,
+  };
+}
+
+/** Stand-in for premium's community/hooks/useRemix (aliased as @ascii-motion/premium/remix). */
+export function useRemix(_options: { projectId: string; allowRemixes: boolean }) {
+  return {
+    canRemix: false,
+    isRemixing: false,
+    remixProject: async (): Promise<
+      { success: true; projectId: string } | { success: false; error: 'PROJECT_LIMIT' | 'OTHER'; message: string }
+    > => ({ success: false, error: 'OTHER', message: 'Remixing requires the premium package' }),
   };
 }
 

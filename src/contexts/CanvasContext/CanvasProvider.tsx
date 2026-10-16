@@ -12,7 +12,7 @@ import { calculateCellDimensions, calculateFontMetrics, DEFAULT_SPACING } from '
 import { DEFAULT_FONT_ID, getFontStack, getFontById } from '@/constants/fonts';
 import { detectAvailableFont } from '@/utils/fontDetection';
 import { loadBundledFont, isFontLoaded } from '@/utils/fontLoader';
-import { setCanvasTypographySnapshot } from '@/stores/canvasTypographySnapshot';
+import { setCanvasTypographySnapshot, registerCanvasTypographyController } from '@/stores/canvasTypographySnapshot';
 
 export const CanvasProvider: React.FC<CanvasProviderProps> = ({
   children,
@@ -222,6 +222,17 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({
       panOffset,
     });
   }, [fontMetrics, cellSize, characterSpacing, lineSpacing, selectedFontId, actualFont, zoom, panOffset]);
+
+  // Allow non-React callers (session import, MCP bridge operations) to drive typography
+  useEffect(() => {
+    registerCanvasTypographyController({
+      setFontSize: setCellSize,
+      setCharacterSpacing,
+      setLineSpacing,
+      setSelectedFontId,
+    });
+    return () => registerCanvasTypographyController(null);
+  }, []);
 
   // PERF FIX: Memoize context value to prevent cascading re-renders.
   // Without this, every CanvasProvider re-render creates a new object reference,
