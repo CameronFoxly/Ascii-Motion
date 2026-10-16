@@ -5,9 +5,9 @@
 import { useProjectMetadataStore } from '../../../stores/projectMetadataStore';
 import { SessionImporter } from '../../../utils/sessionImporter';
 import { clearAllSelections } from '../../../hooks/useSelectionSync';
-import { getCloudBridgeController, getCloudBridgeStatus, type CloudBridgeController } from '../cloudBridge';
+import { getCloudBridgeController, getCloudBridgeStatus, type CloudBridgeController, type CloudProjectInfo } from '../cloudBridge';
 import { BridgeError, invalid } from '../errors';
-import type { OperationHandler } from '../runtime';
+import type { OperationContext, OperationHandler } from '../runtime';
 import { useToolStore } from '../../../stores/toolStore';
 
 function controllerFor(op: string): CloudBridgeController {
@@ -20,6 +20,21 @@ function sessionArtifact(name: string, session: Record<string, unknown>) {
   const data = JSON.stringify(session, null, 2);
   const filename = `${(name || 'cloud-project').replace(/[\\/:*?"<>|]+/g, '_')}.asciimtn`;
   return { filename, mimeType: 'application/json', encoding: 'utf8' as const, bytes: new TextEncoder().encode(data).length, data };
+}
+
+/** Replace the editor document with a cloud session (same steps for open and remix). */
+async function openInEditor(project: CloudProjectInfo, session: Record<string, unknown>, ctx: OperationContext): Promise<void> {
+  try {
+    await SessionImporter.importSessionData(session);
+  } catch (error) {
+    throw new BridgeError('INTERNAL', `Cloud project could not be imported: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  const meta = useProjectMetadataStore.getState();
+  meta.setCurrentProjectId(project.id);
+  if (project.name) meta.setProjectName(project.name);
+  clearAllSelections();
+  useToolStore.getState().clearHistory();
+  ctx.replaceDocument();
 }
 
 export const cloudHandlers: Record<string, OperationHandler> = {
@@ -40,20 +55,8 @@ export const cloudHandlers: Record<string, OperationHandler> = {
   },
 
   open_cloud_project: async (input, ctx) => {
-    const c = controllerFor('open_cloud_project');
-    const projectId = input.projectId as string;
-    const { project, session } = await c.fetchSession(projectId);
-    try {
-      await SessionImporter.importSessionData(session);
-    } catch (error) {
-      throw new BridgeError('INTERNAL', `Cloud project could not be imported: ${error instanceof Error ? error.message : String(error)}`);
-    }
-    const meta = useProjectMetadataStore.getState();
-    meta.setCurrentProjectId(project.id);
-    if (project.name) meta.setProjectName(project.name);
-    clearAllSelections();
-    useToolStore.getState().clearHistory();
-    ctx.replaceDocument();
+    const { project, session } = await controllerFor('open_cloud_project').fetchSession(input.projectId as string);
+    await openInEditor(project, session, ctx);
     return { project, cloudProjectId: project.id };
   },
 
@@ -78,14 +81,16 @@ export const cloudHandlers: Record<string, OperationHandler> = {
 
   update_cloud_project_metadata: async (input) => {
     const projectId = input.projectId as string;
-    const changes = { name: input.name as string | undefined, description: input.description as string | undefined };
-    await controllerFor('update_cloud_project_metadata').updateMetadata(projectId, changes);
+    const stored = await controllerFor('update_cloud_project_metadata').updateMetadata(projectId, {
+      name: input.name as string | undefined,
+      description: input.description as string | undefined,
+    });
     const meta = useProjectMetadataStore.getState();
     if (meta.currentProjectId === projectId) {
-      if (changes.name !== undefined) meta.setProjectName(changes.name);
-      if (changes.description !== undefined) meta.setProjectDescription(changes.description);
+      if (stored.name !== undefined) meta.setProjectName(stored.name);
+      if (stored.description !== undefined) meta.setProjectDescription(stored.description);
     }
-    return { projectId, ...changes };
+    return { projectId, ...stored };
   },
 
   download_cloud_project: async (input) => {
@@ -112,8 +117,9 @@ export const cloudHandlers: Record<string, OperationHandler> = {
     return { ...result, published: true };
   },
 
-  remix_cloud_project: () => {
-    controllerFor('remix_cloud_project');
-    throw new BridgeError('UNSUPPORTED', 'remix_cloud_project is not available');
+  remix_cloud_project: async (input, ctx) => {
+    const { project, session } = await controllerFor('remix_cloud_project').remix(input.projectId as string);
+    await openInEditor(project, session, ctx);
+    return { project, cloudProjectId: project.id, remixedFrom: input.projectId as string };
   },
 };

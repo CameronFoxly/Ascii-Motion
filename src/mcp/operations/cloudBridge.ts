@@ -24,11 +24,14 @@ export interface CloudBridgeController {
   remove(projectId: string): Promise<void>;
   restore(projectId: string): Promise<void>;
   permanentlyDelete(projectId: string): Promise<void>;
-  updateMetadata(projectId: string, changes: { name?: string; description?: string }): Promise<void>;
+  /** Returns the sanitized values actually stored. */
+  updateMetadata(projectId: string, changes: { name?: string; description?: string }): Promise<{ name?: string; description?: string }>;
   /** Fetch a project's stored session without importing it into the editor. */
   fetchSession(projectId: string): Promise<{ project: CloudProjectInfo; session: Record<string, unknown> }>;
   upload(session: Record<string, unknown>, filename: string): Promise<CloudProjectInfo>;
   publish(params: { projectId: string; title: string; description?: string; tags: string[]; allowRemixes: boolean }): Promise<{ projectId: string }>;
+  /** Create a remix of a published project (gallery workflow) and fetch its session. */
+  remix(projectId: string): Promise<{ project: CloudProjectInfo; session: Record<string, unknown> }>;
 }
 
 let controller: CloudBridgeController | null = null;
@@ -41,10 +44,8 @@ export function getCloudBridgeController(): CloudBridgeController | null {
   return controller;
 }
 
-/** Operations with no app API to call (see report: premium does not export it). */
-export const CLOUD_UNSUPPORTED: Record<string, string> = {
-  remix_cloud_project: 'The premium package does not export a remix API (useRemix is internal to the gallery UI)',
-};
+/** Operations with no app API to call. */
+export const CLOUD_UNSUPPORTED: Record<string, string> = {};
 
 export function getCloudBridgeStatus() {
   const c = controller;
@@ -61,11 +62,14 @@ export function getCloudBridgeStatus() {
   };
 }
 
-/** Map premium hook error text onto bridge error codes. */
+/** Map premium hook / Supabase error text onto bridge error codes. */
 export function classifyCloudError(message: string): BridgeErrorCode {
-  if (/signed in|sign in|authenticat|log in|logged in/i.test(message)) return 'AUTH_REQUIRED';
+  if (/signed in|sign in|authenticat|log in|logged in|jwt|session (has )?expired|refresh token/i.test(message)) return 'AUTH_REQUIRED';
   if (/rate limit|too many/i.test(message)) return 'LIMIT_REACHED';
-  if (/limit|tier|upgrade|subscription|pro\b/i.test(message)) return 'ENTITLEMENT_REQUIRED';
-  if (/not found|no rows/i.test(message)) return 'NOT_FOUND';
+  if (/too large|payload|request entity/i.test(message)) return 'LIMIT_REACHED';
+  if (/limit|tier|upgrade|subscription|pro\b|row-level security|permission denied|not allowed|forbidden|banned/i.test(message)) return 'ENTITLEMENT_REQUIRED';
+  if (/not found|no rows|\(or no\) rows|PGRST116/i.test(message)) return 'NOT_FOUND';
+  if (/required|invalid|cannot (be|start)|must be|characters/i.test(message)) return 'INVALID_INPUT';
+  if (/timed? ?out|timeout/i.test(message)) return 'BUSY';
   return 'INTERNAL';
 }

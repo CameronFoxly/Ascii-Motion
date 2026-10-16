@@ -27,7 +27,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@ascii-motion/core": ["./packages/core/src"],
-      "@ascii-motion/premium": ["./packages/premium/src", "./src/lib/premium-stub"]
+      "@ascii-motion/premium": ["./packages/premium/src", "./src/lib/premium-stub"],
+      "@ascii-motion/premium/remix": ["./packages/premium/src/community/hooks/useRemix", "./src/lib/premium-stub"]
     }
   },
   "include": ["src"],

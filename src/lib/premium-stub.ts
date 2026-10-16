@@ -312,6 +312,18 @@ export function useGallery() {
     publishProject: async (_params: PublishProjectParams): Promise<string> => {
       throw new Error('Publishing requires the premium package');
     },
+    getProjectById: async (_projectId: string): Promise<{ allow_remixes: boolean } | null> => null,
+  };
+}
+
+/** Stand-in for premium's community/hooks/useRemix (aliased as @ascii-motion/premium/remix). */
+export function useRemix(_options: { projectId: string; allowRemixes: boolean }) {
+  return {
+    canRemix: false,
+    isRemixing: false,
+    remixProject: async (): Promise<
+      { success: true; projectId: string } | { success: false; error: 'PROJECT_LIMIT' | 'OTHER'; message: string }
+    > => ({ success: false, error: 'OTHER', message: 'Remixing requires the premium package' }),
   };
 }
 

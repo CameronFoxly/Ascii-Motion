@@ -39,6 +39,7 @@ const OPS_TEST = 'src/__tests__/mcpOperations.test.ts';
 const CLIENT_TEST = 'src/__tests__/mcpClient.test.ts';
 const COVERAGE_TEST = 'src/__tests__/mcpCoverage.test.ts';
 const GENERATOR_TEST = 'src/__tests__/mcpGeneratorCommands.test.ts';
+const CLOUD_TEST = 'src/__tests__/mcpCloudBridge.test.ts';
 
 export const FEATURE_COVERAGE: FeatureCoverage[] = [
   {
@@ -170,15 +171,16 @@ export const FEATURE_COVERAGE: FeatureCoverage[] = [
   {
     id: 'cloud-projects', title: 'Cloud project list/save/open/delete/restore/metadata/download/upload', status: 'supported',
     operations: ['list_cloud_projects', 'save_cloud_project', 'open_cloud_project', 'delete_cloud_project', 'restore_cloud_project', 'permanently_delete_cloud_project', 'update_cloud_project_metadata', 'download_cloud_project', 'upload_session_to_cloud'],
-    appSources: ['src/components/features/CloudBridgeHost.tsx', 'src/mcp/operations/cloudBridge.ts'],
-    browserRequired: true, requires: ['auth'], tests: [COVERAGE_TEST], docs: `${OPS_DOC}#cloud`,
+    appSources: ['src/components/features/CloudBridgeHost.tsx', 'src/mcp/operations/cloudBridge.ts', 'src/mcp/operations/cloudController.ts', 'src/hooks/useCloudProjectActions.ts'],
+    browserRequired: true, requires: ['auth'], tests: [COVERAGE_TEST, CLOUD_TEST], docs: `${OPS_DOC}#cloud`,
+    reason: 'Uses the signed-in browser session and the same validation and plan-limit gates as the app dialogs; failures keep the real reason (AUTH_REQUIRED, ENTITLEMENT_REQUIRED, INVALID_INPUT, NOT_FOUND, LIMIT_REACHED). Builds without the premium package return UNSUPPORTED.',
   },
   {
-    id: 'cloud-community', title: 'Publish to gallery and remix', status: 'partial',
+    id: 'cloud-community', title: 'Publish to gallery and remix', status: 'supported',
     operations: ['publish_cloud_project', 'remix_cloud_project'],
-    appSources: ['src/components/features/CloudBridgeHost.tsx'],
-    browserRequired: true, requires: ['auth'], tests: [COVERAGE_TEST], docs: `${OPS_DOC}#cloud`,
-    reason: 'Publishing needs the premium package; remix returns UNSUPPORTED until the premium package exports a remix hook.',
+    appSources: ['src/components/features/CloudBridgeHost.tsx', 'src/mcp/operations/cloudController.ts', 'packages/premium/src/community/hooks/useRemix.ts'],
+    browserRequired: true, requires: ['auth'], tests: [COVERAGE_TEST, CLOUD_TEST], docs: `${OPS_DOC}#cloud`,
+    reason: "Publish follows PublishToGalleryDialog; remix runs the gallery's own useRemix workflow (ban check, plan limit, attributed copy) and opens the copy. Builds without the premium package return UNSUPPORTED.",
   },
   {
     id: 'account-billing-admin', title: 'Sign-in, account settings, subscriptions/billing and admin tools', status: 'excluded',

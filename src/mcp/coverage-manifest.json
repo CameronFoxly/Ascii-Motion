@@ -484,37 +484,44 @@
       ],
       "appSources": [
         "src/components/features/CloudBridgeHost.tsx",
-        "src/mcp/operations/cloudBridge.ts"
+        "src/mcp/operations/cloudBridge.ts",
+        "src/mcp/operations/cloudController.ts",
+        "src/hooks/useCloudProjectActions.ts"
       ],
       "browserRequired": true,
       "requires": [
         "auth"
       ],
       "tests": [
-        "src/__tests__/mcpCoverage.test.ts"
+        "src/__tests__/mcpCoverage.test.ts",
+        "src/__tests__/mcpCloudBridge.test.ts"
       ],
-      "docs": "docs/MCP_BRIDGE_OPERATIONS.md#cloud"
+      "docs": "docs/MCP_BRIDGE_OPERATIONS.md#cloud",
+      "reason": "Uses the signed-in browser session and the same validation and plan-limit gates as the app dialogs; failures keep the real reason (AUTH_REQUIRED, ENTITLEMENT_REQUIRED, INVALID_INPUT, NOT_FOUND, LIMIT_REACHED). Builds without the premium package return UNSUPPORTED."
     },
     {
       "id": "cloud-community",
       "title": "Publish to gallery and remix",
-      "status": "partial",
+      "status": "supported",
       "operations": [
         "publish_cloud_project",
         "remix_cloud_project"
       ],
       "appSources": [
-        "src/components/features/CloudBridgeHost.tsx"
+        "src/components/features/CloudBridgeHost.tsx",
+        "src/mcp/operations/cloudController.ts",
+        "packages/premium/src/community/hooks/useRemix.ts"
       ],
       "browserRequired": true,
       "requires": [
         "auth"
       ],
       "tests": [
-        "src/__tests__/mcpCoverage.test.ts"
+        "src/__tests__/mcpCoverage.test.ts",
+        "src/__tests__/mcpCloudBridge.test.ts"
       ],
       "docs": "docs/MCP_BRIDGE_OPERATIONS.md#cloud",
-      "reason": "Publishing needs the premium package; remix returns UNSUPPORTED until the premium package exports a remix hook."
+      "reason": "Publish follows PublishToGalleryDialog; remix runs the gallery's own useRemix workflow (ban check, plan limit, attributed copy) and opens the copy. Builds without the premium package return UNSUPPORTED."
     },
     {
       "id": "account-billing-admin",

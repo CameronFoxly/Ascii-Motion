@@ -215,5 +215,6 @@ Exclusions, partial coverage and runtime limits from `src/mcp/coverage-manifest.
 
 - **Brush, line, rectangle/ellipse, Bezier shape, paint bucket and gradient fill** (`drawing-tools`, supported): Bezier/shape rasterization uses the mounted canvas text metrics (UI_NOT_READY without a 2D canvas).
 - **All app export formats rendered by the app exporters (no download side effect)** (`export`, supported): Text/code/session formats also render in jsdom; image/video formats need a browser canvas/encoder.
-- **Publish to gallery and remix** (`cloud-community`, partial): Publishing needs the premium package; remix returns UNSUPPORTED until the premium package exports a remix hook.
+- **Cloud project list/save/open/delete/restore/metadata/download/upload** (`cloud-projects`, supported): Uses the signed-in browser session and the same validation and plan-limit gates as the app dialogs; failures keep the real reason (AUTH_REQUIRED, ENTITLEMENT_REQUIRED, INVALID_INPUT, NOT_FOUND, LIMIT_REACHED). Builds without the premium package return UNSUPPORTED.
+- **Publish to gallery and remix** (`cloud-community`, supported): Publish follows PublishToGalleryDialog; remix runs the gallery's own useRemix workflow (ban check, plan limit, attributed copy) and opens the copy. Builds without the premium package return UNSUPPORTED.
 - **Sign-in, account settings, subscriptions/billing and admin tools** (`account-billing-admin`, excluded): Out of scope by decision: credentials, payment and admin actions stay with the signed-in user in the app UI.
