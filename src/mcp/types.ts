@@ -5,6 +5,9 @@
  */
 
 import type { Cell } from '../types';
+import type { EffectPropertyDefinition } from '../types/effectBlock';
+import type { SessionGeneratorSourceV2 } from '../types/generatorLayer';
+import type { EasingCurve, EasingPreset } from '../types/timeline';
 
 /**
  * Commands sent from MCP server to browser
@@ -35,7 +38,8 @@ export type MCPCommand =
   | MCPSetPostEffectKeyframeCommand
   | MCPRemovePostEffectKeyframeCommand
   | MCPListPostEffectsCommand
-  | MCPGetPostEffectPresetsCommand;
+  | MCPGetPostEffectPresetsCommand
+  | MCPGeneratorCommand;
 
 export interface MCPSetCellCommand {
   type: 'set_cell';
@@ -190,6 +194,151 @@ export interface MCPGetPostEffectPresetsCommand {
   type: 'get_post_effect_presets';
 }
 
+// ============================================================================
+// Procedural generator layer commands
+// ============================================================================
+
+export type MCPGeneratorCommand =
+  | MCPGetGeneratorCatalogCommand
+  | MCPAddGeneratorLayerCommand
+  | MCPUpdateGeneratorLayerCommand
+  | MCPSetGeneratorPropertyCommand
+  | MCPSetGeneratorKeyframesCommand
+  | MCPRemoveGeneratorKeyframesCommand
+  | MCPResetGeneratorCommand
+  | MCPRandomizeGeneratorSeedCommand
+  | MCPGetGeneratorStateCommand
+  | MCPRenderGeneratorFramesCommand
+  | MCPBakeGeneratorLayerCommand;
+
+/** Serialized generator source (same shape as session files) */
+export type SerializedGeneratorSource = SessionGeneratorSourceV2;
+
+/** Generator setting / keyframe value */
+export type MCPGeneratorValue = number | boolean | string | Record<string, string>;
+
+/** Easing as a full curve object or a preset name such as 'ease-in' */
+export type MCPGeneratorEasingInput = EasingCurve | EasingPreset;
+
+export interface MCPGetGeneratorCatalogCommand {
+  type: 'get_generator_catalog';
+}
+
+export interface MCPAddGeneratorLayerCommand {
+  type: 'add_generator_layer';
+  generatorType: string;
+  name?: string;
+  startFrame?: number;
+  durationFrames?: number;
+  settings?: Record<string, unknown>;
+}
+
+export interface MCPUpdateGeneratorLayerCommand {
+  type: 'update_generator_layer';
+  layerId: string;
+  settings?: Record<string, unknown>;
+  startFrame?: number;
+  durationFrames?: number;
+  shiftKeyframes?: boolean;
+  enabled?: boolean;
+  name?: string;
+}
+
+export interface MCPSetGeneratorPropertyCommand {
+  type: 'set_generator_property';
+  layerId: string;
+  propertyPath: string;
+  value: MCPGeneratorValue;
+  frame?: number;
+  applyEffectDefaults?: boolean;
+}
+
+export interface MCPSetGeneratorKeyframesCommand {
+  type: 'set_generator_keyframes';
+  layerId: string;
+  propertyPath: string;
+  keyframes: Array<{ frame: number; value: MCPGeneratorValue; easing?: MCPGeneratorEasingInput }>;
+  replace?: boolean;
+  loop?: boolean;
+}
+
+export interface MCPRemoveGeneratorKeyframesCommand {
+  type: 'remove_generator_keyframes';
+  layerId: string;
+  propertyPath: string;
+  frames?: number[];
+  keyframeIds?: string[];
+  clearTrack?: boolean;
+  frame?: number;
+}
+
+export interface MCPResetGeneratorCommand {
+  type: 'reset_generator';
+  layerId: string;
+}
+
+export interface MCPRandomizeGeneratorSeedCommand {
+  type: 'randomize_generator_seed';
+  layerId: string;
+  frame?: number;
+}
+
+export interface MCPGetGeneratorStateCommand {
+  type: 'get_generator_state';
+  layerId: string;
+  frame?: number;
+}
+
+export interface MCPRenderGeneratorFramesCommand {
+  type: 'render_generator_frames';
+  layerId: string;
+  frames: number[];
+  includeCells?: boolean;
+}
+
+export interface MCPBakeGeneratorLayerCommand {
+  type: 'bake_generator_layer';
+  layerId: string;
+}
+
+export type GeneratorPropertyDescriptor = Pick<
+  EffectPropertyDefinition,
+  | 'path'
+  | 'displayName'
+  | 'category'
+  | 'valueType'
+  | 'defaultValue'
+  | 'interpolation'
+  | 'min'
+  | 'max'
+  | 'step'
+  | 'unit'
+  | 'control'
+  | 'options'
+  | 'visibleWhen'
+  | 'visibleWhenAll'
+>;
+
+export interface GeneratorCatalogEntry {
+  type: string;
+  name: string;
+  description: string;
+  mode: 'stateless' | 'simulation' | 'cells';
+  properties: GeneratorPropertyDescriptor[];
+  defaultSettings: Record<string, unknown>;
+  /** Settings a new layer starts with on the current canvas */
+  initialSettings: Record<string, unknown>;
+}
+
+export interface GeneratorRenderedFrame {
+  frame: number;
+  inRange: boolean;
+  /** One string per canvas row; empty cells are spaces */
+  text: string[];
+  cellCount: number;
+  cells?: Array<{ x: number; y: number; char: string; color: string; bgColor: string }>;
+}
+
 /**
  * State updates sent from browser to MCP server
  */
@@ -308,6 +457,17 @@ export interface MCPCommandApplied {
   cellsChanged?: number;
   frameRate?: number;
   durationMs?: number;
+  layerId?: string;
+  /** Full generator source after the change (omitted after bake) */
+  generator?: SerializedGeneratorSource;
+  /** Layer serialized like the state snapshot */
+  layer?: Record<string, unknown>;
+  trackId?: string;
+  /** Keyframe ids in input order */
+  keyframeIds?: string[];
+  generatorCatalog?: GeneratorCatalogEntry[];
+  generatorFrames?: GeneratorRenderedFrame[];
+  resolvedSettings?: Record<string, unknown>;
 }
 
 export type MCPCommandResult =
