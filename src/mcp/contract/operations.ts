@@ -287,8 +287,16 @@ export const BRIDGE_DEFS: Record<string, JsonSchema> = {
         shapeKinds: arr(str()),
         boxStyles: arr(obj({ id: str(), name: str() }, ['id', 'name'])),
         gradientTypes: arr(str()),
+        importSettings: obj(
+          {
+            defaults: record('Supported import settings with defaults; palette defaults reflect the active palettes'),
+            enums: record('Allowed values for enumerated import settings', arr(str())),
+            notes: record('Import setting semantics and limitations', str()),
+          },
+          ['defaults', 'enums', 'notes'],
+        ),
       },
-      ['family', 'tools', 'activeTool', 'current', 'brushShapes', 'shapeKinds', 'boxStyles', 'gradientTypes'],
+      ['family', 'tools', 'activeTool', 'current', 'brushShapes', 'shapeKinds', 'boxStyles', 'gradientTypes', 'importSettings'],
     ),
     obj(
       {

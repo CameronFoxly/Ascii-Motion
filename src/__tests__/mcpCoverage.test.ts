@@ -6,6 +6,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { BRIDGE_OPERATIONS, exportFormatNames } from '../mcp/contract/operations';
+import { validateSchema, type JsonSchema } from '../mcp/contract/schema';
 import { EXPORT_FORMAT_COVERAGE, FEATURE_COVERAGE, TOOL_COVERAGE } from '../mcp/contract/coverage';
 import { registerAllOperationHandlers } from '../mcp/operations/handlers';
 import { TOOL_NAMES } from '../mcp/operations/handlers/document';
@@ -21,6 +22,12 @@ import { useTimelineStore } from '../stores/timelineStore';
 import { useToolStore } from '../stores/toolStore';
 
 const root = resolve(__dirname, '../..');
+const generatedContract: {
+  $defs: Record<string, JsonSchema>;
+  operations: Array<{ name: string; input: JsonSchema; result: JsonSchema }>;
+} = JSON.parse(readFileSync(resolve(root, 'src/mcp/contract/bridge-contract.json'), 'utf8'));
+const catalogContract = generatedContract.operations.find((op) => op.name === 'get_catalog')!;
+const catalogFamilies = ['effects', 'shaders', 'generators', 'palettes', 'export_formats', 'tools', 'fonts'];
 
 async function run(op: string, input: Record<string, unknown> = {}) {
   return runOperation(op, input);
@@ -89,6 +96,28 @@ describe('coverage manifest', () => {
 });
 
 describe('runtime catalogs are fully exposed', () => {
+  it('covers every generated catalog family', () => {
+    expect(catalogFamilies.toSorted()).toEqual([...catalogContract.input.properties!.family.enum!].sort());
+  });
+
+  it.each(catalogFamilies)('validates the real %s catalog against the generated result schema', async (family) => {
+    const result = await ok('get_catalog', { family });
+    expect(result.family).toBe(family);
+    expect(validateSchema(result, catalogContract.result, generatedContract.$defs, 'result')).toEqual([]);
+  });
+
+  it('requires typed import settings metadata in the tools catalog', async () => {
+    const result = await ok('get_catalog', { family: 'tools' });
+    expect(result.importSettings).toMatchObject({
+      defaults: { characterSet: expect.any(Array), nudgeX: expect.any(Number) },
+      enums: { textColorMappingMode: expect.arrayContaining(['bayer4x4']) },
+      notes: { characterSet: expect.any(String) },
+    });
+    for (const importSettings of [undefined, {}, { defaults: {}, enums: { cropMode: 1 }, notes: {} }, { defaults: {}, enums: {}, notes: { characterSet: 1 } }]) {
+      expect(validateSchema({ ...result, importSettings }, catalogContract.result, generatedContract.$defs, 'result').length).toBeGreaterThan(0);
+    }
+  });
+
   it('lists and adds every registered effect', async () => {
     const catalog = await ok('get_catalog', { family: 'effects' });
     const types = getAllEffects().map((e) => e.type);
