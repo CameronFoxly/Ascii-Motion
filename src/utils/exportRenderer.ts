@@ -38,6 +38,7 @@ import { buildCanvasFont, formatFontStack, DEFAULT_EXPORT_FONT_STACK } from './f
 import { getFontById } from '../constants/fonts';
 import { getBundledFontFiles } from './fontLoader';
 import { buildSessionDocument } from './sessionDocument';
+import { setWebMSegmentDuration } from './webmDuration';
 
 /**
  * Optional file sink. When set (via `withExportFileSink`), exports hand their
@@ -4486,6 +4487,7 @@ ${this.generateWebGLShaderRuntime(htmlShaderBundle!)}
             encoder.close();
             muxer.finalize();
             const buffer = muxer.target.buffer;
+            setWebMSegmentDuration(buffer, (frames.length * 1000) / (settings.frameRate as number));
             resolve(new Blob([buffer], { type: 'video/webm' }));
           }
         },
