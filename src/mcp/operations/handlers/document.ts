@@ -1,4 +1,5 @@
 /** Native document reads, scoped projections, catalogs and capabilities. */
+import { importSettingsCatalog } from './media';
 import {
   BRIDGE_CONTRACT_VERSION,
   BRIDGE_PROTOCOL,
@@ -291,22 +292,35 @@ function propertyDefs(defs: PropertyLike[] | undefined): Record<string, unknown>
 type ExportFormat = (typeof import('../../contract/operations').exportFormatNames)[number];
 interface FormatInfo { label: string; mimeType: string; extension: string; category: 'image' | 'video' | 'text' | 'code' | 'session'; binary: boolean; animated: boolean; browserOnly: boolean; options: Record<string, unknown> }
 
+const ALL_FRAMES = 'all' as const;
+// Options no exporter reads are left out so the bridge rejects them: svg outlineFont, json includeEmptyCells, html loops.
+const { outlineFont: _outlineFont, ...svgDefaults } = DEFAULT_EXPORT_SETTINGS.svg;
+const { sizeMultiplier, includeGrid, quality: jpgQuality } = DEFAULT_EXPORT_SETTINGS.image;
+const { sizeMultiplier: videoSize, frameRate: videoRate, includeGrid: videoGrid, loops: videoLoops, quality: webmQuality, crf } = DEFAULT_EXPORT_SETTINGS.video;
+const { includeEmptyCells: _emptyCells, ...jsonDefaults } = DEFAULT_EXPORT_SETTINGS.json;
+const { loops: _htmlLoops, ...htmlDefaults } = DEFAULT_EXPORT_SETTINGS.html;
+
+/**
+ * Accepted options per bridge export format: only settings the app's exporters read.
+ * `frame` (single-frame formats) and `frameRange` (animated formats) are applied by the
+ * bridge before rendering; `frameRange` is `"all"` or inclusive `{ start, end }` with end -1 = last frame.
+ */
 export const EXPORT_FORMATS: Record<ExportFormat, FormatInfo> = {
-  png: { label: 'PNG image', mimeType: 'image/png', extension: 'png', category: 'image', binary: true, animated: false, browserOnly: true, options: { ...DEFAULT_EXPORT_SETTINGS.image, format: 'png', frame: 'current' } },
-  jpg: { label: 'JPEG image', mimeType: 'image/jpeg', extension: 'jpg', category: 'image', binary: true, animated: false, browserOnly: true, options: { ...DEFAULT_EXPORT_SETTINGS.image, format: 'jpg', frame: 'current' } },
-  svg: { label: 'SVG image', mimeType: 'image/svg+xml', extension: 'svg', category: 'image', binary: false, animated: false, browserOnly: true, options: { ...DEFAULT_EXPORT_SETTINGS.svg, sizeMultiplier: 1, frame: 'current' } },
-  webm: { label: 'WebM video', mimeType: 'video/webm', extension: 'webm', category: 'video', binary: true, animated: true, browserOnly: true, options: { ...DEFAULT_EXPORT_SETTINGS.video, format: 'webm' } },
-  mp4: { label: 'MP4 video (H.264)', mimeType: 'video/mp4', extension: 'mp4', category: 'video', binary: true, animated: true, browserOnly: true, options: { ...DEFAULT_EXPORT_SETTINGS.video, format: 'mp4' } },
-  image_sequence: { label: 'PNG/JPG image sequence (zip)', mimeType: 'application/zip', extension: 'zip', category: 'image', binary: true, animated: true, browserOnly: true, options: { ...DEFAULT_EXPORT_SETTINGS.image, sequenceMode: true } },
+  png: { label: 'PNG image', mimeType: 'image/png', extension: 'png', category: 'image', binary: true, animated: false, browserOnly: true, options: { sizeMultiplier, includeGrid, includePostEffects: true, frame: 'current' } },
+  jpg: { label: 'JPEG image', mimeType: 'image/jpeg', extension: 'jpg', category: 'image', binary: true, animated: false, browserOnly: true, options: { sizeMultiplier, includeGrid, quality: jpgQuality, includePostEffects: true, frame: 'current' } },
+  svg: { label: 'SVG image', mimeType: 'image/svg+xml', extension: 'svg', category: 'image', binary: false, animated: false, browserOnly: true, options: { ...svgDefaults, frame: 'current' } },
+  webm: { label: 'WebM video', mimeType: 'video/webm', extension: 'webm', category: 'video', binary: true, animated: true, browserOnly: true, options: { sizeMultiplier: videoSize, frameRate: videoRate, quality: webmQuality, includeGrid: videoGrid, loops: videoLoops, includePostEffects: true, frameRange: ALL_FRAMES } },
+  mp4: { label: 'MP4 video (H.264)', mimeType: 'video/mp4', extension: 'mp4', category: 'video', binary: true, animated: true, browserOnly: true, options: { sizeMultiplier: videoSize, frameRate: videoRate, crf, includeGrid: videoGrid, loops: videoLoops, includePostEffects: true, frameRange: ALL_FRAMES } },
+  image_sequence: { label: 'PNG/JPG/SVG image sequence (zip)', mimeType: 'application/zip', extension: 'zip', category: 'image', binary: true, animated: true, browserOnly: true, options: { format: 'png', sizeMultiplier, includeGrid, quality: jpgQuality, svgSettings: svgDefaults, includePostEffects: true, sequenceRange: ALL_FRAMES } },
   session: { label: 'Ascii Motion project (.asciimtn)', mimeType: 'application/json', extension: 'asciimtn', category: 'session', binary: false, animated: true, browserOnly: false, options: { ...DEFAULT_EXPORT_SETTINGS.session } },
-  text: { label: 'Plain text', mimeType: 'text/plain', extension: 'txt', category: 'text', binary: false, animated: true, browserOnly: false, options: { ...DEFAULT_EXPORT_SETTINGS.text } },
-  json: { label: 'JSON frames', mimeType: 'application/json', extension: 'json', category: 'text', binary: false, animated: true, browserOnly: false, options: { ...DEFAULT_EXPORT_SETTINGS.json } },
-  ansi: { label: 'ANSI terminal', mimeType: 'text/plain', extension: 'ans', category: 'text', binary: false, animated: true, browserOnly: false, options: { ...DEFAULT_EXPORT_SETTINGS.ansi } },
-  html: { label: 'Animated HTML', mimeType: 'text/html', extension: 'html', category: 'code', binary: false, animated: true, browserOnly: false, options: { ...DEFAULT_EXPORT_SETTINGS.html } },
-  react: { label: 'React component', mimeType: 'text/plain', extension: 'tsx', category: 'code', binary: false, animated: true, browserOnly: false, options: { ...DEFAULT_EXPORT_SETTINGS.react } },
-  ink: { label: 'Ink (React CLI) component', mimeType: 'text/plain', extension: 'tsx', category: 'code', binary: false, animated: true, browserOnly: false, options: { ...DEFAULT_EXPORT_SETTINGS.ink } },
-  opentui: { label: 'OpenTUI component', mimeType: 'text/plain', extension: 'tsx', category: 'code', binary: false, animated: true, browserOnly: false, options: { ...DEFAULT_EXPORT_SETTINGS.opentui } },
-  bubbletea: { label: 'Bubble Tea (Go) program', mimeType: 'text/plain', extension: 'go', category: 'code', binary: false, animated: true, browserOnly: false, options: { ...DEFAULT_EXPORT_SETTINGS.bubbletea } },
+  text: { label: 'Plain text', mimeType: 'text/plain', extension: 'txt', category: 'text', binary: false, animated: true, browserOnly: false, options: { ...DEFAULT_EXPORT_SETTINGS.text, frameRange: ALL_FRAMES } },
+  json: { label: 'JSON frames', mimeType: 'application/json', extension: 'json', category: 'text', binary: false, animated: true, browserOnly: false, options: { ...jsonDefaults, frameRange: ALL_FRAMES } },
+  ansi: { label: 'ANSI terminal', mimeType: 'text/plain', extension: 'ans', category: 'text', binary: false, animated: true, browserOnly: false, options: { ...DEFAULT_EXPORT_SETTINGS.ansi, frameRange: ALL_FRAMES } },
+  html: { label: 'Animated HTML', mimeType: 'text/html', extension: 'html', category: 'code', binary: false, animated: true, browserOnly: false, options: { ...htmlDefaults, includePostEffects: true, frameRange: ALL_FRAMES } },
+  react: { label: 'React component', mimeType: 'text/plain', extension: 'tsx', category: 'code', binary: false, animated: true, browserOnly: false, options: { ...DEFAULT_EXPORT_SETTINGS.react, includePostEffects: true, frameRange: ALL_FRAMES } },
+  ink: { label: 'Ink (React CLI) component', mimeType: 'text/plain', extension: 'tsx', category: 'code', binary: false, animated: true, browserOnly: false, options: { ...DEFAULT_EXPORT_SETTINGS.ink, frameRange: ALL_FRAMES } },
+  opentui: { label: 'OpenTUI component', mimeType: 'text/plain', extension: 'tsx', category: 'code', binary: false, animated: true, browserOnly: false, options: { ...DEFAULT_EXPORT_SETTINGS.opentui, frameRange: ALL_FRAMES } },
+  bubbletea: { label: 'Bubble Tea (Go) program', mimeType: 'text/plain', extension: 'go', category: 'code', binary: false, animated: true, browserOnly: false, options: { ...DEFAULT_EXPORT_SETTINGS.bubbletea, frameRange: ALL_FRAMES } },
 };
 
 function paletteCatalog(): Record<string, unknown> {
@@ -369,6 +383,7 @@ const getCatalog: OperationHandler = (input) => {
         shapeKinds: ['rectangle', 'ellipse', 'line'],
         boxStyles: BOX_DRAWING_STYLES.map((s) => ({ id: s.id, name: s.name })),
         gradientTypes: ['linear', 'radial'],
+        importSettings: importSettingsCatalog(),
       };
     }
     case 'fonts':

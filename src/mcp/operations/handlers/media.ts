@@ -24,13 +24,82 @@ export function base64ToFile(data: string, mimeType: string, filename: string): 
   return new File([bytes], filename, { type: mimeType });
 }
 
-function resolveImportSettings(input: Record<string, unknown>): ImportSettings {
+/**
+ * Import settings keys the conversion pipeline actually reads. Other ImportSettings
+ * keys (characterMappingMode, customCharacterMapping, maintainAspectRatio,
+ * colorMappingMode, frameExtraction, frameInterval, maxFrames) have no effect
+ * in the app, so the bridge rejects them instead of ignoring them.
+ */
+const IMPORT_SETTING_KEYS = [
+  'characterWidth', 'characterHeight', 'cropMode', 'nudgeX', 'nudgeY',
+  'characterSet', 'enableCharacterMapping', 'characterMappingStyle',
+  'autoModeCharacterSet', 'autoModeSamplingQuality', 'autoModeGlobalContrast', 'autoModeDirectionalContrast',
+  'lineArtBlurRadius', 'lineArtEdgeThreshold', 'lineArtDilateRadius', 'lineArtErodeRadius', 'lineArtSdfBlurRadius', 'lineArtInverseMatchWeight',
+  'enableTextColorMapping', 'textColorPaletteId', 'textColorMappingMode', 'textColorDitherStrength',
+  'enableBackgroundColorMapping', 'backgroundColorPaletteId', 'backgroundColorMappingMode', 'backgroundColorDitherStrength',
+  'useOriginalColors', 'colorQuantization', 'paletteSize',
+  'brightness', 'contrast', 'highlights', 'shadows', 'midtones', 'blur', 'sharpen', 'saturation',
+  'enableColorAsAlpha', 'colorAsAlphaKey', 'colorAsAlphaTolerance',
+] as const satisfies ReadonlyArray<keyof ImportSettings>;
+
+const COLOR_MAPPING_MODES = ['closest', 'noise-dither', 'bayer2x2', 'bayer4x4', 'by-index'];
+const IMPORT_SETTING_ENUMS: Record<string, readonly string[]> = {
+  cropMode: ['center', 'top', 'bottom', 'left', 'right', 'top-left', 'top-right', 'bottom-left', 'bottom-right'],
+  characterMappingStyle: ['character-palette', 'auto-mode', 'line-art'],
+  autoModeCharacterSet: ['basic-ascii', 'block-characters', 'braille'],
+  autoModeSamplingQuality: ['low', 'medium', 'high'],
+  textColorMappingMode: COLOR_MAPPING_MODES,
+  backgroundColorMappingMode: COLOR_MAPPING_MODES,
+  colorQuantization: ['none', 'basic', 'advanced'],
+};
+
+/** Catalog entry for get_catalog tools.importSettings. */
+export function importSettingsCatalog(): Record<string, unknown> {
+  const activePaletteId = usePaletteStore.getState().activePaletteId ?? null;
+  const defaults: Record<string, unknown> = {};
+  for (const key of IMPORT_SETTING_KEYS) defaults[key] = DEFAULT_IMPORT_SETTINGS[key];
+  Object.assign(defaults, {
+    textColorPaletteId: activePaletteId,
+    backgroundColorPaletteId: activePaletteId,
+    characterSet: [...useCharacterPaletteStore.getState().activePalette.characters],
+  });
+  return {
+    defaults,
+    enums: IMPORT_SETTING_ENUMS,
+    notes: {
+      characterSet: 'Characters ordered light to dark (index 0 = lightest). Defaults to the active character palette.',
+      textColorPaletteId: 'null with useOriginalColors and colorQuantization "none" keeps exact source colors; a palette id maps to that palette.',
+      backgroundColorPaletteId: 'Backgrounds are palette-mapped only; with enableBackgroundColorMapping false cells have no background.',
+      nudgeX: 'Placement offset in cells from the cropMode anchor (nudgeY likewise).',
+    },
+  };
+}
+
+function resolveImportSettings(input: Record<string, unknown>): { settings: ImportSettings; characterSet?: string[] } {
   const overrides = (input.settings as Record<string, unknown> | undefined) ?? {};
-  const unknownKeys = Object.keys(overrides).filter((k) => !(k in DEFAULT_IMPORT_SETTINGS));
-  if (unknownKeys.length) throw invalid(`Unknown import settings: ${unknownKeys.join(', ')}`, { allowed: Object.keys(DEFAULT_IMPORT_SETTINGS) });
+  const allowed = new Set<string>(IMPORT_SETTING_KEYS);
+  const unknownKeys = Object.keys(overrides).filter((k) => !allowed.has(k));
+  if (unknownKeys.length) throw invalid(`Unsupported import settings: ${unknownKeys.join(', ')}`, { allowed: [...IMPORT_SETTING_KEYS] });
+  for (const [key, values] of Object.entries(IMPORT_SETTING_ENUMS)) {
+    if (key in overrides && !values.includes(overrides[key] as string)) throw invalid(`${key} must be one of: ${values.join(', ')}`);
+  }
+  let characterSet: string[] | undefined;
+  if ('characterSet' in overrides) {
+    const raw = overrides.characterSet;
+    if (!Array.isArray(raw) || raw.length === 0 || raw.some((c) => typeof c !== 'string' || [...c].length !== 1)) {
+      throw invalid('characterSet must be a non-empty array of single characters ordered light to dark');
+    }
+    characterSet = raw as string[];
+  }
+  for (const key of ['textColorPaletteId', 'backgroundColorPaletteId'] as const) {
+    const id = overrides[key];
+    if (typeof id === 'string' && !usePaletteStore.getState().getAllPalettes().some((p) => p.id === id)) {
+      throw new BridgeError('NOT_FOUND', `Unknown color palette: ${id}`);
+    }
+  }
   const { width, height } = canvas();
   const activePaletteId = usePaletteStore.getState().activePaletteId;
-  return {
+  const settings = {
     ...DEFAULT_IMPORT_SETTINGS,
     textColorPaletteId: activePaletteId,
     backgroundColorPaletteId: activePaletteId,
@@ -38,6 +107,7 @@ function resolveImportSettings(input: Record<string, unknown>): ImportSettings {
     characterHeight: (input.height as number | undefined) ?? height,
     ...overrides,
   } as ImportSettings;
+  return { settings, characterSet };
 }
 
 function mediaError(error: unknown): BridgeError {
@@ -52,21 +122,26 @@ export const mediaHandlers: Record<string, OperationHandler> = {
     const filename = (input.filename as string | undefined) ?? 'import';
     if (!/^(image|video)\//i.test(input.mimeType as string)) throw invalid(`Unsupported media type: ${String(input.mimeType)} (expected image/* or video/*)`);
     const file = base64ToFile(input.data as string, input.mimeType as string, filename);
-    const settings = resolveImportSettings(input);
+    const { settings, characterSet } = resolveImportSettings(input);
+    const video = input.video as { startTime?: number; duration?: number; frameRate?: number; maxFrames?: number } | undefined;
+    if (video && !/^video\//i.test(input.mimeType as string)) throw invalid('video options only apply to video/* media');
     const palettes = usePaletteStore.getState();
     const chars = useCharacterPaletteStore.getState();
+    const characterPalette = characterSet
+      ? { id: 'mcp-import-charset', name: 'Import character set', characters: characterSet, isPreset: false, isCustom: true, category: 'custom' as const }
+      : chars.activePalette;
     const { convertMediaToCells } = await loadMediaPipeline().catch((error: unknown) => { throw mediaError(error); });
     let converted: Awaited<ReturnType<typeof convertMediaToCells>>;
     try {
       converted = await convertMediaToCells(file, settings, {
         palettes: palettes.getAllPalettes(),
-        characterPalette: chars.activePalette,
+        characterPalette,
         mappingMethod: chars.mappingMethod,
         mappingMode: chars.mappingMode,
         invertDensity: chars.invertDensity,
         ditherStrength: chars.ditherStrength,
         defaultTextColor: useToolStore.getState().selectedColor,
-      }, { width: canvas().width, height: canvas().height });
+      }, { width: canvas().width, height: canvas().height }, video);
     } catch (error) {
       throw mediaError(error);
     }
@@ -116,6 +191,7 @@ export const mediaHandlers: Record<string, OperationHandler> = {
       durationFrames: start,
       frameRate: tl().config.frameRate,
       mediaType: converted.type,
+      ...(converted.type === 'video' && { sampleFrameRate: fps, sourceDuration: converted.metadata?.duration }),
     };
   },
 

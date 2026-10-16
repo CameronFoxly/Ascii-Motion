@@ -114,12 +114,13 @@ export async function convertMediaToCells(
   settings: ImportSettings,
   ctx: ConversionContext,
   canvas: { width: number; height: number },
+  videoWindow?: ProcessingOptions['videoWindow'],
 ): Promise<{ frames: ConvertedMediaFrame[]; metadata: ProcessingResult['metadata']; type: 'image' | 'video' }> {
   const mediaFile = mediaProcessor.validateFile(file);
   if (!mediaFile) {
     throw new Error(`Unsupported media type: ${file.type || file.name}`);
   }
-  const options = buildProcessingOptions(settings);
+  const options: ProcessingOptions = { ...buildProcessingOptions(settings), ...(videoWindow && { videoWindow }) };
   const result = mediaFile.type === 'image'
     ? await mediaProcessor.processImage(mediaFile, options)
     : await mediaProcessor.processVideo(mediaFile, options);

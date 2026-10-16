@@ -39,6 +39,14 @@ export interface ProcessingOptions {
   // When set, the output canvas will be targetWidth * pixelsPerCellX by targetHeight * pixelsPerCellY
   pixelsPerCellX?: number;
   pixelsPerCellY?: number;
+
+  // Video sampling window (MCP bridge import). Omitted = every frame of the whole clip at the detected rate.
+  videoWindow?: {
+    startTime?: number;  // seconds
+    duration?: number;   // seconds
+    frameRate?: number;  // sampling rate in fps (also sets each frame's duration)
+    maxFrames?: number;
+  };
 }
 
 export interface ProcessedFrame {
@@ -312,19 +320,27 @@ export class MediaProcessor {
     const frames: ProcessedFrame[] = [];
     
     // Try to detect frame rate or use common defaults
-    const estimatedFrameRate = await this.estimateVideoFrameRate(video, originalFile);
+    const detectedFrameRate = await this.estimateVideoFrameRate(video, originalFile);
+    const window = options.videoWindow ?? {};
+    const estimatedFrameRate = window.frameRate ?? detectedFrameRate;
     const frameDuration = Math.round(1000 / estimatedFrameRate); // Convert to milliseconds
-    
-    const totalFrames = Math.floor(video.duration * estimatedFrameRate);
+
+    const windowStart = window.startTime ?? 0;
+    if (windowStart >= video.duration) {
+      throw new Error(`invalid startTime ${windowStart}s: video is ${video.duration.toFixed(2)}s long`);
+    }
+    const windowEnd = Math.min(video.duration, window.duration !== undefined ? windowStart + window.duration : Infinity);
+    let totalFrames = Math.max(1, Math.floor((windowEnd - windowStart) * estimatedFrameRate));
+    if (window.maxFrames !== undefined) totalFrames = Math.min(totalFrames, window.maxFrames);
     
     for (let i = 0; i < totalFrames; i++) {
       // Sample at the CENTER of each frame's time window to avoid boundary issues
       // Frame i spans from (i/fps) to ((i+1)/fps), so center is at ((i + 0.5) / fps)
       // This prevents the browser from rounding to an adjacent frame at exact boundaries
-      const targetTimestamp = (i + 0.5) / estimatedFrameRate;
+      const targetTimestamp = windowStart + (i + 0.5) / estimatedFrameRate;
       
-      // Stop if we exceed video duration
-      if (targetTimestamp >= video.duration) break;
+      // Stop if we exceed the sampled window
+      if (targetTimestamp >= windowEnd) break;
       
       // Seek to the target timestamp
       video.currentTime = targetTimestamp;

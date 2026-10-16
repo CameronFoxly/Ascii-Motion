@@ -3706,7 +3706,8 @@
             "items": {
               "type": "string"
             },
-            "minItems": 1
+            "minItems": 2,
+            "description": "Two or more distinct layers not already in a group (the app has no empty groups)"
           }
         },
         "required": [
@@ -5780,10 +5781,38 @@
           "matchFrameRate": {
             "type": "boolean"
           },
+          "video": {
+            "type": "object",
+            "properties": {
+              "startTime": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Seconds into the clip to start sampling (default 0)"
+              },
+              "duration": {
+                "type": "number",
+                "minimum": 0.01,
+                "description": "Seconds to sample (default: to the end)"
+              },
+              "frameRate": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 120,
+                "description": "Sampling rate in fps; also each frame's duration (default: detected source rate)"
+              },
+              "maxFrames": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000
+              }
+            },
+            "additionalProperties": false,
+            "description": "Video sampling window (video/* only). Omit to import every source frame."
+          },
           "settings": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Import settings overrides (keys of the import panel settings; see get_catalog tools.importSettings)"
+            "description": "Import settings overrides; allowed keys, enums and defaults: get_catalog tools.importSettings. Unsupported keys are rejected."
           }
         },
         "required": [
@@ -5879,7 +5908,7 @@
       "name": "export",
       "domain": "io",
       "kind": "io",
-      "description": "Render an export with the app exporters and return it as an artifact (no browser download). Settings per format: get_catalog export_formats.",
+      "description": "Render an export with the app exporters and return it as an artifact (no browser download). Allowed settings and defaults per format: get_catalog export_formats (unsupported keys are rejected). Animated formats accept frameRange \"all\" | {start,end} (end -1 = last); the result reports the exported frameRange and any derived componentName/packageName/modelName.",
       "input": {
         "type": "object",
         "properties": {
@@ -6272,5 +6301,5 @@
       }
     }
   ],
-  "contractHash": "8aba438a5ce5af42d2802890ba5e406615d88f64d56a659e2fc29b97ffc4bc82"
+  "contractHash": "c9706ff9ddb15ef3c0043bffa683b900db6aef50399f49244d24c85a7c420ab6"
 }

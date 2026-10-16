@@ -40,6 +40,7 @@ const CLIENT_TEST = 'src/__tests__/mcpClient.test.ts';
 const COVERAGE_TEST = 'src/__tests__/mcpCoverage.test.ts';
 const GENERATOR_TEST = 'src/__tests__/mcpGeneratorCommands.test.ts';
 const CLOUD_TEST = 'src/__tests__/mcpCloudBridge.test.ts';
+const IO_SETTINGS_TEST = 'src/__tests__/mcpImportExportSettings.test.ts';
 
 export const FEATURE_COVERAGE: FeatureCoverage[] = [
   {
@@ -108,7 +109,7 @@ export const FEATURE_COVERAGE: FeatureCoverage[] = [
   {
     id: 'layer-groups', title: 'Layer groups', status: 'supported',
     operations: ['create_group', 'ungroup', 'update_group'], appSources: ['src/stores/timelineStore.ts'],
-    browserRequired: false, tests: [COVERAGE_TEST], docs: `${OPS_DOC}#layers`,
+    browserRequired: false, tests: [COVERAGE_TEST, IO_SETTINGS_TEST], docs: `${OPS_DOC}#layers`,
   },
   {
     id: 'timeline', title: 'Content frames, timeline duration/frame rate/work area and cleanup', status: 'supported',
@@ -155,7 +156,7 @@ export const FEATURE_COVERAGE: FeatureCoverage[] = [
   {
     id: 'media-import', title: 'Image/video to ASCII import pipeline', status: 'supported',
     operations: ['import_media'], appSources: ['src/utils/mediaImportPipeline.ts', 'src/utils/mediaProcessor.ts'],
-    browserRequired: true, tests: [COVERAGE_TEST], docs: `${OPS_DOC}#media`,
+    browserRequired: true, tests: [COVERAGE_TEST, IO_SETTINGS_TEST], docs: `${OPS_DOC}#media`,
   },
   {
     id: 'image-trace', title: 'Image/video trace reference overlay', status: 'supported',
@@ -165,7 +166,7 @@ export const FEATURE_COVERAGE: FeatureCoverage[] = [
   {
     id: 'export', title: 'All app export formats rendered by the app exporters (no download side effect)', status: 'supported',
     operations: ['export'], appSources: ['src/utils/exportRenderer.ts', 'src/utils/exportDataCollector.ts'],
-    browserRequired: true, tests: [OPS_TEST, CLIENT_TEST], docs: `${OPS_DOC}#io`,
+    browserRequired: true, tests: [OPS_TEST, CLIENT_TEST, IO_SETTINGS_TEST], docs: `${OPS_DOC}#io`,
     reason: 'Text/code/session formats also render in jsdom; image/video formats need a browser canvas/encoder.',
   },
   {

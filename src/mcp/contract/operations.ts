@@ -638,7 +638,7 @@ export const BRIDGE_OPERATIONS: OperationContract[] = [
   op({ name: 'set_active_layer', domain: 'layers', kind: 'view', idempotent: true, description: 'Select the active (editable) layer.', input: obj({ layerId: id() }, ['layerId']) }),
   op({ name: 'merge_layers', domain: 'layers', kind: 'mutation', destructive: true, description: 'Merge a layer down, or merge all visible layers.', input: obj({ mode: enumOf(['down', 'visible']), layerId: str() }, ['mode']) }),
   op({ name: 'flatten_layer', domain: 'layers', kind: 'mutation', destructive: true, description: 'Bake transforms/effects of a layer into its content frames.', input: obj({ layerId: id() }, ['layerId']) }),
-  op({ name: 'create_group', domain: 'layers', kind: 'mutation', description: 'Group layers.', input: obj({ name: str({ maxLength: 200 }), layerIds: arr(str(), { minItems: 1 }) }, ['layerIds']) }),
+  op({ name: 'create_group', domain: 'layers', kind: 'mutation', description: 'Group layers.', input: obj({ name: str({ maxLength: 200 }), layerIds: arr(str(), { minItems: 2, description: 'Two or more distinct layers not already in a group (the app has no empty groups)' }) }, ['layerIds']) }),
   op({ name: 'ungroup', domain: 'layers', kind: 'mutation', description: 'Dissolve a group, keeping its layers.', input: obj({ groupId: id() }, ['groupId']) }),
   op({
     name: 'update_group', domain: 'layers', kind: 'mutation', idempotent: true,
@@ -797,7 +797,13 @@ export const BRIDGE_OPERATIONS: OperationContract[] = [
       width: int({ minimum: 1, maximum: 200 }),
       height: int({ minimum: 1, maximum: 100 }),
       matchFrameRate: bool(),
-      settings: record('Import settings overrides (keys of the import panel settings; see get_catalog tools.importSettings)'),
+      video: obj({
+        startTime: num({ minimum: 0, description: 'Seconds into the clip to start sampling (default 0)' }),
+        duration: num({ minimum: 0.01, description: 'Seconds to sample (default: to the end)' }),
+        frameRate: num({ minimum: 1, maximum: 120, description: 'Sampling rate in fps; also each frame\'s duration (default: detected source rate)' }),
+        maxFrames: int({ minimum: 1, maximum: 10000 }),
+      }, [], { description: 'Video sampling window (video/* only). Omit to import every source frame.' }),
+      settings: record('Import settings overrides; allowed keys, enums and defaults: get_catalog tools.importSettings. Unsupported keys are rejected.'),
     }, ['data', 'mimeType']),
   }),
   op({
@@ -813,7 +819,7 @@ export const BRIDGE_OPERATIONS: OperationContract[] = [
   // ── Export ───────────────────────────────────────────────────────────────
   op({
     name: 'export', domain: 'io', kind: 'io',
-    description: 'Render an export with the app exporters and return it as an artifact (no browser download). Settings per format: get_catalog export_formats.',
+    description: 'Render an export with the app exporters and return it as an artifact (no browser download). Allowed settings and defaults per format: get_catalog export_formats (unsupported keys are rejected). Animated formats accept frameRange "all" | {start,end} (end -1 = last); the result reports the exported frameRange and any derived componentName/packageName/modelName.',
     input: obj({ format: enumOf(exportFormats), settings: record(), filename: str({ maxLength: 200 }) }, ['format']),
     result: obj({ artifact: Artifact, result: record() }, ['artifact', 'result']),
   }),

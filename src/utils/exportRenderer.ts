@@ -1754,9 +1754,7 @@ ${this.generateWebGLShaderRuntime(htmlShaderBundle!)}
     this.updateProgress('Preparing React component export...', 0);
 
     try {
-      const requestedName = settings.fileName?.trim() || 'ascii-motion-animation';
-      const sanitizedFileName = this.sanitizeReactFileName(requestedName) || 'ascii-motion-animation';
-      const componentName = this.toPascalCase(sanitizedFileName);
+      const { fileName: sanitizedFileName, componentName } = this.deriveComponentNames(settings.fileName, 'ascii-motion-animation');
 
       const fontSize = data.typography?.fontSize ?? data.fontMetrics?.fontSize ?? 16;
       const characterSpacing = data.typography?.characterSpacing ?? 1.0;
@@ -1881,6 +1879,20 @@ ${this.generateWebGLShaderRuntime(htmlShaderBundle!)}
       .replace(/_+/g, '_')
       .replace(/^[-_]+|[-_]+$/g, '')
       .toLowerCase();
+  }
+
+  /** File and component names the React, Ink and OpenTUI exporters derive from a requested file name. */
+  deriveComponentNames(requested: string | undefined, fallback: string): { fileName: string; componentName: string } {
+    const fileName = this.sanitizeReactFileName(requested?.trim() || fallback) || fallback;
+    return { fileName, componentName: this.toPascalCase(fileName) };
+  }
+
+  /** File and Go package names the Bubble Tea exporter derives (the model type is always `Model`). */
+  deriveBubbleteaNames(settings: Pick<BubbleteaExportSettings, 'fileName' | 'packageName'>): { fileName: string; packageName: string } {
+    return {
+      fileName: settings.fileName.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase(),
+      packageName: settings.packageName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase(),
+    };
   }
 
   private toPascalCase(value: string): string {
@@ -2364,9 +2376,7 @@ ${this.generateWebGLShaderRuntime(htmlShaderBundle!)}
     this.updateProgress('Preparing Ink component export...', 0);
 
     try {
-      const requestedName = settings.fileName?.trim() || 'ascii-motion-cli';
-      const sanitizedFileName = this.sanitizeReactFileName(requestedName) || 'ascii-motion-cli';
-      const componentName = this.toPascalCase(sanitizedFileName);
+      const { fileName: sanitizedFileName, componentName } = this.deriveComponentNames(settings.fileName, 'ascii-motion-cli');
 
       this.updateProgress('Building color dictionary...', 20);
 
@@ -2841,9 +2851,7 @@ ${this.generateWebGLShaderRuntime(htmlShaderBundle!)}
     this.updateProgress('Preparing OpenTUI component export...', 0);
 
     try {
-      const requestedName = settings.fileName?.trim() || 'ascii-motion-tui';
-      const sanitizedFileName = this.sanitizeReactFileName(requestedName) || 'ascii-motion-tui';
-      const componentName = this.toPascalCase(sanitizedFileName);
+      const { fileName: sanitizedFileName, componentName } = this.deriveComponentNames(settings.fileName, 'ascii-motion-tui');
 
       this.updateProgress('Building color dictionary...', 20);
 
@@ -3248,13 +3256,7 @@ ${this.generateWebGLShaderRuntime(htmlShaderBundle!)}
     this.updateProgress('Preparing Bubbletea component export...', 0);
 
     try {
-      // Sanitize and format names
-      const sanitizedFileName = settings.fileName
-        .replace(/[^a-zA-Z0-9_]/g, '_')
-        .toLowerCase();
-      const sanitizedPackageName = settings.packageName
-        .replace(/[^a-zA-Z0-9]/g, '')
-        .toLowerCase();
+      const { fileName: sanitizedFileName, packageName: sanitizedPackageName } = this.deriveBubbleteaNames(settings);
 
       this.updateProgress('Processing frames...', 20);
 
