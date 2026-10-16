@@ -1,12 +1,20 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "2.2.4";
-export const BUILD_DATE = "2026-10-14T15:41:24.000Z";
-export const BUILD_HASH = "c554907";
+export const VERSION = "2.2.5";
+export const BUILD_DATE = "2026-10-16T16:55:14.336Z";
+export const BUILD_HASH = "cb879bf";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "2.2.5",
+    "date": "2026-10-16T16:55:14.336Z",
+    "commits": [
+      "Merge pull request #179 from CameronFoxly/cameronfoxly-mcp-generator-commands",
+      "Add MCP bridge commands for procedural generator layers"
+    ]
+  },
   {
     "version": "2.2.4",
     "date": "2026-10-14T15:41:24.000Z",
