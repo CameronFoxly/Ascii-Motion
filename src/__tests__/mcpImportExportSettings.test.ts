@@ -232,7 +232,9 @@ describe('import settings', () => {
 
   it('lists import settings defaults and enums in the tools catalog', async () => {
     const catalog = await ok('get_catalog', { family: 'tools' });
-    const importSettings = catalog.importSettings as { defaults: Record<string, unknown>; enums: Record<string, string[]> };
+    const importSettings = catalog.importSettings as { defaults: Record<string, unknown>; enums: Record<string, string[]>; notes: Record<string, string> };
+    expect(importSettings.notes.characterSet).toContain('index 0 = darkest; last index = brightest');
+    expect(importSettings.notes.characterSet).toContain('invertDensity reverses the order');
     expect(importSettings.defaults).toHaveProperty('nudgeX');
     expect(importSettings.defaults).not.toHaveProperty('maxFrames');
     expect(Array.isArray(importSettings.defaults.characterSet)).toBe(true);

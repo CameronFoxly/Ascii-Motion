@@ -67,7 +67,7 @@ export function importSettingsCatalog(): Record<string, unknown> {
     defaults,
     enums: IMPORT_SETTING_ENUMS,
     notes: {
-      characterSet: 'Characters ordered light to dark (index 0 = lightest). Defaults to the active character palette.',
+      characterSet: 'For brightness mapping, characters are indexed from dark to bright source pixels (index 0 = darkest; last index = brightest). invertDensity reverses the order. Defaults to the active character palette.',
       textColorPaletteId: 'null with useOriginalColors and colorQuantization "none" keeps exact source colors; a palette id maps to that palette.',
       backgroundColorPaletteId: 'Backgrounds are palette-mapped only; with enableBackgroundColorMapping false cells have no background.',
       nudgeX: 'Placement offset in cells from the cropMode anchor (nudgeY likewise).',
@@ -87,7 +87,7 @@ function resolveImportSettings(input: Record<string, unknown>): { settings: Impo
   if ('characterSet' in overrides) {
     const raw = overrides.characterSet;
     if (!Array.isArray(raw) || raw.length === 0 || raw.some((c) => typeof c !== 'string' || [...c].length !== 1)) {
-      throw invalid('characterSet must be a non-empty array of single characters ordered light to dark');
+      throw invalid('characterSet must be a non-empty array of single characters indexed from dark to bright source pixels');
     }
     characterSet = raw as string[];
   }
