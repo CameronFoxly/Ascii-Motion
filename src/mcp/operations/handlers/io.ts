@@ -24,9 +24,20 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+// Some DOM implementations (e.g. jsdom 28.0) lack Blob.arrayBuffer; FileReader is universally available.
+async function readBlobBytes(blob: Blob): Promise<Uint8Array> {
+  if (typeof blob.arrayBuffer === 'function') return new Uint8Array(await blob.arrayBuffer());
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsArrayBuffer(blob);
+  });
+}
+
 async function blobToArtifact(blob: Blob, filename: string, format: ExportFormat): Promise<ExportArtifact> {
   const info = EXPORT_FORMATS[format];
-  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const bytes = await readBlobBytes(blob);
   const mimeType = info.mimeType;
   if (info.binary) return { filename, mimeType, encoding: 'base64', bytes: bytes.length, data: bytesToBase64(bytes) };
   return { filename, mimeType, encoding: 'utf8', bytes: bytes.length, data: new TextDecoder().decode(bytes) };
