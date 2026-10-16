@@ -187,7 +187,7 @@ async function executeOperation(
   ensureSubscriptions();
   const contract = getOperationContract(name);
   const handler = handlers.get(name);
-  if (!contract || !handler) {
+  if (!contract || typeof handler !== 'function') {
     return failure(name, new BridgeError('UNKNOWN_OPERATION', `Unknown operation: ${name}`));
   }
 

@@ -37,7 +37,7 @@ function operationsReference(): string {
   for (const domain of domains) {
     lines.push(`## ${domain}`, '', '| Operation | Kind | Destructive | Requires | Description |', '| --- | --- | --- | --- | --- |');
     for (const o of contract.operations.filter((op) => op.domain === domain)) {
-      lines.push(`| \`${o.name}\` | ${o.kind} | ${o.destructive ? 'yes' : 'no'} | ${o.requires.join(', ') || '—'} | ${o.description.replace(/\|/g, '\\|')} |`);
+      lines.push(`| \`${o.name}\` | ${o.kind} | ${o.destructive ? 'yes' : 'no'} | ${o.requires.join(', ') || '—'} | ${o.description.replace(/\\/g, '\\\\').replace(/\|/g, '\\|')} |`);
     }
     lines.push('');
   }

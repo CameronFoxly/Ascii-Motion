@@ -74,8 +74,13 @@ describe('coverage manifest', () => {
 
   it('points at existing sources, fixtures and docs anchors, with reasons for non-supported entries', () => {
     const docsCache = new Map<string, string>();
+    // The premium submodule is private and absent in CI; its paths are verified wherever it is checked out.
+    const hasPremium = existsSync(resolve(root, 'packages/premium/src/index.ts'));
     for (const f of FEATURE_COVERAGE) {
-      for (const path of [...f.appSources, ...f.tests]) expect(existsSync(resolve(root, path)), `${f.id}: ${path}`).toBe(true);
+      for (const path of [...f.appSources, ...f.tests]) {
+        if (!hasPremium && path.startsWith('packages/premium')) continue;
+        expect(existsSync(resolve(root, path)), `${f.id}: ${path}`).toBe(true);
+      }
       const [docPath, anchor] = f.docs.split('#');
       expect(existsSync(resolve(root, docPath)), `${f.id}: ${docPath}`).toBe(true);
       if (!docsCache.has(docPath)) docsCache.set(docPath, readFileSync(resolve(root, docPath), 'utf8'));

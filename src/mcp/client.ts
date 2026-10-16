@@ -594,16 +594,16 @@ export class MCPClient {
             return;
           }
           if ('unsupported' in call) {
-            console.warn(`[MCP] Cannot replay ${type}: ${call.unsupported}`);
+            console.warn('[MCP] Cannot replay %s: %s', type, call.unsupported);
             break;
           }
           const outcome = await runOperation(call.op, call.input);
           if (outcome.ok) this.notifications.learn(type, data, outcome);
-          else console.warn(`[MCP] Replaying ${type} failed:`, outcome.error);
+          else console.warn('[MCP] Replaying %s failed:', type, outcome.error);
         }
       }
     } catch (error) {
-      console.warn(`[MCP] Replaying ${type} failed:`, error);
+      console.warn('[MCP] Replaying %s failed:', type, error);
     }
     this.scheduleLegacyResync();
   }

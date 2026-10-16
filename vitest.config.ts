@@ -1,14 +1,21 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vitest/config';
 import path from 'path';
+import fs from 'fs';
+
+// Mirror vite.config.ts: use the stub when the private premium submodule is absent (e.g. CI).
+const hasPremium = fs.existsSync(path.resolve(__dirname, './packages/premium/src/index.ts'));
+const premiumStub = path.resolve(__dirname, './src/lib/premium-stub.ts');
 
 export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@ascii-motion/core': path.resolve(__dirname, './packages/core/src'),
-      '@ascii-motion/premium/remix': path.resolve(__dirname, './packages/premium/src/community/hooks/useRemix.ts'),
-      '@ascii-motion/premium': path.resolve(__dirname, './packages/premium/src'),
+      '@ascii-motion/premium/remix': hasPremium
+        ? path.resolve(__dirname, './packages/premium/src/community/hooks/useRemix.ts')
+        : premiumStub,
+      '@ascii-motion/premium': hasPremium ? path.resolve(__dirname, './packages/premium/src') : premiumStub,
     },
   },
   test: {
