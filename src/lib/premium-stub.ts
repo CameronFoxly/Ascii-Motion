@@ -55,6 +55,7 @@ export interface SessionData {
   layers?: unknown[];
   layerGroups?: unknown[];
   globalEffects?: unknown[];
+  postEffectTracks?: unknown[];
   tools?: SessionToolState;
   ui?: SessionUIState;
   typography?: TypographySettings;
@@ -287,6 +288,30 @@ export function useCloudProject() {
     getProjectForDownload: async (_projectId: string): Promise<CloudProject | null> => null,
     loadProjectsSessionData: async (_projectIds: string[], _onUpdate?: (id: string, sessionData: SessionData) => void): Promise<null> => null,
     getUserProfile: async (): Promise<UserProfile | null> => null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Community gallery (publish)
+// ---------------------------------------------------------------------------
+
+export interface PublishProjectParams {
+  projectId: string;
+  title: string;
+  description: string | null;
+  previewImageUrl: string;
+  thumbnailUrl: string;
+  tags: string[];
+  allowRemixes: boolean;
+}
+
+export function useGallery() {
+  return {
+    isPublishing: false,
+    error: null as string | null,
+    publishProject: async (_params: PublishProjectParams): Promise<string> => {
+      throw new Error('Publishing requires the premium package');
+    },
   };
 }
 

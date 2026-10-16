@@ -17,6 +17,8 @@ import { Unplug, Plug, Terminal, Copy, Check, Info, ChevronDown, ExternalLink } 
 import { useMCPConnection } from '../../mcp';
 import { cn } from '../../lib/utils';
 
+const HOST_CONFIG_SNIPPET = '"ascii-motion": { "command": "npx", "args": ["-y", "ascii-motion-mcp", "--live"] }';
+
 interface MCPConnectionDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -61,7 +63,7 @@ export const MCPConnectionDialog: React.FC<MCPConnectionDialogProps> = ({
   };
 
   const handleCopyCommand = () => {
-    navigator.clipboard.writeText('npx ascii-motion-mcp --live');
+    navigator.clipboard.writeText(HOST_CONFIG_SNIPPET);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -149,31 +151,42 @@ export const MCPConnectionDialog: React.FC<MCPConnectionDialogProps> = ({
 
               {/* Instructions */}
               <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Start the MCP server and copy the auth token:
-                </p>
-                <div className="flex gap-2">
-                  <code className="flex-1 bg-muted px-3 py-2 rounded text-xs font-mono">
-                    npx ascii-motion-mcp --live
-                  </code>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyCommand}
-                    className="shrink-0"
-                  >
-                    {copied ? (
-                      <Check className="h-4 w-4" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
+                <ol className="list-decimal pl-4 space-y-2 text-sm text-muted-foreground">
+                  <li>
+                    Add ASCII Motion MCP to your AI host (Copilot, Claude, Cursor…) in live mode. The host starts and owns the server:
+                    <div className="flex gap-2 mt-1.5">
+                      <code className="flex-1 bg-muted px-3 py-2 rounded text-xs font-mono break-all">
+                        {HOST_CONFIG_SNIPPET}
+                      </code>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCopyCommand}
+                        className="shrink-0"
+                        aria-label="Copy MCP server config"
+                      >
+                        {copied ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </li>
+                  <li>
+                    In that same AI session, ask it to call <code className="bg-muted px-1 rounded">get_auth_token</code> and{' '}
+                    <code className="bg-muted px-1 rounded">get_connection_status</code> to get the token and port.
+                  </li>
+                  <li>Paste the token (and port, if not 9876) below and connect.</li>
+                </ol>
 
                 {/* Info text */}
                 <div className="flex items-start gap-2 text-xs text-muted-foreground">
                   <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                  <span>This automatically downloads and runs the server. First run may take a few seconds.</span>
+                  <span>
+                    Don&apos;t start a separate <code className="bg-muted px-1 rounded">ascii-motion-mcp --live</code> in a terminal: that is a different
+                    server with its own token, and your AI host won&apos;t see this browser.
+                  </span>
                 </div>
 
                 {/* Advanced: Global install option */}
@@ -204,7 +217,8 @@ export const MCPConnectionDialog: React.FC<MCPConnectionDialogProps> = ({
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Then run: <code className="bg-muted px-1 rounded">ascii-motion-mcp --live</code>
+                      Then set your host&apos;s server command to <code className="bg-muted px-1 rounded">ascii-motion-mcp</code> with args{' '}
+                      <code className="bg-muted px-1 rounded">--live</code>.
                     </p>
                   </CollapsibleContent>
                 </Collapsible>
@@ -230,7 +244,7 @@ export const MCPConnectionDialog: React.FC<MCPConnectionDialogProps> = ({
                   <Input
                     id="mcp-token"
                     type="text"
-                    placeholder="Paste token from MCP server"
+                    placeholder="Token from get_auth_token"
                     value={token}
                     onChange={(e) => setToken(e.target.value)}
                     disabled={isConnecting}

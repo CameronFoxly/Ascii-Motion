@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useFrameSynchronization } from '../hooks/useFrameSynchronization';
 import { MCPClient } from '../mcp/client';
 import { MCPCommandDispatcher } from '../mcp/commandDispatcher';
+import { BRIDGE_DEFS, BRIDGE_MESSAGES } from '../mcp/contract/operations';
+import { BRIDGE_CONTRACT_HASH } from '../mcp/contract/contractHash.generated';
+import { validateSchema } from '../mcp/contract/schema';
 import { useMCPStore } from '../mcp/store';
 import type {
   MCPCommandRequest,
@@ -451,7 +454,7 @@ describe('MCPClient acknowledged commands', () => {
         requestId: 'mutate-target',
         command: {
           type: 'set_cells_batch',
-          cells: [{ x: 1, y: 0, cell: cell('pasted') }],
+          cells: [{ x: 1, y: 0, cell: cell('P') }],
         },
       });
     });
@@ -482,7 +485,7 @@ describe('MCPClient acknowledged commands', () => {
     ]));
     expect(resultCanvasSnapshots.get('mutate-target')).toEqual(new Map([
       ['0,0', cell('target')],
-      ['1,0', cell('pasted')],
+      ['1,0', cell('P')],
     ]));
 
     await act(async () => {
@@ -496,7 +499,7 @@ describe('MCPClient acknowledged commands', () => {
     ]));
     expect(appliedLayer.contentFrames[1].data).toEqual(new Map([
       ['0,0', cell('target')],
-      ['1,0', cell('pasted')],
+      ['1,0', cell('P')],
     ]));
     expect(useCanvasStore.getState().cells).toEqual(appliedLayer.contentFrames[1].data);
     unmount();
@@ -531,7 +534,7 @@ describe('MCPClient acknowledged commands', () => {
         requestId: 'mutate-empty',
         command: {
           type: 'set_cells_batch',
-          cells: [{ x: 1, y: 0, cell: cell('first') }],
+          cells: [{ x: 1, y: 0, cell: cell('F') }],
         },
       });
     });
@@ -552,7 +555,7 @@ describe('MCPClient acknowledged commands', () => {
       ['0,0', cell('canvas-old')],
     ]));
     expect(appliedLayer.contentFrames[1].data).toEqual(new Map([
-      ['1,0', cell('first')],
+      ['1,0', cell('F')],
     ]));
     expect(useCanvasStore.getState().cells).toEqual(appliedLayer.contentFrames[1].data);
     unmount();
@@ -892,5 +895,83 @@ describe('MCPClient acknowledged commands', () => {
       timeline: useTimelineStore.getState().getSessionData(),
       isImportingSession: useAnimationStore.getState().isImportingSession,
     }).toEqual(before);
+  });
+});
+
+describe('MCPClient bridge protocol v3', () => {
+  const clients: MCPClient[] = [];
+
+  beforeEach(() => {
+    MockWebSocket.instances = [];
+    vi.stubGlobal('WebSocket', MockWebSocket);
+    resetStores();
+  });
+
+  afterEach(() => {
+    for (const client of clients.splice(0)) client.disconnect();
+    vi.unstubAllGlobals();
+  });
+
+  function sent(socket: MockWebSocket, type: string): Array<Record<string, unknown>> {
+    return socket.sent
+      .map((m) => JSON.parse(m) as Record<string, unknown>)
+      .filter((m) => m.type === type);
+  }
+
+  function expectValid(message: Record<string, unknown>): void {
+    const schema = BRIDGE_MESSAGES[message.type as string];
+    expect(schema, `schema for ${String(message.type)}`).toBeDefined();
+    expect(validateSchema(message, schema, BRIDGE_DEFS, 'message')).toEqual([]);
+  }
+
+  it('sends auth then a contract-valid hello on open', async () => {
+    const client = new MCPClient();
+    clients.push(client);
+    const connection = client.connect('test-token');
+    const socket = MockWebSocket.instances.at(-1)!;
+    socket.open();
+    await connection;
+    const types = socket.sent.map((m) => (JSON.parse(m) as { type: string }).type);
+    expect(types.slice(0, 2)).toEqual(['auth', 'hello']);
+    const hello = sent(socket, 'hello')[0];
+    expectValid(hello);
+    expect(hello.contractHash).toBe(BRIDGE_CONTRACT_HASH);
+    expect(useMCPStore.getState().serverUrl).not.toContain('test-token');
+  });
+
+  it('answers op_request with a correlated op_result and enforces expectedRevision', async () => {
+    const { client, socket } = await connectClient();
+    clients.push(client);
+    socket.receive({ type: 'op_request', requestId: 'r1', op: 'set_cells', input: { cells: [{ x: 0, y: 0, char: 'Q' }] } });
+    await vi.waitFor(() => expect(sent(socket, 'op_result')).toHaveLength(1));
+    const first = sent(socket, 'op_result')[0];
+    expectValid(first);
+    expect(first).toMatchObject({ requestId: 'r1', op: 'set_cells', ok: true });
+
+    socket.receive({ type: 'op_request', requestId: 'r2', op: 'set_cells', expectedRevision: (first.revision as number) - 1, input: { cells: [{ x: 1, y: 0, char: 'R' }] } });
+    await vi.waitFor(() => expect(sent(socket, 'op_result')).toHaveLength(2));
+    const stale = sent(socket, 'op_result')[1];
+    expect(stale).toMatchObject({ requestId: 'r2', ok: false, error: { code: 'CONFLICT' } });
+  });
+
+  it('routes protocolVersion 3 command_request canonically for overlapping legacy names', async () => {
+    const { client, socket } = await connectClient();
+    clients.push(client);
+    const result = await sendCommand(socket, {
+      type: 'command_request', requestId: 'c1', protocolVersion: 3, command: { type: 'resize_canvas', width: 30, height: 12 },
+    } as unknown as MCPCommandRequest) as unknown as Record<string, unknown>;
+    expectValid(result);
+    expect(result).toMatchObject({ success: true, documentId: expect.any(String), revision: expect.any(Number) });
+    expect(useCanvasStore.getState().width).toBe(30);
+  });
+
+  it('echoes state_request requestId with the native document', async () => {
+    const { client, socket } = await connectClient();
+    clients.push(client);
+    socket.receive({ type: 'state_request', requestId: 'snap-1' });
+    await vi.waitFor(() => expect(sent(socket, 'state_snapshot').some((m) => m.requestId === 'snap-1')).toBe(true));
+    const snapshot = sent(socket, 'state_snapshot').find((m) => m.requestId === 'snap-1')!;
+    expectValid(snapshot);
+    expect(snapshot.document).toBeTypeOf('object');
   });
 });

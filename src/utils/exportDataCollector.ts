@@ -60,7 +60,8 @@ export class ExportDataCollector {
   /**
    * Collect all export data from the current application state
    */
-  static collect(): ExportDataBundle {
+  static collect(options: { compositeFrames?: boolean } = {}): ExportDataBundle {
+    const compositeFrames = options.compositeFrames ?? true;
     // Get canvas data
     const canvasState = useCanvasStore.getState();
     const { 
@@ -125,7 +126,8 @@ export class ExportDataCollector {
     let exportCurrentFrameIndex: number;
 
     if (isLayerMode) {
-      exportFrames = computeCompositedFrames(width, height);
+      // Session/document reads only need sessionDataV2, so skip compositing.
+      exportFrames = compositeFrames ? computeCompositedFrames(width, height) : [];
       exportFrameRate = timelineState.config.frameRate;
       exportLooping = timelineState.view.looping;
       exportCurrentFrameIndex = Math.min(

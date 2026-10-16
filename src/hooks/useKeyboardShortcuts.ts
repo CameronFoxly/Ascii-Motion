@@ -28,6 +28,7 @@ import { useImageTraceStore } from '../stores/imageTraceStore';
 import type { LayerId, LayerGroupId, ContentFrameId, PropertyTrackId, KeyframeId, PropertyPath } from '../types/timeline';
 import { PROPERTY_DEFINITIONS } from '../types/timeline';
 import { getKeyframeNavigationTarget, type NavigableKeyframe } from '../utils/keyframeNavigation';
+import { restoreDocumentState, type DocumentState } from '../mcp/operations/state';
 
 type CanvasStoreState = ReturnType<typeof useCanvasStore.getState>;
 type CanvasStoreForHistory = Pick<CanvasStoreState, 'setCanvasData'>;
@@ -1794,6 +1795,12 @@ export const processHistoryAction = (
             : t,
         ),
       }));
+      break;
+    }
+
+    case 'document_snapshot': {
+      const snapshot = isRedo ? action.data.next : action.data.previous;
+      restoreDocumentState(snapshot as DocumentState);
       break;
     }
 

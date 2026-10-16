@@ -153,7 +153,7 @@ const DEFAULT_UI_STATE: ImportUIState = {
 };
 
 // Default import settings
-const DEFAULT_IMPORT_SETTINGS: ImportSettings = {
+export const DEFAULT_IMPORT_SETTINGS: ImportSettings = {
   // Size controls
   characterWidth: 80,
   characterHeight: 24,

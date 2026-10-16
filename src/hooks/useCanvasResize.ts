@@ -4,32 +4,12 @@ import { useToolStore } from '../stores/toolStore';
 import { useAnimationStore } from '../stores/animationStore';
 import { useTimelineStore } from '../stores/timelineStore';
 import {
-  calculateAnchorOffset,
   resizeAllFramesWithAnchor,
   type AnchorPosition,
 } from '../utils/canvasResizeUtils';
 import type { CanvasResizeHistoryAction } from '../types';
-import type { Cell } from '../types';
 import { getContentFrameAtTime } from '../utils/layerCompositing';
-
-/**
- * Shift all cell coordinates in a map by an offset.
- * Unlike resizeFrameWithAnchor, this does NOT clip to bounds
- * (unbounded canvas — content outside viewport is preserved).
- */
-function shiftCellMap(
-  data: Map<string, Cell>,
-  offsetX: number,
-  offsetY: number,
-): Map<string, Cell> {
-  if (offsetX === 0 && offsetY === 0) return new Map(data);
-  const result = new Map<string, Cell>();
-  data.forEach((cell, key) => {
-    const [x, y] = key.split(',').map(Number);
-    result.set(`${x + offsetX},${y + offsetY}`, { ...cell });
-  });
-  return result;
-}
+import { applyLayerCanvasResize } from '../utils/canvasGeometryOps';
 
 /**
  * Hook for canvas resize operations with anchor positioning
@@ -65,12 +45,6 @@ export function useCanvasResize() {
 
     // ── Layer mode ──────────────────────────────────────────
     if (layers.length > 0) {
-      const { offsetX, offsetY } = calculateAnchorOffset(
-        previousWidth, previousHeight,
-        constrainedWidth, constrainedHeight,
-        anchor,
-      );
-
       const tl = useTimelineStore.getState();
 
       // Flush the active layer's canvas buffer to the timeline store first,
@@ -115,44 +89,7 @@ export function useCanvasResize() {
       }));
 
       // Shift every content frame in every layer
-      for (const layer of tlFlushed.layers) {
-        for (const cf of layer.contentFrames) {
-          const shifted = shiftCellMap(cf.data, offsetX, offsetY);
-          tl.updateContentFrameData(layer.id, cf.id, shifted);
-        }
-      }
-
-      // Shift anchor points for ALL layers so rotation/scale centers track with
-      // the shifted content. Position transforms must NOT be shifted — the cell
-      // data shift already accounts for the visual offset, and shifting position
-      // too would double it. Group properties also stay untouched because group
-      // position is additive with layer position in compositing.
-      for (const layer of tlFlushed.layers) {
-        const oldAnchorX = layer.staticProperties['transform.anchorPoint.x'] ?? 0;
-        const oldAnchorY = layer.staticProperties['transform.anchorPoint.y'] ?? 0;
-        tl.setStaticProperty(layer.id, 'transform.anchorPoint.x', oldAnchorX + offsetX);
-        tl.setStaticProperty(layer.id, 'transform.anchorPoint.y', oldAnchorY + offsetY);
-
-        // Shift anchor point keyframes only (NOT position keyframes)
-        for (const track of layer.propertyTracks) {
-          if (track.propertyPath === 'transform.anchorPoint.x') {
-            for (const kf of track.keyframes) {
-              tl.updateKeyframe(layer.id, track.id, kf.id, {
-                value: (kf.value as number) + offsetX,
-              });
-            }
-          } else if (track.propertyPath === 'transform.anchorPoint.y') {
-            for (const kf of track.keyframes) {
-              tl.updateKeyframe(layer.id, track.id, kf.id, {
-                value: (kf.value as number) + offsetY,
-              });
-            }
-          }
-        }
-      }
-
-      // Update canvas dimensions
-      setCanvasSize(constrainedWidth, constrainedHeight);
+      applyLayerCanvasResize(previousWidth, previousHeight, constrainedWidth, constrainedHeight, anchor);
 
       // Reload the active layer's current content frame into canvasStore
       const updatedTl = useTimelineStore.getState();

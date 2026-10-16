@@ -1,4 +1,4 @@
-import { saveAs } from 'file-saver';
+import { saveAs as fileSaverSaveAs } from 'file-saver';
 import JSZip from 'jszip';
 import type { Font } from 'opentype.js';
 import type { 
@@ -37,6 +37,33 @@ import { FULLSCREEN_VERTEX_SHADER } from './webgl/commonShaders';
 import { buildCanvasFont, formatFontStack, DEFAULT_EXPORT_FONT_STACK } from './fontStack';
 import { getFontById } from '../constants/fonts';
 import { getBundledFontFiles } from './fontLoader';
+import { buildSessionDocument } from './sessionDocument';
+
+/**
+ * Optional file sink. When set (via `withExportFileSink`), exports hand their
+ * finished blobs to the sink instead of triggering a browser download. Used by
+ * programmatic callers such as the MCP bridge `export` operation.
+ */
+export type ExportFileSink = (blob: Blob, filename: string) => void;
+let activeExportFileSink: ExportFileSink | null = null;
+
+export async function withExportFileSink<T>(sink: ExportFileSink, run: () => Promise<T>): Promise<T> {
+  const previous = activeExportFileSink;
+  activeExportFileSink = sink;
+  try {
+    return await run();
+  } finally {
+    activeExportFileSink = previous;
+  }
+}
+
+const saveAs = (blob: Blob, filename: string): void => {
+  if (activeExportFileSink) {
+    activeExportFileSink(blob, filename);
+    return;
+  }
+  fileSaverSaveAs(blob, filename);
+};
 
 interface JsonExportFrameColors {
   foreground?: Record<string, string> | string;
@@ -573,93 +600,7 @@ export class ExportRenderer {
     try {
       this.updateProgress('Serializing data...', 30);
 
-      // Shared tool/palette/typography/UI state for both v1 and v2
-      const sharedState = {
-        tools: {
-          activeTool: data.toolState.activeTool,
-          selectedCharacter: data.toolState.selectedCharacter,
-          selectedColor: data.toolState.selectedColor,
-          selectedBgColor: data.toolState.selectedBgColor,
-          paintBucketContiguous: data.toolState.paintBucketContiguous,
-          rectangleFilled: data.toolState.rectangleFilled
-        },
-        ui: {
-          theme: data.uiState.theme,
-          zoom: data.uiState.zoom,
-          panOffset: data.uiState.panOffset,
-          fontMetrics: data.fontMetrics
-        },
-        typography: {
-          fontSize: data.typography.fontSize,
-          characterSpacing: data.typography.characterSpacing,
-          lineSpacing: data.typography.lineSpacing,
-          selectedFontId: data.typography.selectedFontId
-        },
-        palettes: data.paletteState ? {
-          activePaletteId: data.paletteState.activePaletteId,
-          customPalettes: data.paletteState.customPalettes,
-          recentColors: data.paletteState.recentColors
-        } : undefined,
-        characterPalettes: data.characterPaletteState ? {
-          activePaletteId: data.characterPaletteState.activePaletteId,
-          customPalettes: data.characterPaletteState.customPalettes.map(palette => ({
-            ...palette,
-            characters: [...palette.characters]
-          })),
-          mappingMethod: data.characterPaletteState.mappingMethod,
-          invertDensity: data.characterPaletteState.invertDensity,
-          characterSpacing: data.characterPaletteState.characterSpacing
-        } : undefined
-      };
-
-      let sessionData: Record<string, unknown>;
-
-      if (data.sessionDataV2) {
-        // ─── V2 FORMAT: Full layer structure with keyframes ───
-        sessionData = {
-          ...data.sessionDataV2,
-          // Enrich with project name/description
-          name: data.metadata.projectName || data.name || 'Untitled Project',
-          description: data.metadata.projectDescription || data.description,
-          metadata: settings.includeMetadata ? {
-            exportedAt: new Date().toISOString(),
-            exportVersion: '2.2.0',
-            userAgent: navigator.userAgent
-          } : undefined,
-          // Attach shared state that the timeline store doesn't track
-          ...sharedState,
-        };
-      } else {
-        // ─── V1 FORMAT: Flat frames (legacy / no layers) ───
-        sessionData = {
-          version: '1.0.0',
-          name: data.metadata.projectName || data.name || 'Untitled Project',
-          description: data.metadata.projectDescription || data.description,
-          metadata: settings.includeMetadata ? {
-            exportedAt: new Date().toISOString(),
-            exportVersion: '1.0.0',
-            userAgent: navigator.userAgent
-          } : undefined,
-          canvas: {
-            width: data.canvasDimensions.width,
-            height: data.canvasDimensions.height,
-            canvasBackgroundColor: data.canvasBackgroundColor,
-            showGrid: data.showGrid
-          },
-          animation: {
-            frames: data.frames.map(frame => ({
-              id: frame.id,
-              name: frame.name,
-              duration: frame.duration,
-              data: Object.fromEntries(frame.data.entries())
-            })),
-            currentFrameIndex: data.currentFrameIndex,
-            frameRate: data.frameRate,
-            looping: data.looping
-          },
-          ...sharedState,
-        };
-      }
+      const sessionData = buildSessionDocument(data, { includeMetadata: settings.includeMetadata });
 
       this.updateProgress('Converting to JSON...', 70);
 

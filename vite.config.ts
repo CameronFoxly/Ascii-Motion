@@ -23,6 +23,9 @@ const premiumAlias = hasPremium
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __ASCII_MOTION_PREMIUM__: JSON.stringify(hasPremium),
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

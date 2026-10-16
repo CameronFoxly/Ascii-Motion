@@ -147,6 +147,22 @@ const DEFAULT_ANSI_SETTINGS: AnsiExportSettings = {
   clearScreen: true,
 };
 
+/** Default settings per export family (shared with the MCP bridge export catalog). */
+export const DEFAULT_EXPORT_SETTINGS = {
+  image: DEFAULT_IMAGE_SETTINGS,
+  svg: DEFAULT_SVG_SETTINGS,
+  video: DEFAULT_VIDEO_SETTINGS,
+  session: DEFAULT_SESSION_SETTINGS,
+  text: DEFAULT_TEXT_SETTINGS,
+  json: DEFAULT_JSON_SETTINGS,
+  html: DEFAULT_HTML_SETTINGS,
+  react: DEFAULT_REACT_SETTINGS,
+  ink: DEFAULT_INK_SETTINGS,
+  opentui: DEFAULT_OPENTUI_SETTINGS,
+  bubbletea: DEFAULT_BUBBLETEA_SETTINGS,
+  ansi: DEFAULT_ANSI_SETTINGS,
+} as const;
+
 export const useExportStore = create<ExportStoreState>((set, get) => ({
   // Initial state
   activeFormat: null,

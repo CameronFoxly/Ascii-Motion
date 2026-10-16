@@ -1,5 +1,7 @@
 # ASCII Motion MCP - LLM Best Practices Guide
 
+> **Legacy guide.** Tool names here (e.g. `get_canvas_ascii`, `get_canvas_preview`) predate bridge protocol v3 and may not match the current server. The authoritative operation list is the generated [`MCP_BRIDGE_OPERATIONS.md`](MCP_BRIDGE_OPERATIONS.md); protocol and contributor workflow are in [`MCP_BRIDGE_CONTRACT.md`](MCP_BRIDGE_CONTRACT.md). User-facing install/usage guides live in the docs site (`packages/web`).
+
 This guide documents learned patterns for effectively using the ASCII Motion MCP tools. It can be exposed as an MCP Resource (`guide://llm-best-practices`) so LLMs can access it during tool invocation.
 
 ---

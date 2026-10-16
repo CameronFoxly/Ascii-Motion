@@ -271,6 +271,7 @@ export const isValidFrame = (frame: unknown): frame is Frame => {
 
 // Enhanced History System Types
 export type HistoryActionType = 
+  | 'document_snapshot' // Whole-document restore point (bridge/semantic operations)
   | 'canvas_edit'      // Canvas cell modifications
   | 'canvas_resize'    // Canvas size changes
   | 'add_frame'        // Add new frame
@@ -998,7 +999,22 @@ export type AnyHistoryAction =
   // Post effect block actions (WebGL shader effects)
   | PostEffectBlockAddHistoryAction
   | PostEffectBlockRemoveHistoryAction
-  | PostEffectBlockUpdateHistoryAction;
+  | PostEffectBlockUpdateHistoryAction
+  | DocumentSnapshotHistoryAction;
+
+/**
+ * Whole-document restore point used by semantic operations (MCP bridge,
+ * automation). `previous`/`next` are opaque snapshots produced by
+ * `captureDocumentState` in src/mcp/operations/state.ts.
+ */
+export interface DocumentSnapshotHistoryAction extends HistoryAction {
+  type: 'document_snapshot';
+  data: {
+    operation: string;
+    previous: unknown;
+    next: unknown;
+  };
+}
 
 export interface ApplyTransformsHistoryAction extends HistoryAction {
   type: 'apply_transforms';

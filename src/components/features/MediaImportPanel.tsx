@@ -59,7 +59,6 @@ import {
 } from '../../stores/importStore';
 import { mediaProcessor, SUPPORTED_IMAGE_FORMATS, SUPPORTED_VIDEO_FORMATS } from '../../utils/mediaProcessor';
 import { asciiConverter } from '../../utils/asciiConverter';
-import { SAMPLING_QUALITY_PRESETS } from '../../utils/shapeBasedConverter';
 import { cloneFrames } from '../../utils/frameUtils';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useAnimationStore } from '../../stores/animationStore';
@@ -75,101 +74,14 @@ import { TransparencySection } from './TransparencySection';
 import { PreprocessingSection } from './PreprocessingSection';
 import type { MediaFile } from '../../utils/mediaProcessor';
 import type { Cell, ImportMediaHistoryAction } from '../../types';
-import type { ColorPalette } from '../../types/palette';
 import type { ImportSettings } from '../../stores/importStore';
-import { ColorMatcher } from '../../utils/asciiConverter';
+import { applyColorKey, buildConversionSettings, buildProcessingOptions } from '../../utils/mediaImportPipeline';
 import {
   getImportHeightForWidth,
   getImportWidthForHeight,
   IMPORT_CHARACTER_ASPECT_RATIO,
   positionImportCells,
 } from '../../utils/importTransformUtils';
-
-/**
- * Apply color keying to filter out cells matching the alpha key color
- * Uses ORIGINAL pixel colors from the source image (before preprocessing/palette mapping)
- * Returns a new Map with transparent cells removed
- * 
- * @param cells - The converted ASCII cells
- * @param enableColorAsAlpha - Whether color keying is enabled
- * @param colorAsAlphaKey - The hex color to match for transparency
- * @param colorAsAlphaTolerance - RGB distance tolerance (0-255)
- * @param originalImageData - The original source image data (before processing)
- */
-function applyColorKey(
-  cells: Map<string, Cell>,
-  enableColorAsAlpha: boolean,
-  colorAsAlphaKey: string,
-  colorAsAlphaTolerance: number,
-  originalImageData?: ImageData,
-  gridWidth?: number,
-  gridHeight?: number
-): Map<string, Cell> {
-  if (!enableColorAsAlpha) {
-    return cells;
-  }
-
-  const filteredCells = new Map<string, Cell>();
-  
-  cells.forEach((cell, key) => {
-    // Parse cell coordinates from key (format: "x,y")
-    const [x, y] = key.split(',').map(Number);
-    
-    let shouldRemove = false;
-    
-    if (originalImageData) {
-      // When image is higher resolution than the grid (auto/line-art mode),
-      // map cell coordinates to the center pixel of the corresponding cell region.
-      const imgW = originalImageData.width;
-      const imgH = originalImageData.height;
-      const gw = gridWidth || imgW;
-      const gh = gridHeight || imgH;
-      const cellW = imgW / gw;
-      const cellH = imgH / gh;
-      const px = Math.min(Math.floor(x * cellW + cellW / 2), imgW - 1);
-      const py = Math.min(Math.floor(y * cellH + cellH / 2), imgH - 1);
-      
-      const pixelIndex = (py * imgW + px) * 4;
-      const r = originalImageData.data[pixelIndex];
-      const g = originalImageData.data[pixelIndex + 1];
-      const b = originalImageData.data[pixelIndex + 2];
-      
-      // Check if this original pixel matches the color key
-      shouldRemove = ColorMatcher.matchesColorKey(r, g, b, colorAsAlphaKey, colorAsAlphaTolerance);
-    } else {
-      // Fallback: check post-processed cell colors (legacy behavior)
-      const bgMatches = cell.bgColor !== 'transparent' && 
-        ColorMatcher.matchesColorKey(
-          ...hexToRgb(cell.bgColor),
-          colorAsAlphaKey,
-          colorAsAlphaTolerance
-        );
-      
-      const textMatches = ColorMatcher.matchesColorKey(
-        ...hexToRgb(cell.color),
-        colorAsAlphaKey,
-        colorAsAlphaTolerance
-      );
-      
-      shouldRemove = bgMatches || textMatches;
-    }
-    
-    // Keep cell if it doesn't match the alpha key
-    if (!shouldRemove) {
-      filteredCells.set(key, cell);
-    }
-  });
-  
-  return filteredCells;
-}
-
-/**
- * Helper to convert hex color to RGB tuple
- */
-function hexToRgb(hex: string): [number, number, number] {
-  const rgb = ColorMatcher.hexToRgb(hex);
-  return [rgb.r, rgb.g, rgb.b];
-}
 
 type CropAlignmentOption = {
   mode: ImportSettings['cropMode'];
@@ -376,111 +288,17 @@ export function MediaImportPanel() {
   
   // Create conversion settings helper function
   const createConversionSettings = useCallback(() => {
-    const allPalettes: ColorPalette[] = [...palettes, ...customPalettes];
-    const resolvePaletteColors = (paletteId: string | null): string[] => {
-      if (!paletteId) return [];
-      const palette = allPalettes.find((candidate) => candidate.id === paletteId);
-      return palette ? palette.colors.map((color) => color.value) : [];
-    };
-
-    const textColorPalette = settings.enableTextColorMapping
-      ? resolvePaletteColors(settings.textColorPaletteId)
-      : [];
-    const backgroundColorPalette = settings.enableBackgroundColorMapping
-      ? resolvePaletteColors(settings.backgroundColorPaletteId)
-      : [];
-
-    return {
-      // Character mapping
-      enableCharacterMapping: settings.enableCharacterMapping,
+    return buildConversionSettings(settings, {
+      palettes: [...palettes, ...customPalettes],
       characterPalette: activePalette,
-      mappingMethod: mappingMethod,
-      characterMappingMode: mappingMode,
-      invertDensity: invertDensity,
-      
-      // Auto mode (shape-vector based)
-      autoModeEnabled: settings.characterMappingStyle === 'auto-mode',
-      autoModeCharacterSet: settings.autoModeCharacterSet,
-      autoModeGlobalContrast: settings.autoModeGlobalContrast,
-      autoModeDirectionalContrast: settings.autoModeDirectionalContrast,
-      autoModeGridWidth: settings.characterWidth,
-      autoModeGridHeight: settings.characterHeight,
-      
-      // Line art mode
-      lineArtEnabled: settings.characterMappingStyle === 'line-art',
-      lineArtBlurRadius: settings.lineArtBlurRadius,
-      lineArtEdgeThreshold: settings.lineArtEdgeThreshold,
-      lineArtDilateRadius: settings.lineArtDilateRadius,
-      lineArtErodeRadius: settings.lineArtErodeRadius,
-      lineArtSdfBlurRadius: settings.lineArtSdfBlurRadius,
-      lineArtInverseMatchWeight: settings.lineArtInverseMatchWeight,
-      lineArtGridWidth: settings.characterWidth,
-      lineArtGridHeight: settings.characterHeight,
-      
-      // Text color mapping 
-      enableTextColorMapping: settings.enableTextColorMapping,
-      textColorPalette: textColorPalette,
-      textColorMappingMode: settings.textColorMappingMode,
-      textColorDitherStrength: settings.textColorDitherStrength,
+      mappingMethod,
+      mappingMode,
+      invertDensity,
+      ditherStrength,
       defaultTextColor: selectedColor,
-      
-      // Background color mapping
-      enableBackgroundColorMapping: settings.enableBackgroundColorMapping,
-      backgroundColorPalette: backgroundColorPalette,
-      backgroundColorMappingMode: settings.backgroundColorMappingMode,
-      backgroundColorDitherStrength: settings.backgroundColorDitherStrength,
-      
-      // Legacy settings
-      useOriginalColors: settings.useOriginalColors,
-      colorQuantization: settings.colorQuantization,
-      paletteSize: settings.paletteSize,
-      colorMappingMode: settings.colorMappingMode,
-      
-      // Preprocessing settings
-      contrastEnhancement: 1 + (settings.contrast / 100), // Convert -100-100 to 0-2
-      brightnessAdjustment: settings.brightness,
-      saturationAdjustment: settings.saturation,
-      highlightsAdjustment: settings.highlights,
-      shadowsAdjustment: settings.shadows,
-      midtonesAdjustment: settings.midtones,
-      blurAmount: settings.blur,
-      sharpenAmount: settings.sharpen,
-      ditherStrength: ditherStrength
-    };
+    });
   }, [
-    settings.enableCharacterMapping,
-    settings.characterMappingStyle,
-    settings.autoModeCharacterSet,
-    settings.autoModeGlobalContrast,
-    settings.autoModeDirectionalContrast,
-    settings.characterWidth,
-    settings.characterHeight,
-    settings.lineArtBlurRadius,
-    settings.lineArtEdgeThreshold,
-    settings.lineArtDilateRadius,
-    settings.lineArtErodeRadius,
-    settings.lineArtSdfBlurRadius,
-    settings.lineArtInverseMatchWeight,
-    settings.enableTextColorMapping, 
-    settings.textColorPaletteId,
-    settings.textColorMappingMode,
-    settings.textColorDitherStrength,
-    settings.enableBackgroundColorMapping,
-    settings.backgroundColorPaletteId,
-    settings.backgroundColorMappingMode,
-    settings.backgroundColorDitherStrength,
-    settings.useOriginalColors,
-    settings.colorQuantization,
-    settings.paletteSize,
-    settings.colorMappingMode,
-    settings.brightness,
-    settings.contrast,
-    settings.saturation,
-    settings.highlights,
-    settings.shadows,
-    settings.midtones,
-    settings.blur,
-    settings.sharpen,
+    settings,
     activePalette,
     mappingMethod,
     mappingMode,
@@ -504,29 +322,13 @@ export function MediaImportPanel() {
       setProgress(0);
       
       try {
-        // Determine pixels-per-cell for auto mode and line art mode
-        const isAutoMode = settings.characterMappingStyle === 'auto-mode';
-        const isLineArt = settings.characterMappingStyle === 'line-art';
-        const qualityPreset = isAutoMode
-          ? SAMPLING_QUALITY_PRESETS[settings.autoModeSamplingQuality]
-          : undefined;
-        // Line art needs higher res for edge detection; use medium preset
-        const lineArtPreset = isLineArt
-          ? SAMPLING_QUALITY_PRESETS['low']
-          : undefined;
-        const pixelsPreset = qualityPreset || lineArtPreset;
-
-        const options = {
-          targetWidth: settings.characterWidth,
-          targetHeight: settings.characterHeight,
-          maintainAspectRatio: false, // Don't crop - stretch to exact dimensions we calculated
+        const options = buildProcessingOptions({
+          characterMappingStyle: settings.characterMappingStyle,
+          autoModeSamplingQuality: settings.autoModeSamplingQuality,
+          characterWidth: settings.characterWidth,
+          characterHeight: settings.characterHeight,
           cropMode: settings.cropMode,
-          quality: 'medium' as const,
-          ...(pixelsPreset && {
-            pixelsPerCellX: pixelsPreset.cellPixelsX,
-            pixelsPerCellY: pixelsPreset.cellPixelsY,
-          }),
-        };
+        });
         
         let result;
         if (selectedFile.type === 'image') {

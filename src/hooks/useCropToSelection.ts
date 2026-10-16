@@ -7,8 +7,8 @@ import { useTimelineStore } from '../stores/timelineStore';
 import { cropAllFramesToSelection } from '../utils/cropUtils';
 import { getBoundsFromMask } from '../utils/selectionUtils';
 import { getContentFrameAtTime } from '../utils/layerCompositing';
+import { applyLayerCanvasCrop } from '../utils/canvasGeometryOps';
 import type { CanvasResizeHistoryAction, Cell } from '../types';
-import type { LayerId } from '../types/timeline';
 
 /**
  * Hook for cropping canvas to selection across all frames
@@ -146,73 +146,7 @@ export function useCropToSelection() {
       // CRITICAL: For grouped layers, only shift the GROUP's position (not the
       // child layer's position). In compositing, group position and layer position
       // are additive, so shifting both would double the offset.
-      const posXOffset = -minX;
-      const posYOffset = -minY;
-
-      // Collect group IDs for quick lookup
-      const groupChildIds = new Set<string>();
-      for (const group of tlFlushed.layerGroups) {
-        for (const childId of group.childLayerIds) {
-          groupChildIds.add(childId as string);
-        }
-      }
-
-      // Shift each UNGROUPED layer's position (grouped layers get shifted via their group)
-      for (const layer of tlFlushed.layers) {
-        if (groupChildIds.has(layer.id as string)) continue; // Skip grouped layers
-        
-        const oldPosX = layer.staticProperties['transform.position.x'] ?? 0;
-        const oldPosY = layer.staticProperties['transform.position.y'] ?? 0;
-        
-        tl.setStaticProperty(layer.id, 'transform.position.x', oldPosX + posXOffset);
-        tl.setStaticProperty(layer.id, 'transform.position.y', oldPosY + posYOffset);
-
-        // Shift position keyframes by the same offset
-        for (const track of layer.propertyTracks) {
-          if (track.propertyPath === 'transform.position.x') {
-            for (const kf of track.keyframes) {
-              tl.updateKeyframe(layer.id, track.id, kf.id, {
-                value: (kf.value as number) + posXOffset,
-              });
-            }
-          } else if (track.propertyPath === 'transform.position.y') {
-            for (const kf of track.keyframes) {
-              tl.updateKeyframe(layer.id, track.id, kf.id, {
-                value: (kf.value as number) + posYOffset,
-              });
-            }
-          }
-        }
-      }
-
-      // Shift group positions the same way
-      for (const group of tlFlushed.layerGroups) {
-        const groupId = group.id as unknown as LayerId;
-        const oldGPosX = group.staticProperties?.['transform.position.x'] ?? 0;
-        const oldGPosY = group.staticProperties?.['transform.position.y'] ?? 0;
-
-        tl.setStaticProperty(groupId, 'transform.position.x', oldGPosX + posXOffset);
-        tl.setStaticProperty(groupId, 'transform.position.y', oldGPosY + posYOffset);
-
-        for (const track of (group.propertyTracks ?? [])) {
-          if (track.propertyPath === 'transform.position.x') {
-            for (const kf of track.keyframes) {
-              tl.updateKeyframe(groupId, track.id, kf.id, {
-                value: (kf.value as number) + posXOffset,
-              });
-            }
-          } else if (track.propertyPath === 'transform.position.y') {
-            for (const kf of track.keyframes) {
-              tl.updateKeyframe(groupId, track.id, kf.id, {
-                value: (kf.value as number) + posYOffset,
-              });
-            }
-          }
-        }
-      }
-
-      // Resize canvas and reload the active layer's content frame into canvasStore
-      setCanvasSize(newWidth, newHeight);
+      applyLayerCanvasCrop({ minX, minY, maxX, maxY });
       const updatedTl = useTimelineStore.getState();
       const activeLayerAfterCrop = updatedTl.layers.find(l => l.id === updatedTl.view.activeLayerId);
       if (activeLayerAfterCrop) {

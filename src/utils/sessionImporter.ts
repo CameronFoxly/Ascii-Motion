@@ -15,6 +15,7 @@ import type { ColorPalette, CharacterPalette, CharacterMappingSettings } from '.
 import { isColorPalette, isCharacterPalette } from '../types/palette';
 import { detectSessionVersion, migrateV1ToV2, validateAndRepairV2 } from './sessionMigration';
 import { getContentFrameAtTime } from './layerCompositing';
+import { getCanvasTypographyController } from '../stores/canvasTypographySnapshot';
 
 type SessionFrameCells = Record<string, Cell>;
 
@@ -593,8 +594,11 @@ export class SessionImporter {
    */
   static async importSessionData(
     rawData: unknown,
-    typographyCallbacks?: TypographyCallbacks,
+    explicitTypographyCallbacks?: TypographyCallbacks,
   ): Promise<void> {
+    // Non-React callers (MCP bridge, automation) don't pass callbacks; fall back to
+    // the mounted CanvasProvider's controller so typography is never silently dropped.
+    const typographyCallbacks = explicitTypographyCallbacks ?? getCanvasTypographyController() ?? undefined;
     try {
       const version = detectSessionVersion(rawData);
       let sessionData: SessionDataV2;

@@ -155,7 +155,7 @@ export function MyNewTool() {
 
 Before submitting a PR:
 
-- [ ] Run `npm run test:run` - All 343 tests pass
+- [ ] Run `npm run test:run` - All tests pass
 - [ ] Run `npm run lint` - Zero warnings
 - [ ] Run `npm run dev` - Verify no console errors
 - [ ] Run `npm run build` - Production build succeeds
@@ -163,6 +163,11 @@ Before submitting a PR:
 - [ ] Test with multiple layers (if animation/drawing related)
 - [ ] Add tests for new store actions or utility functions
 - [ ] Verify exports still work
+- [ ] Classify MCP impact and, if changed, run `npm run mcp:contract` + `npm run test:mcp` (see below)
+
+## 🤖 MCP Parity
+
+The [ascii-motion-mcp](https://github.com/CameronFoxly/ascii-motion-mcp) server controls the app through a typed bridge contract owned by this repo. Every user-facing authoring, animation, import/export or project change must be classified as **none**, **supported** (existing operations), **changed/new**, or **excluded** (with a reason) in `src/mcp/contract/coverage.ts`. Follow the workflow in [`docs/MCP_BRIDGE_CONTRACT.md`](docs/MCP_BRIDGE_CONTRACT.md); CI fails on stale generated artifacts or unclassified tools/export formats. If the contract hash changes, open a companion MCP PR.
 
 ## 📋 Pull Request Guidelines
 
@@ -185,6 +190,7 @@ Include:
 3. **How** - How does it work?
 4. **Testing** - How did you test it?
 5. **Screenshots** - For UI changes (optional but helpful)
+6. **MCP impact** - none / supported / changed-new / excluded, plus companion MCP or docs PR links
 
 ### Example PR Description
 
