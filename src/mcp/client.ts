@@ -13,11 +13,12 @@ import { useSelectionStore } from '../stores/selectionStore';
 import { useProjectMetadataStore } from '../stores/projectMetadataStore';
 import { useTimelineStore } from '../stores/timelineStore';
 import { getContentFrameAtTime } from '../utils/layerCompositing';
-import { serializeGeneratorSource } from '../utils/generators/generatorSerialization';
 import { SessionImporter } from '../utils/sessionImporter';
 import { MCPCommandDispatcher } from './commandDispatcher';
 import { navigateToFrameAtomically } from './frameNavigation';
 import { useMCPStore } from './store';
+import { serializeSnapshotLayer } from './snapshotSerialization';
+import { executeGeneratorCommand, isGeneratorCommand } from './generatorCommands';
 import type {
   MCPClientAuth,
   MCPClientHeartbeat,
@@ -220,45 +221,7 @@ export class MCPClient {
     let layerData: Record<string, unknown> | undefined;
     if (isLayerMode) {
       layerData = {
-        layers: timelineAfterFlush.layers.map(l => ({
-          id: l.id,
-          name: l.name,
-          visible: l.visible,
-          solo: l.solo,
-          locked: l.locked,
-          opacity: l.opacity,
-          parentGroupId: l.parentGroupId,
-          syncKeyframesToFrames: l.syncKeyframesToFrames,
-          ...(l.kind === 'generator' && l.generator
-            ? { kind: l.kind, generator: serializeGeneratorSource(l.generator) }
-            : {}),
-          contentFrames: l.contentFrames.map(cf => {
-            const cfData: Record<string, { char: string; color: string; bgColor: string }> = {};
-            cf.data.forEach((cell, key) => {
-              cfData[key] = { char: cell.char, color: cell.color, bgColor: cell.bgColor };
-            });
-            return {
-              id: cf.id,
-              name: cf.name,
-              startFrame: cf.startFrame,
-              durationFrames: cf.durationFrames,
-              data: cfData,
-              hidden: cf.hidden,
-            };
-          }),
-          propertyTracks: l.propertyTracks.map(pt => ({
-            id: pt.id,
-            propertyPath: pt.propertyPath,
-            loopKeyframes: pt.loopKeyframes,
-            keyframes: pt.keyframes.map(kf => ({
-              id: kf.id,
-              frame: kf.frame,
-              value: kf.value,
-              easing: kf.easing,
-            })),
-          })),
-          staticProperties: l.staticProperties,
-        })),
+        layers: timelineAfterFlush.layers.map(serializeSnapshotLayer),
         layerGroups: timelineAfterFlush.layerGroups.map(g => ({
           id: g.id,
           name: g.name,
@@ -1051,6 +1014,20 @@ export class MCPClient {
       case 'get_post_effect_presets':
         this.handleGetPostEffectPresets();
         break;
+
+      // Procedural generator layer commands
+      case 'get_generator_catalog':
+      case 'add_generator_layer':
+      case 'update_generator_layer':
+      case 'set_generator_property':
+      case 'set_generator_keyframes':
+      case 'remove_generator_keyframes':
+      case 'reset_generator':
+      case 'randomize_generator_seed':
+      case 'get_generator_state':
+      case 'render_generator_frames':
+      case 'bake_generator_layer':
+        return this.handleGeneratorCommand(command);
         
       default:
         throw new Error(`Unsupported browser command: ${(command as { type: string }).type}`);
@@ -1524,6 +1501,21 @@ export class MCPClient {
       console.log('[MCP] Post effect presets:', JSON.stringify(presets));
       this.send({ type: 'post_effect_presets', presets });
     });
+  }
+
+  // ==========================================================================
+  // Generator Layer Command Handlers
+  // ==========================================================================
+
+  private handleGeneratorCommand(command: MCPCommand): MCPCommandApplied {
+    if (!isGeneratorCommand(command)) {
+      throw new Error(`Unsupported browser command: ${command.type}`);
+    }
+    if (command.type === 'add_generator_layer' || command.type === 'bake_generator_layer') {
+      // Both change which layer the canvas shows; persist pending canvas edits first
+      this.flushCanvasToActiveContentFrame();
+    }
+    return executeGeneratorCommand(command);
   }
 
   // Post effect block ID mapping (server ref → browser ID)

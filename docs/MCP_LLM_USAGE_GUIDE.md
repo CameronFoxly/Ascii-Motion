@@ -376,3 +376,101 @@ When post effects exist, the `state_snapshot` message includes a `postEffects` a
   ]
 }
 ```
+
+---
+
+## 🌀 Procedural Generator Layers
+
+Generator layers render their content every frame from a generator algorithm plus keyframeable settings (Radio Waves, Turbulent Noise, Particle Physics, Rain Drops, Digital Rain, Animated Text). They have no content frames until baked.
+
+All generator commands use the acknowledged `command_request` → `command_result` channel. Every mutating command records **one** in-app undo entry and fails with a descriptive `error` for an unknown layer, a non-generator layer, an unknown generator type, an unknown property path, or an invalid value. Older app builds reply `Unsupported browser command: <type>`.
+
+Successful results include `applied.currentFrameIndex` and, where relevant:
+
+| Field | Meaning |
+|-------|---------|
+| `layerId` | Target generator layer |
+| `generator` | Full serialized generator source **after** the change: `{ id, generatorType, startFrame, durationFrames, enabled, settings, propertyTracks: [{ id, propertyPath, keyframes: [{ id, frame, value, easing }], loopKeyframes }] }` (omitted after bake) |
+| `layer` | Layer serialized like `state_snapshot.layers[]` (add and bake) |
+| `trackId` / `keyframeIds` | Track and keyframe ids from `set_generator_keyframes` (ids in input order) |
+| `generatorCatalog` | Result of `get_generator_catalog` |
+| `resolvedSettings` | Result of `get_generator_state` |
+| `generatorFrames` | Result of `render_generator_frames` |
+
+### Recommended workflow
+
+1. `get_generator_catalog` to discover types, property paths, value types, ranges, options and visibility rules.
+2. `add_generator_layer` with the initial `settings`.
+3. Animate with `set_generator_keyframes` (or `set_generator_property` at a `frame`).
+4. Verify with `render_generator_frames` (plain-text preview) or `get_generator_state`.
+5. Only `bake_generator_layer` when hand-editing the output is required — baking is permanent apart from undo.
+
+### `get_generator_catalog`
+Non-mutating. Returns `applied.generatorCatalog[]`: `{ type, name, description, mode, properties, defaultSettings, initialSettings }`. Each property includes `path, displayName, category, valueType, defaultValue, interpolation, min, max, step, unit, control, options, visibleWhen, visibleWhenAll`. `initialSettings` are what a new layer gets on the current canvas (e.g. centered positions).
+
+### `add_generator_layer`
+```json
+{ "type": "add_generator_layer", "generatorType": "turbulent-noise", "name": "Clouds", "startFrame": 0, "durationFrames": 48, "settings": { "baseFrequency": 0.2 } }
+```
+The layer is inserted above the active layer and becomes active. `durationFrames` defaults to the rest of the timeline; the timeline grows to fit. Returns `layerId`, `layer`, `generator`.
+
+### `update_generator_layer`
+```json
+{ "type": "update_generator_layer", "layerId": "<id>", "settings": { "speed": 2 }, "startFrame": 12, "durationFrames": 24, "shiftKeyframes": true, "enabled": true, "name": "Storm" }
+```
+`settings` is a shallow merge into the static values (keyframed properties still follow their tracks). `shiftKeyframes` (default `false`) moves all keyframes by the start-frame delta.
+
+### `set_generator_property`
+```json
+{ "type": "set_generator_property", "layerId": "<id>", "propertyPath": "baseFrequency", "value": 0.4, "frame": 10 }
+```
+Behaves like editing in the properties panel at `frame` (default: playhead): updates the keyframe at that frame, adds a keyframe if the property is already animated, otherwise sets the static value.
+
+Animated Text specials:
+- `typewriter.units` (`percent` ↔ `index`) converts the existing start/end values and keyframes.
+- Setting `effect` to `typewriter` also keyframes `typewriter.end` 0 → 100 across the span (unless End is already keyed). Pass `"applyEffectDefaults": false` to skip.
+
+### `set_generator_keyframes`
+```json
+{
+  "type": "set_generator_keyframes", "layerId": "<id>", "propertyPath": "baseFrequency",
+  "keyframes": [ { "frame": 0, "value": 0.1, "easing": "ease-in-out" }, { "frame": 24, "value": 0.6 } ],
+  "replace": false, "loop": true
+}
+```
+Creates the track if needed. A keyframe at an existing frame replaces it. `replace: true` clears the track first. `easing` is a preset (`linear`, `hold`, `ease-in`, `ease-out`, `ease-in-out`, `ease-out-back`, `ease-in-back`, `bounce`) or `{ "type": "custom", "x1", "y1", "x2", "y2" }`. `loop` toggles keyframe looping. Only paths listed in the catalog `properties` are keyframeable.
+
+### `remove_generator_keyframes`
+```json
+{ "type": "remove_generator_keyframes", "layerId": "<id>", "propertyPath": "baseFrequency", "frames": [24] }
+```
+Match by `frames` and/or `keyframeIds`, or pass `"clearTrack": true`. When the track is cleared (or every keyframe is removed) the value at `frame` (default: playhead) becomes the static setting.
+
+### `reset_generator` / `randomize_generator_seed`
+```json
+{ "type": "reset_generator", "layerId": "<id>" }
+{ "type": "randomize_generator_seed", "layerId": "<id>", "frame": 0 }
+```
+Reset restores defaults and removes all keyframes (seed kept). Randomize sets a new seed (keyed at `frame` if `seed` is animated); generators without a seed return an error.
+
+### `get_generator_state`
+```json
+{ "type": "get_generator_state", "layerId": "<id>", "frame": 12 }
+```
+Non-mutating. `applied.resolvedSettings` holds every setting evaluated at `frame` (defaults ← static ← keyframes).
+
+### `render_generator_frames`
+```json
+{ "type": "render_generator_frames", "layerId": "<id>", "frames": [0, 12, 24], "includeCells": false }
+```
+Non-mutating, max 60 frames. Renders the generator source only (no layer transforms, opacity or effects). Each entry: `{ frame, inRange, text, cellCount, cells? }` where `text` is one string per canvas row with spaces for empty cells, and `cells` (when requested) is `[{ x, y, char, color, bgColor }]`.
+
+### `bake_generator_layer`
+```json
+{ "type": "bake_generator_layer", "layerId": "<id>" }
+```
+Converts the layer into regular content frames (identical consecutive frames are merged). Returns `layerId` and the baked `layer`; no `generator`.
+
+### Generators in State Snapshots
+
+Generator layers appear in `state_snapshot.layers[]` with `"kind": "generator"` and a `generator` object in the same serialized shape as `applied.generator`, and an empty `contentFrames` array.
