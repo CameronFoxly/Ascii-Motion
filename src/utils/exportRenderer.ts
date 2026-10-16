@@ -4467,37 +4467,27 @@ ${this.generateWebGLShaderRuntime(htmlShaderBundle!)}
       }
     });
 
-    // Set up VideoEncoder for WebCodecs encoding
-    const encodedChunks: EncodedVideoChunk[] = [];
-    
-    return new Promise((resolve, reject) => {
-      const encoder = new VideoEncoder({
-        output: (chunk) => {
-          encodedChunks.push(chunk);
-          
-          // Add encoded chunk directly to muxer
+    let encodedFrameCount = 0;
+    let encodingError: Error | undefined;
+    const encoder = new VideoEncoder({
+      output: (chunk) => {
+        try {
           muxer.addVideoChunk(chunk);
-          
-          // Update progress
-          const progress = 50 + (encodedChunks.length / frames.length) * 30;
-          this.updateProgress(`Encoding frame ${encodedChunks.length}/${frames.length}...`, progress);
-          
-          // Check if we've encoded all frames
-          if (encodedChunks.length === frames.length) {
-            encoder.close();
-            muxer.finalize();
-            const buffer = muxer.target.buffer;
-            setWebMSegmentDuration(buffer, (frames.length * 1000) / (settings.frameRate as number));
-            resolve(new Blob([buffer], { type: 'video/webm' }));
-          }
-        },
-        error: (error) => {
-          console.error('VideoEncoder error:', error);
-          encoder.close();
-          reject(error);
+          encodedFrameCount++;
+          const progress = 50 + (encodedFrameCount / frames.length) * 30;
+          this.updateProgress(`Encoding frame ${encodedFrameCount}/${frames.length}...`, progress);
+        } catch (error) {
+          // Output callbacks cannot reject the awaited flush promise themselves.
+          encodingError ??= error instanceof Error ? error : new Error(String(error));
         }
-      });
+      },
+      error: (error) => {
+        console.error('VideoEncoder error:', error);
+        encodingError ??= error;
+      }
+    });
 
+    try {
       // Configure the encoder
       encoder.configure({
         codec: 'vp09.00.10.08', // VP9 codec
@@ -4516,16 +4506,28 @@ ${this.generateWebGLShaderRuntime(htmlShaderBundle!)}
           timestamp: (i * 1000000) / (settings.frameRate as number) // microseconds
         });
         
-        // Encode the frame
-        encoder.encode(frame, { keyFrame: i === 0 || i % 30 === 0 }); // Keyframe every 30 frames
-        
-        // Clean up the frame
-        frame.close();
+        try {
+          encoder.encode(frame, { keyFrame: i === 0 || i % 30 === 0 }); // Keyframe every 30 frames
+        } finally {
+          frame.close();
+        }
       }
-      
-      // Finish encoding
-      encoder.flush();
-    });
+
+      // Closing in the last output callback aborts this still-pending promise.
+      await encoder.flush();
+      if (encodingError) throw encodingError;
+      if (encodedFrameCount !== frames.length) {
+        throw new Error(`VideoEncoder produced ${encodedFrameCount} of ${frames.length} frames`);
+      }
+      muxer.finalize();
+      const buffer = muxer.target.buffer;
+      setWebMSegmentDuration(buffer, (frames.length * 1000) / (settings.frameRate as number));
+      return new Blob([buffer], { type: 'video/webm' });
+    } catch (error) {
+      throw encodingError ?? error;
+    } finally {
+      if (encoder.state !== 'closed') encoder.close();
+    }
   }
 
   /**
