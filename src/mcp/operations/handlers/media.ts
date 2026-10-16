@@ -10,7 +10,7 @@ const loadTraceProcessor = () => import('../../../utils/imageTraceProcessor');
 import { BridgeError, invalid } from '../errors';
 import type { OperationHandler } from '../runtime';
 import { getTypographyState } from '../state';
-import { canvas, putCell, resolveTarget, targetResult, tl, writeContentFrame, type TargetInput } from './common';
+import { canvas, isEmptyCell, putCell, resolveTarget, targetResult, tl, writeContentFrame, type TargetInput } from './common';
 
 export function base64ToFile(data: string, mimeType: string, filename: string): File {
   let binary: string;
@@ -121,6 +121,8 @@ export const mediaHandlers: Record<string, OperationHandler> = {
   import_media: async (input) => {
     const filename = (input.filename as string | undefined) ?? 'import';
     if (!/^(image|video)\//i.test(input.mimeType as string)) throw invalid(`Unsupported media type: ${String(input.mimeType)} (expected image/* or video/*)`);
+    const mode = (input.mode as string | undefined) ?? 'new_layer';
+    if (mode === 'overlay' && !/^image\//i.test(input.mimeType as string)) throw invalid('overlay mode imports a single image; use mode "new_layer" for video');
     const file = base64ToFile(input.data as string, input.mimeType as string, filename);
     const { settings, characterSet } = resolveImportSettings(input);
     const video = input.video as { startTime?: number; duration?: number; frameRate?: number; maxFrames?: number } | undefined;
@@ -147,12 +149,13 @@ export const mediaHandlers: Record<string, OperationHandler> = {
     }
     if (converted.frames.length === 0) throw invalid('Media produced no frames');
 
-    const mode = (input.mode as string | undefined) ?? 'new_layer';
-    if (mode === 'replace') {
-      if (converted.frames.length > 1) throw invalid('replace mode imports a single image; use mode "new_layer" for video/animated media');
+    if (mode === 'overlay' && converted.type !== 'image') throw invalid('overlay mode imports a single image; use mode "new_layer" for video');
+    if (mode === 'replace' || mode === 'overlay') {
+      if (converted.frames.length > 1) throw invalid(`${mode} mode imports a single image; use mode "new_layer" for video/animated media`);
       const target = resolveTarget(input.target as TargetInput);
-      const next = settings.enableColorAsAlpha ? new Map(target.contentFrame.data) : new Map();
+      const next = mode === 'overlay' || settings.enableColorAsAlpha ? new Map(target.contentFrame.data) : new Map();
       converted.frames[0].data.forEach((cell, key) => {
+        if (mode === 'overlay' && isEmptyCell(cell)) return;
         const [x, y] = key.split(',').map(Number);
         putCell(next, x, y, cell);
       });
@@ -160,7 +163,7 @@ export const mediaHandlers: Record<string, OperationHandler> = {
       return targetResult(target, { mode, frameCount: 1, cellCount: next.size, mediaType: converted.type });
     }
 
-    if (input.target) throw invalid('target only applies to mode "replace"');
+    if (input.target) throw invalid('target only applies to mode "replace" or "overlay"');
     const timeline = tl();
     const fps = converted.metadata?.frameRate;
     if (input.matchFrameRate && converted.type === 'video' && fps && Math.round(fps) !== timeline.config.frameRate) {

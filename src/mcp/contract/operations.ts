@@ -795,12 +795,12 @@ export const BRIDGE_OPERATIONS: OperationContract[] = [
   // ── Media ────────────────────────────────────────────────────────────────
   op({
     name: 'import_media', domain: 'media', kind: 'mutation',
-    description: 'Convert an image/video (base64) to ASCII with the app import pipeline; place as a new layer or into a target content frame.',
+    description: 'Convert an image/video (base64) to ASCII with the app import pipeline; place as a new layer or into a target content frame. Image-only overlay merges non-empty converted cells, preserving existing artwork elsewhere.',
     input: obj({
       data: str({ minLength: 1, description: 'Base64 file bytes' }),
       mimeType: str({ minLength: 1 }),
       filename: str(),
-      mode: enumOf(['new_layer', 'replace'], { default: 'new_layer' }),
+      mode: enumOf(['new_layer', 'replace', 'overlay'], { default: 'new_layer' }),
       target: Target,
       width: int({ minimum: 1, maximum: 200 }),
       height: int({ minimum: 1, maximum: 100 }),

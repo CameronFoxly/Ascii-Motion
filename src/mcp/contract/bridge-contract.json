@@ -5775,7 +5775,7 @@
       "name": "import_media",
       "domain": "media",
       "kind": "mutation",
-      "description": "Convert an image/video (base64) to ASCII with the app import pipeline; place as a new layer or into a target content frame.",
+      "description": "Convert an image/video (base64) to ASCII with the app import pipeline; place as a new layer or into a target content frame. Image-only overlay merges non-empty converted cells, preserving existing artwork elsewhere.",
       "input": {
         "type": "object",
         "properties": {
@@ -5795,7 +5795,8 @@
             "type": "string",
             "enum": [
               "new_layer",
-              "replace"
+              "replace",
+              "overlay"
             ],
             "default": "new_layer"
           },
@@ -6335,5 +6336,5 @@
       }
     }
   ],
-  "contractHash": "ce8c3f559f6ee6b9befac364728c1e1bbc0ad798c8025bfee0c0b76f92cebbe0"
+  "contractHash": "e76f9c34204f3d25b99d22a97a3ad531022d75e20e0df847c6e15d674a8302de"
 }

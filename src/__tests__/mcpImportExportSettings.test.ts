@@ -136,6 +136,72 @@ describe('export settings', () => {
 describe('import settings', () => {
   const converted = { type: 'image', metadata: {}, frames: [{ data: new Map([['0,0', { char: '#', color: '#ffffff', bgColor: 'transparent' }]]), durationMs: 100 }] };
 
+  it('overlays non-empty image cells on the explicit target with one revision and undo entry', async () => {
+    const target = await ok('set_cells', { cells: [
+      { x: 0, y: 0, char: 'A' },
+      { x: 1, y: 0, char: 'B' },
+      { x: 9, y: 5, char: 'Z' },
+    ] });
+    const editTarget = { layerId: target.layerId, contentFrameId: target.contentFrameId };
+    await ok('add_layer', { name: 'Other active layer' });
+    const read = () => ok('read_cells', { scope: 'layer', format: 'cells', ...editTarget });
+    const original = await read();
+    const before = await runOperation('get_history', {});
+    const history = await ok('get_history', {});
+    const layerCount = useTimelineStore.getState().layers.length;
+    const data = new Map(converted.frames[0].data);
+    data.set('1,0', { char: ' ', color: '#ffffff', bgColor: 'transparent' });
+    data.set('2,0', { char: ' ', color: '#ffffff', bgColor: '#ff0000' });
+    convertMediaToCells.mockResolvedValue({ ...converted, frames: [{ data, durationMs: 100 }] });
+
+    const imported = await runOperation('import_media', { data: PNG, mimeType: 'image/png', mode: 'overlay', target: editTarget });
+    expect(imported.ok, JSON.stringify(imported.error)).toBe(true);
+    expect(imported.revision).toBe(before.revision + 1);
+    expect(imported.result).toMatchObject({ mode: 'overlay', ...editTarget, frameCount: 1, cellCount: 4 });
+    expect((await ok('get_history', {})).length).toBe((history.length as number) + 1);
+    expect(useTimelineStore.getState().layers).toHaveLength(layerCount);
+    const updated = await read();
+    expect(updated.cells).toEqual(expect.arrayContaining([
+      expect.objectContaining({ x: 0, y: 0, char: '#' }),
+      expect.objectContaining({ x: 1, y: 0, char: 'B' }),
+      expect.objectContaining({ x: 2, y: 0, char: ' ', bgColor: '#ff0000' }),
+      expect.objectContaining({ x: 9, y: 5, char: 'Z' }),
+    ]));
+    await ok('undo', {});
+    expect(await read()).toEqual(original);
+    await ok('redo', {});
+    expect(await read()).toEqual(updated);
+  });
+
+  it('rejects video and multi-frame overlays without changing the document or history', async () => {
+    vi.spyOn(Date.prototype, 'toISOString').mockReturnValue('2026-10-16T00:00:00.000Z');
+    await ok('set_cells', { cells: [{ x: 0, y: 0, char: 'A' }] });
+    const before = await ok('get_document', {});
+    const history = await ok('get_history', {});
+    expect((await run('import_media', { data: PNG, mimeType: 'video/mp4', mode: 'overlay' })).error?.code).toBe('INVALID_INPUT');
+    expect(convertMediaToCells).not.toHaveBeenCalled();
+    for (const output of [
+      { ...converted, type: 'video' },
+      { ...converted, frames: [converted.frames[0], converted.frames[0]] },
+    ]) {
+      convertMediaToCells.mockResolvedValue(output);
+      expect((await run('import_media', { data: PNG, mimeType: 'image/png', mode: 'overlay' })).error?.code).toBe('INVALID_INPUT');
+    }
+    expect(await ok('get_document', {})).toEqual(before);
+    expect(await ok('get_history', {})).toEqual(history);
+  });
+
+  it.each([undefined, 'replace'])('preserves existing import semantics for mode %s', async (mode) => {
+    const { layerId } = await ok('set_cells', { cells: [{ x: 9, y: 5, char: 'Z' }] });
+    const layerCount = useTimelineStore.getState().layers.length;
+    convertMediaToCells.mockResolvedValue(converted);
+    const result = await ok('import_media', { data: PNG, mimeType: 'image/png', ...(mode && { mode }), settings: { enableColorAsAlpha: false } });
+    expect(result.mode).toBe(mode ?? 'new_layer');
+    expect(useTimelineStore.getState().layers).toHaveLength(layerCount + (mode ? 0 : 1));
+    const cells = await ok('read_cells', { scope: 'layer', layerId, format: 'cells' });
+    expect(cells.cells).toEqual([expect.objectContaining(mode ? { x: 0, y: 0, char: '#' } : { x: 9, y: 5, char: 'Z' })]);
+  });
+
   it('rejects settings the import pipeline does not read and invalid enums', async () => {
     for (const settings of [{ maxFrames: 3 }, { frameExtraction: 'interval' }, { maintainAspectRatio: false }, { textColorMappingMode: 'floyd-steinberg' }]) {
       const outcome = await run('import_media', { data: PNG, mimeType: 'image/png', settings });
