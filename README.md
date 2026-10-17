@@ -1,6 +1,6 @@
 # [ASCII Motion](https://ascii-motion.app)
 
-![ASCII Motion](https://img.shields.io/badge/version-2.2.7-green)
+![ASCII Motion](https://img.shields.io/badge/version-2.2.8-green)
 ![License - Dual](https://img.shields.io/badge/license-MIT%20%2B%20Proprietary-blue)
 
 A web app for creating and animating ASCII/ANSI art. 
