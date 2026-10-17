@@ -1,12 +1,32 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "2.2.6";
-export const BUILD_DATE = "2026-10-16T21:58:56.095Z";
-export const BUILD_HASH = "1ca0396";
+export const VERSION = "2.2.7";
+export const BUILD_DATE = "2026-10-17T15:03:04.980Z";
+export const BUILD_HASH = "85fd537";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "2.2.7",
+    "date": "2026-10-17T15:03:04.980Z",
+    "commits": [
+      "Merge pull request #186 from CameronFoxly/cameronfoxly-application-security-audit",
+      "fix: pin deployed authorization migration correction",
+      "fix: publish security follow-up dependencies and submodule updates",
+      "Merge pull request #185 from CameronFoxly/cameronfoxly-application-security-audit",
+      "fix: update premium submodule with database authorization fixes",
+      "Merge pull request #184 from CameronFoxly/chore/bump-web-docs-820ae45",
+      "Bump docs to MCP 3.0.1 shared-port guidance",
+      "Merge pull request #183 from CameronFoxly/chore/bump-docs-copilot-layout",
+      "chore(docs): bump packages/web for Copilot app page layout fix",
+      "Merge pull request #182 from CameronFoxly/chore/bump-docs-copilot-app-fix",
+      "chore(docs): bump packages/web for Copilot app setup fix",
+      "Merge pull request #181 from CameronFoxly/chore/bump-docs-mcp-3.0.0",
+      "chore(docs): bump packages/web to ascii-motion-mcp 3.0.0 docs",
+      "chore: record v2.2.6 production release"
+    ]
+  },
   {
     "version": "2.2.6",
     "date": "2026-10-16T21:58:56.095Z",
