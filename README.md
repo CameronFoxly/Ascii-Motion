@@ -136,7 +136,7 @@ See the README in each package for detailed deployment instructions.
 - **`packages/premium/`** - Premium features (Proprietary License)
   - User authentication (email-based)
   - Cloud project storage (Supabase)
-  - Payment integration (future)
+  - Payment integration (Stripe)
   
 - **`packages/web/marketing/`** - Marketing site (Proprietary License)
   - Deploys to `ascii-motion.com`
@@ -179,17 +179,11 @@ src/
 
 ## 📋 Development Status
 
-This is currently maintained entirely by me, an animator and brand designer with next to no experience with building tools. This has been vibe-coded into existence using GitHub Copilot in VScode, using mostly Claude Opus 4.6, with the occasional GPT-5.2-Codex when Claude gets stumped. Please forgive any messy or unusal structure or vibe-code artifacts, I'm trying my best!
+This is currently maintained entirely by me, an animator and brand designer with next to no experience with building tools. This has been meticulously vibe-coded into existence over the last year or so, starting with Opus 4.5 in VS Code with GitHub Copilot, but more recently maintained using the [GitHub Copilot App](https://github.com/features/ai/github-app), usually in Auto model mode. Please forgive any messy or unusual structure or vibe-code artifacts, I'm trying my best!
 
 ### Upcoming features planned
 
-- Refactor of effects system to integrate with v2 timeline, so that effects are procedural and can be keyframed across time. 
-- Update the ellipse and rectangle tool to use the bezier pen tool's vector system
-- Add a "find edges" algorithm to media import using ASCII line characters
-- Update bezier tool and media import conversion functions to get more accurate shape edges
-- Add a post processing shader effect layer for things like CRT Effects, Chromatic abberation, bloom, etc.
-
-Got an idea for a new feature? [Open an issue](https://github.com/CameronFoxly/Ascii-Motion/issues/new)!
+I've knocked out my full list of future features! Got an idea for a new feature? [Open an issue](https://github.com/CameronFoxly/Ascii-Motion/issues/new)!
 
 ## 📖 Documentation
 
