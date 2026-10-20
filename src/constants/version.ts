@@ -1,12 +1,22 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
 // This file is updated by scripts/version-bump.js during deployment
 
-export const VERSION = "2.2.8";
-export const BUILD_DATE = "2026-10-17T17:30:28.047Z";
-export const BUILD_HASH = "cb2fedc";
+export const VERSION = "2.2.9";
+export const BUILD_DATE = "2026-10-20T16:46:12.504Z";
+export const BUILD_HASH = "5ddb955";
 
 // Version history with commit messages
 export const VERSION_HISTORY = [
+  {
+    "version": "2.2.9",
+    "date": "2026-10-20T16:46:12.504Z",
+    "commits": [
+      "Merge pull request #187 from CameronFoxly/cameronfoxly-sidebar-help-tooltips",
+      "Add help popovers to Effects, Generators, and Shaders sidebar sections",
+      "Revise development status and feature suggestion section",
+      "chore: record v2.2.8 production release"
+    ]
+  },
   {
     "version": "2.2.8",
     "date": "2026-10-17T17:30:28.047Z",
