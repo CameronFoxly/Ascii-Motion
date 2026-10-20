@@ -13,6 +13,7 @@ import {
 } from '../ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
+import { SectionHelpPopover } from '../common/SectionHelpPopover';
 import { useTimelineStore } from '../../stores/timelineStore';
 import { useEffectBlockHistory } from '../../hooks/useEffectBlockHistory';
 import { getAllEffects } from '../../registry/effectRegistry';
@@ -53,7 +54,15 @@ export function EffectsSection({ className = '' }: EffectsSectionProps) {
   return (
     <div className={`space-y-3 ${className}`}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CollapsibleHeader isOpen={isOpen}>
+        <CollapsibleHeader
+          isOpen={isOpen}
+          accessory={
+            <SectionHelpPopover title="Effects">
+              <p>Effects transform the text and colors of a single layer, or of all layers when applied globally.</p>
+              <p>They're non-destructive: the underlying content isn't changed unless you bake the effect.</p>
+            </SectionHelpPopover>
+          }
+        >
           <div className="flex items-center gap-2">
             <Wand2 className="w-4 h-4" />
             Effects
