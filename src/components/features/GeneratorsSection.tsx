@@ -14,6 +14,7 @@ import {
 } from '../ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
+import { SectionHelpPopover } from '../common/SectionHelpPopover';
 import { getAllGenerators } from '../../registry/generatorRegistry';
 import { addGeneratorLayerWithHistory } from '../../utils/generators/generatorHistory';
 import { useTimelineStore } from '../../stores/timelineStore';
@@ -45,7 +46,15 @@ export function GeneratorsSection({ className = '' }: GeneratorsSectionProps) {
   return (
     <div className={`space-y-3 ${className}`}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CollapsibleHeader isOpen={isOpen}>
+        <CollapsibleHeader
+          isOpen={isOpen}
+          accessory={
+            <SectionHelpPopover title="Generators">
+              <p>Generators procedurally create new animated text content on their own layer.</p>
+              <p>Tweak and keyframe their settings anytime, or bake them into regular editable frames.</p>
+            </SectionHelpPopover>
+          }
+        >
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4" />
             Generators

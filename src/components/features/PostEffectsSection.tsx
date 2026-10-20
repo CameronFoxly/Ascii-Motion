@@ -14,6 +14,7 @@ import {
 } from '../ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { CollapsibleHeader } from '../common/CollapsibleHeader';
+import { SectionHelpPopover } from '../common/SectionHelpPopover';
 import { useTimelineStore } from '../../stores/timelineStore';
 import { getAllPostEffects } from '../../registry/postEffectRegistry';
 import { usePostEffectBlockHistory } from '../../hooks/usePostEffectBlockHistory';
@@ -50,7 +51,15 @@ export function PostEffectsSection({ className = '' }: PostEffectsSectionProps) 
   return (
     <div className={`space-y-3 ${className}`}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CollapsibleHeader isOpen={isOpen}>
+        <CollapsibleHeader
+          isOpen={isOpen}
+          accessory={
+            <SectionHelpPopover title="Shaders">
+              <p>Shaders are post-processing effects applied to the final rendered image.</p>
+              <p>They survive React, image, and video exports, but not terminal or SVG exports.</p>
+            </SectionHelpPopover>
+          }
+        >
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4" />
             Shaders
