@@ -19,8 +19,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@opentui/core": "^0.1.74",
-    "@opentui/react": "^0.1.74",
+    "@opentui/core": "^0.5.10",
+    "@opentui/react": "^0.8.1",
     "react": "^19.0.0"
   },
   "devDependencies": {
