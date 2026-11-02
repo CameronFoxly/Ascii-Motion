@@ -10,6 +10,8 @@ Test harness for ASCII Motion OpenTUI component exports.
 bun install
 ```
 
+Run `bun run test` to verify that an exported animation renders and plays.
+
 ## Usage
 
 1. Export an animation from ASCII Motion using **"OpenTUI Component"** export
