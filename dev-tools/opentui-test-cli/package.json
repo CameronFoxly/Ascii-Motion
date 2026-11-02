@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
+    "test": "bun test",
     "start": "bun run src/cli.tsx",
     "dev": "bun run src/cli.tsx"
   },
@@ -19,9 +20,9 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@opentui/core": "^0.1.74",
-    "@opentui/react": "^0.1.74",
-    "react": "^19.0.0"
+    "@opentui/core": "^0.2.16",
+    "@opentui/react": "^0.2.16",
+    "react": "^19.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

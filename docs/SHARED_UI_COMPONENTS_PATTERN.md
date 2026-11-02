@@ -60,6 +60,11 @@ The premium package (private Git submodule) needs to use UI components (buttons,
 
 ### Scenario 1: Adding a New shadcn/ui Component
 
+The shadcn CLI is not installed as a project dependency because its `deepmerge`
+dependency has an unpatched prototype-poisoning advisory. On-demand CLI releases
+may still be affected, so use only trusted registries and inputs until upstream
+provides a fix.
+
 **Example:** Adding a new `command` component
 
 1. **Add to main app:**
