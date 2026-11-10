@@ -15,18 +15,7 @@ import { useProjectMetadataStore } from '../../stores/projectMetadataStore';
 import { useTimelineStore } from '../../stores/timelineStore';
 import { ExportRenderer } from '../../utils/exportRenderer';
 import type { AnsiExportSettings } from '../../types/export';
-
-const sanitizeFileName = (value: string): string => {
-  if (!value) return '';
-  return value
-    .replace(/\s+/g, '-')
-    .replace(/[^a-zA-Z0-9\-_]/g, '')
-    .replace(/-+/g, '-')
-    .replace(/_+/g, '_')
-    .toLowerCase();
-};
-
-const finalizeFileName = (value: string): string => value.replace(/^[-_]+|[-_]+$/g, '');
+import { finalizeFileName, sanitizeFileName } from '../../utils/exportFileName';
 
 export const AnsiExportDialog: React.FC = () => {
   const activeFormat = useExportStore((state) => state.activeFormat);
