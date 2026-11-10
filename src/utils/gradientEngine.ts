@@ -1,4 +1,5 @@
 import type { Cell, GradientDefinition, GradientProperty, GradientStop } from '../types';
+import { hexToRgb } from './colorConversion';
 
 export interface GradientPoint {
   x: number;
@@ -316,18 +317,6 @@ const applyNoiseDither = (normalizedPosition: number, left: GradientStop, right:
   const effectiveThreshold = 0.5 + (noise - 0.5) * strengthFactor;
   
   return normalizedPosition < effectiveThreshold ? left.value : right.value;
-};
-
-/**
- * Utility functions for color conversion
- */
-const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
-  } : null;
 };
 
 const rgbToHex = (r: number, g: number, b: number): string => {
