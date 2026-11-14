@@ -4,11 +4,8 @@
  * Provides the legacy `useAnimationStore` API backed by the new `timelineStore`.
  * This allows incremental migration of the ~47 files that import useAnimationStore.
  *
- * Usage: Replace `import { useAnimationStore } from './animationStore'`
- *   with  `import { useAnimationStore } from './animationStoreAdapter'`
- *
- * Consumer code continues to work unchanged. New code should import
- * from `timelineStore` directly.
+ * Existing consumers import `useAnimationStore` from `animationStore`.
+ * New code should import from `timelineStore` directly.
  *
  * Part of the Layer Timeline Refactor (v2.0.0)
  * See: docs/LAYER_TIMELINE_REFACTOR_PLAN.md §1.6b
