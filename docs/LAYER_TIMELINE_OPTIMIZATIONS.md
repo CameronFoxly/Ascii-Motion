@@ -371,7 +371,7 @@ The `animationStore` adapter exists for backward compatibility with 35 files. It
 **Files to migrate (35):**
 - Components: `AsciiTypePanel`, `CanvasActionButtons`, `EffectsIntegrationTest`, `InteractiveBezierOverlay`, `MediaImportPanel`, `NewProjectDialog`, `OnionSkinControls`, `PlaybackOverlay`, `PlaybackStatusBar`, `AddFramesDialog`, `SetFrameDurationDialog`, `WaveWarpDialog`, `WiggleDialog`, `TimelineToolbar`
 - Hooks: `useAnimationHistory`, `useCanvasMouseHandlers`, `useCanvasResize`, `useCropToSelection`, `useEffectsHistory`, `useFrameNavigation`, `useFrameSynchronization`, `useKeyboardShortcuts`, `useOnionSkinRenderer`, `useOptimizedPlayback`, `useTimeEffectsHistory`
-- Stores: `toolStore`, `effectsStore`, `generatorsStore`, `timeEffectsStore`, `animationStoreAdapter`, `animationStoreLegacy`
+- Stores: `toolStore`, `effectsStore`, `generatorsStore`, `timeEffectsStore`, `animationStore` (compatibility adapter)
 - Utils: `exportDataCollector`, `jsonImporter`, `sessionImporter`
 - Other: `mcp/client.ts`
 

@@ -18,6 +18,11 @@ export const sanitizeFileName = (value: string): string => {
 };
 
 export const finalizeFileName = (value: string): string => {
-  // Remove leading/trailing dashes and underscores only when finalizing for export
-  return value.replace(/^[-_]+|[-_]+$/g, '');
+  let start = 0;
+  let end = value.length;
+
+  while (start < end && (value[start] === '-' || value[start] === '_')) start++;
+  while (end > start && (value[end - 1] === '-' || value[end - 1] === '_')) end--;
+
+  return value.slice(start, end);
 };
