@@ -167,7 +167,7 @@ This implementation provides production-ready text rendering that matches modern
 }
 ```
 
-#### 2. Canvas Context Setup (`src/utils/canvasDPI.ts`)
+#### 2. Canvas Context Setup (`src/utils/canvasTextRendering.ts`)
 ```typescript
 export const setupTextRendering = (ctx: CanvasRenderingContext2D): void => {
   // Enable high-quality image smoothing for smooth text

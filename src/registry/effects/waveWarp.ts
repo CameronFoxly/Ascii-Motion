@@ -8,9 +8,9 @@
 import { Waves } from 'lucide-react';
 import type { EffectRegistryEntry } from '../effectRegistry';
 import type { EffectPropertyDefinition } from '../../types/effectBlock';
-import type { Cell } from '../../types';
 import type { WaveWarpSettings } from '../../types/timeEffects';
 import { applyWaveWarpToFrame } from '../../utils/timeEffectsProcessing';
+import { deriveCanvasBounds } from './canvasBounds';
 
 const propertyDefinitions: EffectPropertyDefinition[] = [
   {
@@ -118,16 +118,3 @@ export const waveWarpEffect: EffectRegistryEntry = {
     return { processedCells, affectedCells };
   },
 };
-
-/** Derive canvas width/height from cell positions in the map. */
-function deriveCanvasBounds(cells: Map<string, Cell>): { width: number; height: number } {
-  let maxX = 0;
-  let maxY = 0;
-  cells.forEach((_, key) => {
-    const [x, y] = key.split(',').map(Number);
-    if (x > maxX) maxX = x;
-    if (y > maxY) maxY = y;
-  });
-  // +1 because coordinates are 0-based
-  return { width: maxX + 1, height: maxY + 1 };
-}

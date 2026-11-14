@@ -32,7 +32,6 @@ export default defineConfig({
         'src/types/easing.ts',
         'src/utils/sessionMigration.ts',
         'src/stores/timelineStore.ts',
-        'src/stores/animationStoreAdapter.ts',
         'src/hooks/useTimelineHistory.ts',
       ],
       reporter: ['text', 'text-summary'],

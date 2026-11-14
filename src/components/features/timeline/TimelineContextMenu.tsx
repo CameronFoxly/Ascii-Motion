@@ -52,6 +52,7 @@ import { resolveGeneratorSettings } from '../../../utils/generators/generatorRun
 import { withGeneratorHistory, bakeGeneratorLayerWithHistory, recordGeneratorChange } from '../../../utils/generators/generatorHistory';
 import type { GeneratorSource } from '../../../types/generatorLayer';
 import type { ContentFrameReorderHistoryAction } from '../../../types';
+import { MenuItem, MenuSeparator } from './ContextMenuItem';
 
 // ============================================
 // TYPES
@@ -74,39 +75,6 @@ interface Props {
   menu: TimelineContextMenuState;
   onClose: () => void;
 }
-
-// ============================================
-// MENU ITEM COMPONENT
-// ============================================
-
-const MenuItem: React.FC<{
-  icon?: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  destructive?: boolean;
-}> = ({ icon, label, onClick, disabled, destructive }) => (
-  <button
-    className={cn(
-      'flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors',
-      disabled
-        ? 'text-muted-foreground/50 cursor-not-allowed'
-        : destructive
-          ? 'text-destructive hover:bg-destructive/10 focus:bg-destructive/10'
-          : 'hover:bg-accent focus:bg-accent',
-    )}
-    onClick={(e) => {
-      e.stopPropagation();
-      if (!disabled) onClick();
-    }}
-    disabled={disabled}
-  >
-    {icon}
-    {label}
-  </button>
-);
-
-const MenuSeparator: React.FC = () => <div className="h-px bg-border my-1" />;
 
 // Label color options for frame blocks
 const LABEL_COLORS = [
